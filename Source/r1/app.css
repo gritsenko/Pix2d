@@ -1,0 +1,31 @@
+:root {
+    --main-bg-color: rgb(112, 112, 112);
+}
+  
+.panel {
+    background-color: var(--main-bg-color);
+    height: 100%;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 0.2fr 2.5fr 0.3fr;
+    grid-template-rows: 50px 2.2fr 0.5fr;
+    gap: 0px 0px;
+    grid-auto-flow: row;
+    grid-template-areas:
+      "TopBar TopBar TopBar"
+      "ToolBar MainArea Layers"
+      "TimelineArea TimelineArea TimelineArea";
+  }
+  
+  .TopBar { grid-area: TopBar; }
+  
+  .ToolBar { grid-area: ToolBar; }
+  
+  .Layers { grid-area: Layers; }
+  
+  .MainArea { grid-area: MainArea; }
+  
+  .TimelineArea { grid-area: TimelineArea; }
+  

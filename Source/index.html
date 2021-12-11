@@ -1,15 +1,48 @@
 <!DOCTYPE html>
 <html>
-    <body>
-        <img src="Assets/Store_Logo.png" />
+<header>
+    <link href="r1/app.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: gray;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+</header>
 
-        <script>
-            
-            function hello(){
-                console.log("hey!");
-            }
+<body>
+    <!-- <img src="Assets/Store_Logo.png" /> -->
 
-            hello()
-        </script>
-    </body>
+    <div>
+        <div class="container" style="height: 100%; width: 100%; position: fixed;">
+            <div class="TopBar">
+                <div class="panel" style="background-color: lightslategray;">TopBar</div>
+            </div>
+
+            <div class="ToolBar">
+                <div class="panel">ToolBar</div>
+            </div>
+
+            <div class="Layers">
+                <div class="panel">Layers</div>
+            </div>
+
+            <div class="MainArea">
+                <div style="height: 100%; background-color: black;">MainArea</div>
+            </div>
+
+            <div class="TimelineArea">
+                <div class="panel">Timeline</div>
+            </div>
+        </div>
+
+    </div>
+    <script src="r1/components/MainView.js" type="module"></script>
+    <script src="r1/App.js" type="module"></script>
+</body>
+
 </html>
