@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<header>
+    <link href="r1/app.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: gray;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+</header>
+
+<body>
+    <!-- <img src="Assets/Store_Logo.png" /> -->
+
+    <div>
+        <div class="container" style="height: 100%; width: 100%; position: fixed;">
+            <div class="TopBar">
+                <div class="panel" style="background-color: lightslategray;">TopBar</div>
+            </div>
+
+            <div class="ToolBar">
+                <div class="panel">ToolBar</div>
+            </div>
+
+            <div class="Layers">
+                <div class="panel">Layers</div>
+            </div>
+
+            <div class="MainArea">
+                <div style="height: 100%; background-color: black;">
+                    <pix2d-canvas></pix2d-canvas>
+                </div>
+            </div>
+
+            <div class="TimelineArea">
+                <div class="panel">Timeline</div>
+            </div>
+        </div>
+
+    </div>
+    <script src="r1/components/Pix2dCanvas.js" type="module"></script>
+    <script src="r1/App.js" type="module"></script>
+</body>
+
+</html>
