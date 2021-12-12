@@ -1,7 +1,17 @@
 :root {
     --main-bg-color: rgb(112, 112, 112);
 }
-  
+
+/*prevent selection */
+body{
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
 .panel {
     background-color: var(--main-bg-color);
     height: 100%;
