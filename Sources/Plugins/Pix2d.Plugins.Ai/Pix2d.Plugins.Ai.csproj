@@ -11,10 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\IoC\IoC.csproj" />
-    <ProjectReference Include="..\..\Logger\Logger.csproj" />
-    <ProjectReference Include="..\..\Pix2d\MvvmBase\MvvmBase.csproj" />
-    <ProjectReference Include="..\..\Pix2d\Pix2d.Api\Pix2d.Api.csproj" />
+    <ProjectReference Include="..\..\Core\Pix2d.Core.Shared\Pix2d.Core.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

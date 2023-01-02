@@ -1,39 +1,40 @@
-﻿using System.Reflection.Metadata;
+﻿using System.Configuration;
+using System;
+using System.Reflection.Metadata;
 using Avalonia;
 using Avalonia.Dialogs;
 
 [assembly: MetadataUpdateHandler(typeof(Avalonia.Markup.Declarative.HotReloadManager))]
 
-namespace Pix2d.AvaloniaDesktop
+namespace Pix2d.Editor.Desktop;
+
+class Program
 {
-    class Program
+    // Initialization code. Don't use any Avalonia, third-party APIs or any
+    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
+    // yet and stuff might break.
+    public static void Main(string[] args)
     {
-        // Initialization code. Don't use any Avalonia, third-party APIs or any
-        // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-        // yet and stuff might break.
-        public static void Main(string[] args)
-        {
-            EditorApp.Pix2dBootstrapper = new Pix2dBootstrapper();
-            EditorApp.OnAppStarted = OnAppStarted;
-            BuildAvaloniaApp()
-                .StartWithClassicDesktopLifetime(args);
-        }
+        EditorApp.Pix2dBootstrapper = new Pix2dBootstrapper();
+        EditorApp.OnAppStarted = OnAppStarted;
+        BuildAvaloniaApp()
+            .StartWithClassicDesktopLifetime(args);
+    }
 
-        // Avalonia configuration, don't remove; also used by visual designer.
-        public static AppBuilder BuildAvaloniaApp()
-            => AppBuilder.Configure<EditorApp>()
-                .UsePlatformDetect()
-                .UseManagedSystemDialogs()
-                .LogToTrace();
+    // Avalonia configuration, don't remove; also used by visual designer.
+    public static AppBuilder BuildAvaloniaApp()
+        => AppBuilder.Configure<EditorApp>()
+            .UsePlatformDetect()
+            .UseManagedSystemDialogs()
+            .LogToTrace();
 
-        static void OnAppStarted(object root)
+    static void OnAppStarted(object root)
+    {
+        if (root is MainWindow wnd)
         {
-            if (root is MainWindow wnd)
-            {
 #if DEBUG
-                wnd.AttachDevTools();
+            wnd.AttachDevTools();
 #endif
-            }
         }
     }
 }

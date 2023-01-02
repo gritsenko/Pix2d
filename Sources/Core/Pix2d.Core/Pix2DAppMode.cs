@@ -1,8 +1,7 @@
-﻿namespace Pix2d
+﻿namespace Pix2d;
+
+public enum Pix2DAppMode
 {
-    public enum Pix2DAppMode
-    {
-        Full,
-        SpriteEditor
-    }
+    Full,
+    SpriteEditor
 }

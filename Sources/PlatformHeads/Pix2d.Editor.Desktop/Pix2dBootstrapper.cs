@@ -11,16 +11,17 @@ using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.Editor.Desktop.Services;
 using Pix2d.Mvvm;
+using Pix2d.Plugins.Ai;
 using Pix2d.Plugins.Drawing;
 using Pix2d.Plugins.HttpHost;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Services;
 
-namespace Pix2d.AvaloniaDesktop;
+namespace Pix2d.Editor.Desktop;
 
 public class Pix2dBootstrapper : IPix2dBootstrapper
 {
-    public static Pix2DAppSettings Pix2dSettings { get; } = new() 
+    public static Pix2DAppSettings Pix2dSettings { get; } = new()
     {
         AppMode = Pix2DAppMode.SpriteEditor,
         Plugins = new List<Type>
@@ -29,7 +30,7 @@ public class Pix2dBootstrapper : IPix2dBootstrapper
             typeof(DrawingPlugin),
             typeof(HttpHostPlugin),
             //typeof(SpinePlugin),
-            //typeof(AiPlugin),
+            typeof(AiPlugin),
         }
     };
 
@@ -37,9 +38,9 @@ public class Pix2dBootstrapper : IPix2dBootstrapper
     {
         if (Pix2DApp.Instance?.IsInitialized == true)
             return;
-        
-        if (!global::Avalonia.Controls.Design.IsDesignMode) Pix2dViewModelBase.SetRuntimeMode();
-        
+
+        if (!Avalonia.Controls.Design.IsDesignMode) Pix2dViewModelBase.SetRuntimeMode();
+
         var container = IoC.Get<SimpleContainer>();
 
         container.RegisterSingleton<ISettingsService, SettingsService>();
@@ -60,7 +61,46 @@ public class Pix2dBootstrapper : IPix2dBootstrapper
             Directory.CreateDirectory(Pix2DApp.AppFolder);
         }
 
+        ReadAppSettingsConfig(Pix2dSettings);
+
         await Pix2DApp.CreateInstanceAsync(Pix2dSettings);
+    }
+
+    private void ReadAppSettingsConfig(Pix2DAppSettings pix2dSettings)
+    {
+        //try
+        //{
+        //    var appSettings = ConfigurationManager.AppSettings;
+
+        //    var pluginsStr = appSettings["Plugins"];
+
+        //    if (pluginsStr != null)
+        //    {
+        //        var plugins = pluginsStr.Split(';');
+        //        foreach ( var pluginName in plugins) {
+        //            var pluginType = FindModuleType(pluginName);
+        //            if(pluginType != null) {
+        //                pix2dSettings.Plugins.Add(pluginType);
+        //            }
+        //        }
+        //    }
+        //}
+        //catch (ConfigurationErrorsException)
+        //{
+        //    Debug.WriteLine("Error reading app settings");
+        //}
+    }
+
+    private static Type FindModuleType(string assemblyName)
+    {
+        var assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(x => x.GetName().Name == assemblyName);
+        var tt = assembly.GetTypes().FirstOrDefault(x => x.IsAssignableTo(typeof(IPix2dPlugin)));
+        if (tt != null)
+        {
+            return tt;
+        }
+
+        return null;
     }
 
     public static string AppDataFolder()

@@ -20,10 +20,12 @@
 		<PackageReference Include="Avalonia.Diagnostics" Version="11.0.0-preview4" />
 		<PackageReference Include="Dock.Avalonia.Themes.Default" Version="0.10.0" />
 		<PackageReference Include="MessageBox.Avalonia" Version="2.3.1-prev2" />
+		<PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\Core\Pix2d.Core.Shared\Pix2d.Core.Shared.csproj" />
 	  <ProjectReference Include="..\..\Core\Pix2d.Core\Pix2d.Core.csproj" />
 	  <ProjectReference Include="..\..\Core\Pix2d.Editor\Pix2d.Editor.csproj" />
+	  <ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
 	</ItemGroup>
 </Project>

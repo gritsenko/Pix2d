@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Core.Shared", "Core\P
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Editor.Desktop", "PlatformHeads\Pix2d.Editor.Desktop\Pix2d.Editor.Desktop.csproj", "{49791FFA-8106-461E-8B99-90E016E74655}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{95A2E6E2-F44C-4D1F-93D8-E7513936E662}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Plugins.Ai", "Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj", "{BA7535D1-B8AE-4587-BE2A-2F88E77499EC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,9 +46,18 @@ Global
 		{49791FFA-8106-461E-8B99-90E016E74655}.DebugUltimate|Any CPU.Build.0 = Debug|Any CPU
 		{49791FFA-8106-461E-8B99-90E016E74655}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49791FFA-8106-461E-8B99-90E016E74655}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA7535D1-B8AE-4587-BE2A-2F88E77499EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA7535D1-B8AE-4587-BE2A-2F88E77499EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA7535D1-B8AE-4587-BE2A-2F88E77499EC}.DebugUltimate|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA7535D1-B8AE-4587-BE2A-2F88E77499EC}.DebugUltimate|Any CPU.Build.0 = Debug|Any CPU
+		{BA7535D1-B8AE-4587-BE2A-2F88E77499EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA7535D1-B8AE-4587-BE2A-2F88E77499EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BA7535D1-B8AE-4587-BE2A-2F88E77499EC} = {95A2E6E2-F44C-4D1F-93D8-E7513936E662}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2D8A82A5-5672-464C-A953-E52A3FCDF1AE}
