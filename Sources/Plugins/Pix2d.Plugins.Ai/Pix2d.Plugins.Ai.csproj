@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.13.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\IoC\IoC.csproj" />
+    <ProjectReference Include="..\..\Logger\Logger.csproj" />
+    <ProjectReference Include="..\..\Pix2d\MvvmBase\MvvmBase.csproj" />
+    <ProjectReference Include="..\..\Pix2d\Pix2d.Api\Pix2d.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="AiModels\u2netp.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

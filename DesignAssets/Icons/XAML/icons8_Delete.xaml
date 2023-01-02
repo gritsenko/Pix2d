@@ -1,0 +1,8 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls">
+
+<DrawingImage x:Key="Icons8_Delete_6495452">
+  <DrawingImage.Drawing>    <DrawingGroup>      <DrawingGroup.Children>        <DrawingGroup>          <DrawingGroup.Children>            <DrawingGroup svg:SvgObject.Id="surface1">              <DrawingGroup.Children>                <GeometryDrawing Brush="#FF000000" Pen="{x:Null}">                  <GeometryDrawing.Geometry>                    <PathGeometry FillRule="Nonzero" Figures="M2.777344,2.261719L2.261719,2.777344 8.484375,9 2.261719,15.222656 2.777344,15.738281 9,9.515625 15.222656,15.738281 15.738281,15.222656 9.515625,9 15.738281,2.777344 15.222656,2.261719 9,8.484375z" />                  </GeometryDrawing.Geometry>                </GeometryDrawing>              </DrawingGroup.Children>            </DrawingGroup>          </DrawingGroup.Children>          <DrawingGroup.ClipGeometry>            <RectangleGeometry Rect="0,0,18,18" />          </DrawingGroup.ClipGeometry>        </DrawingGroup>      </DrawingGroup.Children>    </DrawingGroup>  </DrawingImage.Drawing></DrawingImage>
+
+</ResourceDictionary>

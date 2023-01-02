@@ -1,0 +1,194 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Pix2d.Abstract.Platform;
+using Pix2d.Abstract.Platform.FileSystem;
+using Pix2d.Abstract.Services;
+using Pix2d.Exporters;
+using SkiaNodes;
+
+namespace Pix2d.Services
+{
+    public class ExportService : IExportService
+    {
+        public ISelectionService SelectionService { get; }
+        public IFileService FileService { get; }
+
+        public IWriteDestinationFolder CurrentBuildFolder { get; set; }
+
+        public ExportService(ISelectionService selectionService, IFileService fileService)
+        {
+            SelectionService = selectionService;
+            FileService = fileService;
+        }
+
+        public void ExportSelectedNode()
+        {
+            throw new NotImplementedException();
+            //if (!SelectionService.HasSelectedNodes)
+            //    return;
+
+            //var exporter = new TypescriptLayoutExporter();
+
+            //var filename = SelectionService.Selection.Nodes[0].Name.Replace(" ", "");
+            //var file = await GetFileToExport(".ts", filename + "Layout");
+
+            //if (file == null)
+            //    return;
+
+            //await file.SaveAsync(exporter.Export(SelectionService.Selection.Nodes));
+        }
+
+        public async Task ExportNodesAsync(IFileContentSource fileContentSource, IEnumerable<SKNode> nodesToRender, double scale)
+        {
+            var pngExporter = new PngImageExporter();
+            using (var pngStream = pngExporter.Export(nodesToRender))
+            {
+                await fileContentSource.SaveAsync(pngStream);
+            }
+        }
+
+        //        public async void ExportAssets()
+        //        {
+        //            var folder = await FileService.GetFolderToExportWithDialogAsync();
+        //            if (folder != null)
+        //            {
+        ////                var exporter = new AssetExporter(folder);
+        //                var exporter = new AtlasAssetExporter(folder);
+        //                await exporter.ExportAssets(Service.GetCurrentScene());
+        //            }
+        //        }
+
+        private async Task<IFileContentSource> GetFileToExport(string filetype, string defaultName = null)
+        {
+            return await FileService.GetFileToSaveWithDialogAsync(defaultName, new []{filetype}, "export");
+        }
+
+        //public async void BuildProject()
+        //{
+        //    CurrentBuildFolder = await FileService.GetFolderToExportWithDialogAsync("buildProject");
+
+        //    if (CurrentBuildFolder != null)
+        //    {
+        //        var assetsFolder = CurrentBuildFolder.GetSubfolder("assets");
+
+        //        var texturesDir = assetsFolder.GetSubfolder("textures");
+        //        var atlasAssetExporter = new AtlasAssetExporter(texturesDir);
+        //        await atlasAssetExporter.ExportAssets(Service.GetCurrentScene());
+        //        var textures = atlasAssetExporter.GetExportedTextures();
+        //        var atlases = atlasAssetExporter.GetAtlases();
+
+
+        //        var nodes = new[] {Service.GetCurrentScene()};
+        //        var spriteSheet = BuildSpriteSheet(nodes, textures, atlases);
+
+        //        var spritesheetFile = await texturesDir.GetFileSourceAsync("spritesheet", ".json", true);
+        //        await spritesheetFile.SaveAsync(spriteSheet);
+
+        //    }
+
+        //}
+
+        //private string BuildSpriteSheet(SKNode[] nodes, Dictionary<string, TextureInfo> textures, Atlas[] atlases)
+        //{
+        //    var spriteSheet = new SpriteSheet();
+
+        //    var allNodes = nodes.SelectMany(x => x.GetDescendants(null, false, true)).OfType<AnimatedSprite>();
+
+        //    foreach (var animatedSprite in allNodes)
+        //    {
+        //        var animName = animatedSprite.Name;
+        //        var animFrames = new List<string>();
+        //        foreach (var spriteNode in animatedSprite.Nodes.OfType<SpriteNode>())
+        //        {
+        //            var texKey = spriteNode.DesignerState.ExportSettings.TextureKey;
+        //            if (textures.TryGetValue(texKey, out var texture))
+        //            {
+        //                var frame = new SpriteSheetFrame()
+        //                {
+        //                    frame = new Rect()
+        //                    {
+        //                        x = texture.X,
+        //                        y = texture.Y,
+        //                        w = texture.Width,
+        //                        h = texture.Height
+        //                    },
+        //                    anchor = new Anchor(),
+        //                    rotated = false,
+        //                    trimmed = false,
+        //                    sourceSize = new Sourcesize()
+        //                    {
+        //                        w = texture.Width,
+        //                        h = texture.Height
+        //                    },
+        //                    spriteSourceSize = new Rect()
+        //                    {
+        //                        x = 0,
+        //                        y = 0,
+        //                        w = texture.Width,
+        //                        h = texture.Height
+        //                    }
+        //                };
+
+        //                var key = texKey +".png";
+        //                spriteSheet.Frames[key] = frame;
+        //                animFrames.Add(key);
+        //            }
+        //        }
+
+        //        spriteSheet.Animations[animName] = animFrames.ToArray();
+        //    }
+
+        //    spriteSheet.Meta = new SpriteSheetMeta()
+        //    {
+        //        image = "atlas00.png",
+        //        version = "1.0",
+        //        size = new Sourcesize() { w = 1024, h = 1024}
+        //    };
+
+        //    return JsonConvert.SerializeObject(spriteSheet);
+        //}
+
+        //private async void BuildPixiProject()
+        //{
+        //    if (CurrentBuildFolder == null)
+        //    {
+        //        CurrentBuildFolder = await FileService.GetFolderToExportWithDialogAsync("buildProject");
+        //    }
+
+        //    if (CurrentBuildFolder != null)
+        //    {
+        //        CurrentBuildFolder.CopyTemplateFrom(@"Exporters\TypeScript\Pixi\Template");
+
+        //        var assetsFolder = CurrentBuildFolder.GetSubfolder("assets");
+
+        //        var exporter = new AtlasAssetExporter(assetsFolder.GetSubfolder("textures"));
+        //        await exporter.ExportAssets(Service.GetCurrentScene());
+
+        //        var textures = exporter.GetExportedTextures();
+        //        var atlases = exporter.GetAtlases();
+
+        //        var scriptsFolder = assetsFolder;
+        //        var layoutExporter = new PixiLayoutExporter(textures, atlases);
+
+        //        var nodes = Service.GetCurrentScene().Nodes.ToArray();
+        //        if (!nodes.Any(x => x is ArtboardNode))
+        //        {
+        //            nodes = new[] { Service.GetCurrentScene() };
+        //        }
+
+        //        await layoutExporter.ExportToDirectoryAsync(nodes, scriptsFolder);
+        //    }
+        //}
+
+        //public void RunProject()
+        //{
+        //    BuildProject();
+        //    var platformStuffService = IoC.Get<IPlatformStuffService>();
+        //    if (platformStuffService != null)
+        //    {
+        //        platformStuffService.OpenUrlInBrowser("http://localhost:5500/index.html");
+        //    }
+        //}
+    }
+}

@@ -1,0 +1,91 @@
+using System;
+using Mvvm;
+using Pix2d.Abstract.State;
+using Pix2d.State;
+using SkiaSharp;
+
+namespace Pix2d.ViewModels.Export
+{
+    public class ExportSettingsViewModel : ViewModelBase
+    {
+        public IAppState AppState { get; }
+        private readonly ImageExportSettings _settings = new ImageExportSettings();
+        public SKSize ExportNodesSize { get; set; }
+
+        public event EventHandler SettingsChanged;
+
+        public int Scale
+        {
+            get { return _settings.Scale; }
+            set
+            {
+                _settings.Scale = value;
+                OnSettingsChanged();
+                OnPropertyChanged();
+            }
+        }
+
+        public int ResultWidth
+        {
+            get => Get<int>();
+            set => Set(value);
+        }
+
+        public int ResultHeight
+        {
+            get => Get<int>();
+            set => Set(value);
+        }
+
+        protected virtual void OnSettingsChanged()
+        {
+            CalculateDimensions();
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public ImageExportSettings GetSettings()
+        {
+            _settings.DefaultFileName = System.IO.Path.GetFileNameWithoutExtension(AppState.CurrentProject.Title);
+            return _settings;
+        }
+
+        public ExportSettingsViewModel(IAppState appState)
+        {
+            AppState = appState;
+        }
+
+        public void CalculateDimensions()
+        {
+            var pixelSpacing = 0;
+            var marginX = 0;
+            var marginY = 0;
+
+            var w = ExportNodesSize.Width;
+            var h = ExportNodesSize.Height;
+            ResultWidth = (int) (w * (_settings.Scale + pixelSpacing) - pixelSpacing);
+            ResultHeight = (int) (h * (_settings.Scale + pixelSpacing) - pixelSpacing);
+            
+            ResultWidth += marginX * 2;
+            ResultHeight += marginY * 2;
+
+        }
+
+        public void SetSpritesheetColumns(int spsColumns)
+        {
+            _settings.SpritesheetColumns = spsColumns;
+        }
+
+        public int CalculateColumns()
+        {
+            CalculateDimensions();
+            return 3;
+        }
+
+        public void SetBounds(SKRect rect)
+        {
+            ExportNodesSize = rect.Size;
+            CalculateDimensions();
+        }
+
+    }
+}

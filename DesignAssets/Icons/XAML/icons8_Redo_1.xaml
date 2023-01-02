@@ -1,0 +1,8 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls">
+
+<DrawingImage x:Key="Icons8_Redo_6495445">
+  <DrawingImage.Drawing>    <DrawingGroup>      <DrawingGroup.Children>        <DrawingGroup>          <DrawingGroup.Children>            <DrawingGroup svg:SvgObject.Id="surface1">              <DrawingGroup.Children>                <GeometryDrawing Brush="#FF000000" Pen="{x:Null}">                  <GeometryDrawing.Geometry>                    <PathGeometry FillRule="Nonzero" Figures="M10.8125,2.972656L10,3.78125 13.535156,7.3125 6.1875,7.3125C4.023438,7.3125,2.25,9.089844,2.25,11.25L2.25,15.1875 3.375,15.1875 3.375,11.25C3.375,9.699219,4.636719,8.4375,6.1875,8.4375L13.535156,8.4375 10,11.96875 10.8125,12.78125 15.3125,8.277344 15.695313,7.875 15.3125,7.46875z" />                  </GeometryDrawing.Geometry>                </GeometryDrawing>              </DrawingGroup.Children>            </DrawingGroup>          </DrawingGroup.Children>          <DrawingGroup.ClipGeometry>            <RectangleGeometry Rect="0,0,18,18" />          </DrawingGroup.ClipGeometry>        </DrawingGroup>      </DrawingGroup.Children>    </DrawingGroup>  </DrawingImage.Drawing></DrawingImage>
+
+</ResourceDictionary>

@@ -1,0 +1,98 @@
+unit_crab.png
+	size: 2048, 2048
+	filter: Linear, Linear
+	pma: true
+back
+	bounds: 4, 1355, 662, 194
+	offsets: 4, 4, 666, 198
+	rotate: 180
+claw1_1
+	bounds: 900, 1449, 421, 286
+	offsets: 0, 2, 421, 290
+	rotate: 270
+claw1_2
+	bounds: 1387, 1438, 293, 267
+	offsets: 0, 6, 299, 279
+	rotate: 90
+claw1_3
+	bounds: 1656, 1279, 214, 233
+	offsets: 5, 5, 224, 240
+claw1_4
+	bounds: 667, 1362, 265, 484
+	offsets: 2, 0, 269, 489
+claw1_5
+	bounds: 1632, 1521, 349, 203
+	offsets: 4, 4, 353, 207
+	rotate: 90
+claw2_4
+	bounds: 1147, 1404, 266, 449
+	offsets: 4, 5, 270, 454
+	rotate: 180
+claw2_5
+	bounds: 608, 1195, 308, 178
+	offsets: 6, 0, 314, 181
+eye
+	bounds: 508, 1803, 67, 67
+	offsets: 3, 3, 73, 73
+leg_1_1
+	bounds: 901, 1201, 100, 145
+	offsets: 5, 6, 113, 157
+leg_1_2
+	bounds: 521, 1201, 102, 89
+	offsets: 1, 8, 109, 97
+leg_1_3
+	bounds: 540, 1545, 75, 75
+	offsets: 5, 5, 82, 85
+leg_2_1
+	bounds: 1375, 1203, 70, 119
+	offsets: 7, 9, 83, 131
+leg_2_2
+	bounds: 1004, 1213, 111, 117
+	offsets: 0, 0, 114, 120
+leg_2_3
+	bounds: 9, 1788, 111, 82
+	offsets: 2, 5, 118, 94
+leg_3_1
+	bounds: 1537, 1226, 70, 139
+	offsets: 7, 4, 84, 145
+leg_3_2
+	bounds: 4, 1548, 142, 112
+	offsets: 0, 0, 145, 113
+leg_4_1
+	bounds: 579, 1804, 69, 66
+	offsets: 5, 8, 82, 80
+leg_4_2
+	bounds: 4, 1217, 78, 78
+	offsets: 9, 6, 92, 90
+leg_4_3
+	bounds: 1118, 1218, 92, 133
+	offsets: 6, 9, 104, 150
+leg_5_1
+	bounds: 4, 1654, 61, 66
+	offsets: 5, 6, 70, 79
+leg_5_2
+	bounds: 84, 1206, 69, 73
+	offsets: 8, 6, 82, 86
+leg_5_3
+	bounds: 1446, 1202, 88, 131
+	offsets: 7, 7, 102, 145
+leg_6_1
+	bounds: 151, 1196, 57, 62
+	offsets: 6, 8, 70, 79
+leg_6_2
+	bounds: 1284, 1200, 69, 74
+	offsets: 7, 5, 82, 86
+leg_6_3
+	bounds: 1195, 1197, 88, 130
+	offsets: 7, 8, 102, 145
+shell_1
+	bounds: 4, 1249, 603, 121
+	offsets: 5, 2, 608, 127
+	rotate: 180
+shell_2
+	bounds: 901, 1313, 685, 134
+	offsets: 5, 1, 691, 139
+	rotate: 180
+shell_3
+	bounds: 4, 1534, 714, 336
+	offsets: 5, 0, 720, 343

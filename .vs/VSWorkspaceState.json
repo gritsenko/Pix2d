@@ -1,7 +1,13 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\Sources",
+    "\\Sources\\Core",
+    "\\Sources\\Core\\Pix2d.Api",
+    "\\Sources\\Core\\Pix2d.Editor.UI",
+    "\\Sources\\PlatformHeads",
+    "\\Sources\\PlatformHeads\\Pix2d.Desktop"
   ],
-  "SelectedNode": "\\D:\\Projects\\pix2d",
+  "SelectedNode": "\\Sources\\Pix2d.sln",
   "PreviewInSolutionExplorer": false
 }

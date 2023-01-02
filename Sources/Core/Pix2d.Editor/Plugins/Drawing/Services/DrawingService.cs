@@ -1,0 +1,301 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using CommonServiceLocator;
+using Mvvm.Messaging;
+using Pix2d.Abstract;
+using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Services;
+using Pix2d.Abstract.State;
+using Pix2d.Abstract.Tools;
+using Pix2d.Drawing.Brushes;
+using Pix2d.Drawing.Nodes;
+using Pix2d.Drawing.Tools;
+using Pix2d.Messages;
+using Pix2d.Plugins.Drawing.Operations;
+using Pix2d.Primitives.Drawing;
+using Pix2d.State;
+using SkiaNodes;
+using SkiaNodes.Extensions;
+using SkiaSharp;
+
+namespace Pix2d.Services
+{
+    public class DrawingService : IDrawingService
+    {
+        public ISelectionService SelectionService { get; }
+        public IToolService ToolService { get; }
+        public IViewPortService ViewPortService { get; }
+        public IAppState AppState { get; }
+        public IDrawingState DrawingState => AppState.DrawingState;
+
+        private DrawingOperation _currentDrawingOperation;
+
+        private IDrawingLayer _drawingLayer;
+
+        public event EventHandler MirrorModeChanged;
+        public event EventHandler Drawn;
+        public event EventHandler DrawingTargetChanged;
+
+        public List<IPixelBrush> Brushes { get; set; } = new()
+        {
+            new SquareSolidBrush(),
+            new CircleSolidBrush(),
+            //new PencilBrush(),
+            new SprayBrush(),
+        };
+
+        public IDrawingLayer DrawingLayer
+        {
+            get => _drawingLayer;
+            set => SetNewDrawingLayer(value);
+        }
+
+        public IDrawingTarget CurrentDrawingTarget { get; set; }
+
+        // public List<BrushSettings> BrushPresets { get; set; } = new();
+
+        public DrawingService(ISelectionService selectionService, IToolService toolService, ISnappingService snappingService, IViewPortService viewPortService,
+            IMessenger messenger, IAppState appState)
+        {
+
+            SelectionService = selectionService;
+            ToolService = toolService;
+            ViewPortService = viewPortService;
+            AppState = appState;
+
+            SetNewDrawingLayer(new DrawingLayerNode() { AspectSnapper = snappingService });
+
+            messenger.Register<CurrentToolChangedMessage>(this, OnCurrentToolChanged);
+            messenger.Register<ProjectLoadedMessage>(this, m => UpdateFromDesignerState());
+            messenger.Register<CanvasSizeChanged>(this, msg => UpdateDrawingTarget());
+
+            DrawingState.WatchFor(x => x.CurrentBrushSettings, OnBrushChanged);
+            DrawingState.WatchFor(x => x.CurrentColor, OnColorChanged);
+            DrawingState.WatchFor(x => x.IsPixelPerfectDrawingModeEnabled, OnPixelPerfectModeChanged);
+        }
+
+        private void OnPixelPerfectModeChanged()
+        {
+            DrawingLayer.IsPixelPerfectMode = DrawingState.IsPixelPerfectDrawingModeEnabled;
+        }
+
+        private void OnBrushChanged()
+        {
+            _drawingLayer.Brush = DrawingState.CurrentBrushSettings.Brush;
+            DrawingState.CurrentBrushSettings.InitBrush();
+            ViewPortService.Refresh();
+        }
+        private void OnColorChanged()
+        {
+            _drawingLayer.DrawingColor = DrawingState.CurrentColor;
+            ViewPortService.Refresh();
+        }
+
+        private void OnCurrentToolChanged(CurrentToolChangedMessage message)
+        {
+            SetDrawingMode(message.NewTool is IDrawingTool);
+        }
+
+        private void SetNewDrawingLayer(IDrawingLayer newDrawingLayer)
+        {
+            if (_drawingLayer != null)
+            {
+                _drawingLayer.DrawingApplied -= DrawingLayer_DrawingApplied;
+                _drawingLayer.DrawingStarted -= DrawingLayerOnDrawingStarted;
+                _drawingLayer.SelectionStarted -= DrawingLayerOnDrawingStarted;
+            }
+
+            _drawingLayer = newDrawingLayer;
+            _drawingLayer.DrawingColor = DrawingState.CurrentColor;
+
+            if (_drawingLayer != null)
+            {
+                _drawingLayer.DrawingApplied += DrawingLayer_DrawingApplied;
+                _drawingLayer.SelectionStarted += DrawingLayerOnDrawingStarted;
+                _drawingLayer.DrawingStarted += DrawingLayerOnDrawingStarted;
+            }
+        }
+
+        private void DrawingLayerOnDrawingStarted(object sender, EventArgs e)
+        {
+            _currentDrawingOperation = new DrawingOperation(CurrentDrawingTarget);
+        }
+
+        private void DrawingLayer_DrawingApplied(object sender, EventArgs e)
+        {
+            if (_currentDrawingOperation == null || CurrentDrawingTarget != _currentDrawingOperation.GetDrawingTarget())
+                return;
+
+            _currentDrawingOperation.SetFinalData();
+            _currentDrawingOperation.PushToHistory();
+            OnDrawn();
+        }
+
+        public IPixelBrush GetBrush<TBrush>()
+        {
+            return Brushes.First(x => x is TBrush);
+        }
+
+        private IDrawingTarget GetDrawingTargetFromCurrentSprite()
+        {
+            var editService = ServiceLocator.Current.GetInstance<IEditService>();
+            var sprite = editService?.CurrentEditedNode as IDrawingTarget;
+            return sprite;
+        }
+
+        public void SetDrawingMode(bool active)
+        {
+            var drawingTarget = GetDrawingTargetFromCurrentSprite();
+            if (drawingTarget != null)
+            {
+                SetDrawingTarget(drawingTarget);
+            }
+
+            if (DrawingLayer is DrawingLayerNode dln)
+            {
+                dln.IsVisible = active;// && sprites.Any();
+            }
+        }
+
+        public void InitBrushSettings()
+        {
+            DrawingState.Set(x => x.BrushPresets, () =>
+            {
+                var bps = DrawingState.BrushPresets;
+                //BrushPresets.Add(new BrushSetting() {Brush = Brushes[4], Scale = 1, Opacity = 1f});
+                bps.Add(new BrushSettings() {Brush = GetBrush<SquareSolidBrush>(), Scale = 1, Opacity = 1f});
+                bps.Add(new BrushSettings() {Brush = GetBrush<SquareSolidBrush>(), Scale = 2, Opacity = 1f});
+                bps.Add(new BrushSettings() {Brush = GetBrush<SquareSolidBrush>(), Scale = 3, Opacity = 1f});
+                bps.Add(new BrushSettings() {Brush = GetBrush<SquareSolidBrush>(), Scale = 4, Opacity = 1f});
+                bps.Add(new BrushSettings() {Brush = GetBrush<SquareSolidBrush>(), Scale = 4, Opacity = 1f});
+                bps.Add(new BrushSettings() {Brush = GetBrush<CircleSolidBrush>(), Scale = 4, Opacity = 1f});
+                bps.Add(new BrushSettings() {Brush = GetBrush<CircleSolidBrush>(), Scale = 6, Opacity = 1f});
+                bps.Add(new BrushSettings() {Brush = GetBrush<CircleSolidBrush>(), Scale = 8, Opacity = 1f});
+                bps.Add(new BrushSettings() {Brush = GetBrush<CircleSolidBrush>(), Scale = 10, Opacity = 1f});
+                bps.Add(new BrushSettings() {Brush = GetBrush<SprayBrush>(), Scale = 16, Opacity = 0.1f});
+                //BrushPresets.Add(new BrushSetting() { Brush = Brushes[2], Scale = 3, Opacity = 1f });
+                //BrushPresets.Add(new BrushSetting() { Brush = Brushes[2], Scale = 4, Opacity = 1f });
+                //BrushPresets.Add(new BrushSetting() { Brush = Brushes[2], Scale = 32, Opacity = 0.3f });
+                //BrushPresets.Add(new BrushSetting() { Brush = Brushes[2], Scale = 64, Opacity = 0.2f });
+                //BrushPresets.Add(new BrushSetting() { Brush = Brushes[2], Scale = 100, Opacity = 0.1f });
+            });
+
+            DrawingState.Set(x => x.CurrentBrushSettings, DrawingState.BrushPresets[0]);
+            DrawingState.Set(x => x.CurrentColor, SKColor.Parse("d2691e"));
+        }
+
+        public void ClearCurrentLayer()
+        {
+            DrawingLayer?.ClearTarget();
+            ViewPortService.Refresh();
+        }
+
+        public void UpdateDrawingTarget()
+        {
+            CurrentDrawingTarget = GetDrawingTargetFromCurrentSprite();
+
+            if (CurrentDrawingTarget == null)
+                return;
+
+            _drawingLayer.SetTarget(CurrentDrawingTarget);
+            var adornerLayer = SkiaNodes.AdornerLayer.GetAdornerLayer((SKNode)CurrentDrawingTarget);
+            adornerLayer.Add((SKNode)_drawingLayer);
+
+            ((SKNode)_drawingLayer).Position = new SKPoint();
+        }
+
+        public void SetCurrentColor(SKColor value)
+        {
+            if(AppState.DrawingState.CurrentColor != value)
+                AppState.DrawingState.Set(x => x.CurrentColor, value);
+        }
+
+        public void SetDrawingTarget(IDrawingTarget target)
+        {
+            CurrentDrawingTarget = target;
+            _drawingLayer.DrawingColor = DrawingState.CurrentColor;
+
+            UpdateDrawingTarget();
+            OnDrawingTargetChanged();
+        }
+
+        public void UpdateFromDesignerState()
+        {
+            var tool = AppState.CurrentProject.CurrentTool;
+            if (tool == null) return;
+            tool.Deactivate();
+            tool.Activate();
+        }
+
+        public SKColor PickColorByPoint(SKPoint worldPos)
+        {
+            if (CurrentDrawingTarget != null)
+            {
+                var localPos = ((SKNode)CurrentDrawingTarget).GetLocalPosition(worldPos).ToSkPointI();
+                var col = CurrentDrawingTarget.PickColorByPoint(localPos.X, localPos.Y);
+
+                if (!col.Equals(SKColor.Empty))
+                    DrawingState.Set(x => x.CurrentColor, col);
+
+                return col;
+            }
+
+            return SKColor.Empty;
+        }
+
+        public void SetMirrorMode(MirrorMode mode, bool enable)
+        {
+            if (mode == MirrorMode.Horizontal || mode == MirrorMode.Both)
+                _drawingLayer.MirrorX = enable;
+
+            if (mode == MirrorMode.Vertical || mode == MirrorMode.Both)
+                _drawingLayer.MirrorY = enable;
+
+            OnMirrorModeChanged();
+        }
+
+        public void PasteBitmap(SKBitmap bitmap, SKPoint pos)
+        {
+            ToolService.ActivateTool(nameof(PixelSelectTool));
+            DrawingLayer?.SetSelectionFromExternal(bitmap, SKPoint.Empty);
+        }
+
+        public void ChangeBrushSize(float delta)
+        {
+            var bscale = DrawingState.CurrentBrushSettings.Scale;
+            bscale = Math.Min(Math.Max(1, bscale + delta), 512);
+
+            DrawingState.Set(x => x.CurrentBrushSettings, () =>
+              {
+                  DrawingState.CurrentBrushSettings.Scale = bscale;
+                  DrawingState.CurrentBrushSettings.InitBrush();
+              });
+        }
+
+        protected virtual void OnDrawn()
+        {
+            Drawn?.Invoke(this, EventArgs.Empty);
+        }
+
+        protected virtual void OnDrawingTargetChanged()
+        {
+            DrawingTargetChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        protected virtual void OnMirrorModeChanged()
+        {
+            MirrorModeChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public IPixelSelectionEditor GetSelectionEditor()
+        {
+            return DrawingLayer as IPixelSelectionEditor;
+        }
+
+        public void SelectAll()
+        {
+            _drawingLayer.SelectAll();
+        }
+    }
+}
