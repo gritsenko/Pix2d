@@ -61,46 +61,7 @@ public class Pix2dBootstrapper : IPix2dBootstrapper
             Directory.CreateDirectory(Pix2DApp.AppFolder);
         }
 
-        ReadAppSettingsConfig(Pix2dSettings);
-
         await Pix2DApp.CreateInstanceAsync(Pix2dSettings);
-    }
-
-    private void ReadAppSettingsConfig(Pix2DAppSettings pix2dSettings)
-    {
-        //try
-        //{
-        //    var appSettings = ConfigurationManager.AppSettings;
-
-        //    var pluginsStr = appSettings["Plugins"];
-
-        //    if (pluginsStr != null)
-        //    {
-        //        var plugins = pluginsStr.Split(';');
-        //        foreach ( var pluginName in plugins) {
-        //            var pluginType = FindModuleType(pluginName);
-        //            if(pluginType != null) {
-        //                pix2dSettings.Plugins.Add(pluginType);
-        //            }
-        //        }
-        //    }
-        //}
-        //catch (ConfigurationErrorsException)
-        //{
-        //    Debug.WriteLine("Error reading app settings");
-        //}
-    }
-
-    private static Type FindModuleType(string assemblyName)
-    {
-        var assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(x => x.GetName().Name == assemblyName);
-        var tt = assembly.GetTypes().FirstOrDefault(x => x.IsAssignableTo(typeof(IPix2dPlugin)));
-        if (tt != null)
-        {
-            return tt;
-        }
-
-        return null;
     }
 
     public static string AppDataFolder()

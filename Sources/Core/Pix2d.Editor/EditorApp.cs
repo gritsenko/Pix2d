@@ -24,7 +24,6 @@ public class EditorApp : Application
         ServiceLocator.SetLocatorProvider(DefaultServiceLocator.ServiceLocatorProvider);
 
         //AvaloniaXamlLoader.Load(this);
-
         InitResources();
         InitStyles();
     }

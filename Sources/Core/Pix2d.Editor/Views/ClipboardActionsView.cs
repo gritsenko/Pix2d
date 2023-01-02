@@ -1,43 +1,47 @@
-﻿using Pix2d.Resources;
+﻿using Pix2d.Mvvm;
+using Pix2d.Resources;
 using Pix2d.ViewModels;
 
 namespace Pix2d.Views;
 
-public partial class ClipboardActionsView : ViewBaseSingletonVm<MainViewModel>
+public partial class ClipboardActionsView : ComponentBase
 {
 
-    protected override object Build(MainViewModel vm) =>
+    protected override object Build() =>
         new StackPanel()
             .Orientation(Orientation.Horizontal)
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(
                 new Button()
                     .With(ButtonStyle)
-                    .Command(vm?.PasteCommand)
+                    .Command(MainViewModel?.PasteCommand)
                     .Content("\xE77F"),
                 new Button()
                     .With(ButtonStyle)
-                    .Command(vm?.CopyCommand)
+                    .Command(MainViewModel?.CopyCommand)
                     .Content("\xE8C8"),
                 new Button()
                     .With(ButtonStyle)
-                    .Command(vm?.CutCommand)
+                    .Command(MainViewModel?.CutCommand)
                     .Content("\xE8C6"),
                 new Button()
                     .With(ButtonStyle)
-                    .Command(vm?.CropCommand)
+                    .Command(MainViewModel?.CropCommand)
                     .Content("\xE7A8"),
                 new Button()
                     .With(ButtonStyle)
                     .With(b =>
                     {
                         var flyout = new MenuFlyout() { Placement = FlyoutPlacementMode.Bottom };
-                        flyout.AddItem("Fill selection", vm?.FillSelectionCommand);
-                        flyout.AddItem("Select object", vm?.SelectObjectCommand);
+                        flyout.AddItem("Fill selection", MainViewModel?.FillSelectionCommand);
+                        flyout.AddItem("Select object", MainViewModel?.SelectObjectCommand);
                         b.Click += (s, e) => flyout.ShowAt(b);
                     })
                     .Content("\xE10C")
             );
+
+    [Inject] IViewModelService ViewModelService { get; set; }
+    public MainViewModel MainViewModel => ViewModelService?.GetViewModel<MainViewModel>();
 
     private void ButtonStyle(Button b) => b
         .Classes("AppBarButton")

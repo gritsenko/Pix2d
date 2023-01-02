@@ -11,7 +11,7 @@ namespace Pix2d.Views.ToolSettings
     {
         protected override object Build(ToolBarViewModel vm) =>
             new ContentControl()
-                .Background(StaticResources.Brushes.PanelsBackgroundBrush)
+                .Background(StaticResources.Brushes.MainBackgroundBrush)
                 .DataTemplates(
                     BrushToolSettingsTemplate,
                     FillToolSettingsTemplate,

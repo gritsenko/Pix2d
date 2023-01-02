@@ -3,6 +3,7 @@ using System;
 using System.Reflection.Metadata;
 using Avalonia;
 using Avalonia.Dialogs;
+using Avalonia.Markup.Declarative;
 
 [assembly: MetadataUpdateHandler(typeof(Avalonia.Markup.Declarative.HotReloadManager))]
 
@@ -25,6 +26,7 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<EditorApp>()
             .UsePlatformDetect()
+            .UseServiceProvider(DefaultServiceLocator.ServiceLocatorProvider())
             .UseManagedSystemDialogs()
             .LogToTrace();
 
