@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net7.0</TargetFramework>
+		<ApplicationIcon>Assets\app1.ico</ApplicationIcon>
+		<StartupObject />
+		<AssemblyName>Pix2d</AssemblyName>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Update="**\*.xaml.cs">
+			<DependentUpon>%(Filename)</DependentUpon>
+		</Compile>
+		<AvaloniaResource Include="**\*.xaml">
+			<SubType>Designer</SubType>
+		</AvaloniaResource>
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Avalonia.Angle.Windows.Natives" Version="2.1.0.2020091801" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.0.0-preview4" />
+		<PackageReference Include="Avalonia.Diagnostics" Version="11.0.0-preview4" />
+		<PackageReference Include="Dock.Avalonia.Themes.Default" Version="0.10.0" />
+		<PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+	  <ProjectReference Include="..\..\Core\Pix2d\Pix2d.Core.csproj" />
+	  <ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
+	</ItemGroup>
+</Project>

@@ -1,11 +1,7 @@
-﻿using System.Configuration;
-using System;
-using System.Reflection.Metadata;
+﻿using System;
 using Avalonia;
 using Avalonia.Dialogs;
 using Avalonia.Markup.Declarative;
-
-[assembly: MetadataUpdateHandler(typeof(Avalonia.Markup.Declarative.HotReloadManager))]
 
 namespace Pix2d.Editor.Desktop;
 
