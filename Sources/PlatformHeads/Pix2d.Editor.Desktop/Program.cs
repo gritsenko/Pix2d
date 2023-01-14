@@ -23,7 +23,7 @@ class Program
         => AppBuilder.Configure<EditorApp>()
             .UsePlatformDetect()
             .UseServiceProvider(DefaultServiceLocator.ServiceLocatorProvider())
-            .UseManagedSystemDialogs()
+            //.UseManagedSystemDialogs()
             .LogToTrace();
 
     static void OnAppStarted(object root)

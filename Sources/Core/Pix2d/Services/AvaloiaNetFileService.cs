@@ -59,6 +59,10 @@ public class AvaloiaNetFileService : IFileService
             var sp = GetStorageProvider();
 
             var options = new FilePickerOpenOptions();
+            options.FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Pix2d supported images") { Patterns = fileTypeFilter.Select(x=>"*" + x).ToArray() }
+            };
 
             if (!string.IsNullOrWhiteSpace(contextKey) && ContextPaths.TryGetValue(contextKey, out var contextPath))
             {

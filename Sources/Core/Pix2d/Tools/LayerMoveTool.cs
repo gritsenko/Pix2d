@@ -55,7 +55,7 @@ namespace Pix2d.Tools
             _startPos = SKPoint.Empty;
             _endPos = SKPoint.Empty;
 
-            if (SelectionService.Selection.Nodes[0] is SpriteNode sn)
+            if (SelectionService.Selection.Nodes[0] is BitmapNode sn)
             {
                 //sn.UpdateSizeToParentArtboard();
                 //DrawingService.SetDrawingTarget(DrawingService.CurrentDrawingTarget as SpriteNode);
