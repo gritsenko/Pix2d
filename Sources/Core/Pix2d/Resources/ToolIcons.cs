@@ -1,10 +1,11 @@
 ﻿using Avalonia.Controls.Shapes;
+using Pix2d.ViewModels.ToolBar;
 
 namespace Pix2d.Resources;
 
 public static class ToolIcons
 {
-    public static ToolIconTemplateSelector ToolIconTemplateSelector = new ToolIconTemplateSelector()
+    public static ToolIconTemplateSelector ToolIconTemplateSelector = new()
     {
         Templates =
         {

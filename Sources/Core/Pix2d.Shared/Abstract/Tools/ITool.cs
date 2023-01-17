@@ -1,29 +1,28 @@
 ﻿using System.Threading.Tasks;
 
-namespace Pix2d.Abstract.Tools
+namespace Pix2d.Abstract.Tools;
+
+public interface ITool
 {
-    public interface ITool
-    {
-        string Key { get; }
+    string Key { get; }
 
-        EditContextType EditContextType { get; }
-        bool IsActive { get; }
+    EditContextType EditContextType { get; }
+    bool IsActive { get; }
 
-        bool IsEnabled { get; }
+    bool IsEnabled { get; }
 
-        ToolBehaviorType Behavior { get; }
+    ToolBehaviorType Behavior { get; }
 
-        Task Activate();
+    Task Activate();
 
-        void Deactivate();
+    void Deactivate();
 
-        /// <summary>
-        /// Tool that will be selected after automatic deactivation (or single action)
-        /// </summary>
-        string NextToolKey { get; }
+    /// <summary>
+    /// Tool that will be selected after automatic deactivation (or single action)
+    /// </summary>
+    string NextToolKey { get; }
 
-        string DisplayName { get; }
+    string DisplayName { get; }
         
-        string HotKey { get; }
-    }
+    string HotKey { get; }
 }

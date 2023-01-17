@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Mvvm.Messaging;
-using Pix2d.Abstract.State;
 using Pix2d.Messages;
 
-namespace Pix2d.State;
+namespace Pix2d.Abstract.State;
 
-public abstract class StateBase
+public abstract class StateBase : IStateBase
 {
     private readonly Dictionary<string, List<Action>> _propertyWatchers = new();
 

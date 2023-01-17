@@ -39,13 +39,12 @@ namespace Pix2d.Views
                         .ItemTemplate(ToolItemTemplate)
                 );
 
-        public static IDataTemplate BrushPreviewTemplate { get; set; } = new FuncDataTemplate<BrushPresetViewModel>(
-            (itemVm, ns) =>
-                new Grid()
-                    .DataContext ( itemVm.Preview )
-                    .Background(new Binding("Bitmap") { Converter = StaticResources.Converters.SKBitmapToBrushConverter })
-                    .Width(50)
-                    .Height(50)
+        public static FuncDataTemplate<BrushPresetViewModel> BrushPreviewTemplate { get; set; } = new((itemVm, ns) =>
+            new Grid()
+                .DataContext(itemVm.Preview)
+                .Background(new Binding("Bitmap") { Converter = StaticResources.Converters.SKBitmapToBrushConverter })
+                .Width(50)
+                .Height(50)
         );
 
         private IDataTemplate ToolItemTemplate =>

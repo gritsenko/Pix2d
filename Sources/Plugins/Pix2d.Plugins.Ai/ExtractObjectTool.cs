@@ -1,35 +1,33 @@
-﻿using System;
-using System.Threading.Tasks;
-using CommonServiceLocator;
+﻿using CommonServiceLocator;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Services;
 using Pix2d.Abstract.State;
+using Pix2d.Abstract;
 using Pix2d.Abstract.Tools;
 using Pix2d.Abstract.UI;
-using Pix2d.Drawing.Nodes;
 using Pix2d.Messages;
 using Pix2d.Operations;
 using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Primitives.Drawing;
-using Pix2d.State;
-using Pix2d.Tools;
 using SkiaNodes.Interactive;
 using SkiaSharp;
 
-namespace Pix2d.Drawing.Tools;
+namespace Pix2d.Plugins.Ai;
 
-public class PixelSelectTool : BaseTool, IDrawingTool
+public class ExtractObjectTool : BaseTool, IDrawingTool
 {
+    public override string DisplayName => "Object selection tool";
+
+    public override string ToolIconData => AiPlugin.ToolIcon;
+
     public IDrawingService DrawingService { get; }
     public IMessenger Messenger { get; }
-    public AppState State { get; }
+    public IAppState State { get; }
     public ISelectionState SelectionState => State.SelectionState;
 
     private DrawingOperation _pixelSelectDrawingOperation;
-    public override string DisplayName => "Pixels select tool";
 
     private IDrawingLayer DrawingLayer => DrawingService.DrawingLayer;
 
@@ -41,11 +39,11 @@ public class PixelSelectTool : BaseTool, IDrawingTool
         set => DrawingLayer.SelectionMode = value;
     }
 
-    public PixelSelectTool(IDrawingService drawingService, IMessenger messenger, IAppState state)
+    public ExtractObjectTool(IDrawingService drawingService, IMessenger messenger, IAppState state)
     {
         DrawingService = drawingService;
         Messenger = messenger;
-        State = (AppState)state;
+        State = state;
     }
 
     public override async Task Activate()
@@ -78,11 +76,11 @@ public class PixelSelectTool : BaseTool, IDrawingTool
     {
         if (_pixelSelectDrawingOperation != null && DrawingLayer.HasSelectionChanges)
         {
-//                _pixelSelectDrawingOperation.SetFinalData();
-//                _pixelSelectDrawingOperation.PushToHistory();
+            //                _pixelSelectDrawingOperation.SetFinalData();
+            //                _pixelSelectDrawingOperation.PushToHistory();
         }
 
-        _pixelSelectDrawingOperation = new DrawingOperation(((DrawingLayerNode)DrawingLayer).DrawingTarget);
+        _pixelSelectDrawingOperation = new DrawingOperation(DrawingLayer.DrawingTarget);
     }
 
     protected override void OnPointerMoved(object sender, PointerActionEventArgs e)
@@ -127,4 +125,5 @@ public class PixelSelectTool : BaseTool, IDrawingTool
     {
         DrawingLayer.ApplySelection();
     }
+
 }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
+using Pix2d.Abstract.Drawing;
 using Pix2d.CommonNodes;
-using Pix2d.Drawing.Nodes;
 using Pix2d.Operations;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -9,10 +9,10 @@ namespace Pix2d.Plugins.Drawing.Operations
 {
     public class PixelSelectOperation : EditOperationBase
     {
-        private readonly DrawingLayerNode _drawingLayer;
+        private readonly IDrawingLayer _drawingLayer;
         private SpriteNode _selectionLayer;
 
-        public PixelSelectOperation(DrawingLayerNode drawingLayer)
+        public PixelSelectOperation(IDrawingLayer drawingLayer)
         {
             _drawingLayer = drawingLayer;
             _selectionLayer = (_drawingLayer.GetSelectionLayer() as SpriteNode).Clone();

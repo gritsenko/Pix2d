@@ -36,7 +36,7 @@ namespace Pix2d.ViewModels.ToolBar
             set => Set(value);
         }
 
-        public ObservableCollection<ToolItemViewModel> Tools { get; } = new ObservableCollection<ToolItemViewModel>();
+        public ObservableCollection<ToolItemViewModel> Tools { get; } = new();
 
         public ToolItemViewModel SelectedToolItem
         {
