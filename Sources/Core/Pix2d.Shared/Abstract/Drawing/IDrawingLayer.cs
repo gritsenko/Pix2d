@@ -18,7 +18,7 @@ public interface IDrawingLayer
     event EventHandler DrawingApplied;
         
     event EventHandler PixelsSelected;
-    event EventHandler PixelsBeforeSelected;
+    event EventHandler<PixelsBeforeSelectedEventArgs> PixelsBeforeSelected;
     event EventHandler SelectionTransformed;
 
     bool IsPixelPerfectMode{ get; set; }

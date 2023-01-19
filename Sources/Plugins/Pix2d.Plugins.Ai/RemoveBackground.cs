@@ -3,7 +3,7 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 using SkiaSharp;
 using System.Diagnostics;
 
-namespace Pix2d.Plugins.Ai.AiModels;
+namespace Pix2d.Plugins.Ai;
 
 public static class RemoveBackground
 {
@@ -25,9 +25,9 @@ public static class RemoveBackground
 
         var input = ConvertImageToFloatData(image, means, stds);
         var sw = new Stopwatch();
-        sw.Start();
+        //sw.Start();
 
-        using var session = new InferenceSession($@"./model/{model}");
+        using var session = new InferenceSession($@"./AiModels/{model}");
 
 
         using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results
@@ -36,8 +36,8 @@ public static class RemoveBackground
                 NamedOnnxValue.CreateFromTensor("input.1", input)
             });
 
-        sw.Stop();
-        Console.WriteLine(sw.ElapsedMilliseconds);
+        //sw.Stop();
+        //Console.WriteLine(sw.ElapsedMilliseconds);
 
         if (results.FirstOrDefault()?.Value is not Tensor<float> output)
             throw new ApplicationException("Unable to process image");
@@ -47,10 +47,12 @@ public static class RemoveBackground
         {
             for (var x = 0; x < Width; x++)
             {
-                var val = (byte)Math.Clamp(output[0, 0, y, x] * 255, 0, 255);
-                result.SetPixel(x,y, new SKColor(val,val,val));
+                var val = (byte)Math.Clamp(output[0, 0, x, y] * 255, 0, 255);
+                result.SetPixel(x, y, new SKColor(val, val, val));
             }
         }
+
+        result = result.Resize(new SKSizeI(original.Width, original.Height), SKFilterQuality.High);
         return result;
     }
 
@@ -66,7 +68,7 @@ public static class RemoveBackground
             //var pixelSpan = image.GetPixelRowSpan(y);
             for (var x = 0; x < image.Width; x++)
             {
-                var color = image.GetPixel(x,y);
+                var color = image.GetPixel(x, y);
 
                 //var color = span[x + y * w];
                 var red = (color.Red - (float)means[0] * 255) / ((float)std[0] * 255);

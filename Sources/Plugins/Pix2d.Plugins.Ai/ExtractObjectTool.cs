@@ -25,6 +25,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
     public IDrawingService DrawingService { get; }
     public IMessenger Messenger { get; }
     public IAppState State { get; }
+    public IViewPortService ViewPortService { get; }
     public ISelectionState SelectionState => State.SelectionState;
 
     private DrawingOperation _pixelSelectDrawingOperation;
@@ -39,11 +40,12 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
         set => DrawingLayer.SelectionMode = value;
     }
 
-    public ExtractObjectTool(IDrawingService drawingService, IMessenger messenger, IAppState state)
+    public ExtractObjectTool(IDrawingService drawingService, IMessenger messenger, IAppState state, IViewPortService viewPortService)
     {
         DrawingService = drawingService;
         Messenger = messenger;
         State = state;
+        ViewPortService = viewPortService;
     }
 
     public override async Task Activate()
@@ -54,6 +56,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
         DrawingLayer.PixelsBeforeSelected += DrawingLayerOnPixelsBeforeSelected;
         DrawingLayer.SelectionStarted += DrawingLayer_SelectionStarted;
         DrawingLayer.SelectionRemoved += DrawingLayer_SelectionRemoved;
+        DrawingLayer.PixelsSelected += DrawingLayer_PixelsSelected;
         var mc = ServiceLocator.Current.GetInstance<IMenuController>();
         mc.ShowClipboardBar = true;
 
@@ -62,18 +65,27 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
         Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
     }
 
-    private void DrawingLayer_SelectionRemoved(object sender, EventArgs e)
+    private void DrawingLayer_PixelsSelected(object? sender, EventArgs e)
+    {
+        ViewPortService.Refresh();
+    }
+
+    private void DrawingLayer_SelectionRemoved(object? sender, EventArgs e)
     {
         SelectionState.Set(x => x.IsUserSelecting, false);
     }
 
-    private void DrawingLayer_SelectionStarted(object sender, EventArgs e)
+    private void DrawingLayer_SelectionStarted(object? sender, EventArgs e)
     {
         SelectionState.Set(x => x.IsUserSelecting, true);
     }
 
-    private void DrawingLayerOnPixelsBeforeSelected(object sender, EventArgs e)
+    private void DrawingLayerOnPixelsBeforeSelected(object? sender, PixelsBeforeSelectedEventArgs e)
     {
+        ProcessSelectionBitmap(e.SelectionBitmap);
+        
+        ViewPortService.Refresh();
+
         if (_pixelSelectDrawingOperation != null && DrawingLayer.HasSelectionChanges)
         {
             //                _pixelSelectDrawingOperation.SetFinalData();
@@ -81,6 +93,13 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
         }
 
         _pixelSelectDrawingOperation = new DrawingOperation(DrawingLayer.DrawingTarget);
+    }
+
+    private void ProcessSelectionBitmap(SKBitmap bitmap)
+    {
+        var bm = RemoveBackground.Process(bitmap, "u2netp.onnx");
+
+        bm.CopyTo(bitmap);
     }
 
     protected override void OnPointerMoved(object sender, PointerActionEventArgs e)
@@ -111,6 +130,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
         mc.ShowClipboardBar = false;
 
         DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;
+        DrawingLayer.PixelsSelected -= DrawingLayer_PixelsSelected;
         Messenger.Unregister<OperationInvokedMessage>(this, OnOperationInvoked);
         DrawingLayer.ApplySelection();
     }

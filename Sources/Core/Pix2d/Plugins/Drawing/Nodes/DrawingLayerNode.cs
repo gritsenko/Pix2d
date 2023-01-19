@@ -26,7 +26,7 @@ namespace Pix2d.Drawing.Nodes
         public event EventHandler SelectionRemoved;
 
         public event EventHandler DrawingApplied;
-        public event EventHandler PixelsBeforeSelected;
+        public event EventHandler<PixelsBeforeSelectedEventArgs> PixelsBeforeSelected;
         public event EventHandler SelectionTransformed;
         public event EventHandler PixelsSelected;
 
@@ -978,12 +978,14 @@ namespace Pix2d.Drawing.Nodes
             selector.FinishSelection();
             ClearWorkingBitmap();
 
-            OnPixelsBeforeSelected();
-
             var size = DrawingTarget.GetSize();
             var tmpBitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, SKColorType.Bgra8888));
             DrawingTarget.CopyBitmapTo(tmpBitmap);
-            _selectionLayer.Bitmap = selector.GetSelectionBitmap(tmpBitmap);
+            var selectionBitmap = selector.GetSelectionBitmap(tmpBitmap);
+
+            OnPixelsBeforeSelected(selectionBitmap);
+
+            _selectionLayer.Bitmap = selectionBitmap;
             _selectionLayer.Size = _selectionLayer.Size;
             _selectionLayer.PivotPosition = default;
             _selectionLayer.Position = selector.Offset;
@@ -1062,9 +1064,9 @@ namespace Pix2d.Drawing.Nodes
             PixelsSelected?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnPixelsBeforeSelected()
+        protected virtual void OnPixelsBeforeSelected(SKBitmap selectionBitmap)
         {
-            PixelsBeforeSelected?.Invoke(this, EventArgs.Empty);
+            PixelsBeforeSelected?.Invoke(this, new PixelsBeforeSelectedEventArgs(selectionBitmap));
         }
 
         protected virtual void OnSelectionStarted()
