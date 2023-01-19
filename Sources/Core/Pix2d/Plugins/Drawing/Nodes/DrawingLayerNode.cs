@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Selection;
+using Pix2d.Common.Drawing;
 using Pix2d.Drawing.Brushes;
 using Pix2d.InteractiveNodes;
 using Pix2d.Plugins.Drawing.Nodes;
@@ -30,6 +31,7 @@ namespace Pix2d.Drawing.Nodes
         public event EventHandler SelectionTransformed;
         public event EventHandler PixelsSelected;
 
+        private IPixelSelector _customPixelSelector;
         private IPixelSelector _pixelSelector;
 
         private SKBitmap _workingBitmap;
@@ -925,7 +927,7 @@ namespace Pix2d.Drawing.Nodes
             }
             else
             {
-                _pixelSelector = new PixelSelector();
+                _pixelSelector = _customPixelSelector ?? new PixelSelector();
             }
 
             _pixelSelector.BeginSelection(new SKPointI((int)pos.X, (int)pos.Y));
@@ -1007,6 +1009,17 @@ namespace Pix2d.Drawing.Nodes
             _selectionEditor.IsVisible = true;
             _selectionEditor.SetSelection(new NodesSelection(new[] { _selectionLayer }, null) { GenerateOperations = false });
         }
+
+        public void SetCustomPixelSelector(IPixelSelector pixelSelector)
+        {
+            _customPixelSelector = pixelSelector;
+        }
+
+        public void ClearCustomPixelSelector()
+        {
+            _customPixelSelector = null;
+        }
+
         public void AddSelectionPoint(SKPoint p)
         {
             if (_pixelSelector == null)

@@ -1,9 +1,8 @@
-namespace Pix2d.Primitives.Drawing
+namespace Pix2d.Primitives.Drawing;
+
+public enum PixelSelectionMode
 {
-    public enum PixelSelectionMode
-    {
-        Rectangle,
-        Freeform,
-        SameColor
-    }
+    Rectangle,
+    Freeform,
+    SameColor
 }

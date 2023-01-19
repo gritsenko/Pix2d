@@ -14,7 +14,7 @@ using Pix2d.Primitives.Drawing;
 using SkiaNodes.Interactive;
 using SkiaSharp;
 
-namespace Pix2d.Plugins.Ai;
+namespace Pix2d.Plugins.Ai.Selection;
 
 public class ExtractObjectTool : BaseTool, IDrawingTool
 {
@@ -29,6 +29,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
     public ISelectionState SelectionState => State.SelectionState;
 
     private DrawingOperation _pixelSelectDrawingOperation;
+    private AiPixelSelector _aiPixelSelector;
 
     private IDrawingLayer DrawingLayer => DrawingService.DrawingLayer;
 
@@ -57,6 +58,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
         DrawingLayer.SelectionStarted += DrawingLayer_SelectionStarted;
         DrawingLayer.SelectionRemoved += DrawingLayer_SelectionRemoved;
         DrawingLayer.PixelsSelected += DrawingLayer_PixelsSelected;
+
         var mc = ServiceLocator.Current.GetInstance<IMenuController>();
         mc.ShowClipboardBar = true;
 
@@ -77,14 +79,17 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
 
     private void DrawingLayer_SelectionStarted(object? sender, EventArgs e)
     {
+        _aiPixelSelector = new AiPixelSelector();
+        DrawingLayer.SetCustomPixelSelector(_aiPixelSelector);
+
         SelectionState.Set(x => x.IsUserSelecting, true);
     }
 
     private void DrawingLayerOnPixelsBeforeSelected(object? sender, PixelsBeforeSelectedEventArgs e)
     {
-        ProcessSelectionBitmap(e.SelectionBitmap);
-        
-        ViewPortService.Refresh();
+        //ProcessSelectionBitmap(e.SelectionBitmap);
+
+        //ViewPortService.Refresh();
 
         if (_pixelSelectDrawingOperation != null && DrawingLayer.HasSelectionChanges)
         {
@@ -129,20 +134,10 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
         var mc = ServiceLocator.Current.GetInstance<IMenuController>();
         mc.ShowClipboardBar = false;
 
+        DrawingLayer.ClearCustomPixelSelector();
         DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;
         DrawingLayer.PixelsSelected -= DrawingLayer_PixelsSelected;
         Messenger.Unregister<OperationInvokedMessage>(this, OnOperationInvoked);
-        DrawingLayer.ApplySelection();
-    }
-
-    public SKRect GetSelectionRect()
-    {
-        var selectionLayer = DrawingLayer.GetSelectionLayer();
-        return selectionLayer.GetBoundingBox();
-    }
-
-    public void ApplySelection()
-    {
         DrawingLayer.ApplySelection();
     }
 

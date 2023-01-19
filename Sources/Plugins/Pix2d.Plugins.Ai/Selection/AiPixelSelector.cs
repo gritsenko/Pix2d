@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Pix2d.Abstract.Drawing;
+﻿using Pix2d.Abstract.Drawing;
 using Pix2d.Common.Drawing;
 using SkiaSharp;
 
-namespace Pix2d.Drawing.Nodes;
+namespace Pix2d.Plugins.Ai.Selection;
 
-public class PixelSelector : IPixelSelector
+public class AiPixelSelector : IPixelSelector
 {
     private SKPointI _lastSelectionPoint;
     private readonly HashSet<SKPointI> _selectionPoints = new HashSet<SKPointI>();
@@ -164,21 +161,21 @@ public class PixelSelector : IPixelSelector
         {
             //fixed (byte* pSource = data)
             {
-                var dest0 = (byte*) bitmap.GetPixels().ToPointer();
+                var dest0 = (byte*)bitmap.GetPixels().ToPointer();
                 var h = bitmap.Height;
                 var w = bitmap.Width;
                 for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    if (GetPixel(x, y))
+                    for (int x = 0; x < w; x++)
                     {
-                        var dest = dest0 + (x + y * bitmap.Width) * 4;
-                        *dest = 0;
-                        *(dest+1) = 0;
-                        *(dest+2) = 0;
-                        *(dest+3) = 0;
+                        if (GetPixel(x, y))
+                        {
+                            var dest = dest0 + (x + y * bitmap.Width) * 4;
+                            *dest = 0;
+                            *(dest + 1) = 0;
+                            *(dest + 2) = 0;
+                            *(dest + 3) = 0;
+                        }
                     }
-                }
             }
         }
     }
@@ -186,11 +183,11 @@ public class PixelSelector : IPixelSelector
     public void ClearInvertedSelectionFromBitmap(SKBitmap bitmap)
     {
         for (int y = 0; y < bitmap.Height; y++)
-        for (int x = 0; x < bitmap.Width; x++)
-        {
-            if (!GetPixel(x, y))
-                bitmap.SetPixel(x, y, SKColor.Empty);
-        }
+            for (int x = 0; x < bitmap.Width; x++)
+            {
+                if (!GetPixel(x, y))
+                    bitmap.SetPixel(x, y, SKColor.Empty);
+            }
     }
 
     public SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap)
@@ -208,10 +205,38 @@ public class PixelSelector : IPixelSelector
             var spanDest = new Span<byte>(ptr, (int)len);
 
             for (int y = 0; y < bitmap.Height; y++)
+                for (int x = 0; x < bitmap.Width; x++)
+                {
+
+                    if (_pixelsBuff[x + y * _width] > 0)
+                    {
+                        var srcX = x - _offsetX;
+                        var srcY = y - _offsetY;
+
+                        if (srcX >= 0 && srcY >= 0 && srcX < sourceBitmap.Width && srcY < sourceBitmap.Height)
+                        {
+                            var destIndex = (x + y * _width) * 4;
+                            var srcIndex = (srcX + srcY * srcWidth) * 4;
+                            spanDest[destIndex] = spanSrc[srcIndex];
+                            spanDest[destIndex + 1] = spanSrc[srcIndex + 1];
+                            spanDest[destIndex + 2] = spanSrc[srcIndex + 2];
+                            spanDest[destIndex + 3] = spanSrc[srcIndex + 3];
+                        }
+                    }
+                }
+
+            var extractedMask = RemoveBackground.Process(bitmap, "u2netp.onnx");
+            bitmap.Erase(SKColor.Empty);
+
+            for (int y = 0; y < bitmap.Height; y++)
             for (int x = 0; x < bitmap.Width; x++)
             {
+                if (extractedMask.GetPixel(x, y).Red == 0)
+                {
+                    _pixelsBuff[x + y * _width] = 0;
+                }
 
-                if (_pixelsBuff[x + y * _width] > 0)
+                if (extractedMask.GetPixel(x,y).Red > 0)
                 {
                     var srcX = x - _offsetX;
                     var srcY = y - _offsetY;
@@ -227,6 +252,7 @@ public class PixelSelector : IPixelSelector
                     }
                 }
             }
+
         }
 
         return bitmap;

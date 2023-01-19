@@ -1,4 +1,5 @@
 ﻿using System;
+using Pix2d.Abstract.Drawing;
 using SkiaSharp;
 
 namespace Pix2d.Drawing.Nodes

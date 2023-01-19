@@ -3,7 +3,7 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 using SkiaSharp;
 using System.Diagnostics;
 
-namespace Pix2d.Plugins.Ai;
+namespace Pix2d.Plugins.Ai.Selection;
 
 public static class RemoveBackground
 {

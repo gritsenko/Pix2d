@@ -1,12 +1,10 @@
-﻿using Pix2d.Primitives;
-using Pix2d.Primitives.Edit;
+﻿using Pix2d.Primitives.Edit;
 
-namespace Pix2d.Abstract.Drawing
+namespace Pix2d.Abstract.Drawing;
+
+public interface IPixelSelectionEditor
 {
-    public interface IPixelSelectionEditor
-    {
-        bool HasSelection { get; }
-        void RotateSelection(int angle);
-        void FlipSelection(FlipMode mode);
-    }
+    bool HasSelection { get; }
+    void RotateSelection(int angle);
+    void FlipSelection(FlipMode mode);
 }

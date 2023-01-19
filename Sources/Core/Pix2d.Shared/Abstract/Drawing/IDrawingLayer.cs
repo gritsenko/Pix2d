@@ -70,4 +70,6 @@ public interface IDrawingLayer
     void SelectAll();
     void FillSelection(SKColor color);
     void ActivateEditor();
+    void SetCustomPixelSelector(IPixelSelector pixelSelector);
+    void ClearCustomPixelSelector();
 }
