@@ -11,7 +11,7 @@ public class ToolIconTemplateSelector : IDataTemplate
     [Content]
     public Dictionary<string, IDataTemplate> Templates { get; } = new();
 
-    public IControl Build(object data)
+    public Control Build(object data)
     {
         var toolVm = ((ToolItemViewModel)data);
         var templateKey = toolVm.ToolKey;

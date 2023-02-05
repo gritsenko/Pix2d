@@ -70,11 +70,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.0.0-preview4" />
-    <PackageReference Include="Avalonia.Markup.Declarative" Version="11.0.0-preview4" />
-    <PackageReference Include="Avalonia.Skia" Version="11.0.0-preview4" />
-    <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.0-preview4" />
-    <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.0.0-preview4" />
+    <PackageReference Include="Avalonia" Version="11.0.0-preview5" />
+    <PackageReference Include="Avalonia.Markup.Declarative" Version="11.0.0-preview5" />
+    <PackageReference Include="Avalonia.Skia" Version="11.0.0-preview5" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.0-preview5" />
+    <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.0.0-preview5" />
   </ItemGroup>
 
   <ItemGroup>

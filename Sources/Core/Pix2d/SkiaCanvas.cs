@@ -93,12 +93,12 @@ public class SkiaCanvas : Border
         }
         else
         {
-            Cursor =  Cursor.Default;
+            Cursor = Cursor.Default;
         }
     }
 
-    private static KeyModifier ToModifiers(KeyModifiers keyModifiers) => (KeyModifier) keyModifiers;
-    private static VirtualKeys ToVirtualKeys(Key key) => (VirtualKeys) KeyInterop.VirtualKeyFromKey(key);
+    private static KeyModifier ToModifiers(KeyModifiers keyModifiers) => (KeyModifier)keyModifiers;
+    private static VirtualKeys ToVirtualKeys(Key key) => (VirtualKeys)KeyInterop.VirtualKeyFromKey(key);
 
     protected override void ArrangeCore(Rect finalRect)
     {
@@ -162,7 +162,7 @@ public class SkiaCanvas : Border
     private float GetScale()
     {
         //balzor hack
-        if(VisualRoot is EmbeddableControlRoot topLevel)
+        if (VisualRoot is EmbeddableControlRoot topLevel)
         {
             var surface = topLevel.PlatformImpl.Surfaces.FirstOrDefault();
             var sType = surface?.GetType();
@@ -173,7 +173,7 @@ public class SkiaCanvas : Border
                 {
                     var bScale = (double)prop.GetValue(surface);
                     if (bScale > 0)
-                        return (float) bScale;
+                        return (float)bScale;
                 }
             }
         }
@@ -228,7 +228,7 @@ public class SkiaCanvas : Border
 
         var isTouch = pointerType == PointerType.Touch;
 
-        if (!isTouch && !props.IsMiddleButtonPressed && Input.PanMode)
+        if (Input.PanMode)
         {
             Input.PanMode = false;
             UpdateCursor();
@@ -247,23 +247,20 @@ public class SkiaCanvas : Border
         var pointerType = e.Pointer.Type;
         var props = e.GetCurrentPoint(this).Properties;
 
-        if (pointerType != PointerType.Touch)
+        if (pointerType == PointerType.Touch || props.IsMiddleButtonPressed)
         {
-            if (props.IsMiddleButtonPressed)
-            {
-                Input.PanMode = true;
-            }
-
-            if (Input.PanMode)
-            {
-                _initialPan = ViewPort.Pan;
-                _initialPos = e.GetPosition(this);
-                //Refresh();
-                return;
-            }
-
-            Input.EraserMode = props.IsRightButtonPressed;
+            Input.PanMode = true;
         }
+
+        if (Input.PanMode)
+        {
+            _initialPan = ViewPort.Pan;
+            _initialPos = e.GetPosition(this);
+            //Refresh();
+            return;
+        }
+
+        Input.EraserMode = props.IsRightButtonPressed;
 
         Input.SetPointerPressed(ToSKPoint(e.GetPosition(this)), ToModifiers(e.KeyModifiers),
             e.Pointer.Type == PointerType.Touch);
@@ -276,7 +273,7 @@ public class SkiaCanvas : Border
         var pointerType = e.Pointer.Type;
         var pos = e.GetPosition(this);
 
-        if (pointerType != PointerType.Touch && props.IsMiddleButtonPressed)
+        if (pointerType == PointerType.Touch || props.IsMiddleButtonPressed)
         {
             Input.PanMode = true;
         }
@@ -291,7 +288,6 @@ public class SkiaCanvas : Border
             //Refresh();
             return;
         }
-
 
         Input.SetPointerMoved(ToSKPoint(e.GetPosition(this)), props.IsLeftButtonPressed, ToModifiers(e.KeyModifiers),
             pointerType == PointerType.Touch);

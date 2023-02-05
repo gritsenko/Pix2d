@@ -97,7 +97,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
         var properties = e.GetCurrentPoint(AssociatedObject).Properties;
         if (properties.IsLeftButtonPressed)
         {
-            if (e.Source is IControl control
+            if (e.Source is Control control
                 && AssociatedObject?.DataContext == control.DataContext)
             {
                 _dragStartPoint = e.GetPosition(null);

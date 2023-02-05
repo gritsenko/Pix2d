@@ -88,7 +88,7 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                     }),
 
                 new ListBox().Row(1).ColSpan(3)
-                    .ItemsPanel(new FuncTemplate<IPanel>(() => new StackPanel().Orientation(Orientation.Horizontal)))
+                    .ItemsPanel(new StackPanel().Orientation(Orientation.Horizontal))
                     .Items(Bind(vm.Frames))
                     .SelectedItem(@vm.CurrentFrame, BindingMode.TwoWay)
                     .AddBehavior(new ContextDropBehavior { Handler = new FrameItemsListBoxDropHandler() })

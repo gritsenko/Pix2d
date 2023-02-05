@@ -97,7 +97,6 @@ public class TopBarView : ViewBaseSingletonVm<TopBarViewModel>
 
     private void ButtonStyle(AppButton b) => b
         .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
-        .Background(Brushes.Green)
         .Width(68)
         .Classes("TopBar");
 }

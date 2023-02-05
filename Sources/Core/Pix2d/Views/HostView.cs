@@ -47,8 +47,9 @@ public class HostView : ViewBase
         //this.AttachDevTools();
         AttachedToVisualTree += (o, args) =>
         {
-            if (VisualRoot != null)
-                VisualRoot.Renderer.DrawFps = false;
+            //DARW FPS was deprecated
+            //if (VisualRoot != null)
+            //    VisualRoot.Renderer.DrawFps = false;
         };
 #endif
     }

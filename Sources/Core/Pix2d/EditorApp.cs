@@ -2,8 +2,11 @@
 using System.Diagnostics;
 using System.Linq;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media.Imaging;
+using Avalonia.Styling;
+using Avalonia.Themes.Simple;
 using Avalonia.VisualTree;
 using CommonServiceLocator;
 using Pix2d.Abstract;
@@ -22,6 +25,8 @@ public class EditorApp : Application
 
     public override void Initialize()
     {
+        RequestedThemeVariant = ThemeVariant.Dark;
+
         ServiceLocator.SetLocatorProvider(DefaultServiceLocator.ServiceLocatorProvider);
 
         //AvaloniaXamlLoader.Load(this);
@@ -47,30 +52,31 @@ public class EditorApp : Application
         try
         {
             //this.Styles.Add(GetFluentTheme());
+            this.Styles.Add(new SimpleTheme());
 
-            this.Styles.Add(
-                new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
-                {
-                    Source = new Uri("avares://Avalonia.Themes.Simple/Controls/SimpleControls.xaml")
-                });
+            //this.Styles.Add(
+            //    new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
+            //    {
+            //        Source = new Uri("avares://Avalonia.Themes.Simple/Controls/SimpleControls.xaml")
+            //    });
 
-            this.Styles.Add(
-                new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
-                {
-                    Source = new Uri("avares://Avalonia.Themes.Simple/Controls/SimpleControls.xaml")
-                });
+            //this.Styles.Add(
+            //    new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
+            //    {
+            //        Source = new Uri("avares://Avalonia.Themes.Simple/Controls/SimpleControls.xaml")
+            //    });
 
-            this.Styles.Add(
-                new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
-                {
-                    Source = new Uri("avares://Avalonia.Themes.Simple/Accents/Base.xaml")
-                });
+            //this.Styles.Add(
+            //    new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
+            //    {
+            //        Source = new Uri("avares://Avalonia.Themes.Simple/Accents/Base.xaml")
+            //    });
 
-            this.Styles.Add(
-                new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
-                {
-                    Source = new Uri("avares://Avalonia.Themes.Simple/Accents/BaseDark.xaml")
-                });
+            //this.Styles.Add(
+            //    new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
+            //    {
+            //        Source = new Uri("avares://Avalonia.Themes.Simple/Accents/BaseDark.xaml")
+            //    });
         }
         catch (Exception ex)
         {
@@ -137,7 +143,7 @@ public class EditorApp : Application
     private void UpdateCanvas(MainView mainView)
     {
         var container = mainView.Child
-            .LogicalChildren
+            .GetLogicalChildren()
             .OfType<Border>()
             .FirstOrDefault(x => x.Name == "Pix2dCanvasContainer");
         container.Child = new SkiaCanvas();

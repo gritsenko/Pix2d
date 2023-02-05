@@ -64,11 +64,13 @@ public class AvaloiaNetFileService : IFileService
                 new FilePickerFileType("Pix2d supported images") { Patterns = fileTypeFilter.Select(x=>"*" + x).ToArray() }
             };
 
-            if (!string.IsNullOrWhiteSpace(contextKey) && ContextPaths.TryGetValue(contextKey, out var contextPath))
-            {
-                if (Directory.Exists(contextPath))
-                    options.SuggestedStartLocation = new BclStorageFolder(contextPath);
-            }
+            // BclStorageFolder is internal now
+            // not sure if we need to use it now : Igor 06/02/2023
+            //if (!string.IsNullOrWhiteSpace(contextKey) && ContextPaths.TryGetValue(contextKey, out var contextPath))
+            //{
+            //    if (Directory.Exists(contextPath))
+            //        options.SuggestedStartLocation = new BclStorageFolder(contextPath);
+            //}
 
 
             var result = await sp.OpenFilePickerAsync(options);
@@ -77,17 +79,14 @@ public class AvaloiaNetFileService : IFileService
                 return null;
             }
 
-            if (!string.IsNullOrWhiteSpace(contextKey) && result.First().TryGetUri(out var path))
+            var path = result.FirstOrDefault()?.Path;
+            if (!string.IsNullOrWhiteSpace(contextKey) && path != null)
             {
                 ContextPaths[contextKey] = System.IO.Path.GetDirectoryName(path.AbsolutePath);
                 DefaultServiceLocator.ServiceLocatorProvider().GetInstance<ISettingsService>().Set(SettingsConstants.FileServiceContexts, ContextPaths);
             }
 
-            return result.Select(x =>
-            {
-                result.First().TryGetUri(out var p);
-                return new NetFileSource(p.AbsolutePath);
-            });
+            return result.Select(x => x != null ? new NetFileSource(x.Path.AbsolutePath) : null);
         }
         finally
         {

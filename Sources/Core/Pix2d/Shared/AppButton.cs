@@ -5,7 +5,7 @@ namespace Pix2d.Shared;
 
 public class AppButton : ViewBase
 {
-    public event EventHandler Click; 
+    public event EventHandler Click;
 
     public static readonly DirectProperty<AppButton, string> LabelProperty
         = AvaloniaProperty.RegisterDirect<AppButton, string>(nameof(Label), o => o.Label, (o, v) => o.Label = v);
@@ -16,14 +16,15 @@ public class AppButton : ViewBase
         set => SetAndRaise(LabelProperty, ref _label, value);
     }
 
-    public static readonly DirectProperty<AppButton, IBrush> BackgroundProperty
-        = AvaloniaProperty.RegisterDirect<AppButton, IBrush>(nameof(Background), o => o.Background, (o, v) => o.Background = v);
-    private IBrush _background = Brushes.Transparent;
+
     public IBrush Background
     {
-        get => _background;
-        set => SetAndRaise(BackgroundProperty, ref _background, value);
+        get => GetValue(BackgroundProperty);
+        set => SetValue(BackgroundProperty, value);
     }
+
+    public static readonly StyledProperty<IBrush> BackgroundProperty =
+        AvaloniaProperty.Register<AppButton, IBrush>(nameof(Background));
 
     /// <summary>
     /// Command
