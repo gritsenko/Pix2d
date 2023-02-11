@@ -23,6 +23,7 @@ public class ProjectPacker
 
         using var serializer = new NodeSerializer();
         var sceneJson = serializer.Serialize(scene);
+
         using var outputFileStream = await file.OpenWriteAsync();
         using var zip = new ZipArchive(outputFileStream, ZipArchiveMode.Create, true, ZipEncoding);
         var projectZipEntry = zip.CreateEntry("project.json", compressionLevel);
@@ -36,7 +37,6 @@ public class ProjectPacker
                 bitmap.Encode(entryStream, SKEncodedImageFormat.Png, 100);
 
         await outputFileStream.FlushAsync();
-        outputFileStream.Close();
     }
 
     public static async Task WriteProjectAsync(IWriteDestinationFolder folder, SKNode scene)

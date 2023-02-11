@@ -33,6 +33,13 @@ public class SkiaCanvas : Border
     private Point _initialPos;
     private SKPoint _initialPan;
 
+    //pinch guesture stuff
+    bool _isPinching = false;
+    private PinchGestureRecognizer _pinchRecognizer = new PinchGestureRecognizer();
+    private double _oldScale;
+    private SKPoint _oldVpPos;
+
+    public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
 
     public SkiaCanvas()
@@ -46,10 +53,16 @@ public class SkiaCanvas : Border
         PointerReleased += OnPointerReleased;
         PointerWheelChanged += OnPointerWheelChanged;
 
+        GestureRecognizers.Add(_pinchRecognizer);
+        AddHandler(Gestures.PinchEvent, OnPinch);
+        AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
+
         AttachedToVisualTree += SkiaCanvas_AttachedToVisualTree;
         // PointerLeave += DrawingCanvas_PointerLeave;
         // PointerEnter += DrawingCanvas_PointerEnter;
     }
+
+    public float SystemScaleFactor { get; set; } = 1;
 
     private void SkiaCanvas_AttachedToVisualTree(object sender, VisualTreeAttachmentEventArgs e)
     {
@@ -216,12 +229,16 @@ public class SkiaCanvas : Border
             ViewPort.ZoomIn(Input.Pointer.ViewportPosition);
         else if (e.Delta.Y < 0)
             ViewPort.ZoomOut(Input.Pointer.ViewportPosition);
+
         InvalidateVisual();
     }
 
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (_isPinching)
+            return;
+
         _isPointerPressed = false;
         var props = e.GetCurrentPoint(this).Properties;
         var pointerType = e.Pointer.Type;
@@ -235,8 +252,7 @@ public class SkiaCanvas : Border
             return;
         }
 
-        Input.SetPointerReleased(ToSKPoint(e.GetPosition(this)), ToModifiers(e.KeyModifiers),
-            e.Pointer.Type == PointerType.Touch);
+        Input.SetPointerReleased(ToSKPoint(e.GetPosition(this)), ToModifiers(e.KeyModifiers), e.Pointer.Type == PointerType.Touch);
         InvalidateVisual();
     }
 
@@ -247,7 +263,7 @@ public class SkiaCanvas : Border
         var pointerType = e.Pointer.Type;
         var props = e.GetCurrentPoint(this).Properties;
 
-        if (pointerType == PointerType.Touch || props.IsMiddleButtonPressed)
+        if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed)
         {
             Input.PanMode = true;
         }
@@ -269,11 +285,15 @@ public class SkiaCanvas : Border
 
     private void OnPointerMoved(object sender, PointerEventArgs e)
     {
+        if (_isPinching)
+        {
+            return;
+        }
         var props = e.GetCurrentPoint(this).Properties;
         var pointerType = e.Pointer.Type;
         var pos = e.GetPosition(this);
 
-        if (pointerType == PointerType.Touch || props.IsMiddleButtonPressed)
+        if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed)
         {
             Input.PanMode = true;
         }
@@ -293,6 +313,36 @@ public class SkiaCanvas : Border
             pointerType == PointerType.Touch);
         InvalidateVisual();
     }
+
+    private void OnPinch(object sender, PinchEventArgs e)
+    {
+        Input.SetPointerMoved(ToSKPoint(_pinchRecognizer.Offset), false, KeyModifier.None, true);
+
+        if (!_isPinching)
+        {
+            _isPinching = true;
+            _oldScale = e.Scale;
+            _oldVpPos = Input.Pointer.ViewportPosition;
+            Input.PanMode = true;
+        }
+        var deltaPan = _oldVpPos - Input.Pointer.ViewportPosition;
+        _oldVpPos = Input.Pointer.ViewportPosition;
+
+        ViewPort.ChangeZoom((float)(1.0f + e.Scale - _oldScale), Input.Pointer.ViewportPosition);
+        ViewPort.ChangePan(deltaPan.X, deltaPan.Y);
+
+        _oldScale = e.Scale;
+
+        e.Handled = true;
+    }
+
+    private void OnPinchEnded(object sender, PinchEndedEventArgs e)
+    {
+        Input.PanMode = false;
+        _isPinching = false;
+        e.Handled = true;
+    }
+
 
     private SKPoint ToSKPoint(Point p) => new(
         (float)(ViewPort.ScaleFactor * p.X),

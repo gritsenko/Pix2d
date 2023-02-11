@@ -44,7 +44,7 @@ namespace SkiaNodes
         public event EventHandler RefreshRequested;
 
         public bool IsPixelPerfectZoom => Math.Abs(DpiEffectiveZoom - 1) < 0.0000001f || Math.Abs((DpiEffectiveZoom % 2)) < 0.00000001f;
-        
+
         /// <summary>
         /// Position of viewport center point relative to world coordinates
         /// </summary>
@@ -150,7 +150,9 @@ namespace SkiaNodes
 
             var deltaPan = (ViewportToWorld(centerPointOnViewport) - oldPos).Multiply(new SKPoint(TransformMatrix.ScaleX,
                 TransformMatrix.ScaleY));
-            ChangePan(-deltaPan.X, -deltaPan.Y);
+
+            if (Math.Abs(deltaPan.X) > 0.01 || Math.Abs(deltaPan.Y) > 0.01)
+                ChangePan(-deltaPan.X, -deltaPan.Y);
         }
 
         private float Snap(float x, float gridStep)
@@ -166,9 +168,7 @@ namespace SkiaNodes
 
         public void ChangePan(float rawDx, float rawDy)
         {
-            var dx = rawDx;
-            var dy = rawDy;
-            SetPan(Pan.X + dx, Pan.Y + dy);
+            SetPan(Pan.X + rawDx, Pan.Y + rawDy);
         }
 
         public void SetPan(float rawX, float rawY)
@@ -203,7 +203,7 @@ namespace SkiaNodes
             var vertZoom = (Size.Height - margin.Height) / (bounds.Height);
             var horZoom = (Size.Width - margin.Width) / (bounds.Width);
 
-            zoom = Math.Min(vertZoom, horZoom) ;// / ScaleFactor;
+            zoom = Math.Min(vertZoom, horZoom);// / ScaleFactor;
 
             //if (maxZoom > -1)
             //    zoom = Math.Min(zoom, maxZoom) / ScaleFactor;
@@ -269,7 +269,7 @@ namespace SkiaNodes
 
         public SKRect GetVisibleArea()
         {
-            return ViewportToWorld(new SKRect(0,0,Size.Width*ScaleFactor,Size.Height*ScaleFactor));
+            return ViewportToWorld(new SKRect(0, 0, Size.Width * ScaleFactor, Size.Height * ScaleFactor));
         }
 
         public float PixelsToWorld(float pixelsLength)
@@ -277,16 +277,16 @@ namespace SkiaNodes
             return pixelsLength / DpiEffectiveZoom;
         }
 
-        public void CenterView(SKRect bounds = default (SKRect))
+        public void CenterView(SKRect bounds = default(SKRect))
         {
             if (bounds == default(SKRect))
                 SetPan(-Size.Width / 2, -Size.Height / 2);
             else
             {
                 var c = new SKPoint(
-                    bounds.MidX * DpiEffectiveZoom, 
+                    bounds.MidX * DpiEffectiveZoom,
                     bounds.MidY * DpiEffectiveZoom) - ViewPortCenter.Multiply(ScaleFactor);
-//                c = new SKPoint(- ViewPortCenter.X*ScaleFactor, -ViewPortCenter.Y*ScaleFactor);
+                //                c = new SKPoint(- ViewPortCenter.X*ScaleFactor, -ViewPortCenter.Y*ScaleFactor);
                 SetPan(c.X, c.Y);
             }
         }
