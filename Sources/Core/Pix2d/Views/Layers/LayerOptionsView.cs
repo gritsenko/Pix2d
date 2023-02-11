@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Net.Mime;
-using Pix2d.Effects;
+﻿using Pix2d.Effects;
 using Pix2d.Resources;
 using Pix2d.Shared;
 using Pix2d.ViewModels.Layers;

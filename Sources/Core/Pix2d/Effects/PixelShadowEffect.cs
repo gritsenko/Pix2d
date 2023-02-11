@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using SkiaNodes;
+using SkiaNodes.Extensions;
 using SkiaSharp;
 
 namespace Pix2d.Effects
@@ -14,6 +16,8 @@ namespace Pix2d.Effects
         private float _deltaX = 3;
         private float _deltaY = 3;
         private float _scale = 100;
+        private SKBitmap _cacheBitmap;
+
         public override string Name => "Shadow";
         public override EffectType EffectType { get; } = EffectType.BackEffect;
 
@@ -55,7 +59,7 @@ namespace Pix2d.Effects
             get => _color;
             set
             {
-                _color = value; 
+                _color = value;
                 OnSettingsChanged();
             }
         }
@@ -82,23 +86,35 @@ namespace Pix2d.Effects
 
         public override void Render(SKCanvas canvas, ViewPort vp, SKNode node, SKBitmap renderResultBitmap, Queue<ISKNodeEffect> nextEffects)
         {
-            using (var paint = new SKPaint())
+            if (_shadowFilter == null)
             {
-                if (_shadowFilter == null)
-                {
-                    UpdateShadowFilter();
-                }
-                paint.ImageFilter = _shadowFilter;
-                canvas.Save();
-                canvas.Scale(_scale/100, _scale / 100, renderResultBitmap.Width/2f, renderResultBitmap.Height/2f);
-                canvas.DrawBitmap(renderResultBitmap, 0, 0, paint);
-                canvas.Restore();
+                UpdateShadowFilter();
             }
+
+            RenderCache(renderResultBitmap);
+
+            canvas.DrawBitmap(_cacheBitmap, 0, 0);
+        }
+
+        private void RenderCache(SKBitmap renderResultBitmap)
+        {
+            using var paint = new SKPaint();
+            paint.ImageFilter = _shadowFilter;
+            //canvas.Save();
+            //canvas.Scale(_scale/100, _scale / 100, renderResultBitmap.Width/2f, renderResultBitmap.Height/2f);
+            //canvas.DrawBitmap(renderResultBitmap, 0, 0, paint);
+            //canvas.Restore();
+            if (_cacheBitmap == null || _cacheBitmap.Width != renderResultBitmap.Width || _cacheBitmap.Height != renderResultBitmap.Height)
+                _cacheBitmap = new SKBitmap(renderResultBitmap.Width, renderResultBitmap.Height);
+
+            using var surface = _cacheBitmap.GetSKSurface();
+            surface.Canvas.Clear();
+            surface.Canvas.DrawBitmap(renderResultBitmap, 0, 0, paint);
         }
 
         private void UpdateShadowFilter()
         {
-            _shadowFilter = SKImageFilter.CreateDropShadowOnly(DeltaX, DeltaY, SigmaX, SigmaY, Color.WithAlpha((byte) _opacity));
+            _shadowFilter = SKImageFilter.CreateDropShadowOnly(DeltaX, DeltaY, SigmaX, SigmaY, Color.WithAlpha((byte)_opacity));
         }
 
         protected override void OnSettingsChanged()
@@ -115,7 +131,7 @@ namespace Pix2d.Effects
         public PixelShadowEffect()
         {
             Order = -1;
-            
+
             //default settings
             //_settings = new EffectSettings
             //{

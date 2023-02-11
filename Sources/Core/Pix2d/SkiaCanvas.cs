@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using Avalonia.Controls.Embedding;
@@ -289,6 +290,7 @@ public class SkiaCanvas : Border
         {
             return;
         }
+
         var props = e.GetCurrentPoint(this).Properties;
         var pointerType = e.Pointer.Type;
         var pos = e.GetPosition(this);
