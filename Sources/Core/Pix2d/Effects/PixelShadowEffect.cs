@@ -100,10 +100,7 @@ namespace Pix2d.Effects
         {
             using var paint = new SKPaint();
             paint.ImageFilter = _shadowFilter;
-            //canvas.Save();
-            //canvas.Scale(_scale/100, _scale / 100, renderResultBitmap.Width/2f, renderResultBitmap.Height/2f);
-            //canvas.DrawBitmap(renderResultBitmap, 0, 0, paint);
-            //canvas.Restore();
+
             if (_cacheBitmap == null || _cacheBitmap.Width != renderResultBitmap.Width || _cacheBitmap.Height != renderResultBitmap.Height)
                 _cacheBitmap = new SKBitmap(renderResultBitmap.Width, renderResultBitmap.Height);
 
