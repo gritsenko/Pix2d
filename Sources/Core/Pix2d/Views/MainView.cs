@@ -152,10 +152,6 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                     .IsVisible(@vm.ShowMenu)
                     .Child(new MainMenuView()),
 
-                new DialogContainer()
-                    .Col(0).ColSpan(2)
-                    .Row(0).RowSpan(3),
-
                 new Border()
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
@@ -166,7 +162,10 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                             .Text("Working...")
                             .VerticalAlignment(VerticalAlignment.Center)
                             .HorizontalAlignment(HorizontalAlignment.Center)
-                    )
+                    ),
 
+                new DialogContainer()
+                    .Col(0).ColSpan(2)
+                    .Row(0).RowSpan(3)
             });
 }

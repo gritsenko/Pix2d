@@ -1,4 +1,6 @@
 ﻿using Pix2d.Mvvm;
+using Pix2d.Plugins.Sprite;
+using Pix2d.Primitives;
 using Pix2d.Resources;
 using Pix2d.ViewModels;
 
@@ -13,28 +15,28 @@ public partial class ClipboardActionsView : ComponentBase
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(
                 new Button()
+                    .Command(SpritePlugin.EditCommands.TryPaste)
                     .With(ButtonStyle)
-                    .Command(MainViewModel?.PasteCommand)
                     .Content("\xE77F"),
                 new Button()
+                    .Command(SpritePlugin.EditCommands.CopyPixels)
                     .With(ButtonStyle)
-                    .Command(MainViewModel?.CopyCommand)
                     .Content("\xE8C8"),
                 new Button()
+                    .Command(SpritePlugin.EditCommands.CutPixels)
                     .With(ButtonStyle)
-                    .Command(MainViewModel?.CutCommand)
                     .Content("\xE8C6"),
                 new Button()
+                    .Command(SpritePlugin.EditCommands.CropPixels)
                     .With(ButtonStyle)
-                    .Command(MainViewModel?.CropCommand)
                     .Content("\xE7A8"),
                 new Button()
                     .With(ButtonStyle)
                     .With(b =>
                     {
                         var flyout = new MenuFlyout() { Placement = FlyoutPlacementMode.Bottom };
-                        flyout.AddItem("Fill selection", MainViewModel?.FillSelectionCommand);
-                        flyout.AddItem("Select object", MainViewModel?.SelectObjectCommand);
+                        flyout.AddItem("Fill selection", SpritePlugin.EditCommands.FillSelectionCommand);
+                        flyout.AddItem("Select object", SpritePlugin.EditCommands.SelectObjectCommand);
                         b.Click += (s, e) => flyout.ShowAt(b);
                     })
                     .Content("\xE10C")
@@ -43,8 +45,9 @@ public partial class ClipboardActionsView : ComponentBase
     [Inject] IViewModelService ViewModelService { get; set; }
     public MainViewModel MainViewModel => ViewModelService?.GetViewModel<MainViewModel>();
 
-    private void ButtonStyle(Button b) => b
-        .Classes("AppBarButton")
+    private void ButtonStyle(Button b)
+    {
+        b.Classes("AppBarButton")
         .Background(Colors.Transparent.ToBrush())
         .BorderBrush(Colors.Transparent.ToBrush())
         .Width(48)
@@ -52,4 +55,10 @@ public partial class ClipboardActionsView : ComponentBase
         .FontSize(16)
         .FontFamily(StaticResources.Fonts.IconFontSegoe)
         .Padding(new Thickness(0));
+
+        if(b.Command is Pix2dCommand pc)
+        {
+            b.ToolTip(pc.Tooltip);
+        }
+    }
 }

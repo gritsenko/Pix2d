@@ -12,7 +12,6 @@ using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Abstract.Services;
 using Pix2d.Abstract.State;
 using Pix2d.Abstract.UI;
-using Pix2d.Common;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Project;
@@ -35,7 +34,7 @@ public class ProjectService : IProjectService
     private IFileService FileService => ServiceLocator.Current.GetInstance<IFileService>();
 
     public string CurrentProjectName => ProjectState.FileName;
-    
+
     public bool HasUnsavedChanges
     {
         get => ProjectState.HasUnsavedChanges;
@@ -65,7 +64,7 @@ public class ProjectService : IProjectService
 
         if (isSessionMode && ProjectState.LastSessionInfo.ProjectPath != null)
             name = ProjectState.LastSessionInfo.ProjectPath;
-        else if (ProjectState.File != null) 
+        else if (ProjectState.File != null)
             name = ProjectState.File.Path;
 
         if (HasUnsavedChanges) name += "*";
@@ -114,7 +113,7 @@ public class ProjectService : IProjectService
         return true;
     }
 
-    private async Task<IFileContentSource> GetFileToExport(string filetype, string defaultName = null) 
+    private async Task<IFileContentSource> GetFileToExport(string filetype, string defaultName = null)
         => await FileService.GetFileToSaveWithDialogAsync(defaultName ?? CurrentProjectName, new[] { filetype }, "project");
 
     private string GetDefaultFileName()
@@ -185,7 +184,7 @@ public class ProjectService : IProjectService
     private Func<IEnumerable<IFileContentSource>, Task<SKNode>> GetLoaderFromExtension(string fileExtension)
     {
         var importService = ServiceLocator.Current.GetInstance<IImportService>();
-        
+
         if (importService.CanImport(fileExtension))
             return TryToImport;
 
@@ -233,7 +232,7 @@ public class ProjectService : IProjectService
     private async Task<bool> AskSaveCurrentProject()
     {
         var dialogService = ServiceLocator.Current.GetInstance<IDialogService>();
-        if (dialogService == null) 
+        if (dialogService == null)
             return false;
 
         var result = await dialogService.ShowUnsavedChangesInProjectDialog();
@@ -253,9 +252,10 @@ public class ProjectService : IProjectService
         if (HasUnsavedChanges && !await AskSaveCurrentProject())
             return;
 
+        CloseCurrentProject();
+
         await BusyController.RunLongTaskAsync(async () =>
         {
-            CloseCurrentProject();
             var scene = GetNewScene(newProjectSize);
             OnProjectLoaded(scene, false);
         });

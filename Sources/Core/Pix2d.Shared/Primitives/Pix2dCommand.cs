@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
+using System.Windows.Input;
+using CommonServiceLocator;
 using Pix2d.Abstract;
 using SkiaNodes.Interactive;
 
@@ -25,7 +27,7 @@ public class Pix2dAsyncCommand : Pix2dCommand
     }
 }
 
-public abstract class Pix2dCommand
+public abstract class Pix2dCommand : ICommand
 {
     public string Name { get; }
     public string Description { get; }
@@ -43,6 +45,8 @@ public abstract class Pix2dCommand
 
         SetGroupFromName(name);
     }
+
+    public event EventHandler CanExecuteChanged;
 
     private void SetGroupFromName(string name)
     {
@@ -68,5 +72,17 @@ public abstract class Pix2dCommand
     public string GetShortcutString()
     {
         return DefaultShortcut?.ToString();
+    }
+
+    public string Tooltip => Description + " [" + GetShortcutString() + "]"; 
+
+    public bool CanExecute(object parameter)
+    {
+        return true;
+    }
+
+    public void Execute(object parameter)
+    {
+        ServiceLocator.Current.GetInstance<ICommandService>().ExecuteCommandAsync(Name);
     }
 }

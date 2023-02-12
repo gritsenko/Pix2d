@@ -402,22 +402,30 @@ public class SkiaCanvas : Border
             var canvas = GetSkCanvas(context);
             if (canvas != null)
             {
-                canvas.Save();
-
-                canvas.Clear(new SKColor(60, 60, 60));
-                if (_parent._rootNode != null && _parent.ViewPort != null)
+                try
                 {
-                    if (_lastTransform != context.Transform)
-                    {
-                        _parent.ViewPort.PivotTransformMatrix = ToSKMatrix(context.Transform);
-                        _parent.ViewPort.PivotTransformMatrix.TransX *= _parent.ViewPort.ScaleFactor;
-                        _parent.ViewPort.PivotTransformMatrix.TransY *= _parent.ViewPort.ScaleFactor;
-                        _lastTransform = context.Transform;
-                    }
 
-                    _parent._rootNode.Render(canvas, _parent.ViewPort);
+                    canvas.Save();
+
+                    canvas.Clear(new SKColor(60, 60, 60));
+                    if (_parent._rootNode != null && _parent.ViewPort != null)
+                    {
+                        if (_lastTransform != context.Transform)
+                        {
+                            _parent.ViewPort.PivotTransformMatrix = ToSKMatrix(context.Transform);
+                            _parent.ViewPort.PivotTransformMatrix.TransX *= _parent.ViewPort.ScaleFactor;
+                            _parent.ViewPort.PivotTransformMatrix.TransY *= _parent.ViewPort.ScaleFactor;
+                            _lastTransform = context.Transform;
+                        }
+
+                        _parent._rootNode.Render(canvas, _parent.ViewPort);
+                    }
+                    canvas.Restore();
                 }
-                canvas.Restore();
+                catch (ObjectDisposedException ex)
+                {
+                    //ignore this. nothing we can do actually
+                }
             }
             //else
             //    context.DrawText(Brushes.Black, new Point(), NoSkiaText.PlatformImpl);

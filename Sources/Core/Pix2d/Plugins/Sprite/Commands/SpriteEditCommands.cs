@@ -1,8 +1,11 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Commands;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Command;
+using Pix2d.CommonNodes;
 using Pix2d.Drawing.Tools;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Primitives;
@@ -34,7 +37,7 @@ public class SpriteEditCommands : CommandsListBase
         () =>
         {
             var container = CoreServices.SelectionService.GetActiveContainer();
-            CoreServices.ClipboardService.TryCopyNodesAsBitmapAsync(container.Yield().OfType<SKNode> (), container.BackgroundColor);
+            CoreServices.ClipboardService.TryCopyNodesAsBitmapAsync(container.Yield().OfType<SKNode>(), container.BackgroundColor);
         });
 
     public Pix2dCommand CutPixels =>
@@ -50,7 +53,15 @@ public class SpriteEditCommands : CommandsListBase
         GetCommand("Crop current sprite", new CommandShortcut(VirtualKeys.K, KeyModifier.Ctrl), EditContextType.Sprite,
             async () =>
             {
+                SKBitmap selectionBitmap = null;
                 SKRect targetBounds = default;
+
+                var selectiionLayer = CoreServices.DrawingService.DrawingLayer.GetSelectionLayer();
+                if (selectiionLayer is BitmapNode bmn)
+                {
+                    selectionBitmap = bmn.Bitmap.Copy();
+                }
+
                 if (AppState.CurrentProject.CurrentTool is PixelSelectTool ps)
                 {
                     targetBounds = ps.GetSelectionRect();
@@ -60,6 +71,9 @@ public class SpriteEditCommands : CommandsListBase
                 if (targetBounds != default)
                 {
                     CoreServices.EditService.CropCurrentSprite(targetBounds);
+
+                    if (selectionBitmap != null)
+                        CoreServices.DrawingService.DrawingLayer?.SetSelectionFromExternal(selectionBitmap, SKPoint.Empty);
 
                     CoreServices.ViewPortService.ShowAll();
                     await Task.Delay(300);
@@ -103,6 +117,6 @@ public class SpriteEditCommands : CommandsListBase
             });
 
     public Pix2dCommand SelectObjectCommand =>
-        GetCommand("Extract object from image", new CommandShortcut(VirtualKeys.O, KeyModifier.Shift | KeyModifier.Ctrl), EditContextType.Sprite,
+        GetCommand("Extract object from image (Using online service)", new CommandShortcut(VirtualKeys.O, KeyModifier.Shift | KeyModifier.Ctrl), EditContextType.Sprite,
             SpritePlugin.SelectObject);
 }
