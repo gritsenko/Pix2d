@@ -63,8 +63,9 @@ namespace Pix2d.Views
                         .Background(Colors.Transparent.ToBrush())
                         .Width(52)
                         .Height(52)
-                        .With(_=>{})
-                        .Content(itemVm),
+                        .With(_ => { })
+                        .Content(itemVm)
+                        .ToolTip(itemVm.Tooltip),
 
                     new Path()
                         .Data(Geometry.Parse("F1 M 4,0L 4,4L 0,4"))
