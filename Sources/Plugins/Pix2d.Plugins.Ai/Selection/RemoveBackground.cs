@@ -1,7 +1,9 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using SkiaSharp;
+using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Pix2d.Plugins.Ai.Selection;
 
@@ -17,7 +19,7 @@ public static class RemoveBackground
     public static int SourceWidth { get; private set; }
     public static int SourceHeight { get; private set; }
 
-    public static SKBitmap Process(SKBitmap original, string model)
+    public unsafe static SKBitmap Process(SKBitmap original, string model)
     {
         SourceWidth = original.Width;
         SourceHeight = original.Height;
@@ -43,14 +45,12 @@ public static class RemoveBackground
             throw new ApplicationException("Unable to process image");
 
         var result = new SKBitmap(Width, Height);
+        var ppt = result.GetPixels(out IntPtr len);
+        var pixels = new Span<int>(ppt.ToPointer(), (int)len);
+
         for (var y = 0; y < Height; y++)
-        {
             for (var x = 0; x < Width; x++)
-            {
-                var val = (byte)Math.Clamp(output[0, 0, x, y] * 255, 0, 255);
-                result.SetPixel(x, y, new SKColor(val, val, val));
-            }
-        }
+                pixels[y * Width + x] = (byte)(output[0, 0, x, y] * 255) << 24;
 
         result = result.Resize(new SKSizeI(original.Width, original.Height), SKFilterQuality.High);
         return result;

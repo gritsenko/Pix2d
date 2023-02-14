@@ -1,6 +1,11 @@
 ﻿using Pix2d.Abstract.Drawing;
 using Pix2d.Common.Drawing;
 using SkiaSharp;
+using System.Runtime.InteropServices;
+using System;
+using SkiaNodes.Extensions;
+using static Pix2d.CommonNodes.Pix2dSprite;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Pix2d.Plugins.Ai.Selection;
 
@@ -72,188 +77,59 @@ public class AiPixelSelector : IPixelSelector
     }
 
     private void SetPixel(int x, int y) => _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] = 1;
-    private bool GetPixel(int x, int y)
+    private byte GetPixel(int x, int y)
     {
         if (x < _imageLeft || y < _imageTop || x > _imageRight || y > _imageBot)
-            return false;
+            return 0;
 
-        return _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] > 0;
+        return _pixelsBuff[x + _offsetX + (y + _offsetY) * _width];
     }
 
-    private void BuildSlectionPath()
+    public unsafe void ClearSelectionFromBitmap(ref SKBitmap bitmap)
     {
-        bool IsPSet(int x, int y) => GetPixel(x, y);
-
-
-        var sortedEdges = new List<Edge>();
-
-        var edges = new List<Edge>();
-
-        void AddEdge(int x0, int y0, int x1, int y1) => edges.Add(new Edge(x0, y0, x1, y1));
-
-        {
-            int x, y;
-            foreach (var spt in _selectionPoints)
+        var dest0 = (byte*)bitmap.GetPixels().ToPointer();
+        var h = bitmap.Height;
+        var w = bitmap.Width;
+        for (int y = -_offsetY; y < -_offsetY + _height; y++)
+            for (int x = -_offsetX; x < -_offsetX + _width; x++)
             {
-                x = spt.X;
-                y = spt.Y;
-
-                if (!IsPSet(x, y - 1)) AddEdge(x, y, x + 1, y);
-                if (!IsPSet(x, y + 1)) AddEdge(x, y + 1, x + 1, y + 1);
-                if (!IsPSet(x - 1, y)) AddEdge(x, y, x, y + 1);
-                if (!IsPSet(x + 1, y)) AddEdge(x + 1, y, x + 1, y + 1);
-
-            }
-        }
-
-        for (var i = 0; i < edges.Count && edges.Any(); i++)
-        {
-            foreach (var edge in edges.ToArray())
-            {
-                if (!sortedEdges.Any() || sortedEdges.Last().IsConnectedTo(edge))
+                var a = GetPixel(x, y);
+                var dest = dest0 + (x + y * bitmap.Width) * 4;
+                if (a > 0)
                 {
-                    sortedEdges.Add(edge);
-                    edges.Remove(edge);
-                    i = 0;
-                }
-                else if (sortedEdges[0].IsConnectedTo(edge))
-                {
-                    sortedEdges.Insert(0, edge);
-                    edges.Remove(edge);
-                    i = 0;
+                    //*dest = 0;
+                    //*(dest + 1) = 0;
+                    //*(dest + 2) = 0;
+                    *(dest + 3) = a;
                 }
             }
-        }
-
-
-        var corners = new List<SKPointI>();
-
-        void AddCorner(SKPointI pt)
-        {
-            if (corners.Count == 0 || corners.Last() != pt)
-                corners.Add(pt);
-        }
-
-        var prev = sortedEdges[0];
-        var cur = sortedEdges[1];
-
-        var firstPoint = prev.GetFreePoint(cur);
-        AddCorner(firstPoint);
-
-        for (var i = 1; i < sortedEdges.Count; i++)
-        {
-            prev = sortedEdges[i - 1];
-            cur = sortedEdges[i];
-            var pt = cur.GetConnectionPoint(prev);
-            AddCorner(pt);
-        }
-
-        AddCorner(cur.GetFreePoint(prev));
-        AddCorner(firstPoint);
-
-        //_selectionPath = GdfPath.FromPoints(corners.Select(p => new Vector2D(p.X, p.Y)));
     }
-
-    public void ClearSelectionFromBitmap(ref SKBitmap bitmap)
-    {
-
-        unsafe
-        {
-            //fixed (byte* pSource = data)
-            {
-                var dest0 = (byte*)bitmap.GetPixels().ToPointer();
-                var h = bitmap.Height;
-                var w = bitmap.Width;
-                for (int y = 0; y < h; y++)
-                    for (int x = 0; x < w; x++)
-                    {
-                        if (GetPixel(x, y))
-                        {
-                            var dest = dest0 + (x + y * bitmap.Width) * 4;
-                            *dest = 0;
-                            *(dest + 1) = 0;
-                            *(dest + 2) = 0;
-                            *(dest + 3) = 0;
-                        }
-                    }
-            }
-        }
-    }
-
-    public void ClearInvertedSelectionFromBitmap(SKBitmap bitmap)
-    {
-        for (int y = 0; y < bitmap.Height; y++)
-            for (int x = 0; x < bitmap.Width; x++)
-            {
-                if (!GetPixel(x, y))
-                    bitmap.SetPixel(x, y, SKColor.Empty);
-            }
-    }
-
-    public SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap)
+    public unsafe SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap)
     {
         var bitmap = new SKBitmap(_width, _height, SKColorType.Bgra8888, SKAlphaType.Premul);
-        bitmap.Erase(SKColor.Empty);
+
+        //skip ai stuff if selection is too small
+        if (_width < 3 && _height == 3)
+            return bitmap;
 
         var srcWidth = sourceBitmap.Width;
 
-        unsafe
-        {
-            var spanSrc = sourceBitmap.GetPixelSpan();
-            var destPixelsPtr = bitmap.GetPixels(out IntPtr len);
-            var ptr = destPixelsPtr.ToPointer();
-            var spanDest = new Span<byte>(ptr, (int)len);
+        var spanSrc = MemoryMarshal.Cast<byte, int>(sourceBitmap.GetPixelSpan());
+        var destPixelsPtr = bitmap.GetPixels(out IntPtr len);
+        var ptr = destPixelsPtr.ToPointer();
+        var spanDest = new Span<int>(ptr, (int)len);
 
-            for (int y = 0; y < bitmap.Height; y++)
-                for (int x = 0; x < bitmap.Width; x++)
-                {
-
-                    if (_pixelsBuff[x + y * _width] > 0)
-                    {
-                        var srcX = x - _offsetX;
-                        var srcY = y - _offsetY;
-
-                        if (srcX >= 0 && srcY >= 0 && srcX < sourceBitmap.Width && srcY < sourceBitmap.Height)
-                        {
-                            var destIndex = (x + y * _width) * 4;
-                            var srcIndex = (srcX + srcY * srcWidth) * 4;
-                            spanDest[destIndex] = spanSrc[srcIndex];
-                            spanDest[destIndex + 1] = spanSrc[srcIndex + 1];
-                            spanDest[destIndex + 2] = spanSrc[srcIndex + 2];
-                            spanDest[destIndex + 3] = spanSrc[srcIndex + 3];
-                        }
-                    }
-                }
-
-            var extractedMask = RemoveBackground.Process(bitmap, "u2netp.onnx");
-            bitmap.Erase(SKColor.Empty);
-
-            for (int y = 0; y < bitmap.Height; y++)
+        for (int y = 0; y < bitmap.Height; y++)
             for (int x = 0; x < bitmap.Width; x++)
-            {
-                if (extractedMask.GetPixel(x, y).Red == 0)
-                {
-                    _pixelsBuff[x + y * _width] = 0;
-                }
+                spanDest[y * _width + x] = spanSrc[(y - _offsetY) * srcWidth + (x - _offsetX)];
 
-                if (extractedMask.GetPixel(x,y).Red > 0)
-                {
-                    var srcX = x - _offsetX;
-                    var srcY = y - _offsetY;
+        var extractedMask = RemoveBackground.Process(bitmap, "u2netp.onnx");
 
-                    if (srcX >= 0 && srcY >= 0 && srcX < sourceBitmap.Width && srcY < sourceBitmap.Height)
-                    {
-                        var destIndex = (x + y * _width) * 4;
-                        var srcIndex = (srcX + srcY * srcWidth) * 4;
-                        spanDest[destIndex] = spanSrc[srcIndex];
-                        spanDest[destIndex + 1] = spanSrc[srcIndex + 1];
-                        spanDest[destIndex + 2] = spanSrc[srcIndex + 2];
-                        spanDest[destIndex + 3] = spanSrc[srcIndex + 3];
-                    }
-                }
-            }
-
-        }
+        using var canvas = bitmap.GetSKSurface().Canvas;
+        canvas.DrawBitmap(extractedMask, SKPoint.Empty, new SKPaint() { BlendMode = SKBlendMode.DstIn });
+        for (int y = 0; y < bitmap.Height; y++)
+            for (int x = 0; x < bitmap.Width; x++)
+                _pixelsBuff[x + y * _width] = (byte)(spanDest[y * _width + x] & 0xff);
 
         return bitmap;
     }

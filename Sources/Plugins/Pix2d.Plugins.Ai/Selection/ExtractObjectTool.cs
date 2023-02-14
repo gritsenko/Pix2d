@@ -137,6 +137,9 @@ public class ExtractObjectTool : BaseTool, IDrawingTool
         DrawingLayer.ClearCustomPixelSelector();
         DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;
         DrawingLayer.PixelsSelected -= DrawingLayer_PixelsSelected;
+        DrawingLayer.SelectionStarted -= DrawingLayer_SelectionStarted;
+        DrawingLayer.SelectionRemoved -= DrawingLayer_SelectionRemoved;
+
         Messenger.Unregister<OperationInvokedMessage>(this, OnOperationInvoked);
         DrawingLayer.ApplySelection();
     }
