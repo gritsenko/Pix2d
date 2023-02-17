@@ -8,6 +8,7 @@ public class ExportImportProjectType
     public static ExportImportProjectType PixelArtStudio = new(".pxm");
     public static ExportImportProjectType Png = new(".png");
     public static ExportImportProjectType Gif = new(".gif");
+    public static ExportImportProjectType Jpeg = new(".jpg");
 
     public string FileExtension { get; }
     public bool IsDirectoryProject { get; }
@@ -29,6 +30,7 @@ public class ExportImportProjectType
             PixelArtStudio.FileExtension,
             Png.FileExtension,
             Gif.FileExtension,
+            Jpeg.FileExtension,
         };
     }
 }
