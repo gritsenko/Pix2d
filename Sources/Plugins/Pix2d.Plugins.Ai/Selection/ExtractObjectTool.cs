@@ -16,7 +16,7 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Ai.Selection;
 
-public class ExtractObjectTool : BaseTool, IDrawingTool
+public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 {
     public override string DisplayName => "Object selection tool";
 

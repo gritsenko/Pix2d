@@ -15,13 +15,12 @@ using Pix2d.Operations;
 using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Primitives.Drawing;
 using Pix2d.State;
-using Pix2d.Tools;
 using SkiaNodes.Interactive;
 using SkiaSharp;
 
 namespace Pix2d.Drawing.Tools;
 
-public class PixelSelectTool : BaseTool, IDrawingTool
+public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 {
     public IDrawingService DrawingService { get; }
     public IMessenger Messenger { get; }

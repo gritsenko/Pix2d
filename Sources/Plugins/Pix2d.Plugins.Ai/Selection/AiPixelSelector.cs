@@ -84,12 +84,15 @@ public class AiPixelSelector : IPixelSelector
     public unsafe void ClearSelectionFromBitmap(ref SKBitmap bitmap)
     {
         var dest0 = (byte*)bitmap.GetPixels().ToPointer();
-        var h = bitmap.Height;
-        var w = bitmap.Width;
-        for (int y = -_offsetY; y < -_offsetY + _height; y++)
-            for (int x = -_offsetX; x < -_offsetX + _width; x++)
+        var h = Math.Min(-_offsetY + _height, bitmap.Height);
+        var w = Math.Min(-_offsetX + _width, bitmap.Width);
+        for (int y = -_offsetY; y < h; y++)
+            for (int x = -_offsetX; x < w; x++)
             {
-                var a = (byte)(255 - GetPixel(x, y));
+                if (x < _imageLeft || y < _imageTop || x > _imageRight || y > _imageBot)
+                    continue;
+
+                var a = (byte)(255 - _pixelsBuff[x + _offsetX + (y + _offsetY) * _width]);
                 var norma = a / 255f;
                 var dest = dest0 + (x + y * bitmap.Width) * 4;
                 *dest = (byte)((*dest) * norma);
@@ -116,7 +119,15 @@ public class AiPixelSelector : IPixelSelector
 
         for (int y = 0; y < bitmap.Height; y++)
             for (int x = 0; x < bitmap.Width; x++)
-                spanDest[y * _width + x] = spanSrc[(y - _offsetY) * srcWidth + (x - _offsetX)];
+            {
+                var srcX = x - _offsetX;
+                var srcY = y - _offsetY;
+                if (srcX >= 0 && srcY >= 0 && srcX < sourceBitmap.Width && srcY < sourceBitmap.Height)
+                {
+                    var srcIndex = srcY * srcWidth + srcX;
+                    spanDest[y * _width + x] = spanSrc[srcIndex];
+                }
+            }
 
         var extractedMask = RemoveBackground.Process(bitmap, "u2netp.onnx");
         var maskPixels = MemoryMarshal.Cast<byte, int>(extractedMask.GetPixelSpan());

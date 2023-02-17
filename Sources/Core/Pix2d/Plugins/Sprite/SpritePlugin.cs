@@ -41,10 +41,8 @@ public class SpritePlugin : IPix2dPlugin
 
     internal static (IEnumerable<SKNode> Nodes, SKColor BackgroundColor) GetDataForCutOrCopy(IAppState appState)
     {
-        if (appState.CurrentProject.CurrentTool.Key != "PixelSelectTool")
-        {
+        if (appState.CurrentProject.CurrentTool is not IPixelSelectionTool)
             return (Enumerable.Empty<SKNode>(), SKColor.Empty);
-        }
         
         IEnumerable<SKNode> selectedNodes = appState.CurrentProject.Selection?.Nodes;
         if (CoreServices.DrawingService.DrawingLayer.HasSelection)

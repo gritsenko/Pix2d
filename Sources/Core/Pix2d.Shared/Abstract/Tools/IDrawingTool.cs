@@ -1,7 +1,6 @@
-﻿namespace Pix2d.Abstract.Tools
-{
-    public interface IDrawingTool
-    {
+﻿namespace Pix2d.Abstract.Tools;
 
-    }
+public interface IDrawingTool
+{
+
 }
