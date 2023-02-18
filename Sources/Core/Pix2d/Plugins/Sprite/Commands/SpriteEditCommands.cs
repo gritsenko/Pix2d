@@ -1,10 +1,7 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using Avalonia.Media.Imaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Commands;
-using Pix2d.Abstract.Drawing;
-using Pix2d.Command;
 using Pix2d.CommonNodes;
 using Pix2d.Drawing.Tools;
 using Pix2d.Plugins.Sprite.Editors;

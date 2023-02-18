@@ -1,12 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Avalonia.Input;
+using Avalonia;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Services;
 using Pix2d.Abstract.Tools;
+using SkiaNodes;
 using SkiaSharp;
+using SkiaNodes.Extensions;
 
 namespace Pix2d.Services;
 
@@ -16,6 +21,41 @@ public class AvaloniaClipboardService : InternalClipboardService
 
     public AvaloniaClipboardService(IDrawingService drawingService, IToolService toolService, IViewPortService viewPortService) : base(drawingService, toolService, viewPortService)
     {
+    }
+
+    public override async Task<bool> TryCopyNodesAsBitmapAsync(IEnumerable<SKNode> nodes, SKColor backgroundColor)
+    {
+        var result = await base.TryCopyNodesAsBitmapAsync(nodes, backgroundColor);
+        if(result)
+            await PutImageIntoClipboard(SavedBitmap);
+        return result;
+    }
+
+    public override async Task<bool> TryCutNodesAsBitmapAsync(IEnumerable<SKNode> nodes, SKColor backgroundColor)
+    {
+        var result = await base.TryCutNodesAsBitmapAsync(nodes, backgroundColor);
+        if (result)
+            await PutImageIntoClipboard(SavedBitmap);
+        return result;
+    }
+
+    private async Task PutImageIntoClipboard(SKBitmap bitmap)
+    {
+
+        var bytes = bitmap.Encode(SKEncodedImageFormat.Png, 100).ToArray();
+        var dataObject = new DataObject();
+        dataObject.Set("PNG", bytes);
+
+        var c = Application.Current.Clipboard;
+        await c.ClearAsync();
+        await c.SetDataObjectAsync(dataObject);
+
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return;
+        }
+        var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;
+        Clowd.Clipboard.ClipboardGdi.SetImage(bm);
     }
 
     public override async Task<SKBitmap> GetImageFromClipboard()
@@ -30,6 +70,33 @@ public class AvaloniaClipboardService : InternalClipboardService
                 var bitmap = SKBitmap.Decode(data);
                 return bitmap;
             }
+        }
+
+        //windows specific clipboard format
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            using var image = await Clowd.Clipboard.ClipboardGdi.GetImageAsync();
+            //using var ms = new MemoryStream();
+            //image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+            //    var bitmap = SKBitmap.Decode(data,);
+            var info = new SKImageInfo(image.Width, image.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+            var skBitmap = new SKBitmap(info);
+
+            var data = image.LockBits(
+                new System.Drawing.Rectangle(0, 0, image.Width, image.Height),
+                System.Drawing.Imaging.ImageLockMode.ReadOnly,
+                System.Drawing.Imaging.PixelFormat.Format32bppPArgb
+            );
+
+
+            using (var pixmap = new SKPixmap(info, data.Scan0, info.RowBytes))
+            {
+                skBitmap.InstallPixels(pixmap);
+            }
+
+            image.UnlockBits(data);
+            
+            return skBitmap;
         }
 
         return null;
