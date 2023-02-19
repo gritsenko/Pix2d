@@ -114,6 +114,7 @@ public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
         DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;
         Messenger.Unregister<OperationInvokedMessage>(this, OnOperationInvoked);
         DrawingLayer.ApplySelection();
+        SelectionState.Set(x => x.UserSelectingFrameSize, DrawingLayer.DrawingTarget.GetSize());
     }
 
     public SKRect GetSelectionRect()

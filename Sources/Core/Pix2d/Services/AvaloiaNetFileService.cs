@@ -86,7 +86,7 @@ public class AvaloiaNetFileService : IFileService
                 DefaultServiceLocator.ServiceLocatorProvider().GetInstance<ISettingsService>().Set(SettingsConstants.FileServiceContexts, ContextPaths);
             }
 
-            return result.Select(x => x != null ? new NetFileSource(x.Path.AbsolutePath) : null);
+            return result.Select(x => x != null ? new NetFileSource(x.Path.LocalPath) : null);
         }
         finally
         {
@@ -108,11 +108,17 @@ public class AvaloiaNetFileService : IFileService
         {
             OnFileDialogOpened();
 
-            var sfd = new SaveFileDialog();
-            //sfd.Filter = string.Join("|", fileTypeFilter.Select(x => x + "|*" + x));
-            //sfd.DefaultExt = fileTypeFilter[0];
 
-            //sfd.FileName = defaultFileName;
+            var options = new FilePickerSaveOptions();
+            options.FileTypeChoices = new[]
+            {
+                new FilePickerFileType("Pix2d supported images") { Patterns = fileTypeFilter.Select(x=>"*" + x).ToArray() }
+            };
+
+            options.DefaultExtension = fileTypeFilter.FirstOrDefault().Trim('.');
+            options.SuggestedFileName = defaultFileName;
+
+            var sp = GetStorageProvider();
 
             if (!string.IsNullOrWhiteSpace(contextKey))
             {
@@ -122,25 +128,25 @@ public class AvaloiaNetFileService : IFileService
                 }
             }
 
-            var result = await sfd.ShowAsync(DialogService.Window);
-
-            if (!string.IsNullOrWhiteSpace(result))
+            var result = await sp.SaveFilePickerAsync(options);
+            if (result == null)
             {
-                if (!string.IsNullOrWhiteSpace(contextKey))
-                {
-                    ContextPaths[contextKey] = System.IO.Path.GetDirectoryName(result);
-                    DefaultServiceLocator.ServiceLocatorProvider().GetInstance<ISettingsService>().Set(SettingsConstants.FileServiceContexts, _contextPaths);
-                }
-
-                return new NetFileSource(result);
+                return null;
             }
+            var path = result.Path.LocalPath;
+
+            if (!string.IsNullOrWhiteSpace(contextKey))
+            {
+                ContextPaths[contextKey] = System.IO.Path.GetDirectoryName(path);
+                DefaultServiceLocator.ServiceLocatorProvider().GetInstance<ISettingsService>().Set(SettingsConstants.FileServiceContexts, _contextPaths);
+            }
+
+            return new NetFileSource(path);
         }
         finally
         {
             OnFileDialogClosed();
         }
-
-        return null;
     }
 
     public async Task<IWriteDestinationFolder> GetFolderToExportWithDialogAsync(string contextKey = null)

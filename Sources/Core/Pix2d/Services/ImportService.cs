@@ -51,10 +51,12 @@ namespace Pix2d.Services
         public async void ImportToScene()
         {
             var files = (await FileService.OpenFileWithDialogAsync(new[] {".png"}, true, "import"));
-            if(!files.Any())
+            if(files?.Any() != true)
                 return;
             
             await ImportToScene(files);
+
+            CoreServices.ViewPortService.Refresh();
         }
 
         public async Task ImportToScene(IEnumerable<IFileContentSource> files)

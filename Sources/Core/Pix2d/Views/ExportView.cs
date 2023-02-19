@@ -53,7 +53,7 @@ public class ExportView : ViewBaseSingletonVm<ExportPageViewModel>
                                                 new NumericUpDown()
                                                     .Watermark("Columns count")
                                                     .Minimum(1)
-                                                    .Value(new Binding("SelectedExporter.Columns", BindingMode.TwoWay))
+                                                    .Value(new Binding("Columns", BindingMode.TwoWay))
                                                     .IsVisible(@selectedExporter.ShowSpritesheetOptions)
                                             ), // exporter options
                                         new SliderEx()

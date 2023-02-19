@@ -224,7 +224,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IUpdatableNode, IDr
 
 
         //RENDER ONION SKINS
-        if (OnionSkinSettings.IsEnabled)
+        if (OnionSkinSettings.IsEnabled && vp.Settings.RenderAdorners)
         {
             for (var i = 0; i < Nodes.Count; i++)
             {

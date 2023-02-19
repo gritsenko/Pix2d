@@ -46,6 +46,7 @@ public class Pix2dBootstrapper : IPix2dBootstrapper
         container.RegisterSingleton<ISettingsService, SettingsService>();
         container.RegisterSingleton<IFileService, AvaloiaNetFileService>();
         container.RegisterSingleton<IClipboardService, AvaloniaClipboardService>();
+        container.RegisterSingleton<IFontService, AvaloniaFontService>();
 
         container.RegisterInstance<IMessenger>(Messenger.Default);
 

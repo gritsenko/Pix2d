@@ -8,7 +8,6 @@ using Pix2d.Abstract.Services;
 using SkiaNodes.Interactive;
 
 namespace Pix2d.Editor.Desktop.Services;
-
 public class PlatformStuffService : IPlatformStuffService
 {
     public void OpenUrlInBrowser(string url)
