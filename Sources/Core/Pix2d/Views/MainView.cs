@@ -6,6 +6,7 @@ using Pix2d.ViewModels.Layers;
 using Pix2d.Views.Animation;
 using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
+using Pix2d.Views.Text;
 using Pix2d.Views.ToolSettings;
 
 namespace Pix2d.Views;
@@ -67,6 +68,11 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
 
                 new ClipboardActionsView().Col(1).Row(2)
                     .IsVisible(@vm.ShowClipboardBar)
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .VerticalAlignment(VerticalAlignment.Top),
+
+                new TextBarView().Col(1).Row(2)
+                    .IsVisible(@vm.ShowTextBar)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Top),
 
