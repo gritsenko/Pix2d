@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using SkiaNodes.Interactive;
 
-namespace Pix2d.Editor.Desktop.Services;
+namespace Pix2d.Desktop.Services;
 public class PlatformStuffService : IPlatformStuffService
 {
     public void OpenUrlInBrowser(string url)
@@ -54,6 +56,12 @@ public class PlatformStuffService : IPlatformStuffService
 
     public void SetWindowTitle(string title)
     {
+        if (EditorApp.TopLevel is MainWindow wnd) {
+            Dispatcher.UIThread.Post(() =>
+            {
+                wnd.Title = title + " - v" + GetAppVersion();
+            });
+        }
     }
 
     public MemoryInfo GetMemoryInfo()
@@ -75,7 +83,10 @@ public class PlatformStuffService : IPlatformStuffService
 
     public string GetAppVersion()
     {
-        throw new NotImplementedException();
+        var assembly = Assembly.GetExecutingAssembly();
+        var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
+        var version = fvi.ProductVersion;
+        return version;
     }
 
     public Task<bool> ShareImage(Stream bitmapImageStream)
@@ -83,4 +94,11 @@ public class PlatformStuffService : IPlatformStuffService
         throw new NotImplementedException();
     }
 
+    public void ToggleTopmostWindow()
+    {
+        if (EditorApp.TopLevel is MainWindow wnd)
+        {
+            wnd.Topmost = !wnd.Topmost;
+        }
+    }
 }

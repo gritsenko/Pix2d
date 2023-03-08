@@ -4,8 +4,9 @@ namespace Pix2d;
 
 public class Commands
 {
-    public static FileCommands File { get; } = new FileCommands();
-    public static ViewCommands View { get; } = new ViewCommands();
-    public static EditCommands Edit { get; } = new EditCommands();
-    public static ProjectCommands Project { get; } = new ProjectCommands();
+    public static FileCommands File { get; } = new();
+    public static ViewCommands View { get; } = new();
+    public static EditCommands Edit { get; } = new();
+    public static ProjectCommands Project { get; } = new();
+    public static WindowCommands Window { get; } = new();
 }

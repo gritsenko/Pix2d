@@ -9,6 +9,7 @@ using Mvvm.Messaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
+using Pix2d.Desktop.Services;
 using Pix2d.Editor.Desktop.Services;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Ai;

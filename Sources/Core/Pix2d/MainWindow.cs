@@ -13,7 +13,7 @@ public class MainWindow : Window
         Width = 800;
         Height = 600;
 #if DEBUG
-//        Topmost = true;
+        Topmost = false;
 #endif
     }
 }

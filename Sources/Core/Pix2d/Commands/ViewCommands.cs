@@ -8,8 +8,7 @@ using SkiaNodes.Interactive;
 
 namespace Pix2d.Command;
 
-public class ViewCommands : CommandsListBase
-{
+public class ViewCommands : CommandsListBase{
     protected override string BaseName => "View";
 
     public Pix2dCommand ZoomIn => GetCommand("Zoom In",

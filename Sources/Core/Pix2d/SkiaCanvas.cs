@@ -49,6 +49,8 @@ public class SkiaCanvas : Border
         if (Design.IsDesignMode)
             return;
 
+        Focusable = true;
+
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
         PointerReleased += OnPointerReleased;

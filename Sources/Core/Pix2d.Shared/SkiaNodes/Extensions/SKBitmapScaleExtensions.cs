@@ -27,7 +27,7 @@ namespace SkiaNodes.Extensions
 
             destBitmap.Clear();
 
-            var src =  srcBitmap.GetPixelSpan();
+            var src = GetPixelsSpan(srcBitmap);
             var dest = GetPixelsSpan(destBitmap);
 
             for (int y = 0; y < hsrc; y++)

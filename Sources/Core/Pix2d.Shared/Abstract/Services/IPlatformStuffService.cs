@@ -23,6 +23,8 @@ namespace Pix2d.Abstract.Services
         string GetAppVersion();
 
         Task<bool> ShareImage(Stream bitmapImageStream);
+
+        public void ToggleTopmostWindow();
     }
 
     public enum DeviceFormFactorType

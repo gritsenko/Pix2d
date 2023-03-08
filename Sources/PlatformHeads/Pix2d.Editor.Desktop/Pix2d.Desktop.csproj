@@ -5,6 +5,8 @@
 		<ApplicationIcon>Assets\app1.ico</ApplicationIcon>
 		<StartupObject />
 		<AssemblyName>Pix2d</AssemblyName>
+    <Version>3.0.1</Version>
+    <PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
 	</PropertyGroup>
 	<ItemGroup>
 		<Compile Update="**\*.xaml.cs">

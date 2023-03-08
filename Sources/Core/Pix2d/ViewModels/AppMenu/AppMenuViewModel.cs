@@ -1,38 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Mvvm;
 using Pix2d.Abstract;
 using Pix2d.Mvvm;
 
-namespace Pix2d.ViewModels;
-
-public class AppMenuItemVm : Pix2dViewModelBase
-{
-
-    public AppMenuItemVm(string header, Action action = default, string shortcut = default)
-    {
-        Header = header;
-        Shortcut = shortcut;
-        _action = action;
-    }
-
-    public string Header { get; set; }
-    public string Shortcut { get; set; }
-
-    private Action _action;
-
-    public ObservableCollection<AppMenuItemVm> MenuItems { get; } = new ObservableCollection<AppMenuItemVm>();
-
-    public IRelayCommand Command => _action != null ? GetCommand(_action) : null;
-
-}
+namespace Pix2d.ViewModels.AppMenu;
 
 public class AppMenuViewModel : Pix2dViewModelBase
 {
     public ICommandService CommandService { get; }
-    public ObservableCollection<AppMenuItemVm> MenuItems { get; } = new ObservableCollection<AppMenuItemVm>();
+    public ObservableCollection<AppMenuItemViewModel> MenuItems { get; } = new ObservableCollection<AppMenuItemViewModel>();
 
     public AppMenuViewModel(ICommandService commandService)
     {
@@ -43,13 +20,13 @@ public class AppMenuViewModel : Pix2dViewModelBase
     {
         var commands = CommandService.GetCommands();
 
-        var items = new Dictionary<string, AppMenuItemVm>();
+        var items = new Dictionary<string, AppMenuItemViewModel>();
 
         MenuItems.Clear();
 
-        AppMenuItemVm AddItem(string name)
+        AppMenuItemViewModel AddItem(string name)
         {
-            var item = new AppMenuItemVm(name);
+            var item = new AppMenuItemViewModel(name);
             items[name] = item;
             MenuItems.Add(item);
             return item;
@@ -60,6 +37,7 @@ public class AppMenuViewModel : Pix2dViewModelBase
         AddItem("View");
         AddItem("Project");
         AddItem("Tools");
+        AddItem("Window");
 
         foreach (var pix2dCommand in commands)
         {
@@ -72,7 +50,7 @@ public class AppMenuViewModel : Pix2dViewModelBase
 
             var lastGroup = pix2dCommand.Groups.LastOrDefault();
 
-            var commandItem = new AppMenuItemVm(lastGroup, async () => await CommandService.ExecuteCommandAsync(pix2dCommand.Name), pix2dCommand.GetShortcutString());
+            var commandItem = new AppMenuItemViewModel(lastGroup, async () => await CommandService.ExecuteCommandAsync(pix2dCommand.Name), pix2dCommand.GetShortcutString());
 
             item.MenuItems.Add(commandItem);
         }

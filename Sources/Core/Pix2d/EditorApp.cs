@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Linq;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.LogicalTree;
-using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Themes.Simple;
@@ -110,7 +109,10 @@ public class EditorApp : Application
 
         base.OnFrameworkInitializationCompleted();
 
-
+        if (Design.IsDesignMode)
+        {
+            return;
+        }
         InitializePix2d(HostView);
     }
 

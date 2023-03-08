@@ -128,9 +128,10 @@ public class Pix2DApp : IViewPortService, IAppStateService<AppState>
         InitializePlugins();
 
         CoreServices.CommandService.Initialize();
-
+        CoreServices.PlatformStuffService.SetWindowTitle("Pix2d");
         CoreServices.SettingsService.Set("LaunchTime", DateTime.Now);
 
+        
         SessionLogger.InitInstance(Messenger.Default);
     }
 

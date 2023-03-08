@@ -35,6 +35,7 @@ public class CommandService : ICommandService
         RegisterCommandList<ViewCommands>();
         RegisterCommandList<EditCommands>();
         RegisterCommandList<ArrangeCommands>();
+        RegisterCommandList<WindowCommands>();
 
 #if DEBUG
         //cheats

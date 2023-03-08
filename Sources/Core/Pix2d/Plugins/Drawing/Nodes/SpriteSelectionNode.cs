@@ -20,7 +20,7 @@ namespace Pix2d.Plugins.Drawing.Nodes
             _upscaledBitmap?.Dispose();
 
             //don't apply rotsprite for big sprites
-            if (newBitmap.Width > 256 && newBitmap.Height > 256)
+            if (newBitmap.Width > MaxRotSpriteEdgeSize && newBitmap.Height > MaxRotSpriteEdgeSize)
             {
                 _upscaledBitmap = newBitmap;
             }

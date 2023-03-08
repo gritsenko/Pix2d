@@ -1,40 +1,22 @@
-﻿using Mvvm;
-using Pix2d.Plugins.Drawing.ViewModels;
+﻿using Pix2d.Plugins.Drawing.ViewModels;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Primitives;
 using Pix2d.Resources;
 
 namespace Pix2d.Views.Text;
 
-public class TextBarView : ViewBaseSingletonVm<TextBarViewModel>
-{
-    private void ButtonStyle(Button b)
-    {
-        b.Classes("AppBarButton")
-        .Background(Colors.Transparent.ToBrush())
-        .BorderBrush(Colors.Transparent.ToBrush())
-        .Width(48)
-        .Height(48)
-        .FontSize(22)
-        .FontFamily(StaticResources.Fonts.IconFontSegoe)
-        .Padding(new Thickness(0));
-
-        if (b.Command is Pix2dCommand pc)
-        {
-            b.ToolTip(pc.Tooltip);
-        }
-    }
-
+public class TextBarView : ViewBaseSingletonVm<TextBarViewModel> {
     protected override object Build(TextBarViewModel vm) =>
         new StackPanel()
             .Orientation(Orientation.Horizontal)
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(new Control[] {
-                new Button()
+                new Button() //ENTER TEXT FLYOUT
                     .With(ButtonStyle)
                     .With(b =>
                     {
-                        var flyout = new Flyout() { Placement = FlyoutPlacementMode.Bottom };
+                        var flyout = new Flyout()
+                            .Placement(FlyoutPlacementMode.Bottom);
                         b.Click += (s, e) => flyout.ShowAt(b);
 
                         flyout.Content = new Grid()
@@ -48,25 +30,88 @@ public class TextBarView : ViewBaseSingletonVm<TextBarViewModel>
                             );
                     })
                     .Content("\xF741"),
-                new Button()
+                new Button() //FONT PROPERTIES FLYOUT
                     .With(ButtonStyle)
                     .With(b =>
                     {
-                        var flyout = new MenuFlyout() { Placement = FlyoutPlacementMode.Bottom };
-                        flyout.AddItem("Fill selection", SpritePlugin.EditCommands.FillSelectionCommand);
-                        flyout.AddItem("Select object", SpritePlugin.EditCommands.SelectObjectCommand);
+                        var flyout = new Flyout()
+                            .Placement(FlyoutPlacementMode.Bottom)
+                            .Content(new StackPanel()
+                                .Background(StaticResources.Brushes.PanelsBackgroundBrush)
+                                .Orientation(Orientation.Horizontal)
+                                .Children(new Control[]
+                                    {
+                                        new TextBlock()
+                                            .Margin(8,0)
+                                            .VerticalAlignment(VerticalAlignment.Center)
+                                            .Text("Font"),
+
+                                        new ComboBox()
+                                            .Width(140)
+                                            .VerticalAlignment(VerticalAlignment.Center)
+                                            .Items(vm.Fonts)
+                                            .SelectedItem(@vm.SelectedFont, BindingMode.TwoWay)
+                                            .ItemTemplate(
+                                                (FontItemViewModel item) => new TextBlock().Text(item?.Name ?? "")),
+
+                                        new TextBlock()
+                                            .Margin(8,0)
+                                            .VerticalAlignment(VerticalAlignment.Center)
+                                            .Text("Font size"),
+
+                                        new NumericUpDown()
+                                            .VerticalAlignment(VerticalAlignment.Center)
+                                            .Value(vm.FontSize, BindingMode.TwoWay),
+
+                                        new ToggleButton()
+                                            .With(ButtonStyle)
+                                            .VerticalAlignment(VerticalAlignment.Center)
+                                            .Content("\xE8DD")
+                                            .IsChecked(@vm.IsBold, BindingMode.TwoWay),
+
+                                        new ToggleButton()
+                                            .With(ButtonStyle)
+                                            .VerticalAlignment(VerticalAlignment.Center)
+                                            .Content("\xE8DB")
+                                            .IsChecked(@vm.IsItalic, BindingMode.TwoWay),
+
+                                        new ToggleButton()
+                                            .With(ButtonStyle)
+                                            .VerticalAlignment(VerticalAlignment.Center)
+                                            .Content("\xE8D2")
+                                            .IsChecked(@vm.IsAliased, BindingMode.TwoWay),
+                                    }
+                                )
+                            );
                         b.Click += (s, e) => flyout.ShowAt(b);
+
                     })
                     .Content("\xE8D2"),
 
                 new Button()
-                    .Command(SpritePlugin.EditCommands.CropPixels)
+                    .Command(vm.CancelCommand)
                     .With(ButtonStyle)
                     .Content("\xE711"),
 
                 new Button()
-                    .Command(SpritePlugin.EditCommands.CropPixels)
+                    .Command(vm.ApplyCommand)
                     .With(ButtonStyle)
                     .Content("\xE73E")
             });
+
+    private void ButtonStyle(Button b) {
+        b.Classes("AppBarButton")
+            .Background(Colors.Transparent.ToBrush())
+            .BorderBrush(Colors.Transparent.ToBrush())
+            .Width(48)
+            .Height(48)
+            .FontSize(22)
+            .FontFamily(StaticResources.Fonts.IconFontSegoe)
+            .Padding(new Thickness(0));
+
+        if (b.Command is Pix2dCommand pc) {
+            b.ToolTip(pc.Tooltip);
+        }
+    }
+
 }

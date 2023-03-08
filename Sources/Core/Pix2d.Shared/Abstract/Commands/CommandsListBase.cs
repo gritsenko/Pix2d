@@ -15,11 +15,14 @@ public abstract class CommandsListBase : ICommandList
 
     protected static IAppState AppState => ServiceLocator.Current.GetInstance<IAppState>();
 
-    protected ICommandService CommandService => ServiceLocator.Current.GetInstance<ICommandService>();
+    private ICommandService CommandService => ServiceLocator.Current.GetInstance<ICommandService>();
     protected string GetKey([CallerMemberName] string commandName = null)
     {
         return BaseName + "." + commandName;
     }
+
+    protected Pix2dCommand GetCommand(Action action, EditContextType contextType = EditContextType.All, CommandShortcut shortcut = default, [CallerMemberName] string commandName = null)
+        => GetCommand(commandName, shortcut, contextType, action, commandName);
 
     protected Pix2dCommand GetCommand(string description, CommandShortcut shortcut, EditContextType contextType, Action action, [CallerMemberName] string commandName = null)
     {

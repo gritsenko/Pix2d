@@ -2,6 +2,7 @@
 using Pix2d.Resources;
 using Pix2d.Shared;
 using Pix2d.ViewModels;
+using Pix2d.ViewModels.AppMenu;
 using Pix2d.ViewModels.Layers;
 using Pix2d.Views.Animation;
 using Pix2d.Views.Layers;
@@ -72,7 +73,7 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                     .VerticalAlignment(VerticalAlignment.Top),
 
                 new TextBarView().Col(1).Row(2)
-                    .IsVisible(@vm.ShowTextBar)
+                    .IsVisible(@vm.ShowTextBar, bindingSource: vm)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Top),
 

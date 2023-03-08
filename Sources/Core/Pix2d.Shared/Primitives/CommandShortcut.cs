@@ -6,9 +6,9 @@ namespace Pix2d.Primitives
 {
     public class CommandShortcut
     {
-        public KeyModifier KeyModifiers { get; private set; }
+        public KeyModifier KeyModifiers { get; }
 
-        public VirtualKeys Key { get; private set; }
+        public VirtualKeys Key { get; }
         public Func<VirtualKeys, string> KeyConverter { get; set; }
 
         public CommandShortcut(VirtualKeys key, KeyModifier keyModifiers = KeyModifier.None)

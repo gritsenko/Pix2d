@@ -258,7 +258,7 @@ public class MainViewModel : Pix2dViewModelBase, IMenuController, IPanelsControl
 
     public bool ShowTextBar
     {
-        get => Get<bool>(false);
+        get => Get(false);
         set => Set(value);
     }
 

@@ -23,6 +23,7 @@ public static class CoreServices
     public static IImportService ImportService => GetService<IImportService>();
     public static ILicenseService LicenseService => GetService<ILicenseService>();
     public static ISettingsService SettingsService => GetService<ISettingsService>();
+    public static IPlatformStuffService PlatformStuffService => GetService<IPlatformStuffService>();
     private static T GetService<T>() => CommonServiceLocator.ServiceLocator.Current.GetInstance<T>();
 
 }
