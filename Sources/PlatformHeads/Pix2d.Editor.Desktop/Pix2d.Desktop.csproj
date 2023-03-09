@@ -23,7 +23,6 @@
 		<PackageReference Include="Clowd.Clipboard" Version="1.0.1" />
 		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.0.1" />
 		<PackageReference Include="Dock.Avalonia.Themes.Default" Version="0.10.0" />
-		<PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
