@@ -29,7 +29,7 @@ public static class RemoveBackground
         var sw = new Stopwatch();
         //sw.Start();
 
-        using var session = new InferenceSession($@"./AiModels/{model}");
+        using var session = new InferenceSession(AiPlugin.ModelData);
 
 
         using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results

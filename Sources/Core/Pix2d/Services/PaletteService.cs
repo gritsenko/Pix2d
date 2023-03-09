@@ -117,21 +117,13 @@ namespace Pix2d.Services
             try
             {
                 var settingsService = CommonServiceLocator.ServiceLocator.Current.GetInstance<ISettingsService>();
-                //todo: выпилить GetRaw
-                var palstr = settingsService.GetRaw(nameof(CustomPalette));
-
-                //palstr = "[{\"A\":255,\"R\":238,\"G\":238,\"B\":238},{\"A\":255,\"R\":221,\"G\":221,\"B\":221},{\"A\":255,\"R\":204,\"G\":204,\"B\":204},{\"A\":255,\"R\":187,\"G\":187,\"B\":187},{\"A\":255,\"R\":170,\"G\":170,\"B\":170},{\"A\":255,\"R\":153,\"G\":153,\"B\":153},{\"A\":255,\"R\":136,\"G\":136,\"B\":136},{\"A\":255,\"R\":119,\"G\":119,\"B\":119},{\"A\":255,\"R\":102,\"G\":102,\"B\":102},{\"A\":255,\"R\":85,\"G\":85,\"B\":85},{\"A\":255,\"R\":68,\"G\":68,\"B\":68},{\"A\":255,\"R\":51,\"G\":51,\"B\":51},{\"A\":255,\"R\":34,\"G\":34,\"B\":34},{\"A\":255,\"R\":17,\"G\":17,\"B\":17},{\"A\":255,\"R\":0,\"G\":0,\"B\":0}]";
+                var palstr = settingsService.Get<string>(nameof(CustomPalette));
 
                 if (!string.IsNullOrWhiteSpace(palstr))
                 {
-                    if (palstr.StartsWith("\"#"))
+                    if (palstr.StartsWith("#"))
                     {
                         LoadColorsFromHex(palstr, _customColors);
-                    }
-
-                    if (palstr.StartsWith("[{"))
-                    {
-                        //LoadColorsFromARGB(palstr, _customColors);
                     }
                 }
 
@@ -168,19 +160,15 @@ namespace Pix2d.Services
 
         private void LoadColorsFromHex(string palstr, List<SKColor> customColors)
         {
-            palstr = JsonConvert.DeserializeObject<string>(palstr);
+            if (string.IsNullOrWhiteSpace(palstr)) return;
 
-            if (!string.IsNullOrWhiteSpace(palstr))
-            {
-                var colors = palstr.Split(';');
-                if (colors.Length > 0)
-                {
-                    var palette = colors.Select(SKColor.Parse);
+            var colors = palstr.Split(';');
+            if (colors.Length <= 0) return;
 
-                    customColors.Clear();
-                    customColors.AddRange(palette.Where(x => x != SKColor.Empty));
-                }
-            }
+            var palette = colors.Select(SKColor.Parse);
+
+            customColors.Clear();
+            customColors.AddRange(palette.Where(x => x != SKColor.Empty));
         }
 
         protected virtual void OnPaletteChanged(string paletteName)

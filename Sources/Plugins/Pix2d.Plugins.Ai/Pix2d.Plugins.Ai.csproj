@@ -8,17 +8,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="AiModels\u2netp.onnx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="AiModels\u2netp.onnx">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.14.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="AiModels\u2netp.onnx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

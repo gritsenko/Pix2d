@@ -130,7 +130,7 @@ namespace Pix2d.Abstract.Selection
         public SKNode Frame { get; set; }
 
 
-        public NodesSelection(IEnumerable<SKNode> selectedNodes, Action onInvalidatedCallback, Func<SKNode[], bool> aspectLockProviderFunc = null)
+        public NodesSelection(IEnumerable<SKNode> selectedNodes, Action onInvalidatedCallback, Func<SKNode[], bool>? aspectLockProviderFunc = null)
         {
             AspectLockProviderFunc = aspectLockProviderFunc;
             _onInvalidatedCallback = onInvalidatedCallback;

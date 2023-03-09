@@ -4,9 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Mvvm;
+using Mvvm.Messaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.UI;
+using Pix2d.Messages;
 using Pix2d.Mvvm;
 
 namespace Pix2d.ViewModels.MainMenu
@@ -28,13 +30,13 @@ namespace Pix2d.ViewModels.MainMenu
 
         public ObservableCollection<RecentProjectItemViewModel> RecentProjects { get; set; } = new ObservableCollection<RecentProjectItemViewModel>();
 
-        public OpenDocumentViewModel(IFileService fileService, IProjectService projectService, IMenuController menuController)
+        public OpenDocumentViewModel(IFileService fileService, IProjectService projectService, IMenuController menuController, IMessenger messenger)
         {
             FileService = fileService;
             ProjectService = projectService;
             MenuController = menuController;
 
-            FileService.MruChanged += FileService_MruChanged;
+            messenger.Register<MruChangedMessage>(this, m => UpdateMruData());
         }
 
         protected override void OnLoad()
@@ -60,11 +62,6 @@ namespace Pix2d.ViewModels.MainMenu
         {
             CloseMenu();
             await ProjectService.OpenFilesAsync();
-        }
-
-        private void FileService_MruChanged(object sender, EventArgs e)
-        {
-            UpdateMruData();
         }
 
         protected void CloseMenu()

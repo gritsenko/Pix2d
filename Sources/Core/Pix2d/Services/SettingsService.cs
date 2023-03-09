@@ -1,91 +1,65 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using JsonFlatFileDataStore;
 using Pix2d.Abstract;
 using Newtonsoft.Json;
 
 namespace Pix2d.Services;
 
-public class Pix2dSetting
-{
-    public string Key { get; set; }
-    public string Data { get; set; }
-}
-
-public class SettingsService : ISettingsService
-{
+public class SettingsService : ISettingsService {
     public const string DbName = "pix2d_settings.json";
     private readonly string _dbFullPath;
 
-    public SettingsService(string dbFolderPath)
+    public Dictionary<string, object> Settings { get; set; }
+
+    private JsonSerializerSettings _serializerSettings = new JsonSerializerSettings()
     {
+        TypeNameHandling = TypeNameHandling.Auto,
+        TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple
+    };
+
+    public SettingsService(string dbFolderPath) {
         if (string.IsNullOrEmpty(dbFolderPath))
             dbFolderPath = Pix2DApp.AppFolder;
         _dbFullPath = System.IO.Path.Combine(dbFolderPath, DbName);
+
+        LoadJson();
     }
 
-    public string GetRaw(string key)
+    private void LoadJson()
     {
-        try
+        if (!File.Exists(_dbFullPath))
         {
+            Settings = new Dictionary<string, object>();
+            SaveJson();
+            return;
+        }
 
-            using (var db = GetDb())
+        var json = File.ReadAllText(_dbFullPath);
+        Settings = JsonConvert.DeserializeObject<Dictionary<string, object>>(json) ?? new Dictionary<string, object>();
+    }
+
+    public T? Get<T>(string key) {
+        try {
+            if (Settings.TryGetValue(key, out var value))
             {
-                var col = db.GetCollection<Pix2dSetting>("settings");
-                var record = col.AsQueryable().FirstOrDefault(x => x.Key == key);
-
-                if (record != null)
-                {
-                    return record.Data;
-                }
-
+                if(value is T tValue)
+                    return tValue;
             }
         }
-        catch (Exception ex)
-        {
-            DeleteOldDbFile();
+        catch (Exception ex) {
             Logger.LogException(ex);
         }
 
         return default;
     }
 
-    public T Get<T>(string key)
-    {
-        try
-        {
-
-            using (var db = GetDb())
-            {
-                var col = db.GetCollection<Pix2dSetting>("settings");
-                var record = col.AsQueryable().FirstOrDefault(x => x.Key == key);
-
-                if (record != null)
-                {
-                    return JsonConvert.DeserializeObject<T>(record.Data);
-                }
-
-            }
-        }
-        catch (Exception ex)
-        {
-            DeleteOldDbFile();
-            Logger.LogException(ex);
-        }
-
-        return default;
-    }
-
-    public bool TryGet<T>(string key, out T value)
-    {
+    public bool TryGet<T>(string key, out T? value) {
         value = default;
-        try
-        {
+        try {
             value = Get<T>(key);
         }
-        catch
-        {
+        catch {
             return false;
         }
 
@@ -94,41 +68,13 @@ public class SettingsService : ISettingsService
 
     public void Set<T>(string key, T value)
     {
-        using (var db = GetDb())
-        {
-            var col = db.GetCollection<Pix2dSetting>("settings");
-
-            var setting = new Pix2dSetting()
-            {
-                Key = key,
-                Data = JsonConvert.SerializeObject(value)
-            };
-
-            var old = col.Find(x => x.Key == key).FirstOrDefault();
-            if (old != null)
-            {
-                col.DeleteMany(x => x.Key == old.Key);
-            }
-
-            col.InsertOne(setting);
-
-        }
+        Settings[key] = value;
+        SaveJson();
     }
 
-    private DataStore GetDb()
+    private void SaveJson()
     {
-        return new DataStore(_dbFullPath);
-    }
-
-    private void DeleteOldDbFile()
-    {
-        try
-        {
-            File.Delete(_dbFullPath);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogException(ex);
-        }
+        var json = JsonConvert.SerializeObject(Settings, _serializerSettings);
+        File.WriteAllText(_dbFullPath, json);
     }
 }

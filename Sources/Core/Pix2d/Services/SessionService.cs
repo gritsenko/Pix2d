@@ -9,7 +9,6 @@ using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Abstract.State;
-using Pix2d.Common;
 using Pix2d.Messages;
 using Pix2d.Primitives;
 using Pix2d.State;

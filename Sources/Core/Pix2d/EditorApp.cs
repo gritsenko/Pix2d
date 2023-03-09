@@ -52,30 +52,6 @@ public class EditorApp : Application
         {
             //this.Styles.Add(GetFluentTheme());
             this.Styles.Add(new SimpleTheme());
-
-            //this.Styles.Add(
-            //    new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
-            //    {
-            //        Source = new Uri("avares://Avalonia.Themes.Simple/Controls/SimpleControls.xaml")
-            //    });
-
-            //this.Styles.Add(
-            //    new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
-            //    {
-            //        Source = new Uri("avares://Avalonia.Themes.Simple/Controls/SimpleControls.xaml")
-            //    });
-
-            //this.Styles.Add(
-            //    new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
-            //    {
-            //        Source = new Uri("avares://Avalonia.Themes.Simple/Accents/Base.xaml")
-            //    });
-
-            //this.Styles.Add(
-            //    new StyleInclude(new Uri("avares://Avalonia.Themes.Simple"))
-            //    {
-            //        Source = new Uri("avares://Avalonia.Themes.Simple/Accents/BaseDark.xaml")
-            //    });
         }
         catch (Exception ex)
         {
@@ -90,7 +66,7 @@ public class EditorApp : Application
     {
         HostView = new HostView();
 
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) //DESKTOP
         {
             desktop.MainWindow = new MainWindow()
             {
@@ -99,7 +75,7 @@ public class EditorApp : Application
             OnAppStarted?.Invoke(desktop.MainWindow);
             TopLevel = desktop.MainWindow.GetVisualRoot() as TopLevel;
         }
-        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewLifetime)
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewLifetime) //WEB ASSEMBLY
         {
             singleViewLifetime.MainView = HostView;
             var root = singleViewLifetime.MainView.GetVisualRoot();
@@ -149,5 +125,14 @@ public class EditorApp : Application
             .OfType<Border>()
             .FirstOrDefault(x => x.Name == "Pix2dCanvasContainer");
         container.Child = new SkiaCanvas();
+    }
+
+    /// <summary>
+    /// Used to set top level on android application on main activity
+    /// </summary>
+    /// <param name="topLevel"></param>
+    public void UpdateTopLevelFromHostView()
+    {
+        TopLevel = HostView.GetVisualRoot() as TopLevel;
     }
 }

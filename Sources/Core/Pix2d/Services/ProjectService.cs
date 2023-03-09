@@ -91,8 +91,6 @@ public class ProjectService : IProjectService
     {
         OpLog();
         Logger.Log("Saving project as");
-        if (AppState.IsBusy)
-            throw new Exception("Trying to save project, while previous process not finished.");
 
         var file = await GetFileToExport(saveAsType.FileExtension, GetDefaultFileName());
         if (file == null)
