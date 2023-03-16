@@ -4,12 +4,11 @@ using System.Threading.Tasks;
 using Android.App;
 using Android.Content.PM;
 using Android.OS;
-using Android.Runtime;
 using Avalonia.Android;
 
 namespace Pix2d.Android;
 
-[Activity(Label = "Pix2d.Android", Theme = "@style/MyTheme.NoActionBar", Icon = "@drawable/icon", LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize)]
+[Activity(Label = "Pix2d.Android", Theme = "@style/MyTheme.NoActionBar", Icon = "@mipmap/ic_launcher", LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize)]
 public class MainActivity : AvaloniaMainActivity {
     internal static MainActivity Instance { get; private set; }
 
