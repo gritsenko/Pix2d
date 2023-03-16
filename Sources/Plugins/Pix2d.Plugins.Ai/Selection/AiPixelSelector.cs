@@ -95,9 +95,10 @@ public class AiPixelSelector : IPixelSelector
                 var a = (byte)(255 - _pixelsBuff[x + _offsetX + (y + _offsetY) * _width]);
                 var norma = a / 255f;
                 var dest = dest0 + (x + y * bitmap.Width) * 4;
+                
                 *dest = (byte)((*dest) * norma);
-                *(dest + 1) = (byte)((*(dest + 1)) * norma);
-                *(dest + 2) = (byte)((*(dest + 2)) * norma);
+                *(dest + 1) = (byte)(*(dest + 1) * norma);
+                *(dest + 2) = (byte)(*(dest + 2) * norma);
                 *(dest + 3) = a;
             }
     }

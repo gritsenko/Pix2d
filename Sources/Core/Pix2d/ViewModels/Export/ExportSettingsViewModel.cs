@@ -45,7 +45,14 @@ namespace Pix2d.ViewModels.Export
 
         public ImageExportSettings GetSettings()
         {
-            _settings.DefaultFileName = System.IO.Path.GetFileNameWithoutExtension(AppState.CurrentProject.Title);
+            var fileName = System.IO.Path.GetFileNameWithoutExtension(AppState.CurrentProject.Title);
+
+            //on android there is an Issue: If file with the same name already exists, save file picker generates incorrect suggested filename (adds suffix to extesion) so this file will not have valid extension
+            //so we add timestamp to filename
+            if (Pix2DApp.CurrentPlatform == PlatformType.Android)
+                fileName += "_" + DateTime.Now.ToString("s").Replace(":", "").Replace("-", "");
+
+            _settings.DefaultFileName = fileName;
             return _settings;
         }
 
@@ -62,9 +69,9 @@ namespace Pix2d.ViewModels.Export
 
             var w = ExportNodesSize.Width;
             var h = ExportNodesSize.Height;
-            ResultWidth = (int) (w * (_settings.Scale + pixelSpacing) - pixelSpacing);
-            ResultHeight = (int) (h * (_settings.Scale + pixelSpacing) - pixelSpacing);
-            
+            ResultWidth = (int)(w * (_settings.Scale + pixelSpacing) - pixelSpacing);
+            ResultHeight = (int)(h * (_settings.Scale + pixelSpacing) - pixelSpacing);
+
             ResultWidth += marginX * 2;
             ResultHeight += marginY * 2;
 

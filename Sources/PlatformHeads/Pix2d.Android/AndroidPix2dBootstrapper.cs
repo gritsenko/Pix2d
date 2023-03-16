@@ -49,8 +49,6 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
         Pix2DApp.CurrentPlatform = PlatformType.Android;
         Pix2DApp.AppFolder = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
 
-        Pix2DApp.CurrentPlatform = PlatformType.Avalonia;
-
         await Pix2DApp.CreateInstanceAsync(Pix2dSettings);
     }
 }

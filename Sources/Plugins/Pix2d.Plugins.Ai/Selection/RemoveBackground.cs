@@ -19,7 +19,7 @@ public static class RemoveBackground
     public static int SourceWidth { get; private set; }
     public static int SourceHeight { get; private set; }
 
-    public unsafe static SKBitmap Process(SKBitmap original, string model)
+    public static unsafe SKBitmap Process(SKBitmap original, string model)
     {
         SourceWidth = original.Width;
         SourceHeight = original.Height;
