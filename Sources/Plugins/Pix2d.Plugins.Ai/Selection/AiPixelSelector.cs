@@ -86,20 +86,18 @@ public class AiPixelSelector : IPixelSelector
         var dest0 = (byte*)bitmap.GetPixels().ToPointer();
         var h = Math.Min(-_offsetY + _height, bitmap.Height);
         var w = Math.Min(-_offsetX + _width, bitmap.Width);
-        for (int y = -_offsetY; y < h; y++)
-            for (int x = -_offsetX; x < w; x++)
+        for (var y = -_offsetY; y < h; y++)
+            for (var x = -_offsetX; x < w; x++)
             {
                 if (x < _imageLeft || y < _imageTop || x > _imageRight || y > _imageBot)
                     continue;
 
-                var a = (byte)(255 - _pixelsBuff[x + _offsetX + (y + _offsetY) * _width]);
-                var norma = a / 255f;
-                var dest = dest0 + (x + y * bitmap.Width) * 4;
-                
-                *dest = (byte)((*dest) * norma);
-                *(dest + 1) = (byte)(*(dest + 1) * norma);
-                *(dest + 2) = (byte)(*(dest + 2) * norma);
-                *(dest + 3) = a;
+                var pixelOffset = dest0 + (x + y * bitmap.Width) * 4;
+                var a = (*(pixelOffset + 3) / 255f) * (1f - _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] / 255f);
+                *pixelOffset = (byte)(*pixelOffset * a);
+                *(pixelOffset + 1) = (byte)(*(pixelOffset + 1) * a);
+                *(pixelOffset + 2) = (byte)(*(pixelOffset + 2) * a);
+                *(pixelOffset + 3) = (byte)(a * 255);
             }
     }
     public unsafe SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap)
