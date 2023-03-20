@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
 using Avalonia.Controls.Embedding;
 using Avalonia.Input;
@@ -21,11 +19,8 @@ namespace Pix2d;
 
 public class SkiaCanvas : Border
 {
-    public ViewPort ViewPort { get; private set; }
-    private RootNode _rootNode;
-
-    private static readonly FormattedText NoSkiaText = new("Current rendering API is not Skia",
-        CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Typeface.Default, 16, Brushes.WhiteSmoke);
+    public ViewPort? ViewPort { get; private set; }
+    private RootNode? _rootNode;
 
     private bool _isInitialized;
     private ICustomDrawOperation _drawingOp;
@@ -34,9 +29,9 @@ public class SkiaCanvas : Border
     private Point _initialPos;
     private SKPoint _initialPan;
 
-    //pinch guesture stuff
+    //pinch gesture stuff
     bool _isPinching = false;
-    private PinchGestureRecognizer _pinchRecognizer = new PinchGestureRecognizer();
+    private readonly PinchGestureRecognizer _pinchRecognizer = new PinchGestureRecognizer();
     private double _oldScale;
     private SKPoint _oldVpPos;
 
@@ -64,8 +59,6 @@ public class SkiaCanvas : Border
         // PointerLeave += DrawingCanvas_PointerLeave;
         // PointerEnter += DrawingCanvas_PointerEnter;
     }
-
-    public float SystemScaleFactor { get; set; } = 1;
 
     private void SkiaCanvas_AttachedToVisualTree(object sender, VisualTreeAttachmentEventArgs e)
     {
@@ -385,7 +378,7 @@ public class SkiaCanvas : Border
         public Rect Bounds { get; }
         public bool HitTest(Point p) => true;
         public bool Equals(ICustomDrawOperation other) => false;
-        private SKCanvas _skCanvas;
+        private SKCanvas? _skCanvas;
         private Matrix _lastTransform;
 
         public SkNodeDrawOp(Rect bounds, SkiaCanvas parent)
@@ -402,32 +395,29 @@ public class SkiaCanvas : Border
         public void Render(IDrawingContextImpl context)
         {
             var canvas = GetSkCanvas(context);
-            if (canvas != null)
+            try
             {
-                try
+
+                canvas.Save();
+
+                canvas.Clear(new SKColor(60, 60, 60));
+                if (_parent._rootNode != null && _parent.ViewPort != null)
                 {
-
-                    canvas.Save();
-
-                    canvas.Clear(new SKColor(60, 60, 60));
-                    if (_parent._rootNode != null && _parent.ViewPort != null)
+                    if (_lastTransform != context.Transform)
                     {
-                        if (_lastTransform != context.Transform)
-                        {
-                            _parent.ViewPort.PivotTransformMatrix = ToSKMatrix(context.Transform);
-                            _parent.ViewPort.PivotTransformMatrix.TransX *= _parent.ViewPort.ScaleFactor;
-                            _parent.ViewPort.PivotTransformMatrix.TransY *= _parent.ViewPort.ScaleFactor;
-                            _lastTransform = context.Transform;
-                        }
-
-                        _parent._rootNode.Render(canvas, _parent.ViewPort);
+                        _parent.ViewPort.PivotTransformMatrix = ToSKMatrix(context.Transform);
+                        _parent.ViewPort.PivotTransformMatrix.TransX *= _parent.ViewPort.ScaleFactor;
+                        _parent.ViewPort.PivotTransformMatrix.TransY *= _parent.ViewPort.ScaleFactor;
+                        _lastTransform = context.Transform;
                     }
-                    canvas.Restore();
+
+                    _parent._rootNode.Render(canvas, _parent.ViewPort);
                 }
-                catch (ObjectDisposedException ex)
-                {
-                    //ignore this. nothing we can do actually
-                }
+                canvas.Restore();
+            }
+            catch (ObjectDisposedException _)
+            {
+                //ignore this. nothing we can do actually
             }
             //else
             //    context.DrawText(Brushes.Black, new Point(), NoSkiaText.PlatformImpl);
@@ -435,6 +425,9 @@ public class SkiaCanvas : Border
 
         private SKCanvas GetSkCanvas(IDrawingContextImpl context)
         {
+            if (_skCanvas?.Handle == IntPtr.Zero)
+                _skCanvas = null;
+
             return _skCanvas ??= GetCanvasFromField();
 
             SKCanvas GetCanvasFromField()

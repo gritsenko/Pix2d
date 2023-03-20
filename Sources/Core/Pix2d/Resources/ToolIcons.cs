@@ -1,5 +1,4 @@
 ﻿using Avalonia.Controls.Shapes;
-using Pix2d.ViewModels.ToolBar;
 
 namespace Pix2d.Resources;
 

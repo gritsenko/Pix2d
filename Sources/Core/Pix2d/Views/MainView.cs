@@ -1,5 +1,6 @@
-﻿using Avalonia.Styling;
-using Pix2d.Resources;
+﻿using System;
+using Avalonia.Styling;
+using Avalonia.Xaml.Interactions.Responsive;
 using Pix2d.Shared;
 using Pix2d.ViewModels;
 using Pix2d.ViewModels.AppMenu;
@@ -8,6 +9,7 @@ using Pix2d.Views.Animation;
 using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
 using Pix2d.Views.Text;
+using Pix2d.Views.ToolBar;
 using Pix2d.Views.ToolSettings;
 
 namespace Pix2d.Views;
@@ -30,6 +32,13 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
         new Grid()
             .Cols("Auto, *, Auto")
             .Rows("Auto, Auto, *, 32")
+            .AddBehavior(
+                new AdaptiveBehavior()
+                    .Setters(
+                        new AdaptiveClassSetter(){MinWidth = 0, MaxWidth = 400, ClassName = "small"},
+                        new AdaptiveClassSetter(){MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide"}
+                        )
+                )
             .Children(new Control[]
             {
 

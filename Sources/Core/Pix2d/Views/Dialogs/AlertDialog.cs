@@ -1,7 +1,6 @@
 ﻿using System;
 using Avalonia.Styling;
 using Pix2d.Abstract.UI;
-using Pix2d.Resources;
 
 namespace Pix2d.Views.Dialogs;
 

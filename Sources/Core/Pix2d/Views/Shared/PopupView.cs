@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Windows.Input;
-using Pix2d.Resources;
 using Avalonia.Controls.Shapes;
 
 namespace Pix2d.Shared;

@@ -1,5 +1,4 @@
-﻿using Pix2d.Resources;
-using Pix2d.ViewModels;
+﻿using Pix2d.ViewModels;
 using Avalonia.Controls.Shapes;
 
 namespace Pix2d.Views;

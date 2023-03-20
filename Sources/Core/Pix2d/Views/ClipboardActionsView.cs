@@ -1,7 +1,6 @@
 ﻿using Pix2d.Mvvm;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Primitives;
-using Pix2d.Resources;
 using Pix2d.ViewModels;
 
 namespace Pix2d.Views;

@@ -5,7 +5,6 @@ using CommonServiceLocator;
 using Mvvm;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.UI;
-using Pix2d.Resources;
 using Pix2d.Views;
 
 namespace Pix2d.Shared;

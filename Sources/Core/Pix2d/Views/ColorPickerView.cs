@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Globalization;
 using Avalonia.Input;
-using Pix2d.Resources;
 using Pix2d.Shared;
 using Pix2d.ViewModels.Color;
 

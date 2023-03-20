@@ -1,6 +1,4 @@
-﻿using Pix2d.Resources;
-
-namespace Pix2d;
+﻿namespace Pix2d;
 
 public class MainWindow : Window
 {

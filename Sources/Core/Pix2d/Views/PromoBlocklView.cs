@@ -1,5 +1,4 @@
-﻿using Pix2d.Resources;
-using Pix2d.ViewModels.License;
+﻿using Pix2d.ViewModels.License;
 
 namespace Pix2d.Views;
 

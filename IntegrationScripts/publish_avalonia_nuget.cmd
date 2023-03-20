@@ -1,2 +1,2 @@
-nuget delete Avalonia.Markup.Declarative 11.0.0-preview5 -Source "C:\Program Files (x86)\Microsoft SDKs\NuGetPackages" -NoPrompt
-nuget add "..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative\bin\Debug\Avalonia.Markup.Declarative.11.0.0-preview5.nupkg" -Source "C:\Program Files (x86)\Microsoft SDKs\NuGetPackages"
+nuget delete Avalonia.Markup.Declarative 11.0.0-preview5-01 -Source "C:\Program Files (x86)\Microsoft SDKs\NuGetPackages" -NoPrompt
+nuget add "..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative\bin\Debug\Avalonia.Markup.Declarative.11.0.0-preview5-01.nupkg" -Source "C:\Program Files (x86)\Microsoft SDKs\NuGetPackages"

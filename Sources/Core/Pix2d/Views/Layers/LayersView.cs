@@ -1,6 +1,5 @@
 ﻿using Avalonia.Xaml.Interactions.DragAndDrop;
 using Pix2d.Common.Behaviors;
-using Pix2d.Resources;
 using Pix2d.ViewModels.Layers;
 
 namespace Pix2d.Views.Layers;

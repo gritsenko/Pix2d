@@ -1,5 +1,4 @@
 ﻿using Pix2d.Primitives.Drawing;
-using Pix2d.Resources;
 using Pix2d.ViewModels;
 using Pix2d.ViewModels.ToolBar;
 using Pix2d.ViewModels.ToolSettings;

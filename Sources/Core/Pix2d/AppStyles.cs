@@ -1,5 +1,4 @@
 ﻿using Avalonia.Styling;
-using Pix2d.Resources;
 using Pix2d.Shared;
 
 namespace Pix2d;
@@ -12,20 +11,20 @@ public class AppStyles : Styles
             new Style[]
             {
                 new Style<Border>(s => s.Class("Panel"))
-                    .CornerRadius(new CornerRadius(0,0))
-                    .Background( "#444E59".ToColor().ToBrush())
-                    .BorderBrush( StaticResources.Brushes.MainBackgroundBrush)
-                    .BorderThickness( new Thickness()),
+                    .CornerRadius(new CornerRadius(0, 0))
+                    .Background("#444E59".ToColor().ToBrush())
+                    .BorderBrush(StaticResources.Brushes.MainBackgroundBrush)
+                    .BorderThickness(new Thickness()),
 
                 new Style<TextBlock>(s => s.Class("FontIcon"))
-                    .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                    //.FontFamily(StaticResources.Fonts.IconFontSegoe)
                     .FontSize(16d)
                     .Foreground(Brushes.White)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Center),
 
                 new Style<TextBlock>(s => s.Class("Pix2dFontIcon"))
-                    .FontFamily(StaticResources.Fonts.Pix2dThemeFontFamily)
+                    //.FontFamily(StaticResources.Fonts.Pix2dThemeFontFamily)
                     .FontSize(26d)
                     .Foreground(Brushes.White)
                     .HorizontalAlignment(HorizontalAlignment.Center)
@@ -33,9 +32,7 @@ public class AppStyles : Styles
 
                 new Style<AppButton>(s => s.Class("TopBar"))
                     .Width(52d)
-                    .Height(52d)
-                //    .FontSize(12d)
-                ,
+                    .Height(52d),
 
                 new Style<Button>()
                     .Background(Brushes.Transparent)
@@ -55,7 +52,8 @@ public class AppStyles : Styles
                     .Setter(AppButton.BackgroundProperty, StaticResources.Brushes.ButtonHoverBrush),
 
                 new Style<AppToggleButton>(s => s.Class(":pointerover"))
-                    .Setter(AppToggleButton.BackgroundProperty, StaticResources.Brushes.ButtonHoverBrush)
+                    .Setter(AppToggleButton.BackgroundProperty, StaticResources.Brushes.ButtonHoverBrush),
+
             }
         );
 

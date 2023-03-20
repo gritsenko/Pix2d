@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Mvvm;
-using Pix2d.Resources;
 using SkiaSharp;
 
 namespace Pix2d.Shared;
