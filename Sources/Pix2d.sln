@@ -17,6 +17,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Core", "Core\Pix2d\Pi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Android", "PlatformHeads\Pix2d.Android\Pix2d.Android.csproj", "{3453A519-A81A-4500-BEE3-E174847F144D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Avalonia.Markup,Declarative", "Avalonia.Markup,Declarative", "{9A13A2F1-F71D-4328-BA8E-A48904B6949A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Avalonia.Markup.Declarative", "..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative\Avalonia.Markup.Declarative.csproj", "{194827E2-7488-4A2C-A93F-2E0F1C591B12}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Avalonia.Markup.Declarative.SourceGenerator", "..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative.SourceGenerator\Avalonia.Markup.Declarative.SourceGenerator.csproj", "{A0E234FF-FF67-411F-A000-D2220E3F47B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +63,18 @@ Global
 		{3453A519-A81A-4500-BEE3-E174847F144D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3453A519-A81A-4500-BEE3-E174847F144D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3453A519-A81A-4500-BEE3-E174847F144D}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{194827E2-7488-4A2C-A93F-2E0F1C591B12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{194827E2-7488-4A2C-A93F-2E0F1C591B12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{194827E2-7488-4A2C-A93F-2E0F1C591B12}.DebugUltimate|Any CPU.ActiveCfg = Debug|Any CPU
+		{194827E2-7488-4A2C-A93F-2E0F1C591B12}.DebugUltimate|Any CPU.Build.0 = Debug|Any CPU
+		{194827E2-7488-4A2C-A93F-2E0F1C591B12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{194827E2-7488-4A2C-A93F-2E0F1C591B12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0E234FF-FF67-411F-A000-D2220E3F47B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0E234FF-FF67-411F-A000-D2220E3F47B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0E234FF-FF67-411F-A000-D2220E3F47B1}.DebugUltimate|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0E234FF-FF67-411F-A000-D2220E3F47B1}.DebugUltimate|Any CPU.Build.0 = Debug|Any CPU
+		{A0E234FF-FF67-411F-A000-D2220E3F47B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0E234FF-FF67-411F-A000-D2220E3F47B1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,6 +83,8 @@ Global
 		{49791FFA-8106-461E-8B99-90E016E74655} = {5FEEA7F9-BD04-4B27-86EC-0620396C37E3}
 		{BA7535D1-B8AE-4587-BE2A-2F88E77499EC} = {95A2E6E2-F44C-4D1F-93D8-E7513936E662}
 		{3453A519-A81A-4500-BEE3-E174847F144D} = {5FEEA7F9-BD04-4B27-86EC-0620396C37E3}
+		{194827E2-7488-4A2C-A93F-2E0F1C591B12} = {9A13A2F1-F71D-4328-BA8E-A48904B6949A}
+		{A0E234FF-FF67-411F-A000-D2220E3F47B1} = {9A13A2F1-F71D-4328-BA8E-A48904B6949A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2D8A82A5-5672-464C-A953-E52A3FCDF1AE}

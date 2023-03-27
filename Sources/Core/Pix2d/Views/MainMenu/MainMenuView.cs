@@ -38,7 +38,7 @@ public class MainMenuView : ViewBaseSingletonVm<MainMenuViewModel>
     {
         this.Styles(
             //Typed style definition
-            new Style<Button>(s => s.Class("selected"))
+            new Style<Button>(s => s.OfType<Button>().Class("selected"))
                 .Background(StaticResources.Brushes.AccentBrush),
 
             //General style definition

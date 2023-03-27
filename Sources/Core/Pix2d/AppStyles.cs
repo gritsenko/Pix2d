@@ -10,27 +10,27 @@ public class AppStyles : Styles
         AddRange(
             new Style[]
             {
-                new Style<Border>(s => s.Class("Panel"))
+                new Style<Border>(s => s.OfType<Border>().Class("Panel"))
                     .CornerRadius(new CornerRadius(0, 0))
                     .Background("#444E59".ToColor().ToBrush())
                     .BorderBrush(StaticResources.Brushes.MainBackgroundBrush)
                     .BorderThickness(new Thickness()),
 
-                new Style<TextBlock>(s => s.Class("FontIcon"))
-                    //.FontFamily(StaticResources.Fonts.IconFontSegoe)
+                new Style<TextBlock>(s => s.OfType<TextBlock>().Class("FontIcon"))
+                    .FontFamily(StaticResources.Fonts.IconFontSegoe)
                     .FontSize(16d)
                     .Foreground(Brushes.White)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Center),
 
-                new Style<TextBlock>(s => s.Class("Pix2dFontIcon"))
-                    //.FontFamily(StaticResources.Fonts.Pix2dThemeFontFamily)
+                new Style<TextBlock>(s => s.OfType<TextBlock>().Class("Pix2dFontIcon"))
+                    .FontFamily(StaticResources.Fonts.Pix2dThemeFontFamily)
                     .FontSize(26d)
                     .Foreground(Brushes.White)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Center),
 
-                new Style<AppButton>(s => s.Class("TopBar"))
+                new Style<AppButton>(s => s.OfType<AppButton>().Class("TopBar"))
                     .Width(52d)
                     .Height(52d),
 
@@ -42,18 +42,20 @@ public class AppStyles : Styles
                     .Background(Brushes.Transparent)
                     .BorderThickness(new Thickness(0, 0)),
 
-                new Style<ToggleButton>(s => s.Class(":pointerover"))
+                new Style<ToggleButton>(s => s.OfType<ToggleButton>().Class(":pointerover"))
                     .Background(StaticResources.Brushes.ButtonHoverBrush),
 
-                new Style<Button>(s => s.Class(":pointerover"))
+                new Style<Button>(s => s.OfType<Button>().Class(":pointerover"))
                     .Background(StaticResources.Brushes.ButtonHoverBrush),
 
-                new Style<AppButton>(s => s.Class(":pointerover"))
+                new Style<AppButton>(s => s.OfType<AppButton>().Class(":pointerover"))
                     .Setter(AppButton.BackgroundProperty, StaticResources.Brushes.ButtonHoverBrush),
 
-                new Style<AppToggleButton>(s => s.Class(":pointerover"))
+                new Style<AppToggleButton>(s => s.OfType<AppToggleButton>().Class(":pointerover"))
                     .Setter(AppToggleButton.BackgroundProperty, StaticResources.Brushes.ButtonHoverBrush),
 
+                new Style<TextBlock>(x=>x.OfType<TextBlock>().Class("ToolIcon"))
+                    .FontSize(26)
             }
         );
 

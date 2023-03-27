@@ -13,15 +13,34 @@ public class ToolBarView : ViewBaseSingletonVm<ToolBarViewModel>
     public ToolBarView()
     {
         this.Styles.Add(
-            new Style<Button>(s => s.Class("wide").Descendant().Class("toolbar-button"))
+            new Style<Button>(s => s.Class("wide").Descendant().OfType<Button>().Class("toolbar-button"))
                 .Width(52)
                 .Height(52)
         );
 
         this.Styles.Add(
-            new Style<Button>(s => s.Class("small").Descendant().Class("toolbar-button"))
-                .Setter(Button.HeightProperty, 52d)
+            new Style<Button>(s => s.Class("wide").Descendant().OfType<Button>().Class("color-button"))
+                .Width(40)
+                .Height(40)
         );
+
+        this.Styles.Add(
+            new Style<Button>(s => s.Class("small").Descendant().OfType<Button>().Class("toolbar-button"))
+                .Width(40)
+                .Height(40)
+        );
+
+        this.Styles.Add(
+            new Style<Button>(s => s.Class("small").Descendant().OfType<Button>().Class("color-button"))
+                .Width(32)
+                .Height(32)
+        );
+
+        this.Styles.Add(
+            new Style<TextBlock>(s => s.Class("small").Descendant().OfType<Button>().Class("color-button").OfType<TextBlock>().Class("ToolIcon"))
+                .FontSize(16)
+        );
+
     }
 
     protected override object Build(ToolBarViewModel vm) =>
@@ -30,10 +49,9 @@ public class ToolBarView : ViewBaseSingletonVm<ToolBarViewModel>
             .Children(
 
                 new Button() //Color picker button
+                    .Classes("color-button")
                     .IsVisible(@vm.IsSpriteEditMode)
                     .Margin(0, 8)
-                    .Height(40)
-                    .Width(40)
                     .Command(GetViewModel<MainViewModel>().ToggleColorEditorCommand)
                     .CornerRadius(25)
                     .BorderThickness(3)
@@ -41,6 +59,7 @@ public class ToolBarView : ViewBaseSingletonVm<ToolBarViewModel>
                     .Background(Bind(GetViewModel<ColorPickerViewModel>(), m => m.SelectedColor).Converter(StaticResources.Converters.SKColorToBrushConverter)),
 
                 new Button() //Brush settings button
+                    .Classes("toolbar-button")
                     .IsVisible(@vm.IsSpriteEditMode)
                     .Background("#414953".ToColor().ToBrush())
                     .Margin(0, 8)
