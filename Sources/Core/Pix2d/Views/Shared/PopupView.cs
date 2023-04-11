@@ -153,10 +153,14 @@ public class PopupView : ViewBase
         var top = Math.Max(0, pos.Y);
         var left = Math.Max(0, pos.X);
 
-        var bounds = Parent.Bounds;
+        var parent = TemplatedParent as Visual;
 
-        left = Math.Min(bounds.Width - Bounds.Width, left);
-        top = Math.Min(bounds.Height - Bounds.Height, top);
+        if (parent != null)
+        {
+            var bounds = parent.Bounds;
+            left = Math.Min(bounds.Width - Bounds.Width, left);
+            top = Math.Min(bounds.Height - Bounds.Height, top);
+        }
 
         Canvas.SetTop(this, top);
         Canvas.SetLeft(this, left);

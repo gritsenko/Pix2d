@@ -106,7 +106,7 @@ public class ColorPalette : ViewBase
                 new ItemsControl()
                     .Ref(out _itemsControl)
                     .ItemsPanel(StaticResources.Templates.WrapPanelTemplate)
-                    .Items(Bind(ColorsProperty))
+                    .ItemsSource(Bind(ColorsProperty))
                     .ItemTemplate(new FuncDataTemplate<SKColor>((itemVm, ns) =>
                             itemVm == SKColor.Empty
                                 ? new Button() //ADD COLOR BUTTON
@@ -125,7 +125,7 @@ public class ColorPalette : ViewBase
                                     .Height(36)
                                     .With(b =>
                                     {
-                                        var flyout = new MenuFlyout() { Placement = FlyoutPlacementMode.Bottom };
+                                        var flyout = new MenuFlyout() { Placement = PlacementMode.Bottom };
                                         flyout.AddItem("Delete color", RemoveColorCommand, itemVm);
                                         b.ContextFlyout = flyout;
                                     })
@@ -153,15 +153,15 @@ public class ColorPalette : ViewBase
                 obs.CollectionChanged += Obs_CollectionChanged;
             }
 
-            _itemsControl.Items = GetCurrentColors();
+            _itemsControl.ItemsSource = GetCurrentColors();
         }
         else
-            _itemsControl.Items = colors;
+            _itemsControl.ItemsSource = colors;
     }
 
     private void Obs_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
-        _itemsControl.Items = GetCurrentColors();
+        _itemsControl.ItemsSource = GetCurrentColors();
     }
 
     private IEnumerable GetCurrentColors()

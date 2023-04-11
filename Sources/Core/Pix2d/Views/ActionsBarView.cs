@@ -76,7 +76,7 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
                     .ContextFlyout(
                         new Flyout()
                             .Ref(out var flyout)
-                            .Placement(FlyoutPlacementMode.Bottom)
+                            .Placement(PlacementMode.Bottom)
                             .Content(new GridSettingsView())
                         )
                     .OnClick(() => flyout.ShowAt(gridButton)),

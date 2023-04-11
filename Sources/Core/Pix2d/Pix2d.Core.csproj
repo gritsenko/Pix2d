@@ -70,18 +70,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.0.0-preview5" />
-    <PackageReference Include="Avalonia.Skia" Version="11.0.0-preview5" />
-    <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.0-preview5" />
-    <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.0.0-preview5" />
+    <PackageReference Include="Avalonia" Version="11.0.0-preview6" />
+    <PackageReference Include="Avalonia.Skia" Version="11.0.0-preview6" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.0-preview6" />
+    <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.0.0-preview6" />
   </ItemGroup>
 
   <ItemGroup>
     
-    <ProjectReference Include="..\..\..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative.SourceGenerator\Avalonia.Markup.Declarative.SourceGenerator.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false"
-    />
+    <ProjectReference Include="..\..\..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative.SourceGenerator\Avalonia.Markup.Declarative.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
     <ProjectReference Include="..\..\..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative\Avalonia.Markup.Declarative.csproj" />
     <ProjectReference Include="..\Pix2d.Shared\Pix2d.Shared.csproj" />

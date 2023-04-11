@@ -15,7 +15,7 @@ public class TextBarView : ViewBaseSingletonVm<TextBarViewModel> {
                     .With(b =>
                     {
                         var flyout = new Flyout()
-                            .Placement(FlyoutPlacementMode.Bottom);
+                            .Placement(PlacementMode.Bottom);
                         b.Click += (s, e) => flyout.ShowAt(b);
 
                         flyout.Content = new Grid()
@@ -34,7 +34,7 @@ public class TextBarView : ViewBaseSingletonVm<TextBarViewModel> {
                     .With(b =>
                     {
                         var flyout = new Flyout()
-                            .Placement(FlyoutPlacementMode.Bottom)
+                            .Placement(PlacementMode.Bottom)
                             .Content(new StackPanel()
                                 .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                                 .Orientation(Orientation.Horizontal)

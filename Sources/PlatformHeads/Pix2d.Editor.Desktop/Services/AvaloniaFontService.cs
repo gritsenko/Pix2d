@@ -10,8 +10,8 @@ public class AvaloniaFontService : IFontService
     public Task<string[]> GetAvailableFontNamesAsync()
     {
         var fm = Avalonia.Media.FontManager.Current;
-        var fonts = fm.GetInstalledFontFamilyNames();
-
+        //var fonts = fm.SystemFonts;
+        var fonts = new string[0] { };
         return Task.FromResult(fonts.ToArray());
     }
 }

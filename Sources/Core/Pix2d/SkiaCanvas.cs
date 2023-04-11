@@ -17,7 +17,7 @@ using SkiaSharp;
 
 namespace Pix2d;
 
-public class SkiaCanvas : Border
+public class SkiaCanvas : Control
 {
     public ViewPort? ViewPort { get; private set; }
     private RootNode? _rootNode;
@@ -129,16 +129,18 @@ public class SkiaCanvas : Border
     {
         InitializeCanvas();
 
-        if (ViewPort != null && !Bounds.IsEmpty)
+        if (ViewPort != null && !IsBoundsEmpty())
         {
             ViewPort.Size = GetViewPortSize();
             ViewPort.Refresh();
         }
     }
 
+    private bool IsBoundsEmpty() => Bounds.Size.Width < 1 || Bounds.Size.Height < 1;
+
     private void InitCore()
     {
-        if (_isInitialized || Bounds.IsEmpty)
+        if (_isInitialized || IsBoundsEmpty())
             return;
 
         _isInitialized = true;
@@ -345,6 +347,7 @@ public class SkiaCanvas : Border
         (float)(ViewPort.ScaleFactor * p.X),
         (float)(ViewPort.ScaleFactor * p.Y)
     );
+
 
     public override void Render(DrawingContext context)
     {

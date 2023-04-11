@@ -87,7 +87,7 @@ public class LayerOptionsView : ViewBaseSingletonVm<LayersListViewModel>
                         new TextBlock().Text("Blend mode"),
 
                         new ComboBox()
-                            .Items(LayerViewModel.AvailableBlendModes)
+                            .ItemsSource(LayerViewModel.AvailableBlendModes)
                             .DataTemplates(
                                 new FuncDataTemplate<BlendModeItemViewModel>((itemVm,ns)=>new TextBlock().Text(itemVm.Title)))
                             .DataContext(@vm.SelectedLayer)
@@ -109,7 +109,7 @@ public class LayerOptionsView : ViewBaseSingletonVm<LayersListViewModel>
                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
                             .With(b =>
                             {
-                                var flyout = new MenuFlyout() {Placement = FlyoutPlacementMode.Bottom};
+                                var flyout = new MenuFlyout() {Placement = PlacementMode.Bottom};
                                 foreach (var effect in vm.AvailableEffects)
                                 {
 

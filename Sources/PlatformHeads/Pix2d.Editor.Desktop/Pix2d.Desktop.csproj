@@ -5,7 +5,7 @@
 		<ApplicationIcon>Assets\app1.ico</ApplicationIcon>
 		<StartupObject />
 		<AssemblyName>Pix2d</AssemblyName>
-    <Version>3.0.1</Version>
+    <Version>3.0.2</Version>
     <PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
 	</PropertyGroup>
 	<ItemGroup>
@@ -18,8 +18,8 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Avalonia.Angle.Windows.Natives" Version="2.1.0.2023020321" />
-		<PackageReference Include="Avalonia.Desktop" Version="11.0.0-preview5" />
-		<PackageReference Include="Avalonia.Diagnostics" Version="11.0.0-preview5" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.0.0-preview6" />
+		<PackageReference Include="Avalonia.Diagnostics" Version="11.0.0-preview6" />
 		<PackageReference Include="Clowd.Clipboard" Version="1.0.1" />
 		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.0.1" />
 		<PackageReference Include="Dock.Avalonia.Themes.Default" Version="0.10.0" />
