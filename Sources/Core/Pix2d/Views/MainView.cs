@@ -171,7 +171,7 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                 new Border()
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
-                    .IsVisible(@vm.IsBusy)
+                    .IsVisible(@vm.IsBusy, BindingMode.OneWay)
                     .Background(StaticResources.Brushes.ModalOverlayBrush)
                     .Child(
                         new TextBlock()

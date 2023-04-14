@@ -49,7 +49,7 @@ public static class StateExtensions
     public static async void SetAsync<TState, TValue>(this TState state, Expression<Func<TState, TValue>> propertyGetter, TValue value)
         where TState : IStateBase
     {
-        await Task.Run(()=>state.Set(propertyGetter, value));
+        await Task.Run(() => state.Set(propertyGetter, value));
     }
 
     public static void Set<TState, TValue>(this TState state, Expression<Func<TState, TValue>> propertyGetter, TValue value) 
@@ -61,8 +61,8 @@ public static class StateExtensions
         var pInfo = state.GetType().GetProperty(propName);
         if (pInfo == null)
             throw new NullReferenceException($"Property {propName} not found in {state.GetType().Name} type");
-        
-        pInfo.SetMethod.Invoke(state, new object[] {value});
+
+        pInfo.SetMethod?.Invoke(state, new object[] {value});
 
         if (state is StateBase bState) 
             bState.OnStateChanged(propName);
@@ -94,7 +94,7 @@ public static class StateExtensions
         var expression = (MemberExpression)propertyGetter.Body;
         var propName = expression.Member.Name;
 
-        if (state is StateBase bState && onStatePropertyChanged != null)
+        if (state is StateBase bState)
         {
             bState.AddWatcher(propName, onStatePropertyChanged);
         }

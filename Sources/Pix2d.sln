@@ -23,6 +23,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Avalonia.Markup.Declarative
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Avalonia.Markup.Declarative.SourceGenerator", "..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative.SourceGenerator\Avalonia.Markup.Declarative.SourceGenerator.csproj", "{A0E234FF-FF67-411F-A000-D2220E3F47B1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Browser", "PlatformHeads\Pix2d.Browser\Pix2d.Browser.csproj", "{98503B44-F224-4807-85C0-DBB977E165D3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +77,12 @@ Global
 		{A0E234FF-FF67-411F-A000-D2220E3F47B1}.DebugUltimate|Any CPU.Build.0 = Debug|Any CPU
 		{A0E234FF-FF67-411F-A000-D2220E3F47B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0E234FF-FF67-411F-A000-D2220E3F47B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98503B44-F224-4807-85C0-DBB977E165D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98503B44-F224-4807-85C0-DBB977E165D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98503B44-F224-4807-85C0-DBB977E165D3}.DebugUltimate|Any CPU.ActiveCfg = Debug|Any CPU
+		{98503B44-F224-4807-85C0-DBB977E165D3}.DebugUltimate|Any CPU.Build.0 = Debug|Any CPU
+		{98503B44-F224-4807-85C0-DBB977E165D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98503B44-F224-4807-85C0-DBB977E165D3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -85,6 +93,7 @@ Global
 		{3453A519-A81A-4500-BEE3-E174847F144D} = {5FEEA7F9-BD04-4B27-86EC-0620396C37E3}
 		{194827E2-7488-4A2C-A93F-2E0F1C591B12} = {9A13A2F1-F71D-4328-BA8E-A48904B6949A}
 		{A0E234FF-FF67-411F-A000-D2220E3F47B1} = {9A13A2F1-F71D-4328-BA8E-A48904B6949A}
+		{98503B44-F224-4807-85C0-DBB977E165D3} = {5FEEA7F9-BD04-4B27-86EC-0620396C37E3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2D8A82A5-5672-464C-A953-E52A3FCDF1AE}

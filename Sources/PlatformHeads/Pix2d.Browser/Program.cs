@@ -1,0 +1,25 @@
+﻿using System;
+using System.Runtime.Versioning;
+using Avalonia;
+using Avalonia.Browser;
+using Avalonia.Markup.Declarative;
+using Pix2d;
+using Pix2d.Browser;
+
+[assembly: SupportedOSPlatform("browser")]
+
+internal partial class Program
+{
+    private static void Main(string[] args)
+    {
+        EditorApp.Pix2dBootstrapper = new BrowserPix2dBootstrapper();
+
+        BuildAvaloniaApp()
+            .UseServiceProvider(DefaultServiceLocator.ServiceLocatorProvider())
+            //.UseReactiveUI()
+            .StartBrowserAppAsync("out");
+    }
+
+    public static AppBuilder BuildAvaloniaApp()
+        => AppBuilder.Configure<EditorApp>();
+}
