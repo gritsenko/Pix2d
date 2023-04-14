@@ -35,7 +35,7 @@ public class DefaultBusyController : IBusyController
         }
         finally
         {
-            await Task.Delay(300);
+            await Task.Delay(300);//hack: web assembly needs delay, otherwise it always show busy on initialization
             AppState.SetAsync(s => s.IsBusy, false);
         }
         return result;
