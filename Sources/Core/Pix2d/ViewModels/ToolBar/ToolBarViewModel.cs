@@ -9,7 +9,6 @@ using Pix2d.Abstract;
 using Pix2d.Abstract.State;
 using Pix2d.Abstract.Tools;
 using Pix2d.Abstract.UI;
-using Pix2d.Common;
 using Pix2d.Drawing.Tools;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;

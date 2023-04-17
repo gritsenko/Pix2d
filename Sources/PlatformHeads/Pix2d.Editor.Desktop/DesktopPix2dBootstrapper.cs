@@ -18,9 +18,9 @@ using Pix2d.Plugins.HttpHost;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Services;
 
-namespace Pix2d.Editor.Desktop;
+namespace Pix2d.Desktop;
 
-public class Pix2dBootstrapper : IPix2dBootstrapper
+public class DesktopPix2dBootstrapper : IPix2dBootstrapper
 {
     public static Pix2DAppSettings Pix2dSettings { get; } = new()
     {

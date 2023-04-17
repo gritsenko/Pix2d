@@ -1,6 +1,7 @@
 ﻿using System;
 using Avalonia;
 using Avalonia.Markup.Declarative;
+using Pix2d.Desktop;
 
 namespace Pix2d.Editor.Desktop;
 
@@ -12,7 +13,7 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        EditorApp.Pix2dBootstrapper = new Pix2dBootstrapper();
+        EditorApp.Pix2dBootstrapper = new DesktopPix2dBootstrapper();
         EditorApp.OnAppStarted = OnAppStarted;
         BuildAvaloniaApp()
             .StartWithClassicDesktopLifetime(args);

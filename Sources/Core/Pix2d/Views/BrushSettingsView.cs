@@ -1,5 +1,6 @@
 ﻿using Pix2d.Shared;
 using Pix2d.ViewModels;
+using Pix2d.ViewModels.ToolSettings;
 using static Pix2d.Resources.StaticResources;
 using Colors = Avalonia.Media.Colors;
 
