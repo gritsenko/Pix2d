@@ -35,10 +35,11 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
             .AddBehavior(
                 new AdaptiveBehavior()
                     .Setters(
-                        new AdaptiveClassSetter(){MinWidth = 0, MaxWidth = 400, ClassName = "small"},
-                        new AdaptiveClassSetter(){MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide"}
-                        )
-                )
+                        new AdaptiveClassSetter() {MinWidth = 0, MaxWidth = 400, ClassName = "small"},
+                        new AdaptiveClassSetter()
+                            {MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide"}
+                    )
+            )
             .Children(new Control[]
             {
 
@@ -59,7 +60,7 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                     .Margin(0, 0, 0, 1),
 
                 new Border().Col(0).Row(2)
-                    .BorderThickness(0,0,1,0)
+                    .BorderThickness(0, 0, 1, 0)
                     .Child(
                         new ToolBarView()
                             .HorizontalAlignment(HorizontalAlignment.Left)

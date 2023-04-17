@@ -1,27 +1,26 @@
 ﻿using Pix2d.Primitives.Drawing;
-using Pix2d.ViewModels;
 using Pix2d.ViewModels.ToolBar;
 using Pix2d.ViewModels.ToolSettings;
 using Avalonia.Controls.Shapes;
 
-namespace Pix2d.Views.ToolSettings
-{
-    public class ToolSettingsView : ViewBaseSingletonVm<ToolBarViewModel>
-    {
-        protected override object Build(ToolBarViewModel vm) =>
-            new ContentControl()
-                .Background(StaticResources.Brushes.MainBackgroundBrush)
-                .DataTemplates(
-                    BrushToolSettingsTemplate,
-                    FillToolSettingsTemplate,
-                    PixelSelectToolSettingsTemplate
-                )
-                .Content(
-                    @vm.SelectedToolSettings
-                );
+namespace Pix2d.Views.ToolSettings;
 
-        public IDataTemplate BrushToolSettingsTemplate { get; } =
-            new FuncDataTemplate<BrushToolSettingsViewModel>((vm, ns) =>
+public class ToolSettingsView : ViewBaseSingletonVm<ToolBarViewModel>
+{
+    protected override object Build(ToolBarViewModel vm) =>
+        new ContentControl()
+            .Background(StaticResources.Brushes.MainBackgroundBrush)
+            .DataTemplates(
+                BrushToolSettingsTemplate,
+                FillToolSettingsTemplate,
+                PixelSelectToolSettingsTemplate
+            )
+            .Content(
+                @vm.SelectedToolSettings
+            );
+
+    public IDataTemplate BrushToolSettingsTemplate { get; } =
+        new FuncDataTemplate<BrushToolSettingsViewModel>((vm, ns) =>
                 new Border()
                     .Child(
 
@@ -78,55 +77,54 @@ namespace Pix2d.Views.ToolSettings
                                     .FontSize(28)
                             )//List box Items
                     )//Border child
-            );
+        );
 
-        public IDataTemplate FillToolSettingsTemplate { get; } =
-            new FuncDataTemplate<FillToolSettingsViewModel>((vm, ns) =>
-                new StackPanel()
-                    .Margin(8)
-                    .Children(
-                        new TextBlock()
-                            .Text("Erase mode"),
-                        new ToggleSwitch()
-                            .IsChecked(@vm.EraseMode)
-                    )
-            );
+    public IDataTemplate FillToolSettingsTemplate { get; } =
+        new FuncDataTemplate<FillToolSettingsViewModel>((vm, ns) =>
+            new StackPanel()
+                .Margin(8)
+                .Children(
+                    new TextBlock()
+                        .Text("Erase mode"),
+                    new ToggleSwitch()
+                        .IsChecked(@vm.EraseMode)
+                )
+        );
 
-        public IDataTemplate PixelSelectToolSettingsTemplate { get; } =
-    new FuncDataTemplate<SelectionToolSettingsViewModel>((vm, ns) =>
-        new ListBox()
-            .SelectedIndex(@vm.SelectedIndex)
-            .OnSelectionChanged(args =>
-            {
-                if(args.AddedItems.Count > 0 && args.AddedItems[0] is ListBoxItem item)
-                    vm.SelectModeCommand.Execute(item.DataContext);
-            })
-            .Items(
-                new ListBoxItem()
-                    .With(ListItemStyle)
-                    .Content("\xF407")
-                    .DataContext(PixelSelectionMode.Rectangle),
+    public IDataTemplate PixelSelectToolSettingsTemplate { get; } =
+        new FuncDataTemplate<SelectionToolSettingsViewModel>((vm, ns) =>
+            new ListBox()
+                .SelectedIndex(@vm.SelectedIndex)
+                .OnSelectionChanged(args =>
+                {
+                    if(args.AddedItems.Count > 0 && args.AddedItems[0] is ListBoxItem item)
+                        vm.SelectModeCommand.Execute(item.DataContext);
+                })
+                .Items(
+                    new ListBoxItem()
+                        .With(ListItemStyle)
+                        .Content("\xF407")
+                        .DataContext(PixelSelectionMode.Rectangle),
 
-                new ListBoxItem()
-                    .Content("\xf408")
-                    .With(ListItemStyle)
-                    .DataContext(PixelSelectionMode.Freeform),
+                    new ListBoxItem()
+                        .Content("\xf408")
+                        .With(ListItemStyle)
+                        .DataContext(PixelSelectionMode.Freeform),
 
-                new ListBoxItem()
-                    .Content("\xe790")
-                    .With(ListItemStyle)
-                    .DataContext(PixelSelectionMode.SameColor)
-            )
-    );
+                    new ListBoxItem()
+                        .Content("\xe790")
+                        .With(ListItemStyle)
+                        .DataContext(PixelSelectionMode.SameColor)
+                )
+        );
 
 
-        public static void ListItemStyle(ListBoxItem i) => i
-            .FontFamily(StaticResources.Fonts.IconFontSegoe)
-            .FontSize(28)
-            .MinWidth(50)
-            .MinHeight(50)
-            .HorizontalContentAlignment(HorizontalAlignment.Center)
-            .VerticalContentAlignment(VerticalAlignment.Center);
+    public static void ListItemStyle(ListBoxItem i) => i
+        .FontFamily(StaticResources.Fonts.IconFontSegoe)
+        .FontSize(28)
+        .MinWidth(50)
+        .MinHeight(50)
+        .HorizontalContentAlignment(HorizontalAlignment.Center)
+        .VerticalContentAlignment(VerticalAlignment.Center);
 
-    }
 }
