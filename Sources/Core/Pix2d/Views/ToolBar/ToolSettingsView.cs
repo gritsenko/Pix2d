@@ -1,9 +1,9 @@
-﻿using Pix2d.Primitives.Drawing;
+﻿using Avalonia.Controls.Shapes;
+using Pix2d.Primitives.Drawing;
 using Pix2d.ViewModels.ToolBar;
 using Pix2d.ViewModels.ToolSettings;
-using Avalonia.Controls.Shapes;
 
-namespace Pix2d.Views.ToolSettings;
+namespace Pix2d.Views.ToolBar;
 
 public class ToolSettingsView : ViewBaseSingletonVm<ToolBarViewModel>
 {

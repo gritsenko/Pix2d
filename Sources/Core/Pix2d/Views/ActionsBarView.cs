@@ -1,4 +1,5 @@
-﻿using Pix2d.Shared;
+﻿using Pix2d.Plugins.Sprite;
+using Pix2d.Shared;
 using Pix2d.ViewModels;
 
 namespace Pix2d.Views;
@@ -17,7 +18,7 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
             .Children(
 
                 new AppButton()
-                    .Command(vm?.RotateCommand)
+                    .Command(SpritePlugin.EditCommands.Rotate90)
                     .Width(ButtonWidth)
                     .Height(ButtonHeight)
                     .Content(new PathIcon()
@@ -27,7 +28,7 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
                     .Label("Rotate"),
 
                 new AppButton()
-                    .Command(vm?.FlipHorizontalCommand)
+                    .Command(SpritePlugin.EditCommands.FlipHorizontal)
                     .Width(ButtonWidth)
                     .Content(new PathIcon()
                         .With(IconStyle)
@@ -36,7 +37,7 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
                     .Label("Flip X"),
 
                 new AppButton()
-                    .Command(vm?.FlipVerticalCommand)
+                    .Command(SpritePlugin.EditCommands.FlipVertical)
                     .Width(ButtonWidth)
                     .Content(new PathIcon()
                         .With(IconStyle)
@@ -93,7 +94,7 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
 
                 //Import
                 new AppButton() 
-                    .Command(vm?.ImportCommand)
+                    .Command(Commands.Edit.Import)
                     .Width(ButtonWidth)
                     .Content(new PathIcon()
                         .With(IconStyle)

@@ -7,11 +7,9 @@ using Mvvm.Messaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Services;
 using Pix2d.Abstract.State;
-using Pix2d.Abstract.Tools;
 using Pix2d.Drawing.Tools;
 using Pix2d.Messages;
 using Pix2d.Mvvm;
-using Pix2d.State;
 using SkiaSharp;
 
 namespace Pix2d.ViewModels.Color
@@ -21,7 +19,6 @@ namespace Pix2d.ViewModels.Color
         public IAppState AppState { get; }
         public IMessenger Messenger { get; }
         public IPaletteService PaletteService { get; }
-        public IToolService ToolService { get; }
         private IDrawingService DrawingService { get; }
 
         public ObservableCollection<SKColor> CustomColors { get; set; } = new();
@@ -188,30 +185,6 @@ namespace Pix2d.ViewModels.Color
 
         public bool IsEyedropperSelected => AppState.CurrentProject.CurrentTool is EyedropperTool;
 
-        private ITool _lastTool;
-
-        public ICommand ActivateEyeDropperCommand => GetCommand(() =>
-        {
-            if (!IsEyedropperSelected)
-            {
-                _lastTool = AppState.CurrentProject.CurrentTool;
-                ToolService.ActivateTool(nameof(EyedropperTool));
-            }
-            else
-            {
-                if (_lastTool != null)
-                {
-                    ToolService.ActivateTool(_lastTool.Key);
-                }
-                else
-                {
-                    ToolService.ActivateDefaultTool();
-                }
-
-                _lastTool = null;
-            }
-        });
-
         public ICommand OnAddColorCommand => GetCommand<SKColor>((c) =>
         {
             PaletteService.InsertColor(nameof(PaletteService.CustomPalette), c, -1);
@@ -236,7 +209,7 @@ namespace Pix2d.ViewModels.Color
         });
 
 
-        public ColorPickerViewModel(IToolService toolService, IDrawingService drawingService, IPaletteService paletteService,
+        public ColorPickerViewModel(IDrawingService drawingService, IPaletteService paletteService,
             IAppState appState, IMessenger messenger)
         {
             AppState = appState;
@@ -244,7 +217,6 @@ namespace Pix2d.ViewModels.Color
             
             if (IsDesignMode) return;
 
-            ToolService = toolService;
             DrawingService = drawingService;
             PaletteService = paletteService;
 

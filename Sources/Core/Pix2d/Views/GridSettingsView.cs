@@ -1,10 +1,10 @@
-﻿using Pix2d.ViewModels;
+﻿using SkiaSharp;
 
 namespace Pix2d.Views;
 
-public class GridSettingsView : ViewBaseSingletonVm<MainViewModel>
+public class GridSettingsView : ComponentBase
 {
-    protected override object Build(MainViewModel vm) =>
+    protected override object Build() =>
         new Border()
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Child(
@@ -20,7 +20,7 @@ public class GridSettingsView : ViewBaseSingletonVm<MainViewModel>
                             .Cols("*,*,*")
                             .Children(
                                 new NumericUpDown()
-                                    .Value(@vm.GridCellSizeWidth, BindingMode.TwoWay),
+                                    .Value(GridCellSizeWidth, BindingMode.TwoWay, bindingSource: this),
 
                                 new TextBlock().Col(1)
                                     .VerticalAlignment(VerticalAlignment.Center)
@@ -28,15 +28,46 @@ public class GridSettingsView : ViewBaseSingletonVm<MainViewModel>
                                     .Text("✕"),
 
                                 new NumericUpDown().Col(2)
-                                    .Value(@vm.GridCellSizeHeight, BindingMode.TwoWay)
+                                    .Value(GridCellSizeHeight, BindingMode.TwoWay, bindingSource: this)
                             ),
                         new TextBlock()
                             .Margin(0, 8, 0, 0)
                             .Text("Show grid"),
 
                         new ToggleSwitch().Margin(0, 8, 0, 0)
-                            .IsChecked(@vm.ShowGrid, BindingMode.TwoWay)
+                            .IsChecked(ShowGrid, BindingMode.TwoWay, bindingSource: this)
                     ) //stack panel childern
                 );
+
+    public bool ShowGrid
+    {
+        get => CoreServices.SnappingService.ShowGrid;
+        set
+        {
+            CoreServices.SnappingService.ShowGrid = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public int GridCellSizeWidth
+    {
+        get => (int)CoreServices.SnappingService.GridCellSize.Width;
+        set
+        {
+            var oldSize = CoreServices.SnappingService.GridCellSize;
+            CoreServices.SnappingService.GridCellSize = new SKSize(value, oldSize.Height);
+            OnPropertyChanged();
+        }
+    }
+    public int GridCellSizeHeight
+    {
+        get => (int)CoreServices.SnappingService.GridCellSize.Height;
+        set
+        {
+            var oldSize = CoreServices.SnappingService.GridCellSize;
+            CoreServices.SnappingService.GridCellSize = new SKSize(oldSize.Width, value);
+            OnPropertyChanged();
+        }
+    }
 
 }

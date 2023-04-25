@@ -3,47 +3,46 @@ using Pix2d.Abstract.Tools;
 using Pix2d.Mvvm;
 using Pix2d.ViewModels.ToolSettings;
 
-namespace Pix2d.ViewModels.ToolBar
+namespace Pix2d.ViewModels.ToolBar;
+
+public class ToolItemViewModel : Pix2dViewModelBase
 {
-    public class ToolItemViewModel : Pix2dViewModelBase
+    private readonly Func<ToolSettingsBaseViewModel> _settingsVmProvider;
+    public string ToolKey { get; set; }
+
+    public string ToolIconPath { get; } = null!;
+    public bool IsSelected
     {
-        private readonly Func<ToolSettingsBaseViewModel> _settingsVmProvider;
-        public string ToolKey { get; set; }
+        get => Get<bool>();
+        set => Set(value);
+    }
 
-        public string ToolIconPath { get; } = null!;
-        public bool IsSelected
-        {
-            get => Get<bool>();
-            set => Set(value);
-        }
+    public string Title { get; }
 
-        public string Title { get; }
+    public string Tooltip { get; set; }
+    public bool HasToolProperties => _settingsVmProvider != null;
 
-        public string Tooltip { get; set; }
-        public bool HasToolProperties => _settingsVmProvider != null;
-
-        public ToolItemViewModel(string toolKey, Func<ToolSettingsBaseViewModel> settingsVmProvider)
-        {
-            _settingsVmProvider = settingsVmProvider;
-            ToolKey = toolKey;
+    public ToolItemViewModel(string toolKey, Func<ToolSettingsBaseViewModel> settingsVmProvider)
+    {
+        _settingsVmProvider = settingsVmProvider;
+        ToolKey = toolKey;
             
-            var tool = CoreServices.ToolService.GetToolByKey(toolKey);
-            Title = tool.DisplayName.ToUpper();
+        var tool = CoreServices.ToolService.GetToolByKey(toolKey);
+        Title = tool.DisplayName.ToUpper();
 
-            if (tool is BaseTool baseTool)
-                ToolIconPath = baseTool.ToolIconData;
+        if (tool is BaseTool baseTool)
+            ToolIconPath = baseTool.ToolIconData;
 
-            Tooltip = tool.HotKey != null ? $"{tool.DisplayName} ({tool.HotKey})" : tool.DisplayName;
-        }
+        Tooltip = tool.HotKey != null ? $"{tool.DisplayName} ({tool.HotKey})" : tool.DisplayName;
+    }
 
-        public ToolSettingsBaseViewModel GetSettingsVm()
-        {
-            return _settingsVmProvider?.Invoke();
-        }
+    public ToolSettingsBaseViewModel GetSettingsVm()
+    {
+        return _settingsVmProvider?.Invoke();
+    }
 
-        public void InvalidateIsSelected()
-        {
-            OnPropertyChanged(nameof(IsSelected));
-        }
+    public void InvalidateIsSelected()
+    {
+        OnPropertyChanged(nameof(IsSelected));
     }
 }

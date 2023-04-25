@@ -8,7 +8,6 @@ using Pix2d.Abstract.Services;
 using Pix2d.Abstract.State;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
-using Pix2d.CommonNodes.Controls;
 using Pix2d.InteractiveNodes;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;
@@ -22,263 +21,261 @@ using SkiaNodes.Abstract;
 using SkiaNodes.Common;
 using SkiaSharp;
 
-namespace Pix2d.Services
+namespace Pix2d.Services;
+
+public class EditService : IEditService
 {
+    private readonly SpriteEditor _spriteEditor;
 
-    public class EditService : IEditService
+    public IViewPortService ViewPortService { get; }
+    public ISelectionService SelectionService { get; }
+    public IAppState AppState { get; }
+    public IMessenger Messenger { get; }
+
+    protected ProjectState ProjectState => (ProjectState) AppState.CurrentProject;
+
+    public EditContextType CurrentEditContextType
     {
-        private readonly SpriteEditor _spriteEditor;
-
-        public IViewPortService ViewPortService { get; }
-        public ISelectionService SelectionService { get; }
-        public IAppState AppState { get; }
-        public IMessenger Messenger { get; }
-
-        protected ProjectState ProjectState => (ProjectState) AppState.CurrentProject;
-
-        public EditContextType CurrentEditContextType
+        get => ProjectState.CurrentContextType;
+        set
         {
-            get => ProjectState.CurrentContextType;
-            set
+            if (ProjectState.CurrentContextType != value)
             {
-                if (ProjectState.CurrentContextType != value)
-                {
-                    ProjectState.CurrentContextType = value;
-                    OnEditContextChanged(ProjectState.CurrentContextType);
-                }
+                ProjectState.CurrentContextType = value;
+                OnEditContextChanged(ProjectState.CurrentContextType);
             }
         }
+    }
 
-        public INodeEditor CurrentNodeEditor
+    public INodeEditor CurrentNodeEditor
+    {
+        get => ProjectState.CurrentNodeEditor;
+        set => ProjectState.CurrentNodeEditor = value;
+    }
+
+    public SKNode CurrentEditedNode
+    {
+        get => ProjectState.CurrentEditedNode;
+        private set
         {
-            get => ProjectState.CurrentNodeEditor;
-            set => ProjectState.CurrentNodeEditor = value;
-        }
+            if (ProjectState.CurrentEditedNode != null)
+                ProjectState.CurrentEditedNode.SizeChanged -= CurrentEditedNodeOnSizeChanged;
 
-        public SKNode CurrentEditedNode
-        {
-            get => ProjectState.CurrentEditedNode;
-            private set
-            {
-                if (ProjectState.CurrentEditedNode != null)
-                    ProjectState.CurrentEditedNode.SizeChanged -= CurrentEditedNodeOnSizeChanged;
+            ProjectState.CurrentEditedNode = value;
 
-                ProjectState.CurrentEditedNode = value;
+            if (ProjectState.CurrentEditedNode != null)
+                ProjectState.CurrentEditedNode.SizeChanged += CurrentEditedNodeOnSizeChanged;
 
-                if (ProjectState.CurrentEditedNode != null)
-                    ProjectState.CurrentEditedNode.SizeChanged += CurrentEditedNodeOnSizeChanged;
-
-                OnCurrentEditNodeChanged(ProjectState.CurrentEditedNode);
-            }
-        }
-
-        private void OnCurrentEditNodeChanged(SKNode currentEditedNode)
-        {
-            Messenger.Send(new EditedNodeChangedMessage(currentEditedNode));
-        }
-
-        private void CurrentEditedNodeOnSizeChanged(object sender, EventArgs e)
-        {
             OnCurrentEditNodeChanged(ProjectState.CurrentEditedNode);
         }
+    }
 
-        public EditContextType DefaultEditContextType { get; set; } = EditContextType.General;
+    private void OnCurrentEditNodeChanged(SKNode currentEditedNode)
+    {
+        Messenger.Send(new EditedNodeChangedMessage(currentEditedNode));
+    }
 
-        public SKNode FrameEditorNode => AppState.CurrentProject.FrameEditorNode;
+    private void CurrentEditedNodeOnSizeChanged(object sender, EventArgs e)
+    {
+        OnCurrentEditNodeChanged(ProjectState.CurrentEditedNode);
+    }
+
+    public EditContextType DefaultEditContextType { get; set; } = EditContextType.General;
+
+    public SKNode FrameEditorNode => AppState.CurrentProject.FrameEditorNode;
 
 
-        public EditService(IViewPortService viewPortService, ISelectionService selectionService, IAppState appState, IMessenger messenger)
+    public EditService(IViewPortService viewPortService, ISelectionService selectionService, IAppState appState, IMessenger messenger)
+    {
+        ViewPortService = viewPortService;
+        SelectionService = selectionService;
+        AppState = appState;
+        Messenger = messenger;
+
+        AppState.CurrentProject.Set(x => x.FrameEditorNode,
+            new FrameEditorNode() {ReparentMode = NodeReparentMode.Overflow});
+
+        _spriteEditor = IoC.Create<SpriteEditor>();
+
+
+        Messenger.Register<ProjectLoadedMessage>(this, OnProjectLoadedMessage);
+        Messenger.Register<NodesSelectedMessage>(this, OnNodesSelected);
+    }
+
+    private void OnNodesSelected(NodesSelectedMessage obj)
+    {
+        UpdateEditors();
+    }
+
+    private void OnProjectLoadedMessage(ProjectLoadedMessage message)
+    {
+        var scene = message.ActiveScene;
+
+        if (scene.Nodes.FirstOrDefault() is Pix2dSprite sprite)
         {
-            ViewPortService = viewPortService;
-            SelectionService = selectionService;
-            AppState = appState;
-            Messenger = messenger;
-
-            AppState.CurrentProject.Set(x => x.FrameEditorNode,
-                new FrameEditorNode() {ReparentMode = NodeReparentMode.Overflow});
-
-            _spriteEditor = IoC.Create<SpriteEditor>();
-
-
-            Messenger.Register<ProjectLoadedMessage>(this, OnProjectLoadedMessage);
-            Messenger.Register<NodesSelectedMessage>(this, OnNodesSelected);
+            RequestEdit(new SKNode[] {sprite});
+            ViewPortService.ShowAll();
         }
+    }
 
-        private void OnNodesSelected(NodesSelectedMessage obj)
+    private void UpdateEditors()
+    {
+        try
         {
-            UpdateEditors();
-        }
-
-        private void OnProjectLoadedMessage(ProjectLoadedMessage message)
-        {
-            var scene = message.ActiveScene;
-
-            if (scene.Nodes.FirstOrDefault() is Pix2dSprite sprite)
-            {
-                RequestEdit(new SKNode[] {sprite});
-                ViewPortService.ShowAll();
-            }
-        }
-
-        private void UpdateEditors()
-        {
-            try
-            {
-                if (CurrentEditContextType == EditContextType.Sprite)
-                    return;
-
-                var selection = ProjectState.Selection;
-                if (selection == null || ProjectState.CurrentTool is IDrawingTool)
-                {
-                    FrameEditorNode.IsVisible = false;
-                    return;
-                }
-
-                FrameEditorNode.IsVisible = true;
-                ((FrameEditorNode)FrameEditorNode).SetSelection(selection);
-                var adornerLayer = SkiaNodes.AdornerLayer.GetAdornerLayer(ProjectState.SceneNode);
-                adornerLayer.Add(FrameEditorNode);
-            }
-            finally
-            {
-                ViewPortService.ViewPort.Refresh();
-            }
-        }
-
-        public void ShowNodeEditor()
-        {
-            if (ProjectState.HasSelection)
-                FrameEditorNode.IsVisible = true;
-        }
-        public void HideNodeEditor()
-        {
-            FrameEditorNode.IsVisible = false;
-        }
-        
-        public void RequestEdit(SKNode[] nodes)
-        {
-            Debug.WriteLine("Requested edit for selection");
-
-            if (nodes.Length != 1)
+            if (CurrentEditContextType == EditContextType.Sprite)
                 return;
 
-            var node = nodes[0];
-            CurrentNodeEditor = null;
-
-            if (node is GroupNode group)
+            var selection = ProjectState.Selection;
+            if (selection == null || ProjectState.CurrentTool is IDrawingTool)
             {
-                SelectionService.SetActiveGroup(group);
-                CurrentEditContextType = EditContextType.General;
+                FrameEditorNode.IsVisible = false;
+                return;
             }
 
-            if (node is Pix2dSprite)
-            {
-                CurrentEditedNode = node;
-                _spriteEditor.SetTargetNode(node);
-                CurrentNodeEditor = _spriteEditor;
-                CurrentEditContextType = EditContextType.Sprite;
-                OnEditorChanged();
-            }
-
-            if (node is TextNode)
-            {
-                CurrentEditContextType = EditContextType.Text;
-            }
+            FrameEditorNode.IsVisible = true;
+            ((FrameEditorNode)FrameEditorNode).SetSelection(selection);
+            var adornerLayer = SkiaNodes.AdornerLayer.GetAdornerLayer(ProjectState.SceneNode);
+            adornerLayer.Add(FrameEditorNode);
         }
-
-        protected virtual void OnEditorChanged()
+        finally
         {
-            Messenger.Send(new NodeEditorChangedMessage());
+            ViewPortService.ViewPort.Refresh();
         }
+    }
 
-        private void OnEditContextChanged(EditContextType newContext)
+    public void ShowNodeEditor()
+    {
+        if (ProjectState.HasSelection)
+            FrameEditorNode.IsVisible = true;
+    }
+    public void HideNodeEditor()
+    {
+        FrameEditorNode.IsVisible = false;
+    }
+        
+    public void RequestEdit(SKNode[] nodes)
+    {
+        Debug.WriteLine("Requested edit for selection");
+
+        if (nodes.Length != 1)
+            return;
+
+        var node = nodes[0];
+        CurrentNodeEditor = null;
+
+        if (node is GroupNode group)
         {
-            Messenger.Send(new EditContextChangedMessage(newContext));
+            SelectionService.SetActiveGroup(group);
+            CurrentEditContextType = EditContextType.General;
         }
 
-        public void GroupNodes(SKNode[] nodes)
+        if (node is Pix2dSprite)
         {
-            var parent = nodes[0].Parent;
-            var newGroup = new GroupNode();
-            newGroup.Name = "Group";
-            foreach(var node in nodes)
-            {
-                newGroup.Nodes.Add(node);
-            }
-            parent.Nodes.Add(newGroup);
-            newGroup.UpdateBoundsToContent();
-
-            SelectionService.Select(newGroup);
+            CurrentEditedNode = node;
+            _spriteEditor.SetTargetNode(node);
+            CurrentNodeEditor = _spriteEditor;
+            CurrentEditContextType = EditContextType.Sprite;
+            OnEditorChanged();
         }
 
-        public void UngroupNodes(GroupNode group)
+        if (node is TextNode)
         {
-            foreach (var node in group.Nodes.ToArray())
-            {
-                group.Nodes.Remove(node);
-                group.Parent.Nodes.Insert(group.Index, node);
-            }
-            group.RemoveFromParent();
+            CurrentEditContextType = EditContextType.Text;
         }
+    }
 
-        public void Resize(IContainerNode containerNode, SKSize size)
+    protected virtual void OnEditorChanged()
+    {
+        Messenger.Send(new NodeEditorChangedMessage());
+    }
+
+    private void OnEditContextChanged(EditContextType newContext)
+    {
+        Messenger.Send(new EditContextChangedMessage(newContext));
+    }
+
+    public void GroupNodes(SKNode[] nodes)
+    {
+        var parent = nodes[0].Parent;
+        var newGroup = new GroupNode();
+        newGroup.Name = "Group";
+        foreach(var node in nodes)
         {
-            containerNode.Size = size;
-            UpdateEditors();
+            newGroup.Nodes.Add(node);
         }
+        parent.Nodes.Add(newGroup);
+        newGroup.UpdateBoundsToContent();
 
-        public void CropCurrentSprite(SKSize newSize, float horizontalAnchor, float verticalAnchor)
+        SelectionService.Select(newGroup);
+    }
+
+    public void UngroupNodes(GroupNode group)
+    {
+        foreach (var node in group.Nodes.ToArray())
         {
-            if (!(GetCurrentEditor() is SpriteEditor editor)) return;
-
-            editor.Crop(newSize, horizontalAnchor, verticalAnchor);
-            UpdateEditors();
-
-            Messenger.Send(new CanvasSizeChanged());
+            group.Nodes.Remove(node);
+            group.Parent.Nodes.Insert(group.Index, node);
         }
+        group.RemoveFromParent();
+    }
 
-        public void CropCurrentSprite(SKRect newBounds)
-        {
-            if (!(GetCurrentEditor() is SpriteEditor editor)) return;
+    public void Resize(IContainerNode containerNode, SKSize size)
+    {
+        containerNode.Size = size;
+        UpdateEditors();
+    }
 
-            editor.Crop(newBounds);
-            UpdateEditors();
-        }
+    public void CropCurrentSprite(SKSize newSize, float horizontalAnchor, float verticalAnchor)
+    {
+        if (!(GetCurrentEditor() is SpriteEditor editor)) return;
 
-        public INodeEditor GetCurrentEditor()
-        {
-            return CurrentNodeEditor;
-        }
+        editor.Crop(newSize, horizontalAnchor, verticalAnchor);
+        UpdateEditors();
 
-        public void AddEffect(ISKNodeEffect effect)
-        {
-            if (CurrentEditContextType == EditContextType.Sprite && CurrentNodeEditor is SpriteEditor spriteEditor)
-                new AddEffectOperation(spriteEditor.CurrentSprite.SelectedLayer.Yield(), effect).Invoke();
+        Messenger.Send(new CanvasSizeChanged());
+    }
 
-            if (CurrentEditContextType == EditContextType.General)
-                new AddEffectOperation(ProjectState.Selection.Nodes, effect).Invoke();
-        }
+    public void CropCurrentSprite(SKRect newBounds)
+    {
+        if (!(GetCurrentEditor() is SpriteEditor editor)) return;
 
-        public void RemoveEffect(ISKNodeEffect effect)
-        {
-            if (CurrentNodeEditor is SpriteEditor spriteEditor)
-                new RemoveEffectOperation(spriteEditor.CurrentSprite.SelectedLayer, effect).Invoke();
-        }
+        editor.Crop(newBounds);
+        UpdateEditors();
+    }
 
-        public void BakeEffect(ISKNodeEffect effect)
-        {
-            if (CurrentNodeEditor is SpriteEditor spriteEditor)
-                new BakeEffectOperation(spriteEditor.CurrentSprite.SelectedLayer, effect).Invoke();
-        }
+    public INodeEditor GetCurrentEditor()
+    {
+        return CurrentNodeEditor;
+    }
 
-        public void ApplyCurrentEdit()
-        {
-            CurrentNodeEditor?.FinishEdit();
-            CurrentNodeEditor = null;
-            //prevent from double OnEditContextChanged notification
-            ProjectState.Set(state => state.CurrentContextType, DefaultEditContextType);
-            CurrentEditedNode = null;
-            OnEditContextChanged(ProjectState.CurrentContextType);
-        }
+    public void AddEffect(ISKNodeEffect effect)
+    {
+        if (CurrentEditContextType == EditContextType.Sprite && CurrentNodeEditor is SpriteEditor spriteEditor)
+            new AddEffectOperation(spriteEditor.CurrentSprite.SelectedLayer.Yield(), effect).Invoke();
+
+        if (CurrentEditContextType == EditContextType.General)
+            new AddEffectOperation(ProjectState.Selection.Nodes, effect).Invoke();
+    }
+
+    public void RemoveEffect(ISKNodeEffect effect)
+    {
+        if (CurrentNodeEditor is SpriteEditor spriteEditor)
+            new RemoveEffectOperation(spriteEditor.CurrentSprite.SelectedLayer, effect).Invoke();
+    }
+
+    public void BakeEffect(ISKNodeEffect effect)
+    {
+        if (CurrentNodeEditor is SpriteEditor spriteEditor)
+            new BakeEffectOperation(spriteEditor.CurrentSprite.SelectedLayer, effect).Invoke();
+    }
+
+    public void ApplyCurrentEdit()
+    {
+        CurrentNodeEditor?.FinishEdit();
+        CurrentNodeEditor = null;
+        //prevent from double OnEditContextChanged notification
+        ProjectState.Set(state => state.CurrentContextType, DefaultEditContextType);
+        CurrentEditedNode = null;
+        OnEditContextChanged(ProjectState.CurrentContextType);
     }
 }
