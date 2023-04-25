@@ -1,4 +1,5 @@
-﻿using Pix2d.Shared;
+﻿using Pix2d.Plugins.Sprite;
+using Pix2d.Shared;
 using Pix2d.ViewModels;
 
 namespace Pix2d.Views;
@@ -30,7 +31,7 @@ public class TopBarView : ViewBaseSingletonVm<TopBarViewModel>
 
                         new AppButton()
                             .With(ButtonStyle)
-                            .Command(vm?.ClearLayerCommand)
+                            .Command(SpritePlugin.EditCommands.Clear)
                             .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
                             .Label("Clear")
                             .Content("\xE894"),
@@ -60,7 +61,7 @@ public class TopBarView : ViewBaseSingletonVm<TopBarViewModel>
 
                         new AppButton().Col(1)
                             .With(ButtonStyle)
-                            .Command(vm?.UndoCommand)
+                            .Command(Commands.Edit.Undo)
                             .Label("Undo")
                             .Content(
 
@@ -89,7 +90,7 @@ public class TopBarView : ViewBaseSingletonVm<TopBarViewModel>
                         new AppButton().Col(1)
                             .With(ButtonStyle)
                             .Label("Redo")
-                            .Command(vm?.RedoCommand)
+                            .Command(Commands.Edit.Redo)
                             .Content("\xE7A6")
                     )
             );
