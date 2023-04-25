@@ -3,7 +3,7 @@ using Pix2d.Abstract.State;
 
 namespace Pix2d.State;
 
-public class AppState : StateBase, IAppState 
+public class AppState : StateBase, IAppState
 {
     public bool IsBusy { get; set; }
 
