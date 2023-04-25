@@ -1,9 +1,8 @@
 ﻿using System;
 using Avalonia;
 using Avalonia.Markup.Declarative;
-using Pix2d.Desktop;
 
-namespace Pix2d.Editor.Desktop;
+namespace Pix2d.Desktop;
 
 class Program
 {

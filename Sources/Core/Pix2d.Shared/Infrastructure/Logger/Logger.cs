@@ -149,10 +149,10 @@ namespace Pix2d
     {
         public DateTime Time { get; set; }
         public string Message { get; set; }
-        public Exception Exception { get; set; }
+        public Exception? Exception { get; set; }
         public bool IsEvent { get; set; }
-        public IDictionary<string, string> ExtraParams { get; set; }
-        public IDictionary<string, double> Metrics { get; set; }
+        public IDictionary<string, string>? ExtraParams { get; set; }
+        public IDictionary<string, double>? Metrics { get; set; }
 
         public LogEntry(string message, params object[] args)
         {

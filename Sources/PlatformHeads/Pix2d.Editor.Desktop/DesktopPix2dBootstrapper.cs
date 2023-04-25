@@ -9,6 +9,7 @@ using Mvvm.Messaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
+using Pix2d.Desktop.Logging;
 using Pix2d.Desktop.Services;
 using Pix2d.Editor.Desktop.Services;
 using Pix2d.Mvvm;
@@ -41,6 +42,8 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
             return;
 
         if (!Avalonia.Controls.Design.IsDesignMode) Pix2dViewModelBase.SetRuntimeMode();
+
+        Logger.RegisterLoggerTarget(new AppStatLoggerTarget());
 
         var container = IoC.Get<SimpleContainer>();
 
