@@ -2,11 +2,8 @@
 using System.Threading.Tasks;
 using CommonServiceLocator;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Operations;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.Tools;
 using Pix2d.Abstract.UI;
 using Pix2d.CommonNodes;
@@ -17,7 +14,6 @@ using Pix2d.Operations;
 using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Plugins.Drawing.ViewModels;
 using Pix2d.Primitives.Operations;
-using Pix2d.State;
 using Pix2d.Tools;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -29,7 +25,7 @@ namespace Pix2d.Drawing.Tools
     {
         public IDrawingService DrawingService { get; }
         public IMessenger Messenger { get; }
-        public IAppState AppState { get; }
+        public AppState AppState { get; }
         private DrawingOperation _pixelSelectDrawingOperation;
         private TextBarViewModel _textVm;
         public override string DisplayName => "Pixel text tool";
@@ -41,7 +37,7 @@ namespace Pix2d.Drawing.Tools
         private TextNode _textNode = new TextNode();
         private SKPoint _selectionPosition;
 
-        public PixelTextTool(IDrawingService drawingService, IMessenger messenger, IAppState appState)
+        public PixelTextTool(IDrawingService drawingService, IMessenger messenger, AppState appState)
         {
             DrawingService = drawingService;
             Messenger = messenger;

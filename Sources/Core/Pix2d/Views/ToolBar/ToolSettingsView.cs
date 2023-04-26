@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls.Shapes;
 using Pix2d.Primitives.Drawing;
 using Pix2d.ViewModels.ToolBar;
+using Pix2d.ViewModels.ToolBar.ToolSettings;
 using Pix2d.ViewModels.ToolSettings;
 
 namespace Pix2d.Views.ToolBar;

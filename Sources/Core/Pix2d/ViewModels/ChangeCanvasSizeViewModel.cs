@@ -2,8 +2,6 @@ using System;
 using System.Windows.Input;
 using Mvvm;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
-using Pix2d.Abstract.Services;
 using Pix2d.Abstract.UI;
 using Pix2d.Messages;
 using Pix2d.Mvvm;

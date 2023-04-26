@@ -1,6 +1,5 @@
 ﻿using System;
 using CommonServiceLocator;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Commands;
 using Pix2d.Abstract.UI;
 using Pix2d.Primitives;
@@ -42,7 +41,11 @@ public class ViewCommands : CommandsListBase{
             mc.ShowTimeline = !mc.ShowTimeline;
         });
 
+    public Pix2dCommand TogglePreviewPanelCommand => GetCommand("Toggle preview panel",
+        new CommandShortcut(VirtualKeys.P, KeyModifier.Ctrl),
+        EditContextType.Sprite,
+        () => AppState.UiState.ShowPreviewPanel = !AppState.UiState.ShowPreviewPanel);
 
-    public SnappingCommands Snapping { get; } = new SnappingCommands();
+    public SnappingCommands Snapping { get; } = new();
 
 }

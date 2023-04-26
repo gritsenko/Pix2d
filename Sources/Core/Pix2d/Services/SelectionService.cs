@@ -2,14 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Selection;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
-using Pix2d.State;
 using SkiaNodes;
 using SkiaNodes.Abstract;
 using SkiaNodes.Common;
@@ -23,8 +19,8 @@ namespace Pix2d.Services
         private ISceneService SceneService { get; }
         public ISnappingService SnappingService { get; }
         public IMessenger Messenger { get; }
-        public IAppState AppState { get; }
-        protected ProjectState ProjectState => (ProjectState)AppState.CurrentProject;
+        public AppState AppState { get; }
+        protected ProjectState ProjectState => AppState.CurrentProject;
 
         public INodesSelection Selection
         {
@@ -47,7 +43,7 @@ namespace Pix2d.Services
 
         public GroupNode ActiveGroup { get; set; }
 
-        public SelectionService(ISceneService sceneService, ISnappingService snappingService, IMessenger messenger, IAppState appState)
+        public SelectionService(ISceneService sceneService, ISnappingService snappingService, IMessenger messenger, AppState appState)
         {
             SceneService = sceneService;
             SnappingService = snappingService;

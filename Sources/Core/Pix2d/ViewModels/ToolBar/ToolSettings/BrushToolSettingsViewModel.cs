@@ -2,18 +2,17 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Drawing.Tools;
 using Pix2d.Primitives.Drawing;
+using Pix2d.ViewModels.ToolSettings;
 
-namespace Pix2d.ViewModels.ToolSettings;
+namespace Pix2d.ViewModels.ToolBar.ToolSettings;
 
 public class BrushToolSettingsViewModel : ToolSettingsBaseViewModel
 {
     public IDrawingService DrawingService { get; }
-    public IAppState AppState { get; }
-    public IDrawingState DrawingState => AppState.DrawingState;
+    public AppState AppState { get; }
+    public DrawingState DrawingState => AppState.DrawingState;
 
     private BrushPresetViewModel _currentPixelBrushSetting;
     private BrushPresetViewModel _currentPixelBrushPreset;
@@ -28,7 +27,7 @@ public class BrushToolSettingsViewModel : ToolSettingsBaseViewModel
             _currentPixelBrushPreset = value;
             var setting = _currentPixelBrushPreset.Preset.Clone();
             CurrentPixelBrushSetting = new BrushPresetViewModel(setting);
-            DrawingState.Set(x => x.CurrentBrushSettings, setting);
+            DrawingState.CurrentBrushSettings = setting;
             OnPropertyChanged();
         }
     }
@@ -47,19 +46,19 @@ public class BrushToolSettingsViewModel : ToolSettingsBaseViewModel
     public float BrushScale
     {
         get => DrawingState.CurrentBrushSettings.Scale;
-        set => DrawingState.Set(x=>x.CurrentBrushSettings, () => DrawingState.CurrentBrushSettings.Scale = value);
+        set => DrawingState.CurrentBrushSettings.Scale = value;
     }
 
     public float BrushOpacity
     {
-        get => (float) Math.Floor(DrawingState.CurrentBrushSettings.Opacity * 100);
-        set => DrawingState.Set(x => x.CurrentBrushSettings, () => DrawingState.CurrentBrushSettings.Opacity = value / 100);
+        get => (float)Math.Floor(DrawingState.CurrentBrushSettings.Opacity * 100);
+        set => DrawingState.CurrentBrushSettings.Opacity = value / 100;
     }
 
     public float BrushSpacing
     {
         get => (float)Math.Floor(DrawingState.CurrentBrushSettings.Spacing);
-        set => DrawingState.Set(x => x.CurrentBrushSettings, () => DrawingState.CurrentBrushSettings.Spacing = value);
+        set => DrawingState.CurrentBrushSettings.Spacing = value;
     }
 
     public ShapeType ShapeType
@@ -73,7 +72,7 @@ public class BrushToolSettingsViewModel : ToolSettingsBaseViewModel
         get => ShapeType.ToString();
         set
         {
-            ShapeType = (ShapeType) System.Enum.Parse(typeof(ShapeType), value);
+            ShapeType = (ShapeType)System.Enum.Parse(typeof(ShapeType), value);
             SessionLogger.OpLog(value);
         }
     }
@@ -85,20 +84,20 @@ public class BrushToolSettingsViewModel : ToolSettingsBaseViewModel
     public bool IsPixelPerfectModeEnabled
     {
         get => AppState.DrawingState.IsPixelPerfectDrawingModeEnabled;
-        set => AppState.DrawingState.Set(x => x.IsPixelPerfectDrawingModeEnabled, value);
+        set => AppState.DrawingState.IsPixelPerfectDrawingModeEnabled = value;
     }
 
     public int SelectedIndex { get; set; } //save selected item state for settings view
     public ICommand SelectShapeCommand => GetCommand<ShapeType>(OnSelectShapeCommandExecute);
 
-    public BrushToolSettingsViewModel(IDrawingService drawingService, IAppState appState)
+    public BrushToolSettingsViewModel(IDrawingService drawingService, AppState appState)
     {
         DrawingService = drawingService;
         AppState = appState;
         ShowColorPicker = true;
         ShowBrushSettings = true;
-            
-        AppState.DrawingState.WatchFor(x=>x.CurrentBrushSettings, OnBrushChanged);
+
+        AppState.DrawingState.WatchFor(x => x.CurrentBrushSettings, OnBrushChanged);
     }
 
     private void OnBrushChanged()

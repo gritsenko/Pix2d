@@ -4,8 +4,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using CommonServiceLocator;
-using Pix2d.Abstract.State;
+using Pix2d.Abstract.Services;
 using Pix2d.Primitives;
+using Pix2d.State;
 
 namespace Pix2d.Abstract.Commands;
 
@@ -13,7 +14,7 @@ public abstract class CommandsListBase : ICommandList
 {
     protected abstract string BaseName { get; }
 
-    protected static IAppState AppState => ServiceLocator.Current.GetInstance<IAppState>();
+    protected static AppState AppState => ServiceLocator.Current.GetInstance<AppState>();
 
     private ICommandService CommandService => ServiceLocator.Current.GetInstance<ICommandService>();
     protected string GetKey([CallerMemberName] string commandName = null)

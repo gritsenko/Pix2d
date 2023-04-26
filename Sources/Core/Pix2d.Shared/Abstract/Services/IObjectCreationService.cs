@@ -1,7 +1,7 @@
 ﻿using SkiaNodes;
 using SkiaSharp;
 
-namespace Pix2d.Abstract
+namespace Pix2d.Abstract.Services
 {
     public interface IObjectCreationService
     {

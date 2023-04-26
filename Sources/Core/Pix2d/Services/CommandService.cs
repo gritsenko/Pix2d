@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Windows.Input;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Commands;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.UI;
 using Pix2d.Command;
 using Pix2d.Primitives;
@@ -16,11 +12,11 @@ namespace Pix2d.Services;
 public class CommandService : ICommandService
 {
     private readonly IPlatformStuffService _platformStuffService;
-    private readonly IAppState _appState;
+    private readonly AppState _appState;
     private readonly IBusyController _busyController;
     private readonly Dictionary<string, Pix2dCommand> _commands = new Dictionary<string, Pix2dCommand>();
 
-    public CommandService(IPlatformStuffService platformStuffService, IAppState appState, IBusyController busyController)
+    public CommandService(IPlatformStuffService platformStuffService, AppState appState, IBusyController busyController)
     {
         _platformStuffService = platformStuffService;
         _appState = appState;

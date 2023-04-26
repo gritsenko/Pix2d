@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Pix2d.Abstract.Commands;
 using Pix2d.Primitives;
 
-namespace Pix2d.Abstract
+namespace Pix2d.Abstract.Services
 {
     public interface ICommandService
     {

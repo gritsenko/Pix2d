@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Pix2d.Abstract;
 
 namespace Pix2d.Common;
 

@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Threading;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Operations;
-using Pix2d.Abstract.Services;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Modules.Sprite.Editors;

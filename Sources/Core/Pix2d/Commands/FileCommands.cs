@@ -1,6 +1,5 @@
 ﻿using System;
 using CommonServiceLocator;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Commands;
 using Pix2d.Abstract.UI;
 using Pix2d.Primitives;

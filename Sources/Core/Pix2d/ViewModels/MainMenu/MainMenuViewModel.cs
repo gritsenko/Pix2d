@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Mvvm;
-using Pix2d.Abstract;
 using Pix2d.Abstract.UI;
 using Pix2d.Mvvm;
 

@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Mvvm.Messaging;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.UI;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;
@@ -19,7 +18,7 @@ namespace Pix2d.ViewModels.Preview
     public class ArtworkPreviewViewModel : Pix2dViewModelBase
     {
         public IMenuController MenuController { get; }
-        public IAppState AppState { get; }
+        public AppState AppState { get; }
         public IMessenger Messenger { get; }
 
         private SpriteEditor _editor;
@@ -58,7 +57,7 @@ namespace Pix2d.ViewModels.Preview
             SelectedScaleItem = item;
         });
 
-        public ArtworkPreviewViewModel(IMenuController menuController, IAppState appState, IMessenger messenger)
+        public ArtworkPreviewViewModel(IMenuController menuController, AppState appState, IMessenger messenger)
         {
             if (IsDesignMode)
                 return;

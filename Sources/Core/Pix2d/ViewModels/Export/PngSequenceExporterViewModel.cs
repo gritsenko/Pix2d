@@ -5,19 +5,17 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommonServiceLocator;
 using Pix2d.Abstract.Platform;
-using Pix2d.Abstract.State;
 using Pix2d.Exporters;
-using Pix2d.State;
 using SkiaNodes;
 
 namespace Pix2d.ViewModels.Export
 {
     public class PngSequenceExporterViewModel : ExporterViewModel
     {
-        public IAppState AppState { get; }
+        public AppState AppState { get; }
         public override bool ShowFileName { get; set; } = true;
         public string FileNamePrefix { get; set; } = "frame_";
-        public PngSequenceExporterViewModel(IDialogService dialogService, IAppState appState) : base(dialogService)
+        public PngSequenceExporterViewModel(IDialogService dialogService, AppState appState) : base(dialogService)
         {
             AppState = appState;
             Name = "Frames to PNG sequence";

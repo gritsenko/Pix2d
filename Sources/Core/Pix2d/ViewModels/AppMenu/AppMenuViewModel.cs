@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Pix2d.Abstract;
 using Pix2d.Mvvm;
 
 namespace Pix2d.ViewModels.AppMenu;

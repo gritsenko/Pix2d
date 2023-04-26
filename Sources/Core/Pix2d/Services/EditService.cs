@@ -2,10 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Edit;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
 using Pix2d.InteractiveNodes;
@@ -15,7 +12,6 @@ using Pix2d.Operations;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Plugins.Sprite.Operations.Effects;
 using Pix2d.Primitives.Edit;
-using Pix2d.State;
 using SkiaNodes;
 using SkiaNodes.Abstract;
 using SkiaNodes.Common;
@@ -29,10 +25,10 @@ public class EditService : IEditService
 
     public IViewPortService ViewPortService { get; }
     public ISelectionService SelectionService { get; }
-    public IAppState AppState { get; }
+    public AppState AppState { get; }
+    protected ProjectState ProjectState => AppState.CurrentProject;
     public IMessenger Messenger { get; }
 
-    protected ProjectState ProjectState => (ProjectState) AppState.CurrentProject;
 
     public EditContextType CurrentEditContextType
     {
@@ -85,15 +81,14 @@ public class EditService : IEditService
     public SKNode FrameEditorNode => AppState.CurrentProject.FrameEditorNode;
 
 
-    public EditService(IViewPortService viewPortService, ISelectionService selectionService, IAppState appState, IMessenger messenger)
+    public EditService(IViewPortService viewPortService, ISelectionService selectionService, AppState appState, IMessenger messenger)
     {
         ViewPortService = viewPortService;
         SelectionService = selectionService;
         AppState = appState;
         Messenger = messenger;
 
-        AppState.CurrentProject.Set(x => x.FrameEditorNode,
-            new FrameEditorNode() {ReparentMode = NodeReparentMode.Overflow});
+        AppState.CurrentProject.FrameEditorNode = new FrameEditorNode() { ReparentMode = NodeReparentMode.Overflow };
 
         _spriteEditor = IoC.Create<SpriteEditor>();
 
@@ -274,7 +269,7 @@ public class EditService : IEditService
         CurrentNodeEditor?.FinishEdit();
         CurrentNodeEditor = null;
         //prevent from double OnEditContextChanged notification
-        ProjectState.Set(state => state.CurrentContextType, DefaultEditContextType);
+        ProjectState.CurrentContextType = DefaultEditContextType;
         CurrentEditedNode = null;
         OnEditContextChanged(ProjectState.CurrentContextType);
     }

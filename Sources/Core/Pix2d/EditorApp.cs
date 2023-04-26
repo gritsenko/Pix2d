@@ -8,7 +8,6 @@ using Avalonia.Styling;
 using Avalonia.Themes.Simple;
 using Avalonia.VisualTree;
 using CommonServiceLocator;
-using Pix2d.Abstract;
 using Pix2d.Views;
 
 namespace Pix2d;

@@ -1,6 +1,5 @@
 ﻿using System;
 using Mvvm.Messaging;
-using Pix2d.Abstract.State;
 using Pix2d.Common;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;
@@ -11,13 +10,13 @@ namespace Pix2d.ViewModels
 {
     public class InfoPanelViewModel : Pix2dViewModelBase
     {
-        public IAppState AppState { get; }
-        public ISelectionState SelectionState => AppState.SelectionState;
+        public AppState AppState { get; }
+        public SelectionState SelectionState => AppState.SelectionState;
 
         public string PointerInfo { get; set; } = "0, 0";
         public string SizeInfo { get; set; } = "0×0";
 
-        public InfoPanelViewModel(IMessenger messenger, IAppState appState)
+        public InfoPanelViewModel(IMessenger messenger, AppState appState)
         {
             AppState = appState;
             SKInput.Current.PointerChanged += CurrentOnPointerChanged;

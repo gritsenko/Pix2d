@@ -74,13 +74,13 @@ namespace Mvvm
             return defaultValue;
         }
 
-        protected void Set<T>(T newValue, Action<T> onValueChanged, [CallerMemberName] string propertyName = null)
+        protected virtual void Set<T>(T newValue, Action<T> onValueChanged, [CallerMemberName] string propertyName = null)
         {
             if (Set(newValue, false, propertyName))
                 onValueChanged?.Invoke(newValue);
         }
 
-        protected bool Set<T>(T newValue, bool forceNotifyPropertyChanged = false, [CallerMemberName] string propertyName = null)
+        protected virtual bool Set<T>(T newValue, bool forceNotifyPropertyChanged = false, [CallerMemberName] string propertyName = null)
         {
             if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
 

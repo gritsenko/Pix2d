@@ -2,11 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
-using Pix2d.State;
 using Pix2d.Tools;
 
 namespace Pix2d.Services;
@@ -14,7 +11,7 @@ namespace Pix2d.Services;
 public class ToolService : IToolService
 {
     public IMessenger Messenger { get; }
-    public IAppState AppState { get; }
+    public AppState AppState { get; }
     private readonly SimpleContainer _container;
         
     private readonly Dictionary<string, ToolMeta> _tools = new();
@@ -23,10 +20,10 @@ public class ToolService : IToolService
     private ITool CurrentTool
     {
         get => AppState.CurrentProject.CurrentTool;
-        set => ((ProjectState)AppState.CurrentProject).CurrentTool = value;
+        set => AppState.CurrentProject.CurrentTool = value;
     }
 
-    public ToolService(SimpleContainer container, IMessenger messenger, IAppState appState)
+    public ToolService(SimpleContainer container, IMessenger messenger, AppState appState)
     {
         Messenger = messenger;
         AppState = appState;

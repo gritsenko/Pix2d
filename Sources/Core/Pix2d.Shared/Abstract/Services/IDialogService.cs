@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Pix2d.Abstract.UI;
 
-namespace Pix2d.Abstract.Platform
+namespace Pix2d.Abstract.Services
 {
     public enum ToastType
     {

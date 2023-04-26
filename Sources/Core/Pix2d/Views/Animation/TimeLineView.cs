@@ -4,6 +4,8 @@ using Pix2d.Plugins.Sprite.ViewModels;
 using Pix2d.ViewModels.Animations;
 using SkiaSharp;
 using Avalonia.Controls.Shapes;
+using Pix2d.Plugins.Sprite;
+using Pix2d.Plugins.Sprite.ViewModels.Animation;
 
 namespace Pix2d.Views.Animation;
 
@@ -24,20 +26,20 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                     Orientation = Orientation.Horizontal,
                     Children = {
                         new Button()
-                            .Command(vm.StopCommand)
+                            .Command(SpritePlugin.AnimationCommands.Stop)
                             .Content("\xe907")
                             .With(ButtonStyle),
                         new Button()
-                            .Command(vm.PrevFrameCommand)
+                            .Command(SpritePlugin.AnimationCommands.PrevFrame)
                             .Content("\xe91f")
                             .With(ButtonStyle),
                         new Button()
-                            .Command(vm.TogglePlayCommand)
+                            .Command(SpritePlugin.AnimationCommands.TogglePlay)
                             .Content("\xE91E")
                             .With(ButtonStyle)
                             .Background(StaticResources.Brushes.AccentBrush),
                         new Button()
-                            .Command(vm.NextFrameCommand)
+                            .Command(SpritePlugin.AnimationCommands.PrevFrame)
                             .Content("\xe91a")
                             .With(ButtonStyle)
                     }
@@ -51,12 +53,12 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                             .VerticalAlignment(VerticalAlignment.Center),
 
                         new Button()
-                            .Command(vm.AddFrameCommand)
+                            .Command(SpritePlugin.AnimationCommands.AddFrame)
                             .Content("\xE905")
                             .ToolTip("Add frame")
                             .With(ButtonStyle),
                         new Button()
-                            .Command(vm.DuplicateFrameCommand)
+                            .Command(SpritePlugin.AnimationCommands.DuplicateFrame)
                             .Content("\xE90D")
                             .ToolTip("Duplicate frame")
                             .With(ButtonStyle),

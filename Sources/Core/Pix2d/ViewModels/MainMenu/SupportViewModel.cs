@@ -1,6 +1,5 @@
 using System.Threading.Tasks;
 using Mvvm;
-using Pix2d.Abstract;
 using Pix2d.Mvvm;
 
 namespace Pix2d.ViewModels.MainMenu

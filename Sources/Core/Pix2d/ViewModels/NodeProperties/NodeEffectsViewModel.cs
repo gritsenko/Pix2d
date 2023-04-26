@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using Mvvm;
-using Pix2d.Abstract.Services;
 using Pix2d.CommonNodes;
 using Pix2d.Mvvm;
 using Pix2d.ViewModels.Layers;

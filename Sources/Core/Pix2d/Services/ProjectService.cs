@@ -6,16 +6,12 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using CommonServiceLocator;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.UI;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Project;
-using Pix2d.State;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -24,7 +20,7 @@ namespace Pix2d.Services;
 
 public class ProjectService : IProjectService
 {
-    private IAppState AppState { get; }
+    private AppState AppState { get; }
 
     private ProjectState ProjectState => AppState.CurrentProject as ProjectState;
 
@@ -41,7 +37,7 @@ public class ProjectService : IProjectService
         set => ProjectState.HasUnsavedChanges = value;
     }
 
-    public ProjectService(IAppState appState, IMessenger messenger, IBusyController busyController)
+    public ProjectService(AppState appState, IMessenger messenger, IBusyController busyController)
     {
         Messenger = messenger;
         BusyController = busyController;
@@ -69,7 +65,7 @@ public class ProjectService : IProjectService
 
         if (HasUnsavedChanges) name += "*";
 
-        AppState.Set(s => s.WindowTitle, name);
+        AppState.WindowTitle = name;
         Messenger.Send(new ProjectNameChangedMessage(name));
     }
 

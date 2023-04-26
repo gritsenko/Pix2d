@@ -4,7 +4,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Mvvm;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.UI;
 using Pix2d.Mvvm;

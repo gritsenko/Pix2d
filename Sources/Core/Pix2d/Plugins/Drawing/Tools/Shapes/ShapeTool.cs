@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Drawing;
-using Pix2d.Abstract.Services;
 using Pix2d.Abstract.Tools;
 using Pix2d.Primitives.Drawing;
 using Pix2d.Tools;

@@ -1,7 +1,6 @@
-﻿using System;
-using Pix2d.Primitives.Operations;
+﻿using Pix2d.Abstract.Operations;
 
-namespace Pix2d.Abstract.Operations
+namespace Pix2d.Abstract.Services
 {
     public interface IOperationService
     {

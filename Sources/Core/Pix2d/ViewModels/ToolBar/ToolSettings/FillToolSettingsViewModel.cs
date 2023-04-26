@@ -1,7 +1,4 @@
-﻿using Pix2d.Abstract;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace Pix2d.ViewModels.ToolSettings
 {
@@ -10,8 +7,8 @@ namespace Pix2d.ViewModels.ToolSettings
         private SKColor _lastColor;
 
         public IDrawingService DrawingService { get; }
-        public IAppState AppState { get; }
-        public IDrawingState DrawingState => AppState.DrawingState;
+        public AppState AppState { get; }
+        public DrawingState DrawingState => AppState.DrawingState;
 
         public bool EraseMode
         {
@@ -36,7 +33,7 @@ namespace Pix2d.ViewModels.ToolSettings
                 DrawingService.SetCurrentColor(_lastColor);
         }
 
-        public FillToolSettingsViewModel(IDrawingService drawingService, IAppState appState)
+        public FillToolSettingsViewModel(IDrawingService drawingService, AppState appState)
         {
             DrawingService = drawingService;
             AppState = appState;

@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Pix2d.Abstract
+namespace Pix2d.Abstract.Services
 {
     public interface ISessionService
     {

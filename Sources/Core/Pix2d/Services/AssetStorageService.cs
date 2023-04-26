@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Pix2d.Abstract;
 
 namespace Pix2d.Services
 {

@@ -3,7 +3,6 @@ using Mvvm.Messaging;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Tools;
 using Pix2d.Abstract.UI;
@@ -11,6 +10,7 @@ using Pix2d.Messages;
 using Pix2d.Operations;
 using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Primitives.Drawing;
+using Pix2d.State;
 using SkiaNodes.Interactive;
 using SkiaSharp;
 
@@ -24,9 +24,9 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 
     public IDrawingService DrawingService { get; }
     public IMessenger Messenger { get; }
-    public IAppState State { get; }
+    public AppState State { get; }
     public IViewPortService ViewPortService { get; }
-    public ISelectionState SelectionState => State.SelectionState;
+    public SelectionState SelectionState => State.SelectionState;
 
     private DrawingOperation _pixelSelectDrawingOperation;
     private AiPixelSelector _aiPixelSelector;
@@ -41,7 +41,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
         set => DrawingLayer.SelectionMode = value;
     }
 
-    public ExtractObjectTool(IDrawingService drawingService, IMessenger messenger, IAppState state, IViewPortService viewPortService)
+    public ExtractObjectTool(IDrawingService drawingService, IMessenger messenger, AppState state, IViewPortService viewPortService)
     {
         DrawingService = drawingService;
         Messenger = messenger;
@@ -74,7 +74,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 
     private void DrawingLayer_SelectionRemoved(object? sender, EventArgs e)
     {
-        SelectionState.Set(x => x.IsUserSelecting, false);
+        SelectionState.IsUserSelecting = false;
     }
 
     private void DrawingLayer_SelectionStarted(object? sender, EventArgs e)
@@ -82,7 +82,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
         _aiPixelSelector = new AiPixelSelector();
         DrawingLayer.SetCustomPixelSelector(_aiPixelSelector);
 
-        SelectionState.Set(x => x.IsUserSelecting, true);
+        SelectionState.IsUserSelecting = true;
     }
 
     private void DrawingLayerOnPixelsBeforeSelected(object? sender, PixelsBeforeSelectedEventArgs e)
@@ -111,7 +111,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
     {
         base.OnPointerMoved(sender, e);
         if (SelectionState.IsUserSelecting)
-            SelectionState.Set(x => x.UserSelectingFrameSize, DrawingLayer.SelectionSize);
+            SelectionState.UserSelectingFrameSize = DrawingLayer.SelectionSize;
     }
 
     private void OnOperationInvoked(OperationInvokedMessage e)

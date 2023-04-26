@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace Pix2d.State;
 
-public class SelectionState : StateBase, ISelectionState
+public class SelectionState : StateBase
 {
     public bool IsUserSelecting { get; set; }
 

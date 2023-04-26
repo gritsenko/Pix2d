@@ -1,39 +1,50 @@
-﻿using Pix2d.ViewModels;
+﻿using Avalonia.Styling;
+using Mvvm.Messaging;
+using Pix2d.Messages.ViewPort;
 
 namespace Pix2d.Views;
 
-public partial class ZoomPanelView : ViewBaseSingletonVm<ZoomBarViewModel>
+public class ZoomPanelView : ComponentBase
 {
-    protected override object Build(ZoomBarViewModel vm) =>
+    protected override object Build() =>
         new Grid()
+            .Styles(
+                new Style<Button>()
+                    .Background(StaticResources.Brushes.SelectedItemBrush)
+                )
             .Height(32)
             .Cols("32,*,32")
             .Children(
 
                 new Button().Col(0)
-                    .Command(vm.ZoomOutCommand)
-                    .With(ButtonStyle)
+                    .Command(Commands.View.ZoomOut)
                     .Content("-"),
 
                 new Button().Col(1)
-                    .Command(vm.ZoomAllCommand)
-                    .Content(@vm.CurrentPercentZoom)
-                    .HorizontalAlignment(HorizontalAlignment.Stretch)
-                    .VerticalAlignment(VerticalAlignment.Stretch)
-                    .FontSize(12)
+                    .Command(Commands.View.ZoomAll)
+                    .Content(Bind(CurrentPercentZoom))
                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                     .MinWidth(80),
                 
                 new Button().Col(2)
-                    .With(ButtonStyle)
-                    .Command(vm.ZoomInCommand)
+                    .Command(Commands.View.ZoomIn)
                     .Content("+")
             );
 
-    private static void ButtonStyle(Button b) => b
-        .Padding(0)
-        .HorizontalAlignment(HorizontalAlignment.Stretch)
-        .VerticalAlignment(VerticalAlignment.Stretch)
-        .Background(StaticResources.Brushes.SelectedItemBrush)
-        .BorderBrush(StaticResources.Brushes.SelectedItemBrush);
+    [Inject] IViewPortService ViewPortService { get; set; } = null!;
+    [Inject] IMessenger Messenger { get; set; } = null!;
+
+    public double CurrentZoom => ViewPortService?.ViewPort?.Zoom ?? 0;
+    public string CurrentPercentZoom => (CurrentZoom * 100).ToString("###0") + "%";
+    
+    protected override void OnAfterInitialized()
+    {
+        Messenger.Register<ViewPortInitializedMessage>(this, _ => Load());
+        Messenger.Register<ViewPortChangedViewMessage>(this, _ => Load());
+    }
+    
+    protected void Load()
+    {
+        StateHasChanged();
+    }
 }

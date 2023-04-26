@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CommonServiceLocator;
+using Pix2d.Abstract.Services;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
 using Pix2d.Primitives.Edit;

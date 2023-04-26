@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommonServiceLocator;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Drawing;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.Tools;
 using Pix2d.Drawing.Brushes;
 using Pix2d.Drawing.Nodes;
@@ -14,7 +11,6 @@ using Pix2d.Drawing.Tools;
 using Pix2d.Messages;
 using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Primitives.Drawing;
-using Pix2d.State;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -26,8 +22,8 @@ namespace Pix2d.Services
         public ISelectionService SelectionService { get; }
         public IToolService ToolService { get; }
         public IViewPortService ViewPortService { get; }
-        public IAppState AppState { get; }
-        public IDrawingState DrawingState => AppState.DrawingState;
+        public AppState AppState { get; }
+        public DrawingState DrawingState => AppState.DrawingState;
 
         private DrawingOperation _currentDrawingOperation;
 
@@ -56,7 +52,7 @@ namespace Pix2d.Services
         // public List<BrushSettings> BrushPresets { get; set; } = new();
 
         public DrawingService(ISelectionService selectionService, IToolService toolService, ISnappingService snappingService, IViewPortService viewPortService,
-            IMessenger messenger, IAppState appState)
+            IMessenger messenger, AppState appState)
         {
 
             SelectionService = selectionService;
@@ -160,29 +156,24 @@ namespace Pix2d.Services
 
         public void InitBrushSettings()
         {
-            DrawingState.Set(x => x.BrushPresets, () =>
+            var bps = new List<BrushSettings>
             {
-                var bps = DrawingState.BrushPresets;
-                //BrushPresets.Add(new BrushSetting() {Brush = Brushes[4], Scale = 1, Opacity = 1f});
-                bps.Add(new BrushSettings() {Brush = GetBrush<SquareSolidBrush>(), Scale = 1, Opacity = 1f});
-                bps.Add(new BrushSettings() {Brush = GetBrush<SquareSolidBrush>(), Scale = 2, Opacity = 1f});
-                bps.Add(new BrushSettings() {Brush = GetBrush<SquareSolidBrush>(), Scale = 3, Opacity = 1f});
-                bps.Add(new BrushSettings() {Brush = GetBrush<SquareSolidBrush>(), Scale = 4, Opacity = 1f});
-                bps.Add(new BrushSettings() {Brush = GetBrush<SquareSolidBrush>(), Scale = 4, Opacity = 1f});
-                bps.Add(new BrushSettings() {Brush = GetBrush<CircleSolidBrush>(), Scale = 4, Opacity = 1f});
-                bps.Add(new BrushSettings() {Brush = GetBrush<CircleSolidBrush>(), Scale = 6, Opacity = 1f});
-                bps.Add(new BrushSettings() {Brush = GetBrush<CircleSolidBrush>(), Scale = 8, Opacity = 1f});
-                bps.Add(new BrushSettings() {Brush = GetBrush<CircleSolidBrush>(), Scale = 10, Opacity = 1f});
-                bps.Add(new BrushSettings() {Brush = GetBrush<SprayBrush>(), Scale = 16, Opacity = 0.1f});
-                //BrushPresets.Add(new BrushSetting() { Brush = Brushes[2], Scale = 3, Opacity = 1f });
-                //BrushPresets.Add(new BrushSetting() { Brush = Brushes[2], Scale = 4, Opacity = 1f });
-                //BrushPresets.Add(new BrushSetting() { Brush = Brushes[2], Scale = 32, Opacity = 0.3f });
-                //BrushPresets.Add(new BrushSetting() { Brush = Brushes[2], Scale = 64, Opacity = 0.2f });
-                //BrushPresets.Add(new BrushSetting() { Brush = Brushes[2], Scale = 100, Opacity = 0.1f });
-            });
+                new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 1, Opacity = 1f },
+                new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 2, Opacity = 1f },
+                new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 3, Opacity = 1f },
+                new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 4, Opacity = 1f },
+                new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 4, Opacity = 1f },
+                new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 4, Opacity = 1f },
+                new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 6, Opacity = 1f },
+                new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 8, Opacity = 1f },
+                new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 10, Opacity = 1f },
+                new() { Brush = GetBrush<SprayBrush>(), Scale = 16, Opacity = 0.1f }
+            };
 
-            DrawingState.Set(x => x.CurrentBrushSettings, DrawingState.BrushPresets[0]);
-            DrawingState.Set(x => x.CurrentColor, SKColor.Parse("d2691e"));
+            DrawingState.BrushPresets = bps;
+
+            DrawingState.CurrentBrushSettings = DrawingState.BrushPresets[0];
+            DrawingState.CurrentColor = SKColor.Parse("d2691e");
         }
 
         public void ClearCurrentLayer()
@@ -208,7 +199,7 @@ namespace Pix2d.Services
         public void SetCurrentColor(SKColor value)
         {
             if(AppState.DrawingState.CurrentColor != value)
-                AppState.DrawingState.Set(x => x.CurrentColor, value);
+                AppState.DrawingState.CurrentColor = value;
         }
 
         public void SetDrawingTarget(IDrawingTarget target)
@@ -236,7 +227,7 @@ namespace Pix2d.Services
                 var col = CurrentDrawingTarget.PickColorByPoint(localPos.X, localPos.Y);
 
                 if (!col.Equals(SKColor.Empty))
-                    DrawingState.Set(x => x.CurrentColor, col);
+                    DrawingState.CurrentColor = col;
 
                 return col;
             }
@@ -266,11 +257,8 @@ namespace Pix2d.Services
             var bscale = DrawingState.CurrentBrushSettings.Scale;
             bscale = Math.Min(Math.Max(1, bscale + delta), 512);
 
-            DrawingState.Set(x => x.CurrentBrushSettings, () =>
-              {
-                  DrawingState.CurrentBrushSettings.Scale = bscale;
-                  DrawingState.CurrentBrushSettings.InitBrush();
-              });
+            DrawingState.CurrentBrushSettings.Scale = bscale;
+            DrawingState.CurrentBrushSettings.InitBrush();
         }
 
         protected virtual void OnDrawn()

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
-using Pix2d.Abstract.Services;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes.Controls;
 using Pix2d.InteractiveNodes;

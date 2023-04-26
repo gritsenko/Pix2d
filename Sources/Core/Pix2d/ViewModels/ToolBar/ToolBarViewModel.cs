@@ -5,8 +5,6 @@ using System.ComponentModel;
 using System.Linq;
 using Mvvm;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.Tools;
 using Pix2d.Abstract.UI;
 using Pix2d.Drawing.Tools;
@@ -14,6 +12,7 @@ using Pix2d.Messages;
 using Pix2d.Messages.Edit;
 using Pix2d.Mvvm;
 using Pix2d.Tools;
+using Pix2d.ViewModels.ToolBar.ToolSettings;
 using Pix2d.ViewModels.ToolSettings;
 
 namespace Pix2d.ViewModels.ToolBar;
@@ -23,7 +22,7 @@ public class ToolBarViewModel : Pix2dViewModelBase
 {
     private IToolService ToolService { get; }
     public IMenuController MenuController { get; }
-    public IAppState AppState { get; }
+    public AppState AppState { get; }
     public IMessenger Messenger { get; }
     public IViewModelService ViewModelService { get; }
 
@@ -71,7 +70,7 @@ public class ToolBarViewModel : Pix2dViewModelBase
 
     public IRelayCommand ToggleToolSettingsCommand => GetCommand(() => ToggleSelectedToolSettings(SelectedToolItem));
 
-    public ToolBarViewModel(IToolService toolService, IMenuController menuController, IAppState appState, IMessenger messenger,
+    public ToolBarViewModel(IToolService toolService, IMenuController menuController, AppState appState, IMessenger messenger,
         IViewModelService viewModelService)
     {
         if (IsDesignMode) return;

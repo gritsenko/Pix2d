@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CommonServiceLocator;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Exporters;

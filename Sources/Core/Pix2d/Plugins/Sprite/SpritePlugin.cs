@@ -3,8 +3,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using Pix2d.Abstract;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
 using Pix2d.Plugins.Sprite.Commands;
@@ -39,7 +37,7 @@ public class SpritePlugin : IPix2dPlugin
         //EditService.RegisterEditor<Pix2dSprite, SpriteEditor>();
     }
 
-    internal static (IEnumerable<SKNode> Nodes, SKColor BackgroundColor) GetDataForCutOrCopy(IAppState appState)
+    internal static (IEnumerable<SKNode> Nodes, SKColor BackgroundColor) GetDataForCutOrCopy(AppState appState)
     {
         if (appState.CurrentProject.CurrentTool is not IPixelSelectionTool)
             return (Enumerable.Empty<SKNode>(), SKColor.Empty);

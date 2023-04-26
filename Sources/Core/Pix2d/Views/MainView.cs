@@ -1,7 +1,6 @@
 ﻿using System;
 using Avalonia.Styling;
 using Avalonia.Xaml.Interactions.Responsive;
-using Pix2d.Abstract.State;
 using Pix2d.Shared;
 using Pix2d.ViewModels;
 using Pix2d.ViewModels.AppMenu;

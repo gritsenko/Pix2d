@@ -171,8 +171,6 @@ namespace Pix2d.ViewModels.Layers
         public ICommand ToggleVisibilityCommand => GetCommand(() => { this.IsVisible = !this.IsVisible; });
         public ICommand ToggleColorLockedCommand => GetCommand(() => { this.ColorLocked = !this.ColorLocked; });
         public ICommand ToggleEffectsCommand => GetCommand(() => { this.ShowEffects = !this.ShowEffects; });
-        public ICommand BringForwardCommand { get; set; }
-        public ICommand SendSendBackwardCommand { get; set; }
 
         public ICommand SelectLayerCommand { get; set; }
 

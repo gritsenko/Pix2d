@@ -9,11 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Mvvm;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.UI;
-using Pix2d.Common;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Mvvm;
@@ -35,7 +31,7 @@ namespace Pix2d.ViewModels.Export
         public IProjectService ProjectService { get; }
         public IMenuController MenuController { get; }
         public IBusyController BusyController { get; }
-        public IAppState AppState { get; }
+        public AppState AppState { get; }
         public IViewModelService ViewModelService { get; }
         public ISettingsService SettingsService { get; }
 
@@ -141,7 +137,7 @@ namespace Pix2d.ViewModels.Export
         });
 
         public ExportPageViewModel(ISettingsService settingsService, IExportService exportService, ILicenseService licenseService, IProjectService projectService, IMenuController menuController,
-            IEditService editService, IBusyController busyController, IAppState appState, IMessenger messenger, IViewModelService viewModelService)
+            IEditService editService, IBusyController busyController, AppState appState, IMessenger messenger, IViewModelService viewModelService)
         {
             ExportService = exportService;
             LicenseService = licenseService;

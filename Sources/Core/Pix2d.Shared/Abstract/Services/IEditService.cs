@@ -3,7 +3,7 @@ using SkiaNodes;
 using SkiaNodes.Abstract;
 using SkiaSharp;
 
-namespace Pix2d.Abstract
+namespace Pix2d.Abstract.Services
 {
     public interface IEditService
     {

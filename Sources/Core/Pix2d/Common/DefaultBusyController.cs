@@ -1,19 +1,18 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Pix2d.Abstract.Platform;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.UI;
 
 namespace Pix2d.Common;
 
 public class DefaultBusyController : IBusyController
 {
-    public IAppState AppState { get; }
+    public AppState AppState { get; }
     public IDialogService DialogService { get; }
 
     public bool IsBusy => AppState.IsBusy;
 
-    public DefaultBusyController(IAppState appState, IDialogService dialogService)
+    public DefaultBusyController(AppState appState, IDialogService dialogService)
     {
         AppState = appState;
         DialogService = dialogService;
@@ -21,7 +20,7 @@ public class DefaultBusyController : IBusyController
 
     public async Task<bool> RunLongTaskAsync(Func<Task> task)
     {
-        AppState.SetAsync(s => s.IsBusy, true);
+        AppState.IsBusy = true;
         var result = false;
         try
         {
@@ -36,7 +35,7 @@ public class DefaultBusyController : IBusyController
         finally
         {
             await Task.Delay(300);//hack: web assembly needs delay, otherwise it always show busy on initialization
-            AppState.SetAsync(s => s.IsBusy, false);
+            AppState.IsBusy = false;
         }
         return result;
     }

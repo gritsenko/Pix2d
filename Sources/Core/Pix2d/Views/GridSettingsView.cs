@@ -39,33 +39,37 @@ public class GridSettingsView : ComponentBase
                     ) //stack panel childern
                 );
 
+    [Inject] private AppState AppState { get; set; } = null!;
+
+    private ViewPortState ViewPortState => AppState.CurrentProject.ViewPortState;
+
     public bool ShowGrid
     {
-        get => CoreServices.SnappingService.ShowGrid;
+        get => ViewPortState.ShowGrid;
         set
         {
-            CoreServices.SnappingService.ShowGrid = value;
+            ViewPortState.ShowGrid = value;
             OnPropertyChanged();
         }
     }
 
     public int GridCellSizeWidth
     {
-        get => (int)CoreServices.SnappingService.GridCellSize.Width;
+        get => (int)ViewPortState.GridSpacing.Width;
         set
         {
-            var oldSize = CoreServices.SnappingService.GridCellSize;
-            CoreServices.SnappingService.GridCellSize = new SKSize(value, oldSize.Height);
+            var oldSize = ViewPortState.GridSpacing;
+            ViewPortState.GridSpacing = new SKSize(value, oldSize.Height);
             OnPropertyChanged();
         }
     }
     public int GridCellSizeHeight
     {
-        get => (int)CoreServices.SnappingService.GridCellSize.Height;
+        get => (int)ViewPortState.GridSpacing.Height;
         set
         {
-            var oldSize = CoreServices.SnappingService.GridCellSize;
-            CoreServices.SnappingService.GridCellSize = new SKSize(oldSize.Width, value);
+            var oldSize = ViewPortState.GridSpacing;
+            ViewPortState.GridSpacing = new SKSize(oldSize.Width, value);
             OnPropertyChanged();
         }
     }

@@ -1,0 +1,31 @@
+﻿using System.Collections.Generic;
+using Pix2d.Abstract.State;
+
+namespace Pix2d.State;
+
+public class AppState : StateBase
+{
+    public bool IsBusy
+    {
+        get => Get<bool>();
+        set => Set(value);
+    }
+
+    public string WindowTitle
+    {
+        get => Get<string>();
+        set => Set(value);
+    }
+
+    public Pix2DAppSettings Settings { get; set; } = new();
+    public UiState UiState { get; set; } = new();
+
+    public new List<ProjectState> LoadedProjects { get; set; } = new();
+
+    public ProjectState CurrentProject { get; set; } = new();
+    
+    public SelectionState SelectionState { get; set; } = new();
+
+    public DrawingState DrawingState { get; set; } = new();
+
+}

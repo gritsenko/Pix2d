@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using CommonServiceLocator;
 using Pix2d.Abstract;
+using Pix2d.Abstract.Services;
 using SkiaNodes.Interactive;
 
 namespace Pix2d.Primitives;

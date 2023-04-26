@@ -14,7 +14,7 @@ public class ViewModelService : IViewModelService
         where TViewModel : class
         => GetViewModel(typeof(TViewModel), singleton) as TViewModel;
 
-    public ViewModelBase GetViewModel(Type vmType, bool singleton = true)
+    public object GetViewModel(Type vmType, bool singleton = true)
     {
         try
         {
@@ -34,7 +34,7 @@ public class ViewModelService : IViewModelService
                 vmLoadable.Load();
             }
 
-            return vm as ViewModelBase;
+            return vm;
 
         }
         catch (Exception e)

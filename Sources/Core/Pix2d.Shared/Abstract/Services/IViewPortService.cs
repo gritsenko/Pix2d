@@ -1,9 +1,8 @@
 ﻿using SkiaNodes;
 
-namespace Pix2d.Abstract
+namespace Pix2d.Abstract.Services;
+
+public interface IViewPortService : IViewPortProvider
 {
-    public interface IViewPortService : IViewPortProvider
-    {
-        void ShowAll();
-    }
+    void ShowAll();
 }

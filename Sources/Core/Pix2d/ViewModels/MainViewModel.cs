@@ -3,8 +3,6 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Mvvm;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.UI;
 using Pix2d.Messages;
 using Pix2d.Mvvm;
@@ -16,7 +14,7 @@ namespace Pix2d.ViewModels;
 public class MainViewModel : Pix2dViewModelBase, IMenuController, IPanelsController
 {
     public ISettingsService SettingsService { get; }
-    public IAppState AppState { get; }
+    public AppState AppState { get; }
     public IViewModelService ViewModelService { get; }
 
     public bool IsBusy => AppState.IsBusy;
@@ -153,17 +151,7 @@ public class MainViewModel : Pix2dViewModelBase, IMenuController, IPanelsControl
             }
         }
     }
-
-    public bool ShowGrid
-    {
-        get => CoreServices.SnappingService.ShowGrid;
-        set
-        {
-            CoreServices.SnappingService.ShowGrid = value;
-            OnPropertyChanged();
-        }
-    }
-
+    
     public bool ShowPreviewPanel
     {
         get => Get<bool>();
@@ -270,12 +258,8 @@ public class MainViewModel : Pix2dViewModelBase, IMenuController, IPanelsControl
     });
 
     public ICommand HideExportDialogCommand => GetCommand(() => ShowExportDialog = false);
-    public ICommand ToggleGridCommand => MapCommand(Commands.View.Snapping.ToggleGrid, () =>
-    {
-        OnPropertyChanged(nameof(ShowGrid));
-    });
 
-    public MainViewModel(SimpleContainer container, ISettingsService settingsService, IAppState appState, IMessenger messenger, IViewModelService viewModelService)
+    public MainViewModel(SimpleContainer container, ISettingsService settingsService, AppState appState, IMessenger messenger, IViewModelService viewModelService)
     {
         container.RegisterInstance<IMenuController>(this);
         container.RegisterInstance<IPanelsController>(this);
@@ -285,13 +269,13 @@ public class MainViewModel : Pix2dViewModelBase, IMenuController, IPanelsControl
         AppState = appState;
         ViewModelService = viewModelService;
 
-        AppState.WatchFor(s => s.IsBusy, () => OnPropertyChanged(nameof(IsBusy)));
-        AppState.CurrentProject.WatchFor(s => s.CurrentContextType, () => OnPropertyChanged(nameof(CurrentEditContext)));
-
-        ReviewHelper = new ReviewHelpers(settingsService);
-
         if (IsDesignMode)
             return;
+        
+        ReviewHelper = new ReviewHelpers(settingsService);
+
+        AppState.WatchFor(s => s.IsBusy, () => OnPropertyChanged(nameof(IsBusy)));
+        AppState.CurrentProject.WatchFor(s => s.CurrentContextType, () => OnPropertyChanged(nameof(CurrentEditContext)));
 
         messenger.Register<ProjectSavedMessage>(this, m => TrySuggestRate("Save"));
 

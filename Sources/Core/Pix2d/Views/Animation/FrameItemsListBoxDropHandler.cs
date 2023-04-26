@@ -2,6 +2,7 @@
 using Avalonia.VisualTree;
 using Avalonia.Xaml.Interactions.DragAndDrop;
 using Pix2d.Plugins.Sprite.ViewModels;
+using Pix2d.Plugins.Sprite.ViewModels.Animation;
 using Pix2d.ViewModels.Animations;
 
 namespace Pix2d.Views.Animation;

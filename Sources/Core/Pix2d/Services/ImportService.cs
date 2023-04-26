@@ -1,16 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Importers;
 using SkiaSharp;
 using System;
 using System.Linq;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Abstract.Tools;
-using Pix2d.Common;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
 using Pix2d.Plugins.Sprite.Editors;
@@ -29,10 +25,10 @@ namespace Pix2d.Services
         public IDrawingService DrawingService { get; }
         public IToolService ToolService { get; }
         public IDialogService DialogService { get; }
-        public IAppState AppState { get; }
+        public AppState AppState { get; }
 
         public ImportService(IFileService fileService, IObjectCreationService objectCreationService, IDrawingService drawingService,
-            IToolService toolService, IDialogService dialogService, IAppState appState)
+            IToolService toolService, IDialogService dialogService, AppState appState)
         {
             FileService = fileService;
             ObjectCreationService = objectCreationService;

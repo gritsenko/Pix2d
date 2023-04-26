@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Pix2d.Abstract;
 using Newtonsoft.Json;
 
 namespace Pix2d.Services;

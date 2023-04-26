@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using CommonServiceLocator;
 using Pix2d.Abstract.Operations;
+using Pix2d.Abstract.Services;
 using SkiaNodes;
 
 namespace Pix2d.Operations

@@ -1,4 +1,5 @@
 ﻿using Pix2d.Effects;
+using Pix2d.Plugins.Sprite;
 using Pix2d.Shared;
 using Pix2d.ViewModels.Layers;
 
@@ -53,7 +54,7 @@ public class LayerOptionsView : ViewBaseSingletonVm<LayersListViewModel>
                         new AppButton()
                             .With(ButtonStyle)
                             .Label("Up")
-                            .Command(vm.BringForwardCommand)
+                            .Command(SpritePlugin.EditCommands.BringLayerForward)
                             .Content(
                                 new TextBlock()
                                     .Text("\xE74A")
@@ -63,7 +64,7 @@ public class LayerOptionsView : ViewBaseSingletonVm<LayersListViewModel>
                         new AppButton()
                             .With(ButtonStyle)
                             .Label("Down")
-                            .Command(vm.SendBackwardCommand)
+                            .Command(SpritePlugin.EditCommands.SendLayerBackward)
                             .Content(
                                 new TextBlock()
                                     .Text("\xE74B")

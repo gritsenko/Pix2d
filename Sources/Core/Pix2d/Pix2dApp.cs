@@ -5,21 +5,18 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Platform.FileSystem;
-using Pix2d.Abstract.State;
 using Pix2d.Infrastructure;
 using Pix2d.Messages;
 using Pix2d.Messages.ViewPort;
 using Pix2d.Primitives;
-using Pix2d.State;
 using SkiaNodes;
 using SkiaNodes.Interactive;
 using SkiaSharp;
 
 namespace Pix2d;
 
-public class Pix2DApp : IViewPortService, IAppStateService<AppState>
+public class Pix2DApp : IViewPortService, AppStateService<AppState>
 {
     public static PlatformType CurrentPlatform { get; set; }
     public static string AppFolder { get; set; }
@@ -121,8 +118,8 @@ public class Pix2DApp : IViewPortService, IAppStateService<AppState>
         if (settings?.AppMode == Pix2DAppMode.SpriteEditor)
         {
             Trace("Init sprite mode");
-            ((ProjectState)AppState.CurrentProject).DefaultEditContextType = EditContextType.Sprite;
-            ((ProjectState)AppState.CurrentProject).CurrentContextType = EditContextType.Sprite;
+            AppState.CurrentProject.DefaultEditContextType = EditContextType.Sprite;
+            AppState.CurrentProject.CurrentContextType = EditContextType.Sprite;
         }
 
         InitializePlugins();
@@ -138,7 +135,7 @@ public class Pix2DApp : IViewPortService, IAppStateService<AppState>
     public void InitializeCoreServices()
     {
         Trace("Initializing services...");
-        Pix2dServiceInitializer.RegisterServiceInstance<IAppState>(AppState);
+        Pix2dServiceInitializer.RegisterServiceInstance<AppState>(AppState);
         Pix2dServiceInitializer.RegisterServiceInstance<IViewPortService>(this);
         Pix2dServiceInitializer.RegisterServices();
     }
@@ -160,7 +157,7 @@ public class Pix2DApp : IViewPortService, IAppStateService<AppState>
 
     public void SwitchToFullMode()
     {
-        ((ProjectState)AppState.CurrentProject).DefaultEditContextType = EditContextType.General;
+        AppState.CurrentProject.DefaultEditContextType = EditContextType.General;
         CoreServices.EditService.ApplyCurrentEdit();
     }
 
@@ -202,8 +199,11 @@ public class Pix2DApp : IViewPortService, IAppStateService<AppState>
         Messenger.Default.Register<ProjectLoadedMessage>(this, m => Refresh());
         Messenger.Default.Register<OperationInvokedMessage>(this, m => Refresh());
 
-        CoreServices.SnappingService.GridToggled += (sender, args) => Refresh();
-        CoreServices.SnappingService.GridCellSizeChanged += (sender, args) => Refresh();
+        AppState.CurrentProject.ViewPortState.WatchFor(x => x.ShowGrid, Refresh);
+        AppState.CurrentProject.ViewPortState.WatchFor(x => x.GridSpacing, Refresh);
+        
+        //CoreServices.SnappingService.GridToggled += (sender, args) => Refresh();
+        //CoreServices.SnappingService.GridCellSizeChanged += (sender, args) => Refresh();
     }
 
     public void Refresh()

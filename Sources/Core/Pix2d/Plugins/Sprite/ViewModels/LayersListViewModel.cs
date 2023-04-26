@@ -7,9 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Mvvm;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Operations;
-using Pix2d.Abstract.Services;
 using Pix2d.Abstract.UI;
 using Pix2d.Common;
 using Pix2d.CommonNodes;
@@ -113,9 +111,6 @@ namespace Pix2d.ViewModels.Layers
         public IRelayCommand AddLayerCommand => GetCommand(() => _editor.AddEmptyLayer());
         public IRelayCommand DuplicateLayerCommand => GetCommand(() => _editor.DuplicateLayer());
         public IRelayCommand AddEffectToLayerCommand => GetCommand<EffectViewModel>(vm => SelectedLayer?.AddEffect(vm));
-
-        public ICommand SendBackwardCommand => MapCommand(SpritePlugin.EditCommands.SendLayerBackward);
-        public ICommand BringForwardCommand => MapCommand(SpritePlugin.EditCommands.BringLayerForward);
 
 
         public IRelayCommand MergeLayerCommand => GetCommand(
@@ -409,8 +404,6 @@ namespace Pix2d.ViewModels.Layers
                     DeleteLayerCommand = this.DeleteLayerCommand,
                     DuplicateLayerCommand = this.DuplicateLayerCommand,
                     MergeLayerCommand = this.MergeLayerCommand,
-                    BringForwardCommand = this.BringForwardCommand,
-                    SendSendBackwardCommand = this.SendBackwardCommand,
                     SelectLayerCommand = this.SelectLayerCommand
                 };
                 Layers.Add(layerVm);

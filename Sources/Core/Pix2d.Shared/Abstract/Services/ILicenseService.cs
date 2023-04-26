@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace Pix2d.Abstract
+namespace Pix2d.Abstract.Services
 {
     public interface ILicenseService
     {

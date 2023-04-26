@@ -1,5 +1,4 @@
 ﻿using Pix2d.Abstract.Drawing;
-using Pix2d.Abstract.Services;
 
 namespace Pix2d.Drawing.Tools
 {

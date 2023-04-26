@@ -2,9 +2,6 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;
 using Pix2d.Mvvm;
@@ -16,11 +13,11 @@ namespace Pix2d.ViewModels.SceneTree
     {
         public ISelectionService SelectionService { get; }
         public IMessenger Messenger { get; }
-        public IAppState AppState { get; }
+        public AppState AppState { get; }
 
         public ObservableCollection<SceneTreeItemViewModel> Nodes { get; set; } = new ObservableCollection<SceneTreeItemViewModel>();
 
-        public SceneTreeViewModel(IMessenger messenger, IAppState appState, ISelectionService selectionService)
+        public SceneTreeViewModel(IMessenger messenger, AppState appState, ISelectionService selectionService)
         {
             SelectionService = selectionService;
             Messenger = messenger;

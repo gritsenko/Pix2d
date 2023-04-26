@@ -1,5 +1,4 @@
 using System.Windows.Input;
-using Pix2d.Abstract;
 using Pix2d.Abstract.UI;
 using Pix2d.Mvvm;
 using Pix2d.ViewModels.Export;

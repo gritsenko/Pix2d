@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Common.FileSystem;

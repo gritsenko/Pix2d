@@ -1,5 +1,4 @@
-﻿using Pix2d.Abstract;
-using Pix2d.Abstract.Commands;
+﻿using Pix2d.Abstract.Commands;
 using Pix2d.Primitives;
 using SkiaNodes.Interactive;
 
@@ -12,6 +11,6 @@ public class SnappingCommands : CommandsListBase
     public Pix2dCommand ToggleGrid => GetCommand("Toggle grid",
         new CommandShortcut(VirtualKeys.OEMPeriod, KeyModifier.Ctrl),
         EditContextType.General,
-        () => CoreServices.SnappingService.ShowGrid = !CoreServices.SnappingService.ShowGrid);
+        () => AppState.CurrentProject.ViewPortState.ShowGrid = !AppState.CurrentProject.ViewPortState.ShowGrid);
 
 }

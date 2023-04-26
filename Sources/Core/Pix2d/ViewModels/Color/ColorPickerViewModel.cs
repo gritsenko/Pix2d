@@ -4,9 +4,6 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Mvvm;
 using Mvvm.Messaging;
-using Pix2d.Abstract;
-using Pix2d.Abstract.Services;
-using Pix2d.Abstract.State;
 using Pix2d.Drawing.Tools;
 using Pix2d.Messages;
 using Pix2d.Mvvm;
@@ -16,7 +13,7 @@ namespace Pix2d.ViewModels.Color
 {
     public class ColorPickerViewModel : Pix2dViewModelBase
     {
-        public IAppState AppState { get; }
+        public AppState AppState { get; }
         public IMessenger Messenger { get; }
         public IPaletteService PaletteService { get; }
         private IDrawingService DrawingService { get; }
@@ -210,7 +207,7 @@ namespace Pix2d.ViewModels.Color
 
 
         public ColorPickerViewModel(IDrawingService drawingService, IPaletteService paletteService,
-            IAppState appState, IMessenger messenger)
+            AppState appState, IMessenger messenger)
         {
             AppState = appState;
             Messenger = messenger;

@@ -1,6 +1,5 @@
 ﻿using Avalonia.Styling;
 using CommonServiceLocator;
-using Pix2d.Abstract.Services;
 using Pix2d.ViewModels.MainMenu;
 
 namespace Pix2d.Views.MainMenu;

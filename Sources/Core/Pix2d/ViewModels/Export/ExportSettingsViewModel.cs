@@ -1,14 +1,12 @@
 using System;
 using Mvvm;
-using Pix2d.Abstract.State;
-using Pix2d.State;
 using SkiaSharp;
 
 namespace Pix2d.ViewModels.Export
 {
     public class ExportSettingsViewModel : ViewModelBase
     {
-        public IAppState AppState { get; }
+        public AppState AppState { get; }
         private readonly ImageExportSettings _settings = new ImageExportSettings();
         public SKSize ExportNodesSize { get; set; }
 
@@ -56,7 +54,7 @@ namespace Pix2d.ViewModels.Export
             return _settings;
         }
 
-        public ExportSettingsViewModel(IAppState appState)
+        public ExportSettingsViewModel(AppState appState)
         {
             AppState = appState;
         }

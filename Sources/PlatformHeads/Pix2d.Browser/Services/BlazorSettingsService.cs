@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using Pix2d.Abstract;
+using Pix2d.Abstract.Services;
 
 namespace Pix2d.Browser.Services;
 
