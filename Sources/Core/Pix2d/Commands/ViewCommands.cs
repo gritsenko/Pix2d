@@ -35,11 +35,7 @@ public class ViewCommands : CommandsListBase{
     public Pix2dCommand ToggleTimeline => GetCommand("Show/Hide timeline",
         new CommandShortcut(VirtualKeys.T, KeyModifier.Ctrl),
         EditContextType.General,
-        () =>
-        {
-            var mc = ServiceLocator.Current.GetInstance<IMenuController>();
-            mc.ShowTimeline = !mc.ShowTimeline;
-        });
+        () => AppState.UiState.ShowTimeline = !AppState.UiState.ShowTimeline);
 
     public Pix2dCommand TogglePreviewPanelCommand => GetCommand("Toggle preview panel",
         new CommandShortcut(VirtualKeys.P, KeyModifier.Ctrl),
@@ -50,6 +46,11 @@ public class ViewCommands : CommandsListBase{
         new CommandShortcut(VirtualKeys.L, KeyModifier.Ctrl),
         EditContextType.Sprite,
         () => AppState.UiState.ShowLayers = !AppState.UiState.ShowLayers);
+
+    public Pix2dCommand HideExportDialogCommand => GetCommand("Hide export dialog",
+        null,
+        EditContextType.Sprite,
+        () => AppState.UiState.ShowExportDialog = false);
 
     public SnappingCommands Snapping { get; } = new();
 

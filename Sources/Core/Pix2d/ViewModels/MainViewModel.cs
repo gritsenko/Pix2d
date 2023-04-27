@@ -244,8 +244,6 @@ public class MainViewModel : Pix2dViewModelBase, IMenuController, IPanelsControl
         ReviewHelper.DefferNextReviewPrompt();
     });
 
-    public ICommand HideExportDialogCommand => GetCommand(() => ShowExportDialog = false);
-
     public MainViewModel(SimpleContainer container, ISettingsService settingsService, AppState appState, IMessenger messenger, IViewModelService viewModelService)
     {
         container.RegisterInstance<IMenuController>(this);

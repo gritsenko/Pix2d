@@ -158,14 +158,14 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
                     .Header("Export")
-                    .IsOpen(@vm.ShowExportDialog)
-                    .CloseButtonCommand(vm.HideExportDialogCommand)
+                    .IsOpen(AppState.UiState.ShowExportDialog, bindingSource: AppState.UiState)
+                    .CloseButtonCommand(Commands.View.HideExportDialogCommand)
                     .Content(new ExportView()),
 
                 new Border()
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
-                    .IsVisible(@vm.ShowMenu)
+                    .IsVisible(AppState.UiState.ShowMenu, bindingSource: AppState.UiState)
                     .Child(new MainMenuView()),
 
                 new Border()
