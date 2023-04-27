@@ -85,15 +85,6 @@ public class ToolBarViewModel : Pix2dViewModelBase
 
         UpdateToolsFromCurrentContext(false);
     }
-
-    private void UpdateSelectedSettingsViewmodelCompactMode()
-    {
-        CompactMode = !MenuController.ShowSidebar;
-            
-        if(SelectedToolSettings != null)
-            SelectedToolSettings.CompactMode = CompactMode;
-    }
-
     private void OnSelectToolCommandExecute(ToolItemViewModel item)
     {
         SessionLogger.OpLog("Select " + item.ToolKey + " tool");
@@ -131,7 +122,6 @@ public class ToolBarViewModel : Pix2dViewModelBase
         }
 
         SelectedToolSettings = SelectedToolItem?.GetSettingsVm();
-        UpdateSelectedSettingsViewmodelCompactMode();
 
         if (SelectedToolSettings != null)
         {

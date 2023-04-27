@@ -16,7 +16,7 @@ namespace Pix2d.Views;
 public class MainView : ViewBaseSingletonVm<MainViewModel>
 {
     protected AppMenuViewModel AppMenuViewModel => GetViewModel<AppMenuViewModel>();
-
+    private AppState AppState => ViewModel.AppState;
     protected Style AppMenuStyle => new(s => s.OfType<MenuItem>())
     {
         Setters =
@@ -93,7 +93,7 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                     .IsVisible(Bind(@vm.ShowTimeline)),
 
                 new LayersView().Col(1).Row(2)
-                    .IsVisible(@vm.ShowLayers, bindingSource: vm)
+                    .IsVisible(AppState.UiState.ShowLayers, bindingSource: AppState.UiState)
                     .Margin(0, 33, 0, 0)
                     .VerticalAlignment(VerticalAlignment.Top)
                     .HorizontalAlignment(HorizontalAlignment.Right),

@@ -16,7 +16,7 @@ public abstract class StateBase : ObservableObject
         if (_propertyWatchers.TryGetValue(propertyName, out var actions))
             actions.ForEach(x => x.Invoke());
 
-        Messenger.Default.Send(new AppStateChangedMessage(propertyName));
+        Messenger.Default.Send(new StateChangedMessage(propertyName));
     }
 
     internal void AddWatcher(string propertyName, Action onStatePropertyChanged)

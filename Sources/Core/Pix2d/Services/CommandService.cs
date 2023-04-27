@@ -77,7 +77,7 @@ public class CommandService : ICommandService
         return false;
     }
 
-    public Pix2dCommand RegisterAsyncCommand(string name, Func<Task> commandActionTask, string description, CommandShortcut defaultShortcut, EditContextType? editContextType = null)
+    public Pix2dCommand RegisterAsyncCommand(string name, Func<Task> commandActionTask, string description, CommandShortcut? defaultShortcut, EditContextType? editContextType = null)
     {
         var cmd = new Pix2dAsyncCommand(name, description, defaultShortcut, editContextType, commandActionTask);
         if (cmd.DefaultShortcut != null)
@@ -86,7 +86,7 @@ public class CommandService : ICommandService
         return cmd;
     }
 
-    public Pix2dCommand RegisterSyncCommand(string name, Action commandAction, string description, CommandShortcut defaultShortcut, EditContextType? editContextType = null)
+    public Pix2dCommand RegisterSyncCommand(string name, Action commandAction, string description, CommandShortcut? defaultShortcut, EditContextType? editContextType = null)
     {
         var cmd = new Pix2dSyncCommand(name, description, defaultShortcut, editContextType, commandAction);
         if (cmd.DefaultShortcut != null)

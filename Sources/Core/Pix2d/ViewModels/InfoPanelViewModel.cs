@@ -21,10 +21,10 @@ namespace Pix2d.ViewModels
             AppState = appState;
             SKInput.Current.PointerChanged += CurrentOnPointerChanged;
             messenger.Register<EditedNodeChangedMessage>(this, EditServiceOnCurrentEditedNodeChanged);
-            messenger.Register<AppStateChangedMessage>(this, OnAppStateChanged);
+            messenger.Register<StateChangedMessage>(this, OnAppStateChanged);
         }
 
-        private void OnAppStateChanged(AppStateChangedMessage msg)
+        private void OnAppStateChanged(StateChangedMessage msg)
         {
             if (msg.PropertyName == nameof(SelectionState.UserSelectingFrameSize) || msg.PropertyName == nameof(SelectionState.IsUserSelecting))
                 UpdateSelectionInfo();

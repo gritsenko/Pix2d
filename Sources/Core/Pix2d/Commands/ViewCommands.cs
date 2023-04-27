@@ -46,6 +46,11 @@ public class ViewCommands : CommandsListBase{
         EditContextType.Sprite,
         () => AppState.UiState.ShowPreviewPanel = !AppState.UiState.ShowPreviewPanel);
 
+    public Pix2dCommand ToggleShowLayersCommand => GetCommand("Toggle Layers list",
+        new CommandShortcut(VirtualKeys.L, KeyModifier.Ctrl),
+        EditContextType.Sprite,
+        () => AppState.UiState.ShowLayers = !AppState.UiState.ShowLayers);
+
     public SnappingCommands Snapping { get; } = new();
 
 }

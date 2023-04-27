@@ -25,7 +25,7 @@ public abstract class CommandsListBase : ICommandList
     protected Pix2dCommand GetCommand(Action action, EditContextType contextType = EditContextType.All, CommandShortcut shortcut = default, [CallerMemberName] string commandName = null)
         => GetCommand(commandName, shortcut, contextType, action, commandName);
 
-    protected Pix2dCommand GetCommand(string description, CommandShortcut shortcut, EditContextType contextType, Action action, [CallerMemberName] string commandName = null)
+    protected Pix2dCommand GetCommand(string description, CommandShortcut? shortcut, EditContextType contextType, Action action, [CallerMemberName] string commandName = null)
     {
         var key = GetKey(commandName);
         if (CommandService.TryGetCommand(key, out var command))
@@ -36,7 +36,7 @@ public abstract class CommandsListBase : ICommandList
         return CommandService.RegisterSyncCommand(key, action, description, shortcut, contextType);
     }
 
-    protected Pix2dCommand GetCommand(string description, CommandShortcut shortcut, EditContextType contextType, Func<Task> actionTask, [CallerMemberName] string commandName = null)
+    protected Pix2dCommand GetCommand(string description, CommandShortcut? shortcut, EditContextType contextType, Func<Task> actionTask, [CallerMemberName] string commandName = null)
     {
         var key = GetKey(commandName);
         if (CommandService.TryGetCommand(key, out var command))

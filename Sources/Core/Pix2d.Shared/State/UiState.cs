@@ -18,6 +18,12 @@ public class UiState : StateBase
     public bool ShowClipboardBar { get; set; }
     public bool ShowSidebar { get; set; }
     public bool ShowSceneTree { get; set; }
+    public bool ShowLayers
+    {
+        get => Get<bool>();
+        set => Set(value);
+    }
+
     public bool ShowPreviewPanel { get; set; }
 
     public bool ShowTextBar { get; set; }

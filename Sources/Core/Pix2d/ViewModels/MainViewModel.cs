@@ -49,15 +49,6 @@ public class MainViewModel : Pix2dViewModelBase, IMenuController, IPanelsControl
         }
     }
 
-    public bool ShowSidebar
-    {
-        get => Get<bool>();
-        set
-        {
-            if (Set(value)) SetSettingAsync("SidebarVisibilityState", value);
-        }
-    }
-
     public bool ShowLayerProperties
     {
         get => Get<bool>();
@@ -123,11 +114,7 @@ public class MainViewModel : Pix2dViewModelBase, IMenuController, IPanelsControl
             if (Set(value)) SetSettingAsync("LayersListVisibilityState", value);
         }
     }
-
-    [NotifiesOn(nameof(CurrentEditContext))]
-    public bool CanShowLayers => CurrentEditContext == EditContextType.Sprite;
-
-
+    
     public EditContextType CurrentEditContext => AppState.CurrentProject.CurrentContextType;
 
     public bool ShowCanvasResizePanel
@@ -282,7 +269,6 @@ public class MainViewModel : Pix2dViewModelBase, IMenuController, IPanelsControl
         InvokeWithoutOnPropertyChanged(() =>
         {
             ShowLayers = SettingsService.Get<bool>("LayersListVisibilityState");
-            ShowSidebar = SettingsService.Get<bool>("SidebarVisibilityState");
             ShowTimeline = SettingsService.Get<bool>("TimelineVisibilityState");
             ShowPreviewPanel = SettingsService.Get<bool>("PreviewPanelVisibilityState");
 

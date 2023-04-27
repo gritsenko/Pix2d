@@ -11,7 +11,6 @@ public interface IMenuController
 
     bool ShowExportDialog { get; set; }
     bool ShowClipboardBar { get; set; }
-    bool ShowSidebar { get; set; }
     bool ShowPreviewPanel { get; set; }
 
     bool ShowTextBar { get; set; }
