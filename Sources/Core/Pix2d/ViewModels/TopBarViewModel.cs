@@ -1,6 +1,5 @@
 using System.Windows.Input;
 using Mvvm.Messaging;
-using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.UI;
 using Pix2d.Messages;
 using Pix2d.Mvvm;
