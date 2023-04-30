@@ -29,7 +29,6 @@ namespace Pix2d.ViewModels.Export
         public IExportService ExportService { get; }
         public ILicenseService LicenseService { get; }
         public IProjectService ProjectService { get; }
-        public IMenuController MenuController { get; }
         public IBusyController BusyController { get; }
         public AppState AppState { get; }
         public IViewModelService ViewModelService { get; }
@@ -129,26 +128,24 @@ namespace Pix2d.ViewModels.Export
         public ICommand ShowLicenseInfoCommand => GetCommand(() =>
         {
             Logger.Log("$Pressed on watermark alert on export page");
-            MenuController.ShowMenu = true;
+            Commands.View.ShowMainMenuCommand.Execute();
             CloseDialog();
             var mainMenu = ViewModelService.GetViewModel<MainMenuViewModel>();
             var licenseItem = mainMenu.MenuItems.FirstOrDefault(x => x.DetailsViewModel == typeof(LicenseViewModel));
             mainMenu.ItemSelectCommand.Execute(licenseItem);
         });
 
-        public ExportPageViewModel(ISettingsService settingsService, IExportService exportService, ILicenseService licenseService, IProjectService projectService, IMenuController menuController,
-            IEditService editService, IBusyController busyController, AppState appState, IMessenger messenger, IViewModelService viewModelService)
+        public ExportPageViewModel(ISettingsService settingsService, IExportService exportService, ILicenseService licenseService, IProjectService projectService, IBusyController busyController, AppState appState, IMessenger messenger, IViewModelService viewModelService)
         {
             ExportService = exportService;
             LicenseService = licenseService;
             ProjectService = projectService;
-            MenuController = menuController;
             BusyController = busyController;
             AppState = appState;
             ViewModelService = viewModelService;
             SettingsService = settingsService;
 
-            if(LicenseService != null)
+            if (LicenseService != null)
                 LicenseService.LicenseChanged += LicenseService_LicenseChanged;
 
             messenger.Register<ProjectLoadedMessage>(this, m =>
@@ -156,6 +153,12 @@ namespace Pix2d.ViewModels.Export
                 ExportSettingsViewModel.Scale = 1;
                 ExportSettingsViewModel.SetBounds(GetNodesToExport().ToArray().GetBounds());
             });
+
+            messenger.Register<StateChangedMessage>(this, msg => msg.OnPropertyChanged<UiState>(x => x.ShowExportDialog, () =>
+            {
+                if (AppState.UiState.ShowExportDialog)
+                    Load();
+            }));
         }
 
         private void LicenseService_LicenseChanged(object sender, EventArgs e)
@@ -186,7 +189,7 @@ namespace Pix2d.ViewModels.Export
 
             SelectedExporter = Exporters.FirstOrDefault();
 
-            if (MenuController.ShowExportDialog)
+            if (AppState.UiState.ShowExportDialog)
             {
                 CoreServices.ToolService.ActivateDefaultTool();
                 UpdatePreview();
@@ -218,14 +221,12 @@ namespace Pix2d.ViewModels.Export
             {
                 try
                 {
-                    Logger.LogEventWithParams("Exporting image", new Dictionary<string, string> {{"Exporter", SelectedExporter.Name}});
+                    Logger.LogEventWithParams("Exporting image", new Dictionary<string, string> { { "Exporter", SelectedExporter.Name } });
 
                     var nodesToExport = GetNodesToExport();
                     await SelectedExporter.Export(nodesToExport, ExportSettingsViewModel.GetSettings());
 
                     CloseDialog();
-
-                    MenuController.TrySuggestRate("Export");
                 }
                 catch (OperationCanceledException canceledException)
                 {
@@ -248,7 +249,6 @@ namespace Pix2d.ViewModels.Export
                     //await Windows.System.Launcher.LaunchUriAsync(new Uri(result));
 
                     CloseDialog();
-                    MenuController.TrySuggestRate("Gallery export");
                 }
 
                 SettingsService.Set(SettingsConstants.ShareToGalleryAuthor, Author);
@@ -313,7 +313,7 @@ namespace Pix2d.ViewModels.Export
             var h = exportedNodeSize.Height * ExportSettingsViewModel.Scale;
             grid.Size = new SKSize(exportedNodeSize.Width, exportedNodeSize.Height);
 
-            grid.CellSize = new SKSize(1,1);
+            grid.CellSize = new SKSize(1, 1);
             return grid;
         }
 
@@ -400,7 +400,7 @@ namespace Pix2d.ViewModels.Export
 
         public void CloseDialog()
         {
-            MenuController.ShowExportDialog = false;
+            Commands.View.HideExportDialogCommand.Execute();
         }
 
         public void SelectExporterByFileType(ExportImportProjectType fileType)

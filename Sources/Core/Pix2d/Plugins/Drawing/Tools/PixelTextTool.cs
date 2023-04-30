@@ -55,8 +55,7 @@ namespace Pix2d.Drawing.Tools
 
             AppState.DrawingState.WatchFor(x => x.CurrentColor, OnStateColorPropertyChanged);
 
-            var mc = ServiceLocator.Current.GetInstance<IMenuController>();
-            mc.ShowTextBar = true;
+            AppState.UiState.ShowTextBar = true;
 
             _textVm = ServiceLocator.Current.GetInstance<IViewModelService>().GetViewModel<TextBarViewModel>(true);
             _textVm.PropertyChanged += TextVm_PropertyChanged;
@@ -87,8 +86,7 @@ namespace Pix2d.Drawing.Tools
         {
             base.Deactivate();
 
-            var mc = ServiceLocator.Current.GetInstance<IMenuController>();
-            mc.ShowTextBar = false;
+            AppState.UiState.ShowTextBar = false;
 
             _textVm.Text = "";
             _textVm.PropertyChanged -= TextVm_PropertyChanged;

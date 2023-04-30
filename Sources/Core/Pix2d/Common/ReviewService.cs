@@ -1,14 +1,17 @@
-﻿using System;
+﻿using Mvvm.Messaging;
+using Pix2d.Messages;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Pix2d.Common;
 
-public class ReviewHelpers
+public class ReviewService
 {
-    public ISettingsService SettingsService { get; }
+    private ISettingsService SettingsService { get; }
+    private IMessenger Messenger { get; }
 
-    public static readonly string[] promptMessages =
+    private static readonly string[] PromptMessages =
     {
         "Please, Rate Pix2D!",
         "Enjoy app? please review it!",
@@ -28,7 +31,7 @@ public class ReviewHelpers
         "Get +10 to art skills by reviewing this app 😎",
     };
 
-    public static readonly string[] promptButtonText =
+    private static readonly string[] PromptButtonText =
     {
         "Rate",
         "Review",
@@ -39,29 +42,27 @@ public class ReviewHelpers
 
     private Dictionary<string, string> _lastReviewArgs;
 
-    public string RatePromptButtonText { get; set; }
-
-    public string RatePromptMessage { get; set; }
-
-
-    public ReviewHelpers(ISettingsService settingsService)
+    public ReviewService(ISettingsService settingsService, IMessenger messenger)
     {
         SettingsService = settingsService;
-    }
+        Messenger = messenger;
 
-    public void InitRatePromptMessage()
-    {
+        messenger.Register<ProjectSavedMessage>(this, m => TrySuggestRate("Save"));
+
+        //InitRatePromptMessage
         var random = new Random();
-        var start2 = random.Next(0, promptMessages.Length);
-        var msg = promptMessages[start2];
+        var start2 = random.Next(0, PromptMessages.Length);
+        var msg = PromptMessages[start2];
 
         RatePromptMessage = msg;
 
-        var start = random.Next(0, promptButtonText.Length);
-        RatePromptButtonText = promptButtonText[start];
-
+        var start = random.Next(0, PromptButtonText.Length);
+        RatePromptButtonText = PromptButtonText[start];
     }
 
+    public string RatePromptButtonText { get; set; }
+
+    public string RatePromptMessage { get; set; }
 
     public bool TrySuggestRate(string contextTitle)
     {
@@ -81,7 +82,6 @@ public class ReviewHelpers
 
         promptsCount++;
         SettingsService.Set("AppReviewPromptsCount", promptsCount);
-
         return true;
     }
 

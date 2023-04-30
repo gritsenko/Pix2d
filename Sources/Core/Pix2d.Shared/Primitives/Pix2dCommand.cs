@@ -73,12 +73,12 @@ public abstract class Pix2dCommand : ICommand
 
     public string Tooltip => Description + " [" + GetShortcutString() + "]"; 
 
-    public bool CanExecute(object? parameter)
+    public bool CanExecute(object? parameter = default)
     {
         return true;
     }
 
-    public void Execute(object? parameter)
+    public void Execute(object? parameter = default)
     {
         ServiceLocator.Current.GetInstance<ICommandService>().ExecuteCommandAsync(Name);
     }

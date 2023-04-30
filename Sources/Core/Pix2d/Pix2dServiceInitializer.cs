@@ -1,8 +1,6 @@
 ﻿using System;
-using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
 using Pix2d.Abstract.UI;
-using Pix2d.Common;
 using Pix2d.Mvvm;
 using Pix2d.Services;
 
@@ -29,6 +27,7 @@ namespace Pix2d
             container.RegisterSingleton<IPaletteService, PaletteService>();
             container.RegisterSingleton<IEffectsService, EffectsService>();
             container.RegisterSingleton<IViewModelService, ViewModelService>();
+            container.RegisterSingleton<ReviewService>();
         }
 
         public static void RegisterService(Type interfaceType, Type instanceType)

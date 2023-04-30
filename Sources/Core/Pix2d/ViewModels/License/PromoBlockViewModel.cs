@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Windows.Input;
-using Pix2d.Abstract.UI;
 using Pix2d.Mvvm;
 using Pix2d.ViewModels.MainMenu;
 
@@ -33,7 +32,7 @@ namespace Pix2d.ViewModels.License
             if (LicenseService == null)
                 return;
 
-            CommonServiceLocator.ServiceLocator.Current.GetInstance<IMenuController>().ShowMenu = true;
+            Commands.View.ShowMainMenuCommand.Execute();
             var mainMenu = ViewModelService.GetViewModel<MainMenuViewModel>();
             mainMenu.SelectLicenseSection();
         });

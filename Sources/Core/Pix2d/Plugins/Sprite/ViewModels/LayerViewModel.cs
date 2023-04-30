@@ -161,7 +161,7 @@ namespace Pix2d.ViewModels.Layers
         public bool ShowColorLockButton => IsSelected || ColorLocked;
 
 
-        public IRelayCommand CloseCommand { get; set; }
+        public ICommand CloseCommand { get; set; }
 
         public ICommand DeleteLayerCommand { get; set; }
         public ICommand ClearLayerCommand { get; set; }

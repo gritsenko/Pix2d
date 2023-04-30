@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
-using CommonServiceLocator;
 using Mvvm.Messaging;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
-using Pix2d.Abstract.UI;
 using Pix2d.Drawing.Nodes;
 using Pix2d.Messages;
 using Pix2d.Operations;
@@ -20,8 +18,8 @@ public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 {
     public IDrawingService DrawingService { get; }
     public IMessenger Messenger { get; }
-    public AppState State { get; }
-    public SelectionState SelectionState => State.SelectionState;
+    public AppState AppState { get; }
+    public SelectionState SelectionState => AppState.SelectionState;
 
     private DrawingOperation _pixelSelectDrawingOperation;
     public override string DisplayName => "Pixels select tool";
@@ -40,7 +38,7 @@ public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
     {
         DrawingService = drawingService;
         Messenger = messenger;
-        State = (AppState)state;
+        AppState = (AppState)state;
     }
 
     public override async Task Activate()
@@ -51,8 +49,7 @@ public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
         DrawingLayer.PixelsBeforeSelected += DrawingLayerOnPixelsBeforeSelected;
         DrawingLayer.SelectionStarted += DrawingLayer_SelectionStarted;
         DrawingLayer.SelectionRemoved += DrawingLayer_SelectionRemoved;
-        var mc = ServiceLocator.Current.GetInstance<IMenuController>();
-        mc.ShowClipboardBar = true;
+        AppState.UiState.ShowClipboardBar = true;
 
         await base.Activate();
 
@@ -104,8 +101,7 @@ public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
     {
         base.Deactivate();
 
-        var mc = ServiceLocator.Current.GetInstance<IMenuController>();
-        mc.ShowClipboardBar = false;
+        AppState.UiState.ShowClipboardBar = false;
 
         DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;
         Messenger.Unregister<OperationInvokedMessage>(this, OnOperationInvoked);

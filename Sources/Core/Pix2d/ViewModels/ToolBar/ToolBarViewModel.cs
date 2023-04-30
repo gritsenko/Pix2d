@@ -6,7 +6,6 @@ using System.Linq;
 using Mvvm;
 using Mvvm.Messaging;
 using Pix2d.Abstract.Tools;
-using Pix2d.Abstract.UI;
 using Pix2d.Drawing.Tools;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;
@@ -21,18 +20,12 @@ namespace Pix2d.ViewModels.ToolBar;
 public class ToolBarViewModel : Pix2dViewModelBase
 {
     private IToolService ToolService { get; }
-    public IMenuController MenuController { get; }
     public AppState AppState { get; }
+    public UiState UiState => AppState.UiState;
     public IMessenger Messenger { get; }
     public IViewModelService ViewModelService { get; }
 
     private ITool CurrentTool => AppState.CurrentProject.CurrentTool;
-    public bool CompactMode
-    {
-        get => Get<bool>();
-        set => Set(value);
-    }
-
     public ObservableCollection<ToolItemViewModel> Tools { get; } = new();
 
     public ToolItemViewModel SelectedToolItem
@@ -70,13 +63,12 @@ public class ToolBarViewModel : Pix2dViewModelBase
 
     public IRelayCommand ToggleToolSettingsCommand => GetCommand(() => ToggleSelectedToolSettings(SelectedToolItem));
 
-    public ToolBarViewModel(IToolService toolService, IMenuController menuController, AppState appState, IMessenger messenger,
+    public ToolBarViewModel(IToolService toolService, AppState appState, IMessenger messenger,
         IViewModelService viewModelService)
     {
         if (IsDesignMode) return;
 
         ToolService = toolService;
-        MenuController = menuController;
         AppState = appState;
         Messenger = messenger;
         ViewModelService = viewModelService;
@@ -93,7 +85,7 @@ public class ToolBarViewModel : Pix2dViewModelBase
         {
             ToolService.ActivateTool(item.ToolKey);
 
-            MenuController.ShowToolProperties = item.HasToolProperties;
+            UiState.ShowToolProperties = item.HasToolProperties;
         }
         else
         {
@@ -104,9 +96,9 @@ public class ToolBarViewModel : Pix2dViewModelBase
     private void ToggleSelectedToolSettings(ToolItemViewModel item)
     {
         if (item.HasToolProperties)
-            MenuController.ShowToolProperties = !MenuController.ShowToolProperties;
+            UiState.ShowToolProperties = !UiState.ShowToolProperties;
         else
-            MenuController.ShowToolProperties = false;
+            UiState.ShowToolProperties = false;
     }
 
     private void ToolChanged(CurrentToolChangedMessage message)

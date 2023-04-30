@@ -1,10 +1,5 @@
-﻿using System;
-using Avalonia.Styling;
-using Avalonia.Xaml.Interactions.Responsive;
+﻿using Avalonia.Xaml.Interactions.Responsive;
 using Pix2d.Shared;
-using Pix2d.ViewModels;
-using Pix2d.ViewModels.AppMenu;
-using Pix2d.ViewModels.Layers;
 using Pix2d.Views.Animation;
 using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
@@ -13,30 +8,20 @@ using Pix2d.Views.ToolBar;
 
 namespace Pix2d.Views;
 
-public class MainView : ViewBaseSingletonVm<MainViewModel>
+public class MainView : ComponentBase
 {
-    protected AppMenuViewModel AppMenuViewModel => GetViewModel<AppMenuViewModel>();
-    private AppState AppState => ViewModel.AppState;
-    protected Style AppMenuStyle => new(s => s.OfType<MenuItem>())
-    {
-        Setters =
-        {
-            new Setter(MenuItem.HeaderProperty, new Binding("Header")),
-            new Setter(MenuItem.ItemsProperty, new Binding("MenuItems")),
-            new Setter(MenuItem.CommandProperty, new Binding("Command"))
-        }
-    };
+    [Inject] private AppState AppState { get; set; }
+    private UiState UiState => AppState.UiState;
 
-    protected override object Build(MainViewModel vm) =>
+    protected override object Build() =>
         new Grid()
             .Cols("Auto, *, Auto")
             .Rows("Auto, Auto, *, 32")
             .AddBehavior(
                 new AdaptiveBehavior()
                     .Setters(
-                        new AdaptiveClassSetter() {MinWidth = 0, MaxWidth = 400, ClassName = "small"},
-                        new AdaptiveClassSetter()
-                            {MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide"}
+                        new AdaptiveClassSetter() { MinWidth = 0, MaxWidth = 400, ClassName = "small" },
+                        new AdaptiveClassSetter() { MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide" }
                     )
             )
             .Children(new Control[]
@@ -47,13 +32,7 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                     .Name("Pix2dCanvasContainer"),
 
 #if DEBUG
-                new Menu().ColSpan(2)
-                    .Background(StaticResources.Brushes.MainBackgroundBrush)
-                    .Name("AppMenu")
-                    .Padding(4)
-                    .Foreground(Colors.White.ToBrush())
-                    .Items(AppMenuViewModel.MenuItems)
-                    .Styles(AppMenuStyle),
+                new AppMenuView().ColSpan(2),
 #endif
                 new TopBarView().Row(1).ColSpan(2)
                     .Margin(0, 0, 0, 1),
@@ -72,34 +51,34 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                 new InfoPanelView().Col(0).Row(3).ColSpan(2),
 
                 new ActionsBarView().Col(1).Row(2)
-                    .IsVisible(@vm.ShowExtraTools)
+                    .IsVisible(UiState.ShowExtraTools, bindingSource:UiState)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Top),
 
                 new ClipboardActionsView().Col(1).Row(2)
-                    .IsVisible(@vm.ShowClipboardBar)
+                    .IsVisible(UiState.ShowClipboardBar, bindingSource : UiState)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Top),
 
                 new TextBarView().Col(1).Row(2)
-                    .IsVisible(@vm.ShowTextBar, bindingSource: vm)
+                    .IsVisible(UiState.ShowTextBar, bindingSource: UiState)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Top),
 
-                new RatePromptView().Col(1).Row(2),
+                //new RatePromptView().Col(1).Row(2),
 
                 new TimeLineView().Col(1).Row(2)
                     .VerticalAlignment(VerticalAlignment.Bottom)
-                    .IsVisible(Bind(@vm.ShowTimeline)),
+                    .IsVisible(UiState.ShowTimeline, bindingSource:UiState),
 
                 new LayersView().Col(1).Row(2)
-                    .IsVisible(AppState.UiState.ShowLayers, bindingSource: AppState.UiState)
+                    .IsVisible(UiState.ShowLayers, bindingSource: UiState)
                     .Margin(0, 33, 0, 0)
                     .VerticalAlignment(VerticalAlignment.Top)
                     .HorizontalAlignment(HorizontalAlignment.Right),
 
                 new ToolSettingsView().Col(1).Row(2)
-                    .IsVisible(@vm.ShowToolProperties, bindingSource: vm)
+                    .IsVisible(UiState.ShowToolProperties, bindingSource : UiState)
                     .Margin(8, 120, 0, 0)
                     .MinWidth(40)
                     .MinHeight(40)
@@ -114,30 +93,30 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                             .Header("Color edit")
                             .Top(10)
                             .Left(10)
-                            .IsOpen(@vm.ShowColorEditor)
-                            .CloseButtonCommand(vm.ToggleColorEditorCommand)
+                            .IsOpen(UiState.ShowColorEditor, bindingSource: UiState)
+                            .CloseButtonCommand(Commands.View.ToggleColorEditorCommand)
                             .ShowPinButton(true)
                             .Content(new ColorPickerView()),
 
                         new PopupView()
                             .Header("Brush settings")
-                            .IsOpen(@vm.ShowBrushSettings)
-                            .CloseButtonCommand(vm.ToggleBrushSettingsCommand)
+                            .IsOpen(UiState.ShowBrushSettings, bindingSource: UiState)
+                            .CloseButtonCommand(Commands.View.ToggleBrushSettingsCommand)
                             .Width(200)
                             .Content(new BrushSettingsView()),
 
                         new PopupView()
                             .Header("Preview")
-                            .IsOpen(@vm.ShowPreviewPanel)
-                            .CloseButtonCommand(vm.TogglePreviewPanelCommand)
+                            .IsOpen(UiState.ShowPreviewPanel, bindingSource : UiState)
+                            .CloseButtonCommand(Commands.View.TogglePreviewPanelCommand)
                             .Top(40)
                             .Right(100)
                             .Content(new ArtworkPreviewView()),
 
                         new PopupView()
                             .Header("Image/Canvas size")
-                            .IsOpen(@vm.ShowCanvasResizePanel)
-                            .CloseButtonCommand(vm.ToggleCanavsSizePanelCommand)
+                            .IsOpen(UiState.ShowCanvasResizePanel, bindingSource : UiState)
+                            .CloseButtonCommand(Commands.View.ToggleCanvasSizePanelCommand)
                             .Width(220)
                             .Top(100)
                             .Right(100)
@@ -146,8 +125,8 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
 
                         new PopupView()
                             .Header("Layer options")
-                            .IsOpen(@vm.ShowLayerProperties)
-                            .CloseButtonCommand(GetViewModel<LayersListViewModel>().CloseLayerPropertiesCommand)
+                            .IsOpen(UiState.ShowLayerProperties, bindingSource: UiState)
+                            .CloseButtonCommand(Commands.View.HideLayerOptionsCommand)
                             .Width(220)
                             .Top(40)
                             .Right(100)
@@ -158,20 +137,20 @@ public class MainView : ViewBaseSingletonVm<MainViewModel>
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
                     .Header("Export")
-                    .IsOpen(AppState.UiState.ShowExportDialog, bindingSource: AppState.UiState)
+                    .IsOpen(UiState.ShowExportDialog, bindingSource: UiState)
                     .CloseButtonCommand(Commands.View.HideExportDialogCommand)
                     .Content(new ExportView()),
 
                 new Border()
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
-                    .IsVisible(AppState.UiState.ShowMenu, bindingSource: AppState.UiState)
+                    .IsVisible(UiState.ShowMenu, bindingSource : UiState)
                     .Child(new MainMenuView()),
 
                 new Border()
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
-                    .IsVisible(@vm.IsBusy, BindingMode.OneWay)
+                    .IsVisible(AppState.IsBusy, bindingSource : AppState)
                     .Background(StaticResources.Brushes.ModalOverlayBrush)
                     .Child(
                         new TextBlock()

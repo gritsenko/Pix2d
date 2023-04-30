@@ -3,7 +3,6 @@ using System.Windows.Input;
 using Mvvm;
 using Mvvm.Messaging;
 using Pix2d.Abstract.Platform;
-using Pix2d.Abstract.UI;
 using Pix2d.Messages;
 
 namespace Pix2d.ViewModels.MainMenu;
@@ -12,7 +11,6 @@ public class OpenDocumentViewModel : MenuItemDetailsViewModelBase
 {
     public IFileService FileService { get; }
     public IProjectService ProjectService { get; }
-    public IMenuController MenuController { get; }
     public ICommand OpenCommand => GetCommand(OnOpenCommandExecute);
 
     public IRelayCommand OpenRecentProjectCommand => GetCommand<RecentProjectItemViewModel>(async recentProjectVm =>
@@ -22,13 +20,12 @@ public class OpenDocumentViewModel : MenuItemDetailsViewModelBase
         await ProjectService.OpenFilesAsync(new[] { file });
     });
 
-    public ObservableCollection<RecentProjectItemViewModel> RecentProjects { get; set; } = new ObservableCollection<RecentProjectItemViewModel>();
+    public ObservableCollection<RecentProjectItemViewModel> RecentProjects { get; set; } = new();
 
-    public OpenDocumentViewModel(IFileService fileService, IProjectService projectService, IMenuController menuController, IMessenger messenger)
+    public OpenDocumentViewModel(IFileService fileService, IProjectService projectService, IMessenger messenger)
     {
         FileService = fileService;
         ProjectService = projectService;
-        MenuController = menuController;
 
         messenger.Register<MruChangedMessage>(this, m => UpdateMruData());
     }
@@ -60,7 +57,7 @@ public class OpenDocumentViewModel : MenuItemDetailsViewModelBase
 
     protected void CloseMenu()
     {
-        MenuController.ShowMenu = false;
+        Commands.View.HideMainMenuCommand.Execute();
     }
 
 }

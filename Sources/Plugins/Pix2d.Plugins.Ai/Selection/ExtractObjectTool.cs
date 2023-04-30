@@ -1,11 +1,9 @@
-﻿using CommonServiceLocator;
-using Mvvm.Messaging;
+﻿using Mvvm.Messaging;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Services;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Tools;
-using Pix2d.Abstract.UI;
 using Pix2d.Messages;
 using Pix2d.Operations;
 using Pix2d.Plugins.Drawing.Operations;
@@ -24,9 +22,9 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 
     public IDrawingService DrawingService { get; }
     public IMessenger Messenger { get; }
-    public AppState State { get; }
+    public AppState AppState { get; }
     public IViewPortService ViewPortService { get; }
-    public SelectionState SelectionState => State.SelectionState;
+    public SelectionState SelectionState => AppState.SelectionState;
 
     private DrawingOperation _pixelSelectDrawingOperation;
     private AiPixelSelector _aiPixelSelector;
@@ -41,11 +39,11 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
         set => DrawingLayer.SelectionMode = value;
     }
 
-    public ExtractObjectTool(IDrawingService drawingService, IMessenger messenger, AppState state, IViewPortService viewPortService)
+    public ExtractObjectTool(IDrawingService drawingService, IMessenger messenger, AppState appState, IViewPortService viewPortService)
     {
         DrawingService = drawingService;
         Messenger = messenger;
-        State = state;
+        AppState = appState;
         ViewPortService = viewPortService;
     }
 
@@ -59,8 +57,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
         DrawingLayer.SelectionRemoved += DrawingLayer_SelectionRemoved;
         DrawingLayer.PixelsSelected += DrawingLayer_PixelsSelected;
 
-        var mc = ServiceLocator.Current.GetInstance<IMenuController>();
-        mc.ShowClipboardBar = true;
+        AppState.UiState.ShowClipboardBar = true;
 
         await base.Activate();
 
@@ -131,8 +128,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
     {
         base.Deactivate();
 
-        var mc = ServiceLocator.Current.GetInstance<IMenuController>();
-        mc.ShowClipboardBar = false;
+        AppState.UiState.ShowClipboardBar = false;
 
         DrawingLayer.ClearCustomPixelSelector();
         DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;

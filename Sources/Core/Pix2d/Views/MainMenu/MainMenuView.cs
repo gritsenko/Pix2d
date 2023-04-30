@@ -6,7 +6,7 @@ namespace Pix2d.Views.MainMenu;
 
 public class MainMenuView : ViewBaseSingletonVm<MainMenuViewModel>
 {
-    private IDataTemplate _menuItemTemplate =
+    private readonly IDataTemplate _menuItemTemplate =
         new FuncDataTemplate<MainMenuItemViewModel>((itemVm, ns) =>
             new Button()
                 //.Background(@itemVm.IsSelected, StaticResources.Converters.BoolToBrushItemBackgroundConverter)
@@ -71,7 +71,7 @@ public class MainMenuView : ViewBaseSingletonVm<MainMenuViewModel>
     }
 
     public static FuncDataTemplate<NewDocumentSettingsViewModel> NewFileTemplate =>
-        new((vm, ns) => new NewDocumentView(vm));
+        new((vm, ns) => new NewDocumentView());
 
     public static FuncDataTemplate<OpenDocumentViewModel> OpenFileTemplate =>
         new((vm, ns) => new OpenDocumentView(vm));

@@ -1,16 +1,23 @@
-﻿using Pix2d.Plugins.Sprite;
+﻿using Mvvm.Messaging;
+using Pix2d.Messages;
+using Pix2d.Plugins.Sprite;
 using Pix2d.Shared;
-using Pix2d.ViewModels;
 
 namespace Pix2d.Views;
 
-public class TopBarView : ViewBaseSingletonVm<TopBarViewModel>
+public class TopBarView : ComponentBase
 {
-    protected override object Build(TopBarViewModel vm) =>
+    private void ButtonStyle(AppButton b) => b
+        .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
+        .Width(68)
+        .Classes("TopBar");
+
+    protected override object Build() =>
         new Grid()
             .Cols("52,*,Auto")
             .Background("#444E59".ToColor().ToBrush())
             .Children(
+                //MENU BUTTON
                 new StackPanel().Col(0)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Orientation(Orientation.Horizontal)
@@ -20,10 +27,11 @@ public class TopBarView : ViewBaseSingletonVm<TopBarViewModel>
                             .Label("Menu")
                             .Content("\xF12B")
                             .Width(51)
-                            .Command(vm.ToggleMenuCommand),
+                            .Command(Commands.View.ToggleMainMenuCommand),
                         new PromoBlockView()
                     ),
 
+                //CENTRAL BLOCK
                 new StackPanel().Col(1)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Orientation(Orientation.Horizontal)
@@ -39,22 +47,22 @@ public class TopBarView : ViewBaseSingletonVm<TopBarViewModel>
                         new AppButton()
                             .With(ButtonStyle)
                             .Label("Tools")
-                            .Command(vm?.ToggleExtraToolsCommand)
+                            .Command(Commands.View.ToggleExtraToolsCommand)
                             .Content("\xEC7A"),
 
                         new AppButton()
                             .With(ButtonStyle)
                             .Label("Animate")
-                            .Command(vm?.ToggleTimelineCommand)
+                            .Command(Commands.View.ToggleTimelineCommand)
                             .Content("\xED5A"),
 
                         new AppButton()
                             .With(ButtonStyle)
                             .Label("Export")
-                            .Command(vm?.ShowExportDialogCommand)
+                            .Command(Commands.View.ShowExportDialogCommand)
                             .Content("\xE72D")
                     ),
-
+                //UNDO REDO BLOCK
                 new StackPanel().Col(2)
                     .Orientation(Orientation.Horizontal)
                     .Children(
@@ -84,7 +92,7 @@ public class TopBarView : ViewBaseSingletonVm<TopBarViewModel>
                                         .VerticalAlignment(VerticalAlignment.Top)
                                         .FontSize(12)
                                         .Foreground(Colors.Gray.ToBrush())
-                                        .Text(Bind(vm?.UndoSteps))
+                                        .Text(Bind(UndoSteps))
                                 )),
 
                         new AppButton().Col(1)
@@ -95,8 +103,12 @@ public class TopBarView : ViewBaseSingletonVm<TopBarViewModel>
                     )
             );
 
-    private void ButtonStyle(AppButton b) => b
-        .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
-        .Width(68)
-        .Classes("TopBar");
+    [Inject] private IOperationService OperationService { get; set; } = null!;
+    [Inject] private IMessenger Messenger { get; set; } = null!;
+    public int UndoSteps => OperationService?.UndoOperationsCount ?? 0;
+
+    protected override void OnAfterInitialized()
+    {
+        Messenger.Register<OperationInvokedMessage>(this, msg => StateHasChanged());
+    }
 }

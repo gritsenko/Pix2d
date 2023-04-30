@@ -1,11 +1,9 @@
-﻿using Pix2d.Mvvm;
-using Pix2d.Plugins.Sprite;
+﻿using Pix2d.Plugins.Sprite;
 using Pix2d.Primitives;
-using Pix2d.ViewModels;
 
 namespace Pix2d.Views;
 
-public partial class ClipboardActionsView : ComponentBase
+public class ClipboardActionsView : ComponentBase
 {
 
     protected override object Build() =>
@@ -40,9 +38,6 @@ public partial class ClipboardActionsView : ComponentBase
                     })
                     .Content("\xE10C")
             );
-
-    [Inject] IViewModelService ViewModelService { get; set; }
-    public MainViewModel MainViewModel => ViewModelService?.GetViewModel<MainViewModel>();
 
     private void ButtonStyle(Button b)
     {

@@ -1,14 +1,18 @@
 ﻿using Pix2d.Plugins.Sprite;
 using Pix2d.Shared;
-using Pix2d.ViewModels;
 
 namespace Pix2d.Views;
 
-public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
+public class ActionsBarView : ComponentBase
 {
     private double ButtonWidth = 58;
     private double ButtonHeight = 58;
-    protected override object Build(MainViewModel vm) =>
+
+    void IconStyle(PathIcon icon) => icon
+        .Width(16)
+        .Height(16);
+
+    protected override object Build() =>
         new WrapPanel()
             .Background(StaticResources.Brushes.ActionsBarBackground)
             .Orientation(Orientation.Horizontal)
@@ -47,7 +51,7 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
 
                 // MIRROR X
                 new AppToggleButton()
-                    .IsChecked(vm?.MirrorX ?? false, BindingMode.TwoWay)
+                    .IsChecked(MirrorX, BindingMode.TwoWay, bindingSource: this)
                     .Width(ButtonWidth)
                     .Content(new PathIcon()
                         .With(IconStyle)
@@ -57,7 +61,7 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
 
                 // MIRROR Y
                 new AppToggleButton()
-                    .IsChecked(vm?.MirrorY ?? false, BindingMode.TwoWay)
+                    .IsChecked(MirrorY, BindingMode.TwoWay, bindingSource: this)
                     .Width(ButtonWidth)
                     .Content(new PathIcon()
                         .With(IconStyle)
@@ -84,7 +88,7 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
 
                 //Lock axis
                 new AppToggleButton()
-                    .IsChecked(vm?.LockAxis ?? false, BindingMode.TwoWay)
+                    .IsChecked(LockAxis, BindingMode.TwoWay, bindingSource: this)
                     .Width(ButtonWidth)
                     .Content(new PathIcon()
                         .With(IconStyle)
@@ -93,7 +97,7 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
                     .Label("Lock axis"),
 
                 //Import
-                new AppButton() 
+                new AppButton()
                     .Command(Commands.Edit.Import)
                     .Width(ButtonWidth)
                     .Content(new PathIcon()
@@ -101,10 +105,10 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
                         .Data(Geometry.Parse(
                         "M 2.5 1 C 1.675781 1 1 1.675781 1 2.5 L 1 12.5 C 1 13.324219 1.675781 14 2.5 14 L 12.5 14 C 13.324219 14 14 13.324219 14 12.5 L 14 10 L 13 10 L 13 12.5 C 13 12.78125 12.78125 13 12.5 13 L 2.5 13 C 2.21875 13 2 12.78125 2 12.5 L 2 2.5 C 2 2.21875 2.21875 2 2.5 2 L 12.5 2 C 12.78125 2 13 2.21875 13 2.5 L 13 5 L 14 5 L 14 2.5 C 14 1.675781 13.324219 1 12.5 1 Z M 8.273438 4.023438 L 4.792969 7.5 L 8.273438 10.980469 L 8.976563 10.269531 L 6.707031 8 L 14 8 L 14 7 L 6.707031 7 L 8.976563 4.726563 Z ")))
                     .Label("Import"),
-                
+
                 //Resize
                 new AppButton()
-                    .Command(vm?.ToggleCanavsSizePanelCommand)
+                    .Command(Commands.View.ToggleCanvasSizePanelCommand)
                     .Width(ButtonWidth)
                     .Content(new PathIcon()
                         .With(IconStyle)
@@ -113,7 +117,41 @@ public class ActionsBarView : ViewBaseSingletonVm<MainViewModel>
                     .Label("Resize")
             );
 
-    void IconStyle(PathIcon icon) => icon
-        .Width(16)
-        .Height(16);
+    [Inject] private IDrawingService DrawingService { get; set; } = null!;
+    [Inject] private ISnappingService SnappingService { get; set; } = null!;
+
+    private bool _mirrorX;
+    private bool _mirrorY;
+    private bool _lockAxis;
+
+    public bool MirrorX
+    {
+        get => _mirrorX;
+        set
+        {
+            _mirrorX = value;
+            DrawingService.SetMirrorMode(Primitives.Drawing.MirrorMode.Horizontal, value);
+        }
+    }
+
+    public bool MirrorY
+    {
+        get => _mirrorY;
+        set
+        {
+            _mirrorY = value;
+            DrawingService.SetMirrorMode(Primitives.Drawing.MirrorMode.Vertical, value);
+        }
+    }
+
+    public bool LockAxis
+    {
+        get => _lockAxis;
+        set
+        {
+            _lockAxis = value;
+            SnappingService.ForceAspectLock = value;
+        }
+    }
+
 }

@@ -7,90 +7,89 @@ using Pix2d.Messages.Edit;
 using Pix2d.Mvvm;
 using SkiaNodes;
 
-namespace Pix2d.ViewModels.SceneTree
+namespace Pix2d.ViewModels.SceneTree;
+
+public class SceneTreeViewModel : Pix2dViewModelBase
 {
-    public class SceneTreeViewModel : Pix2dViewModelBase
+    public ISelectionService SelectionService { get; }
+    public IMessenger Messenger { get; }
+    public AppState AppState { get; }
+
+    public ObservableCollection<SceneTreeItemViewModel> Nodes { get; set; } = new ObservableCollection<SceneTreeItemViewModel>();
+
+    public SceneTreeViewModel(IMessenger messenger, AppState appState, ISelectionService selectionService)
     {
-        public ISelectionService SelectionService { get; }
-        public IMessenger Messenger { get; }
-        public AppState AppState { get; }
+        SelectionService = selectionService;
+        Messenger = messenger;
+        AppState = appState;
 
-        public ObservableCollection<SceneTreeItemViewModel> Nodes { get; set; } = new ObservableCollection<SceneTreeItemViewModel>();
+        Messenger.Register<EditContextChangedMessage>(this, OnEditContextChanged);
+        Messenger.Register<NodesSelectedMessage>(this, OnNodesSelected);
 
-        public SceneTreeViewModel(IMessenger messenger, AppState appState, ISelectionService selectionService)
+        throw new NotImplementedException("change to messages");
+        // RELOAD VIEW MODEL
+        // SceneService.SceneStructureChanged += SceneService_SceneStructureChanged;
+        // SceneService.SceneCreated += SceneService_SceneCreated;
+
+    }
+
+    private void OnEditContextChanged(EditContextChangedMessage obj)
+    {
+        OnLoad();
+    }
+
+    private void OnNodesSelected(NodesSelectedMessage obj)
+    {
+        var selectedNodes = AppState.CurrentProject.Selection.Nodes.ToArray();
+
+        UpdateSelectedNodesInTree(selectedNodes, Nodes);
+    }
+
+    private void UpdateSelectedNodesInTree(SKNode[] selectedNodes, ObservableCollection<SceneTreeItemViewModel> items)
+    {
+        foreach (var item in items)
         {
-            SelectionService = selectionService;
-            Messenger = messenger;
-            AppState = appState;
+            var isSelected = selectedNodes.Contains(item.SourceNode);
 
-            Messenger.Register<EditContextChangedMessage>(this, OnEditContextChanged);
-            Messenger.Register<NodesSelectedMessage>(this, OnNodesSelected);
+            item.UpdateSelectionState(isSelected);
 
-            throw new NotImplementedException("change to messages");
-            // RELOAD VIEW MODEL
-            // SceneService.SceneStructureChanged += SceneService_SceneStructureChanged;
-            // SceneService.SceneCreated += SceneService_SceneCreated;
-
-        }
-
-        private void OnEditContextChanged(EditContextChangedMessage obj)
-        {
-            OnLoad();
-        }
-
-        private void OnNodesSelected(NodesSelectedMessage obj)
-        {
-            var selectedNodes = AppState.CurrentProject.Selection.Nodes.ToArray();
-
-            UpdateSelectedNodesInTree(selectedNodes, Nodes);
-        }
-
-        private void UpdateSelectedNodesInTree(SKNode[] selectedNodes, ObservableCollection<SceneTreeItemViewModel> items)
-        {
-            foreach (var item in items)
+            if (isSelected)
             {
-                var isSelected = selectedNodes.Contains(item.SourceNode);
-
-                item.UpdateSelectionState(isSelected);
-
-                if (isSelected)
-                {
-                    //ExpandBranch(item);
-                }
-
-                UpdateSelectedNodesInTree(selectedNodes, item.Nodes);
+                //ExpandBranch(item);
             }
-        }
 
-        private void ExpandBranch(SceneTreeItemViewModel item)
+            UpdateSelectedNodesInTree(selectedNodes, item.Nodes);
+        }
+    }
+
+    private void ExpandBranch(SceneTreeItemViewModel item)
+    {
+        var parent = item.ParentItemViewModel;
+        while (parent != null)
         {
-            var parent = item.ParentItemViewModel;
-            while (parent != null)
-            {
-                parent.IsExpanded = true;
-                parent = item.ParentItemViewModel;
-            }
+            parent.IsExpanded = true;
+            parent = item.ParentItemViewModel;
         }
+    }
 
-        protected override void OnLoad()
+    protected override void OnLoad()
+    {
+        Nodes.Clear();
+        var scene = AppState.CurrentProject.SceneNode;
+        if (scene == null)
+            return;
+
+        var root = AppState.CurrentProject.CurrentContextType == EditContextType.Sprite ? AppState.CurrentProject.CurrentEditedNode : scene;
+
+        foreach (var node in root.Nodes)
         {
-            Nodes.Clear();
-            var scene = AppState.CurrentProject.SceneNode;
-            if (scene == null)
-                return;
-
-            var root = AppState.CurrentProject.CurrentContextType == EditContextType.Sprite ? AppState.CurrentProject.CurrentEditedNode : scene;
-
-            foreach (var node in root.Nodes)
-            {
-                var vm = new SceneTreeItemViewModel(node, IsSelectedItemChanged);
-                Nodes.Add(vm);
-            }
+            var vm = new SceneTreeItemViewModel(node, IsSelectedItemChanged);
+            Nodes.Add(vm);
         }
+    }
 
-        private void IsSelectedItemChanged(SceneTreeItemViewModel item)
-        {
-            SelectionService.Select(item.SourceNode);
-        }
+    private void IsSelectedItemChanged(SceneTreeItemViewModel item)
+    {
+        SelectionService.Select(item.SourceNode);
     }
 }

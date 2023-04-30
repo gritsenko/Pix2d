@@ -37,7 +37,7 @@ public class ToolBarView : ViewBaseSingletonVm<ToolBarViewModel>
                     .Classes("color-button")
                     .IsVisible(@vm.IsSpriteEditMode)
                     .Margin(0, 8)
-                    .Command(GetViewModel<MainViewModel>().ToggleColorEditorCommand)
+                    .Command(Commands.View.ToggleColorEditorCommand)
                     .CornerRadius(25)
                     .BorderThickness(3)
                     .BorderBrush(Colors.White.ToBrush())
@@ -50,7 +50,7 @@ public class ToolBarView : ViewBaseSingletonVm<ToolBarViewModel>
                     .Background("#414953".ToColor().ToBrush())
                     .Margin(0, 8)
                     .Padding(0)
-                    .Command(GetViewModel<MainViewModel>().ToggleBrushSettingsCommand)
+                    .Command(Commands.View.ToggleBrushSettingsCommand)
                     .Content(Bind(BrushToolSettingsViewModel, m => m.CurrentPixelBrushSetting))
                     .ContentTemplate(new FuncDataTemplate<BrushPresetViewModel>((itemVm, ns) =>
                         new Grid().DataContext(itemVm.Preview)

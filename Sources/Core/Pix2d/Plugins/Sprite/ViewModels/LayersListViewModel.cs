@@ -3,20 +3,15 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Input;
 using Mvvm;
 using Mvvm.Messaging;
 using Pix2d.Abstract.Operations;
-using Pix2d.Abstract.UI;
-using Pix2d.Common;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;
 using Pix2d.Modules.Sprite.Editors;
 using Pix2d.Mvvm;
 using Pix2d.Operations;
-using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Plugins.Sprite.Operations.Effects;
 using Pix2d.Primitives.SpriteEditor;
@@ -28,7 +23,6 @@ namespace Pix2d.ViewModels.Layers
 {
     public class LayersListViewModel : Pix2dViewModelBase
     {
-        private readonly IPanelsController _panelsController;
         public IEditService EditService { get; }
         public IEffectsService EffectsService { get; } 
         public IMessenger Messenger { get; }
@@ -40,7 +34,6 @@ namespace Pix2d.ViewModels.Layers
         private int _reorderingNodeOldIndex;
 
         public ObservableCollection<LayerViewModel> Layers { get; set; } = new ObservableCollection<LayerViewModel>();
-        public ArtboardNode CurrentArtboard { get; set; }
 
         public bool UseBackgroundColor
         {
@@ -86,16 +79,6 @@ namespace Pix2d.ViewModels.Layers
 
         public LayerViewModel SelectedLayer { get; set; }
 
-        public bool ShowLayerProperties
-        {
-            get => _panelsController?.ShowLayerProperties ?? false;
-            set
-            {
-                if (_panelsController != null)
-                    _panelsController.ShowLayerProperties = value;
-            }
-        }
-
         public List<EffectViewModel> AvailableEffects { get; set; } = new List<EffectViewModel>();
 
         public Action<int> OnPreviewChanged { get; set; }
@@ -104,8 +87,6 @@ namespace Pix2d.ViewModels.Layers
                 UseBackgroundColor = !UseBackgroundColor;
                 RefreshViewPort();
             });
-
-        public IRelayCommand CloseLayerPropertiesCommand => GetCommand(() => _panelsController.ShowLayerProperties = false);
 
         public IRelayCommand ClearLayerCommand => GetCommand(() => CoreServices.DrawingService.ClearCurrentLayer());
         public IRelayCommand AddLayerCommand => GetCommand(() => _editor.AddEmptyLayer());
@@ -131,7 +112,7 @@ namespace Pix2d.ViewModels.Layers
             {
                 if (SelectedLayer == layerVm)
                 {
-                    _panelsController.ShowLayerProperties = !_panelsController.ShowLayerProperties;
+                    Commands.View.ToggleLayerOptionsCommand.Execute();
                 }
                 else
                 {
@@ -141,12 +122,10 @@ namespace Pix2d.ViewModels.Layers
         });
 
 
-        public LayersListViewModel(IEditService editService, IPanelsController panelsController, IEffectsService effectsService, IMessenger messenger)
+        public LayersListViewModel(IEditService editService, IEffectsService effectsService, IMessenger messenger)
         {
             if (IsDesignMode)
                 return;
-
-            _panelsController = panelsController;
 
             EditService = editService;
             EffectsService = effectsService;
@@ -384,7 +363,9 @@ namespace Pix2d.ViewModels.Layers
 
             FillLayersFromNodes(_editor.CurrentSprite.Layers);
             SetSelectedLayer(Layers.FirstOrDefault(x => x.SourceNode == _editor.CurrentSprite.SelectedLayer), false);
-            ShowLayerProperties = false;
+            
+            Commands.View.HideLayerOptionsCommand.Execute();
+
             OnPropertyChanged(nameof(UseBackgroundColor));
             OnPropertyChanged(nameof(ResultBackgroundColor));
 
@@ -399,7 +380,7 @@ namespace Pix2d.ViewModels.Layers
             {
                 var layerVm = new LayerViewModel(node, _editor)
                 {
-                    CloseCommand = CloseLayerPropertiesCommand,
+                    CloseCommand = Commands.View.HideLayerOptionsCommand,
                     ClearLayerCommand = this.ClearLayerCommand,
                     DeleteLayerCommand = this.DeleteLayerCommand,
                     DuplicateLayerCommand = this.DuplicateLayerCommand,

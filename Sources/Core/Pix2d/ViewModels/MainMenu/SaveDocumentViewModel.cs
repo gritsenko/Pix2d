@@ -1,52 +1,48 @@
 using System.Windows.Input;
-using Pix2d.Abstract.UI;
 using Pix2d.Mvvm;
 using Pix2d.ViewModels.Export;
 
-namespace Pix2d.ViewModels.MainMenu
+namespace Pix2d.ViewModels.MainMenu;
+
+public class SaveDocumentViewModel : MenuItemDetailsViewModelBase
 {
-    public class SaveDocumentViewModel : MenuItemDetailsViewModelBase
+    public IProjectService ProjectService { get; }
+    public IViewModelService ViewModelService { get; }
+
+    public ICommand SaveAsCommand => GetCommand(OnSaveAsCommandExecute);
+    public ICommand SaveAsPngCommand => GetCommand(() =>
     {
-        public IMenuController MenuController { get; }
-        public IProjectService ProjectService { get; }
-        public IViewModelService ViewModelService { get; }
+        CloseMenu();
+        Commands.View.ShowExportDialogCommand.Execute();
 
-        public ICommand SaveAsCommand => GetCommand(OnSaveAsCommandExecute);
-        public ICommand SaveAsPngCommand => GetCommand(() =>
-        {
-            CloseMenu();
-            MenuController.ShowExportDialog = true;
+        var exportVm = ViewModelService.GetViewModel<ExportPageViewModel>();
+        exportVm.SelectExporterByFileType(ExportImportProjectType.Png);
+    });
 
-            var exportVm = ViewModelService.GetViewModel<ExportPageViewModel>();
-            exportVm.SelectExporterByFileType(ExportImportProjectType.Png);
-        });
+    public ICommand SaveAsGifAnimationCommand => GetCommand(() =>
+    {
+        CloseMenu();
+        Commands.View.ShowExportDialogCommand.Execute();
 
-        public ICommand SaveAsGifAnimationCommand => GetCommand(() =>
-        {
-            CloseMenu();
-            MenuController.ShowExportDialog = true;
+        var exportVm = ViewModelService.GetViewModel<ExportPageViewModel>();
+        exportVm.SelectExporterByFileType(ExportImportProjectType.Gif);
+    });
 
-            var exportVm = ViewModelService.GetViewModel<ExportPageViewModel>();
-            exportVm.SelectExporterByFileType(ExportImportProjectType.Gif);
-        });
-
-        public SaveDocumentViewModel(IMenuController menuController, IProjectService projectService, IViewModelService viewModelService)
-        {
-            MenuController = menuController;
-            ProjectService = projectService;
-            ViewModelService = viewModelService;
-        }
-
-        private async void OnSaveAsCommandExecute()
-        {
-            CloseMenu();
-            await ProjectService.SaveCurrentProjectAsAsync(ExportImportProjectType.Pix2d);
-        }
-
-        protected void CloseMenu()
-        {
-            MenuController.ShowMenu = false;
-        }
-
+    public SaveDocumentViewModel(IProjectService projectService, IViewModelService viewModelService)
+    {
+        ProjectService = projectService;
+        ViewModelService = viewModelService;
     }
+
+    private async void OnSaveAsCommandExecute()
+    {
+        CloseMenu();
+        await ProjectService.SaveCurrentProjectAsAsync(ExportImportProjectType.Pix2d);
+    }
+
+    protected void CloseMenu()
+    {
+        Commands.View.HideMainMenuCommand.Execute();
+    }
+
 }

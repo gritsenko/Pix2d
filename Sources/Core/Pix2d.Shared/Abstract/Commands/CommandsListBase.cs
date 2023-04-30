@@ -16,6 +16,7 @@ public abstract class CommandsListBase : ICommandList
 
     protected static AppState AppState => ServiceLocator.Current.GetInstance<AppState>();
 
+    protected TService GetService<TService>() => ServiceLocator.Current.GetInstance<TService>();
     private ICommandService CommandService => ServiceLocator.Current.GetInstance<ICommandService>();
     protected string GetKey([CallerMemberName] string commandName = null)
     {

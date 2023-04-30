@@ -35,10 +35,4 @@ public class FileCommands : CommandsListBase
         EditContextType.All,
         () => Environment.Exit(0));
         
-    //hidden
-    public Pix2dCommand CloseExportDialog =>
-        GetCommand("Close export dialog",
-            new CommandShortcut(VirtualKeys.Escape),
-            EditContextType.All,
-            () => ServiceLocator.Current.GetInstance<IMenuController>().ShowExportDialog = false);
 }
