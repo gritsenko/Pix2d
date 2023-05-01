@@ -1,15 +1,22 @@
-﻿using Pix2d.ViewModels.MainMenu;
-using Avalonia.Controls.Shapes;
+﻿using Avalonia.Controls.Shapes;
+using Mvvm.Messaging;
+using Pix2d.Messages;
+using System.Collections.ObjectModel;
+using Avalonia.Interactivity;
+using Pix2d.Abstract.Platform.FileSystem;
 
 namespace Pix2d.Views.MainMenu;
 
-public class OpenDocumentView : ViewBase<OpenDocumentViewModel>
+public class OpenDocumentView : ComponentBase
 {
-    public OpenDocumentView(OpenDocumentViewModel viewModel) : base(viewModel)
-    {
-    }
+    private FuncDataTemplate<MruItem> RecentProjectTemplate = new((itemVm, ns) =>
+        new Button()
+            .HorizontalContentAlignment(HorizontalAlignment.Left)
+            .Content(itemVm.Title)
+            .OnClick(_ => itemVm.OpenAsync())
+    );
 
-    protected override object Build(OpenDocumentViewModel vm) =>
+    protected override object Build() =>
         new Border()
             .Padding(32, 0, 0, 0)
             .Child(
@@ -29,7 +36,7 @@ public class OpenDocumentView : ViewBase<OpenDocumentViewModel>
                             .Margin(0, 8, 0, 8)
                             .Padding(16)
                             .Background(Brushes.Gray)
-                            .Command(vm.OpenCommand)
+                            .OnClick(OnOpenButtonClick)
                             .Content(
                                 new Grid()
                                     .Rows("*,Auto")
@@ -54,16 +61,58 @@ public class OpenDocumentView : ViewBase<OpenDocumentViewModel>
 
                         new ItemsControl()
                             .Margin(0, 8, 0, 8)
-                            .Items(@vm.RecentProjects, BindingMode.OneWay)
+                            .ItemsSource(Bind(RecentProjects))
                             .ItemTemplate(RecentProjectTemplate)
 
                     ) //StackPanel.Children
             );
 
-    private FuncDataTemplate<RecentProjectItemViewModel> RecentProjectTemplate = new((itemVm, ns) =>
-        new Button()
-            .HorizontalContentAlignment(HorizontalAlignment.Left)
-            .Content(itemVm.Title)
-            .Command(itemVm.OpenRecentProjectCommand)
-            .CommandParameter());
+    [Inject] private IProjectService ProjectService { get; } = null!;
+    [Inject] private IMessenger Messenger { get; set; } = null!;
+
+    public ObservableCollection<MruItem> RecentProjects { get; set; } = new();
+
+    protected override void OnAfterInitialized()
+    {
+        Messenger.Register<MruChangedMessage>(this, m => UpdateMruData());
+        UpdateMruData(); // update recent files list on any open, file can be deleted by user while app is running
+    }
+
+    public async void UpdateMruData()
+    {
+        var recentProjects = await ProjectService.GetRecentProjectsAsync();
+        RecentProjects.Clear();
+        foreach (var fileContentSource in recentProjects)
+            RecentProjects.Add(new MruItem(fileContentSource, ProjectService));
+    }
+
+
+    private async void OnOpenButtonClick(RoutedEventArgs obj)
+    {
+        Commands.View.HideMainMenuCommand.Execute();
+        await ProjectService.OpenFilesAsync();
+    }
+
+    public sealed class MruItem
+    {
+        public IFileContentSource File { get; set; }
+
+        public IProjectService ProjectService { get; }
+
+        public string Path => File.Path;
+
+        public string Title => File.Title;
+
+        public MruItem(IFileContentSource fileContentSource, IProjectService projectService)
+        {
+            File = fileContentSource;
+            ProjectService = projectService;
+        }
+
+        internal async void OpenAsync()
+        {
+            Commands.View.HideMainMenuCommand.Execute();
+            await ProjectService.OpenFilesAsync(new[] { File });
+        }
+    }
 }

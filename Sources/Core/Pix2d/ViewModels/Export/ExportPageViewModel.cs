@@ -14,7 +14,6 @@ using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Sprite.Editors;
-using Pix2d.ViewModels.MainMenu;
 using Pix2d.ViewModels.Preview;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -130,9 +129,9 @@ namespace Pix2d.ViewModels.Export
             Logger.Log("$Pressed on watermark alert on export page");
             Commands.View.ShowMainMenuCommand.Execute();
             CloseDialog();
-            var mainMenu = ViewModelService.GetViewModel<MainMenuViewModel>();
-            var licenseItem = mainMenu.MenuItems.FirstOrDefault(x => x.DetailsViewModel == typeof(LicenseViewModel));
-            mainMenu.ItemSelectCommand.Execute(licenseItem);
+            //var mainMenu = ViewModelService.GetViewModel<MainMenuViewModel>();
+            //var licenseItem = mainMenu.MenuItems.FirstOrDefault(x => x.DetailsViewModel == typeof(LicenseViewModel));
+            //mainMenu.ItemSelectCommand.Execute(licenseItem);
         });
 
         public ExportPageViewModel(ISettingsService settingsService, IExportService exportService, ILicenseService licenseService, IProjectService projectService, IBusyController busyController, AppState appState, IMessenger messenger, IViewModelService viewModelService)

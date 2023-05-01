@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Windows.Input;
 using Pix2d.Mvvm;
-using Pix2d.ViewModels.MainMenu;
 
 namespace Pix2d.ViewModels.License
 {
@@ -33,8 +32,8 @@ namespace Pix2d.ViewModels.License
                 return;
 
             Commands.View.ShowMainMenuCommand.Execute();
-            var mainMenu = ViewModelService.GetViewModel<MainMenuViewModel>();
-            mainMenu.SelectLicenseSection();
+            //var mainMenu = ViewModelService.GetViewModel<MainMenuViewModel>();
+            //mainMenu.SelectLicenseSection();
         });
 
         public PromoBlockViewModel(ILicenseService licenseService, IViewModelService viewModelService)

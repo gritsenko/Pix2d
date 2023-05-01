@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Interactivity;
 using Pix2d.Shared;
-using Pix2d.ViewModels.MainMenu;
 using SkiaSharp;
 
 namespace Pix2d.Views.MainMenu;
@@ -31,7 +30,7 @@ public class NewDocumentView : ComponentBase
 
                         new ComboBox()
                             .DataTemplates(
-                                GetTextTemplate<NewDocumentSettingsPresetViewModel>(x => x?.Title ?? "")
+                                GetTextTemplate<SizePreset>(x => x?.Title ?? "")
                             )
                             .Margin(0, 8, 0, 0)
                             .MaxWidth(300)
@@ -66,7 +65,7 @@ public class NewDocumentView : ComponentBase
             );
 
 
-    private NewDocumentSettingsPresetViewModel? _selectedPreset = null!;
+    private SizePreset? _selectedPreset = null!;
     private int _artworkWidth;
     private int _artworkHeight;
 
@@ -100,9 +99,9 @@ public class NewDocumentView : ComponentBase
     }
 
 
-    public ObservableCollection<NewDocumentSettingsPresetViewModel> AvailablePresets { get; set; } = new();
+    public ObservableCollection<SizePreset> AvailablePresets { get; set; } = new();
 
-    public NewDocumentSettingsPresetViewModel SelectedPreset
+    public SizePreset SelectedPreset
     {
         get => _selectedPreset;
         set
@@ -154,16 +153,36 @@ public class NewDocumentView : ComponentBase
     private void AddPreset(int width = default, int height = default, string title = default)
     {
         if (width == default)
-            this.AvailablePresets.Add(new NewDocumentSettingsPresetViewModel());
+            this.AvailablePresets.Add(new SizePreset());
         else
         {
-            var p = new NewDocumentSettingsPresetViewModel(width, height);
+            var p = new SizePreset(width, height);
             if (title != default)
             {
                 p.Title = title;
             }
             this.AvailablePresets.Add(p);
         }
+    }
+
+    public class SizePreset
+    {
+        public SizePreset(int width, int height)
+        {
+            Width = width;
+            Height = height;
+
+            Title = $"{Width}x{Height}";
+        }
+
+        public SizePreset()
+        {
+            Title = "Custom";
+        }
+
+        public string Title { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
     }
 
 }
