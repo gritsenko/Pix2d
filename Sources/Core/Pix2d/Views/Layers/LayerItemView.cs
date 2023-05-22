@@ -30,8 +30,6 @@ public class LayerItemView : ViewBase<LayerViewModel>
                     .Content(
                         new SKImageView()
                             .ShowCheckerBackground(true)
-                            //.Width(52)
-                            //.Height(52)
                             .Source(@vm.Preview)
                     ),
 
