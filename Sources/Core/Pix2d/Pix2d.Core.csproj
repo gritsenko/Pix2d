@@ -70,10 +70,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.0.0-preview6" />
-    <PackageReference Include="Avalonia.Skia" Version="11.0.0-preview6" />
-    <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.0-preview6" />
-    <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.0.0-preview6" />
+    <PackageReference Include="Avalonia" Version="11.0.0-preview8" />
+    <PackageReference Include="Avalonia.Skia" Version="11.0.0-preview8" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.0-preview8" />
+    <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.0.0-preview8" />
   </ItemGroup>
 
   <ItemGroup>

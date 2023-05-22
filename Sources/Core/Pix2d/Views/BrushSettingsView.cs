@@ -41,7 +41,7 @@ public class BrushSettingsView : ViewBaseSingletonVm<BrushToolSettingsViewModel>
                             .MinHeight(72)
                             .BorderThickness(1)
                             .Padding(4)
-                            .Items(Bind(vm.BrushPresets))
+                            .ItemsSource(Bind(vm.BrushPresets))
                             .SelectedItem(Bind(vm.CurrentPixelBrushPreset, BindingMode.TwoWay))
                             .ItemsPanel(Templates.WrapPanelTemplate)
                             .ItemTemplate(BrushPreviewTemplate),

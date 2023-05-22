@@ -125,7 +125,7 @@ public class LayerOptionsView : ViewBaseSingletonVm<LayersListViewModel>
                             .ColSpan(2)
                             .DataContext(@vm.SelectedLayer, out var sl1)
                             .ItemTemplate(EffectItemTemplate)
-                            .Items(@sl1?.Effects)
+                            .ItemsSource(@sl1?.Effects)
 
                     )
             );

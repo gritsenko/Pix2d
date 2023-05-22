@@ -82,7 +82,7 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                             .Text("Fps")
                             .VerticalAlignment(VerticalAlignment.Center),
                         new ComboBox()
-                            .Items(vm.FrameRates)
+                            .ItemsSource(vm.FrameRates)
                             .Margin(8,0)
                             .VerticalAlignment(VerticalAlignment.Center)
                             .SelectedItem(@vm.SelectedFramerate, BindingMode.TwoWay)
@@ -90,7 +90,7 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
 
                 new ListBox().Row(1).ColSpan(3)
                     .ItemsPanel(new StackPanel().Orientation(Orientation.Horizontal))
-                    .Items(Bind(vm.Frames))
+                    .ItemsSource(Bind(vm.Frames))
                     .SelectedItem(@vm.CurrentFrame, BindingMode.TwoWay)
                     .AddBehavior(new ContextDropBehavior { Handler = new FrameItemsListBoxDropHandler() })
                     .ItemTemplate<AnimationFrameViewModel>(itemVm =>

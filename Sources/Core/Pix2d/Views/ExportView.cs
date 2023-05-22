@@ -34,7 +34,7 @@ public class ExportView : ViewBaseSingletonVm<ExportPageViewModel>
                                         new TextBlock().Text("Exporter"),
                                         new ComboBox()
                                             .ItemTemplate(_itemTemplate)
-                                            .Items(vm.Exporters)
+                                            .ItemsSource(vm.Exporters)
                                             .SelectedItem(@vm.SelectedExporter, BindingMode.TwoWay),
 
                                         new StackPanel() //Exporter options

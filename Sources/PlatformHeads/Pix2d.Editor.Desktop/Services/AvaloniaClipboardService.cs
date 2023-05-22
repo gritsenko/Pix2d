@@ -6,12 +6,12 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia.Input;
 using Avalonia;
-using Pix2d.Abstract;
 using Pix2d.Abstract.Services;
 using Pix2d.Abstract.Tools;
 using SkiaNodes;
 using SkiaSharp;
 using SkiaNodes.Extensions;
+using Avalonia.Input.Platform;
 
 namespace Pix2d.Services;
 
@@ -46,9 +46,9 @@ public class AvaloniaClipboardService : InternalClipboardService
         var dataObject = new DataObject();
         dataObject.Set("PNG", bytes);
 
-        var c = Application.Current.Clipboard;
-        await c.ClearAsync();
-        await c.SetDataObjectAsync(dataObject);
+        var clipboard = AvaloniaLocator.Current.GetRequiredService<IClipboard>();
+        await clipboard.ClearAsync();
+        await clipboard.SetDataObjectAsync(dataObject);
 
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -60,12 +60,12 @@ public class AvaloniaClipboardService : InternalClipboardService
 
     public override async Task<SKBitmap> GetImageFromClipboard()
     {
-        var c = Application.Current.Clipboard;
+        var clipboard = AvaloniaLocator.Current.GetRequiredService<IClipboard>();
         // last objects in clipboard from us
-        var formats = await c.GetFormatsAsync();
+        var formats = await clipboard.GetFormatsAsync();
         if (formats.Any(x => x == "PNG"))
         {
-            if (await c.GetDataAsync("PNG") is byte[] data)
+            if (await clipboard.GetDataAsync("PNG") is byte[] data)
             {
                 var bitmap = SKBitmap.Decode(data);
                 return bitmap;

@@ -59,7 +59,7 @@ public class ToolBarView : ViewBaseSingletonVm<ToolBarViewModel>
                             .Height(50))),
 
                 new ItemsControl() //tools list
-                    .Items(ViewModel.Tools)
+                    .ItemsSource(ViewModel.Tools)
                     .ItemTemplate(
                         new FuncDataTemplate<ToolItemViewModel>((itemVm, ns) =>
                             new ToolItemView(itemVm)

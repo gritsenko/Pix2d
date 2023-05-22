@@ -15,7 +15,7 @@ public class AppMenuView : ComponentBase
         Setters =
         {
             new Setter(MenuItem.HeaderProperty, new Binding("Header")),
-            new Setter(MenuItem.ItemsProperty, new Binding("MenuItems")),
+            new Setter(MenuItem.ItemsSourceProperty, new Binding("MenuItems")),
             new Setter(MenuItem.CommandProperty, new Binding("Command"))
         }
     };
@@ -25,7 +25,7 @@ public class AppMenuView : ComponentBase
             .Background(StaticResources.Brushes.MainBackgroundBrush)
             .Foreground(Colors.White.ToBrush())
             .Padding(4)
-            .Items(Bind(MenuItems))
+            .ItemsSource(Bind(MenuItems))
             .Styles(AppMenuStyle);
 
 

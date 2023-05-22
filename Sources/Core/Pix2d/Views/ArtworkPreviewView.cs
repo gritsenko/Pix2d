@@ -22,7 +22,7 @@ public class ArtworkPreviewView : ViewBaseSingletonVm<ArtworkPreviewViewModel>
                 new Grid().Row(1).HorizontalAlignment(HorizontalAlignment.Center)
                     .Children(
                         new ComboBox()
-                            .Items(vm.AvailableScales)
+                            .ItemsSource(vm.AvailableScales)
                             .SelectedItem(@vm.SelectedScaleItem, BindingMode.TwoWay)
                             .ItemTemplate(_itemTemplate)
                     )

@@ -48,7 +48,7 @@ public class TextBarView : ViewBaseSingletonVm<TextBarViewModel> {
                                         new ComboBox()
                                             .Width(140)
                                             .VerticalAlignment(VerticalAlignment.Center)
-                                            .Items(vm.Fonts)
+                                            .ItemsSource(vm.Fonts)
                                             .SelectedItem(@vm.SelectedFont, BindingMode.TwoWay)
                                             .ItemTemplate(
                                                 (FontItemViewModel item) => new TextBlock().Text(item?.Name ?? "")),

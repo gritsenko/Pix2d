@@ -171,22 +171,21 @@ public class SkiaCanvas : Control
     private float GetScale()
     {
         //balzor hack
-        if (VisualRoot is EmbeddableControlRoot topLevel)
-        {
-            var surface = topLevel.PlatformImpl.Surfaces.FirstOrDefault();
-            var sType = surface?.GetType();
-            if (sType?.Name == "BlazorSkiaSurface")
-            {
-                var prop = sType.GetProperty("Scaling");
-                if (prop != null)
-                {
-                    var bScale = (double)prop.GetValue(surface);
-                    if (bScale > 0)
-                        return (float)bScale;
-                }
-            }
-        }
-
+        //if (VisualRoot is EmbeddableControlRoot topLevel)
+        //{
+        //    var surface = topLevel.PlatformImpl.Surfaces.FirstOrDefault();
+        //    var sType = surface?.GetType();
+        //    if (sType?.Name == "BlazorSkiaSurface")
+        //    {
+        //        var prop = sType.GetProperty("Scaling");
+        //        if (prop != null)
+        //        {
+        //            var bScale = (double)prop.GetValue(surface);
+        //            if (bScale > 0)
+        //                return (float)bScale;
+        //        }
+        //    }
+        //}
 
         return (float)VisualRoot.RenderScaling;
     }
@@ -376,6 +375,7 @@ public class SkiaCanvas : Control
     private class SkNodeDrawOp : ICustomDrawOperation
     {
         private readonly SkiaCanvas _parent;
+        
         public Rect Bounds { get; }
         public bool HitTest(Point p) => true;
         public bool Equals(ICustomDrawOperation other) => false;
@@ -393,7 +393,7 @@ public class SkiaCanvas : Control
             // No-op
         }
 
-        public void Render(IDrawingContextImpl context)
+        public void Render(ImmediateDrawingContext context)
         {
             var canvas = GetSkCanvas(context);
             try
@@ -404,12 +404,12 @@ public class SkiaCanvas : Control
                 canvas.Clear(new SKColor(60, 60, 60));
                 if (_parent._rootNode != null && _parent.ViewPort != null)
                 {
-                    if (_lastTransform != context.Transform)
+                    if (_lastTransform != context.CurrentTransform)
                     {
-                        _parent.ViewPort.PivotTransformMatrix = ToSKMatrix(context.Transform);
+                        _parent.ViewPort.PivotTransformMatrix = ToSKMatrix(context.CurrentTransform);
                         _parent.ViewPort.PivotTransformMatrix.TransX *= _parent.ViewPort.ScaleFactor;
                         _parent.ViewPort.PivotTransformMatrix.TransY *= _parent.ViewPort.ScaleFactor;
-                        _lastTransform = context.Transform;
+                        _lastTransform = context.CurrentTransform;
                     }
 
                     _parent._rootNode.Render(canvas, _parent.ViewPort);
@@ -424,7 +424,7 @@ public class SkiaCanvas : Control
             //    context.DrawText(Brushes.Black, new Point(), NoSkiaText.PlatformImpl);
         }
 
-        private SKCanvas GetSkCanvas(IDrawingContextImpl context)
+        private SKCanvas GetSkCanvas(ImmediateDrawingContext context)
         {
             if (_skCanvas?.Handle == IntPtr.Zero)
                 _skCanvas = null;
@@ -433,7 +433,7 @@ public class SkiaCanvas : Control
 
             SKCanvas GetCanvasFromField()
             {
-                var leaseFeature = context.GetFeature<ISkiaSharpApiLeaseFeature>();
+                var leaseFeature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
                 if (leaseFeature == null)
                     return null;
                 using var lease = leaseFeature.Lease();
