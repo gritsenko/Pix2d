@@ -5,7 +5,6 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
 using Mvvm;
-using Mvvm.Messaging;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;

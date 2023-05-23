@@ -3,7 +3,7 @@ using Pix2d.ViewModels;
 using Pix2d.ViewModels.Color;
 using Pix2d.ViewModels.ToolBar;
 using Pix2d.ViewModels.ToolBar.ToolSettings;
-using Pix2d.ViewModels.ToolSettings;
+using Pix2d.Views.BrushSettings;
 
 namespace Pix2d.Views.ToolBar;
 
@@ -52,11 +52,7 @@ public class ToolBarView : ViewBaseSingletonVm<ToolBarViewModel>
                     .Padding(0)
                     .Command(Commands.View.ToggleBrushSettingsCommand)
                     .Content(Bind(BrushToolSettingsViewModel, m => m.CurrentPixelBrushSetting))
-                    .ContentTemplate(new FuncDataTemplate<BrushPresetViewModel>((itemVm, ns) =>
-                        new Grid().DataContext(itemVm.Preview)
-                            .Background(new Binding("Bitmap") { Converter = StaticResources.Converters.SKBitmapToBrushConverter })
-                            .Width(50)
-                            .Height(50))),
+                    .ContentTemplate(new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) => new BrushItemView().Preset(itemVm))),
 
                 new ItemsControl() //tools list
                     .ItemsSource(ViewModel.Tools)

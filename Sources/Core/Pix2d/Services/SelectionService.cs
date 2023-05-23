@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Mvvm.Messaging;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Selection;
 using Pix2d.CommonNodes;

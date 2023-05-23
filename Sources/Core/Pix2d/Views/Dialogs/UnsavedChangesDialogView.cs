@@ -1,6 +1,5 @@
 ﻿using System;
 using Avalonia.Styling;
-using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.UI;
 
 namespace Pix2d.Views.Dialogs;

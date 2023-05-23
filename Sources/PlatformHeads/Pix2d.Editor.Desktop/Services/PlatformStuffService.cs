@@ -83,10 +83,26 @@ public class PlatformStuffService : IPlatformStuffService
 
     public string GetAppVersion()
     {
-        var assembly = Assembly.GetExecutingAssembly();
-        var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
-        var version = fvi.ProductVersion;
-        return version;
+        try
+        {
+            var appPath = AppContext.BaseDirectory;
+            var asm = this.GetType().Assembly.GetName().Version;
+            if (asm != null)
+            { 
+                return $"{asm.Major}.{asm.Minor}.{asm.Build}";
+            }
+
+            var assemblyPath = Path.Combine(appPath, "pix2d.exe");
+            var fvi = FileVersionInfo.GetVersionInfo(assemblyPath);
+            var version = fvi.ProductVersion;
+            return version;
+        }
+        catch(Exception ex)
+        {
+            Logger.LogException(ex);
+        }
+
+        return "unknown desktop";
     }
 
     public Task<bool> ShareImage(Stream bitmapImageStream)

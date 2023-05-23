@@ -4,7 +4,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Mvvm.Messaging;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Infrastructure;
 using Pix2d.Messages;

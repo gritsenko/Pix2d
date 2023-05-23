@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading;
-using Mvvm.Messaging;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Operations;
 using Pix2d.CommonNodes;

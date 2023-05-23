@@ -13,7 +13,7 @@ public class ToolIconTemplateSelector : IDataTemplate
 
     public Control Build(object data)
     {
-        var toolVm = ((ToolItemViewModel)data);
+        var toolVm = (ToolItemViewModel)data;
         var templateKey = toolVm.ToolKey;
 
         if (toolVm.ToolIconPath != default)

@@ -3,9 +3,9 @@ using System.Text.RegularExpressions;
 using System.Windows.Input;
 using Mvvm;
 
-namespace Pix2d.ViewModels.MainMenu;
+namespace Pix2d.Views.MainMenu.ViewModels;
 
-public class LicenseViewModel : MenuItemDetailsViewModelBase
+public class LicenseViewModel : ViewModelBase
 {
     public ILicenseService LicenseService { get; }
     public IDialogService DialogService { get; }
@@ -110,9 +110,6 @@ public class LicenseViewModel : MenuItemDetailsViewModelBase
 
     public LicenseViewModel(ILicenseService licenseService, IDialogService dialogService)
     {
-        if(IsDesignMode)
-            return;
-            
         LicenseService = licenseService;
         DialogService = dialogService;
         LicenseService.LicenseChanged += LicenseService_LicenseChanged;
@@ -150,7 +147,7 @@ public class LicenseViewModel : MenuItemDetailsViewModelBase
         }
     }
 
-    protected override void OnLoad()
+    protected void OnLoad()
     {
         Logger.Log("$License view opened");
         var isPro = LicenseService.IsPro;

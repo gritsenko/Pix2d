@@ -1,25 +1,12 @@
 ﻿using Pix2d.Shared;
-using Pix2d.ViewModels;
 using Pix2d.ViewModels.ToolBar.ToolSettings;
-using Pix2d.ViewModels.ToolSettings;
 using static Pix2d.Resources.StaticResources;
 using Colors = Avalonia.Media.Colors;
 
-namespace Pix2d.Views;
+namespace Pix2d.Views.BrushSettings;
 
 public class BrushSettingsView : ViewBaseSingletonVm<BrushToolSettingsViewModel>
 {
-    public static IDataTemplate BrushPreviewTemplate { get; set; } = new FuncDataTemplate<BrushPresetViewModel>(
-        (itemVm, ns) =>
-            new Grid()
-                {
-                    DataContext = itemVm.Preview
-                }
-                .Background(new Binding("Bitmap") { Converter = Converters.SKBitmapToBrushConverter })
-                .Width(48)
-                .Height(48)
-    );
-
     protected override object Build(BrushToolSettingsViewModel vm) =>
         new ScrollViewer()
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
@@ -44,7 +31,7 @@ public class BrushSettingsView : ViewBaseSingletonVm<BrushToolSettingsViewModel>
                             .ItemsSource(Bind(vm.BrushPresets))
                             .SelectedItem(Bind(vm.CurrentPixelBrushPreset, BindingMode.TwoWay))
                             .ItemsPanel(Templates.WrapPanelTemplate)
-                            .ItemTemplate(BrushPreviewTemplate),
+                            .ItemTemplate((Primitives.Drawing.BrushSettings item) => new BrushItemView().Preset(item)),
 
                         new SliderEx()
                             .Header("Size")

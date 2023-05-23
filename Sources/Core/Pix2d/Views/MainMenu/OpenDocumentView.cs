@@ -1,5 +1,4 @@
 ﻿using Avalonia.Controls.Shapes;
-using Mvvm.Messaging;
 using Pix2d.Messages;
 using System.Collections.ObjectModel;
 using Avalonia.Interactivity;

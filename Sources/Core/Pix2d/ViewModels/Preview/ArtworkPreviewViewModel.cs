@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Input;
-using Mvvm.Messaging;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;
 using Pix2d.Mvvm;

@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using Mvvm;
-using Mvvm.Messaging;
 using Pix2d.Abstract.Tools;
 using Pix2d.Drawing.Tools;
 using Pix2d.Messages;

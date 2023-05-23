@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Mvvm;
-using Mvvm.Messaging;
 using Pix2d.Drawing.Tools;
 using Pix2d.Messages;
 using Pix2d.Mvvm;

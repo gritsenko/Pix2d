@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Mvvm.Messaging;
 using Pix2d.Abstract.Operations;
 using Pix2d.Messages;
 using Pix2d.Primitives;

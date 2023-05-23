@@ -1,15 +1,11 @@
-﻿using Pix2d.ViewModels.MainMenu;
-using Avalonia.Controls.Shapes;
+﻿using Avalonia.Controls.Shapes;
 
 namespace Pix2d.Views.MainMenu;
 
-public class SaveDocumentView : ViewBase<SaveDocumentViewModel>
+public class SaveDocumentView : ComponentBase
 {
-    public SaveDocumentView(SaveDocumentViewModel viewModel) : base(viewModel)
-    {
-    }
 
-    protected override object Build(SaveDocumentViewModel vm) =>
+    protected override object Build() =>
         new Border()
             .Padding(32, 0, 0, 0)
             .Child(
@@ -29,7 +25,7 @@ public class SaveDocumentView : ViewBase<SaveDocumentViewModel>
                             .Margin(0, 8, 0, 8)
                             .Padding(16)
                             .Background(Brushes.Gray)
-                            .Command(vm.SaveAsCommand)
+                            .Command(Commands.File.SaveAs)
                             .Content(
                                 new Grid()
                                     .Rows("*,Auto")
@@ -61,7 +57,7 @@ public class SaveDocumentView : ViewBase<SaveDocumentViewModel>
                                     .Margin(0, 8, 8, 8)
                                     .Padding(16)
                                     .Background(Brushes.Gray)
-                                    .Command(vm.SaveAsPngCommand)
+                                    .Command(Commands.File.ExportImage)
                                     .Content(
                                         new Grid()
                                             .Rows("*,Auto")
@@ -86,7 +82,7 @@ public class SaveDocumentView : ViewBase<SaveDocumentViewModel>
                                     .Margin(0, 8, 0, 8)
                                     .Padding(16)
                                     .Background(Brushes.Gray)
-                                    .Command(vm.SaveAsGifAnimationCommand)
+                                    .Command(Commands.File.ExportAnimation)
                                     .Content(
                                         new Grid()
                                             .Rows("*,Auto")
@@ -110,4 +106,5 @@ public class SaveDocumentView : ViewBase<SaveDocumentViewModel>
                             )
                     ) //StackPanel.Children
             );
+
 }

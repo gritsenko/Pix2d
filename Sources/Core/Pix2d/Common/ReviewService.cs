@@ -1,5 +1,4 @@
-﻿using Mvvm.Messaging;
-using Pix2d.Messages;
+﻿using Pix2d.Messages;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

@@ -8,7 +8,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Mvvm;
-using Mvvm.Messaging;
 using Pix2d.Abstract.UI;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;

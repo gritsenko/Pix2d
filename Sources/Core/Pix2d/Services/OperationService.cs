@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
-using Mvvm.Messaging;
 using Pix2d.Abstract.Operations;
 using Pix2d.Common;
 using Pix2d.Messages;

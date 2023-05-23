@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using Mvvm.Messaging;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using SkiaNodes.Interactive;

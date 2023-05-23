@@ -1,6 +1,7 @@
 ﻿using Avalonia.Xaml.Interactions.Responsive;
 using Pix2d.Shared;
 using Pix2d.Views.Animation;
+using Pix2d.Views.BrushSettings;
 using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
 using Pix2d.Views.Text;

@@ -14,25 +14,25 @@ public class BrushToolSettingsViewModel : ToolSettingsBaseViewModel
     public AppState AppState { get; }
     public DrawingState DrawingState => AppState.DrawingState;
 
-    private BrushPresetViewModel _currentPixelBrushSetting;
-    private BrushPresetViewModel _currentPixelBrushPreset;
+    private BrushSettings _currentPixelBrushSetting;
+    private BrushSettings _currentPixelBrushPreset;
 
-    public ObservableCollection<BrushPresetViewModel> BrushPresets { get; set; } = new();
+    public ObservableCollection<BrushSettings> BrushPresets { get; set; } = new();
 
-    public BrushPresetViewModel CurrentPixelBrushPreset
+    public BrushSettings CurrentPixelBrushPreset
     {
         get => _currentPixelBrushPreset;
         set
         {
             _currentPixelBrushPreset = value;
-            var setting = _currentPixelBrushPreset.Preset.Clone();
-            CurrentPixelBrushSetting = new BrushPresetViewModel(setting);
+            var setting = _currentPixelBrushPreset.Clone();
+            CurrentPixelBrushSetting = setting;
             DrawingState.CurrentBrushSettings = setting;
             OnPropertyChanged();
         }
     }
 
-    public BrushPresetViewModel CurrentPixelBrushSetting
+    public BrushSettings CurrentPixelBrushSetting
     {
         get => _currentPixelBrushSetting;
         set
@@ -115,16 +115,16 @@ public class BrushToolSettingsViewModel : ToolSettingsBaseViewModel
         {
             foreach (var preset in AppState.DrawingState.BrushPresets)
             {
-                BrushPresets.Add(new BrushPresetViewModel(preset));
+                BrushPresets.Add(preset);
             }
         }
 
-        _currentPixelBrushSetting = new BrushPresetViewModel(DrawingState.CurrentBrushSettings.Clone());
+        _currentPixelBrushSetting = DrawingState.CurrentBrushSettings.Clone();
     }
 
     private void UpdateCurrentSetting()
     {
-        CurrentPixelBrushSetting = new BrushPresetViewModel(DrawingState.CurrentBrushSettings);
+        CurrentPixelBrushSetting = DrawingState.CurrentBrushSettings;
     }
     private void OnSelectShapeCommandExecute(ShapeType shapeType)
     {

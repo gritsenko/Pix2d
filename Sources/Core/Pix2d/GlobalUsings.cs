@@ -1,5 +1,6 @@
 // Global using directives
 
+global using Mvvm.Messaging;
 global using Pix2d.Abstract;
 global using Pix2d.Abstract.Services;
 global using Pix2d.Abstract.State;

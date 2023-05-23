@@ -1,4 +1,3 @@
-using Mvvm.Messaging;
 using Pix2d.Messages;
 using Pix2d.Mvvm;
 using Pix2d.ViewModels.NodeProperties;

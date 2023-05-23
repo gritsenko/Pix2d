@@ -1,5 +1,4 @@
-﻿using Mvvm.Messaging;
-using Pix2d.Messages;
+﻿using Pix2d.Messages;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Shared;
 

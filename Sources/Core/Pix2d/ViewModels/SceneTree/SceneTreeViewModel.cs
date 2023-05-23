@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Mvvm.Messaging;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;
 using Pix2d.Mvvm;

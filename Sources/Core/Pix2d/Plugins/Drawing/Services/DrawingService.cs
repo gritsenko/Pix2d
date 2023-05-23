@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using CommonServiceLocator;
-using Mvvm.Messaging;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Tools;
 using Pix2d.Drawing.Brushes;
