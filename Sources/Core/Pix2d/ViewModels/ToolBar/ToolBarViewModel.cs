@@ -43,7 +43,7 @@ public class ToolBarViewModel : Pix2dViewModelBase
 
     [NotifiesOn(nameof(EditContextType))] public bool IsSpriteEditMode => EditContextType == EditContextType.Sprite;
 
-    public static Dictionary<string, Type> SettingsVmMapping = new Dictionary<string, Type>()
+    public static Dictionary<string, Type> SettingsVmMapping = new()
     {
         {nameof(ObjectManipulationTool), typeof(ObjectManipulateToolViewModel)},
         {nameof(BrushTool), typeof(BrushToolSettingsViewModel)},

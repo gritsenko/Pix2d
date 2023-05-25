@@ -2,10 +2,9 @@
 using System.IO;
 using SkiaNodes;
 
-namespace Pix2d.Abstract.Export
+namespace Pix2d.Abstract.Export;
+
+public interface IExporter
 {
-    public interface IExporter
-    {
-        Stream Export(IEnumerable<SKNode> nodesToExport = null, double scale = 1);
-    }
+    Stream Export(IEnumerable<SKNode> nodesToExport = null, double scale = 1);
 }

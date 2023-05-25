@@ -48,7 +48,7 @@ public class EditService : IEditService
         set => ProjectState.CurrentNodeEditor = value;
     }
 
-    public SKNode CurrentEditedNode
+    public SKNode? CurrentEditedNode
     {
         get => ProjectState.CurrentEditedNode;
         private set
