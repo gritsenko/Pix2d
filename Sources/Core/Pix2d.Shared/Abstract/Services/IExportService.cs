@@ -9,7 +9,7 @@ namespace Pix2d.Abstract.Services;
 public interface IExportService
 {
     IReadOnlyList<IExporter> Exporters { get; }
-    void ExportSelectedNode();
+    Task ExportNodesAsync(IEnumerable<SKNode> nodesToRender, double scale, IExporter exporter);
 
-    Task ExportNodesAsync(IFileContentSource fileContentSource, IEnumerable<SKNode> nodesToRender, double scale);
+    Task ExportNodesToFileAsync(IFileContentSource fileContentSource, IEnumerable<SKNode> nodesToRender, double scale);
 }

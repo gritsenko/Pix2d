@@ -2,15 +2,19 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using CommonServiceLocator;
+using Pix2d.Abstract.Export;
+using Pix2d.Abstract.Platform;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 
 namespace Pix2d.Exporters;
 
-public class SpritesheetImageExporter : SKNodeExporterBase
+public class SpritesheetImageExporter : SKNodeExporterBase, IFilePickerExporter
 {
-    public int MaxColumns { get; set; } = int.MaxValue;
+    public int MaxColumns { get; set; } = 4;
     protected override Stream EncodeFrames(IEnumerable<SKBitmap> frames, float frameRate, double scale)
     {
         var framesArr = frames.ToArray();
@@ -58,5 +62,29 @@ public class SpritesheetImageExporter : SKNodeExporterBase
             return bitmap.ToPngStream();
         }
 
+    }
+
+    public override Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1)
+    {
+        return ExportToFileAsync(nodes, scale);
+    }
+
+    public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1)
+    {
+        var fs = ServiceLocator.Current.GetInstance<IFileService>();
+        var firstNode = nodes.FirstOrDefault();
+        var DefaultFileName = "Dsddscsd!!!!";
+        var file = await fs.GetFileToSaveWithDialogAsync(DefaultFileName ?? "Sprite.png", new[] { ".png" }, "export");
+        if (file != null)
+        {
+            using (var stream = await ExportToStreamAsync(nodes, scale))
+            {
+                await file.SaveAsync(stream);
+            }
+        }
+        else
+        {
+            throw new OperationCanceledException("Selection file canceled");
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using SkiaNodes;
 
 namespace Pix2d.Abstract.Export;
@@ -7,5 +8,23 @@ namespace Pix2d.Abstract.Export;
 public interface IExporter
 {
     string Title { get; }
-    Stream Export(IEnumerable<SKNode> nodesToExport = null, double scale = 1);
+    Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1);
+}
+
+public interface IStreamExporter : IExporter
+{
+    Task<Stream> ExportToStreamAsync(IEnumerable<SKNode> nodes, double scale = 1);
+
+}
+
+public interface IFolderPickerExporter : IExporter
+{
+    Task ExportToFolderAsync(IEnumerable<SKNode> nodes, double scale = 1);
+
+}
+
+public interface IFilePickerExporter : IExporter
+{
+    Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1);
+
 }

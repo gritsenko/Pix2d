@@ -101,7 +101,7 @@ public class ProjectService : IProjectService
     {
         var sprite = AppState.CurrentProject.SceneNode.Nodes.OfType<DrawingContainerBaseNode>();
         var exportService = ServiceLocator.Current.GetInstance<IExportService>();
-        await exportService.ExportNodesAsync(file, sprite, 1);
+        await exportService.ExportNodesToFileAsync(file, sprite, 1);
         FileService.AddToMru(file);
         return true;
     }

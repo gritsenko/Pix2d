@@ -2,7 +2,6 @@
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Shared;
-using Pix2d.ViewModels.Export;
 using Pix2d.ViewModels.Preview;
 using SkiaNodes;
 using SkiaSharp;
@@ -12,6 +11,7 @@ using System;
 using System.Linq;
 using Mvvm;
 using Pix2d.Abstract.Export;
+using Pix2d.Exporters;
 using SkiaNodes.Extensions;
 
 namespace Pix2d.Views.Export;
@@ -38,7 +38,7 @@ public class ExportView : ComponentBase
                             .Content(
                                 new SKImageView()
                                     .ShowCheckerBackground(true)
-                                    .Source(Preview, BindingMode.OneWay) //!!!!!!!
+                                    .Source(Preview) //!!!!!!!
                                     .HorizontalAlignment(HorizontalAlignment.Center)
                                     .VerticalAlignment(VerticalAlignment.Center)
                             ),
@@ -52,33 +52,16 @@ public class ExportView : ComponentBase
                                         new ComboBox()
                                             .ItemTemplate(_itemTemplate)
                                             .ItemsSource(Exporters)
-                                            .SelectedItem(Bind(SelectedExporter, BindingMode.TwoWay))
+                                            .SelectedItem(Bind(SelectedExporter, BindingMode.TwoWay)),
+                                        new ContentControl()
+                                            .Ref(out _exporterSettingsControl),
 
-                                    //new StackPanel() //Exporter options
-                                    //    .DataContext(@vm.SelectedExporter, out var selectedExporter)
-                                    //    .Children(
-                                    //        new TextBlock().Margin(0, 8, 0, 0).Text("File name prefix")
-                                    //            .IsVisible(@selectedExporter.ShowFileName),
-                                    //        new TextBox()
-                                    //            .Watermark("File Name Prefix")
-                                    //            .IsVisible(@selectedExporter.ShowFileName),
-
-                                    //        new TextBlock().Margin(0, 8, 0, 0).Text("Columns count")
-                                    //            .IsVisible(@selectedExporter.ShowSpritesheetOptions),
-
-                                    //        new NumericUpDown()
-                                    //            .Watermark("Columns count")
-                                    //            .Minimum(1)
-                                    //            .Value(new Binding("Columns", BindingMode.TwoWay))
-                                    //            .IsVisible(@selectedExporter.ShowSpritesheetOptions)
-                                    //    ), // exporter options
-                                    //new SliderEx()
-                                    //    .Header("Image scale")
-                                    //    .Units("x")
-                                    //    .Minimum(1)
-                                    //    .Maximum(20)
-                                    //    .DataContext(@vm.ExportSettingsViewModel, out var exportSettingsViewModel)
-                                    //    .Value(@exportSettingsViewModel.Scale, BindingMode.TwoWay)
+                                        new SliderEx()
+                                        .Header("Image scale")
+                                        .Units("x")
+                                        .Minimum(1)
+                                        .Maximum(20)
+                                        .Value(Scale, BindingMode.TwoWay, bindingSource: this)
                                     )
                             ),
                         new Grid().Col(1)
@@ -106,9 +89,24 @@ public class ExportView : ComponentBase
     [Inject] AppState AppState { get; set; }
     [Inject] IMessenger Messenger { get; set; }
 
+    private IExporter _selectedExporter;
 
-    private ExportSettingsViewBase _selectedExporter;
-    public ExportSettingsViewBase SelectedExporter
+    private double _scale = 1;
+    private ContentControl _exporterSettingsControl;
+
+    public double Scale
+    {
+        get => _scale;
+        set
+        {
+            if (value.Equals(_scale)) return;
+            _scale = value;
+            UpdatePreview();
+            OnPropertyChanged();
+        }
+    }
+
+    public IExporter SelectedExporter
     {
         get => _selectedExporter;
         set
@@ -116,10 +114,21 @@ public class ExportView : ComponentBase
             if (_selectedExporter != value)
             {
                 _selectedExporter = value;
+                UpdateSettingsControl(_selectedExporter);
                 UpdatePreview();
                 OnPropertyChanged();
             }
         }
+    }
+
+    private void UpdateSettingsControl(IExporter selectedExporter)
+    {
+        if (selectedExporter is SpritesheetImageExporter spritesheetImageExporter)
+            _exporterSettingsControl.Content = new SpritesheetExportSettingsView().Exporter(spritesheetImageExporter);
+        else if (selectedExporter is SpritePngSequenceExporter pngSequenceExporter)
+            _exporterSettingsControl.Content = new SpritePngSequenceExporterSettingsView().Exporter(pngSequenceExporter);
+        else
+            _exporterSettingsControl.Content = null;
     }
 
     public SKBitmapObservable Preview { get; } = new();
@@ -130,6 +139,7 @@ public class ExportView : ComponentBase
 
     protected override void OnAfterInitialized()
     {
+        SelectedExporter = Exporters.First();
         Messenger.Register<StateChangedMessage>(this, msg => msg.OnPropertyChanged<UiState>(x => x.ShowExportDialog, () =>
         {
             if (AppState.UiState.ShowExportDialog)
@@ -143,10 +153,10 @@ public class ExportView : ComponentBase
         {
             try
             {
-                Logger.LogEventWithParams("Exporting image", new Dictionary<string, string> { { "Exporter", SelectedExporter.Name } });
+                Logger.LogEventWithParams("Exporting image", new Dictionary<string, string> { { "Exporter", SelectedExporter.Title } });
 
                 var nodesToExport = GetNodesToExport();
-                await ExportService.ExportNodesAsync(nodesToExport, SelectedExporter);
+                await ExportService.ExportNodesAsync(nodesToExport, 1, SelectedExporter);
                 //await SelectedExporter.Export(nodesToExport, new );
 
                 Commands.View.HideExportDialogCommand.Execute();
@@ -168,17 +178,15 @@ public class ExportView : ComponentBase
 
     private void UpdatePreview()
     {
-        var settings = new ImageExportSettings();
         var editorService = CoreServices.EditService;
 
-        if (!(editorService.GetCurrentEditor() is SpriteEditor spriteEditor) || settings == null)
+        if (!(editorService.GetCurrentEditor() is SpriteEditor spriteEditor))
             return;
 
         var nodesToExport = GetNodesToExport();
         var preview = nodesToExport.ToArray()
             .RenderToBitmap(
-                spriteEditor.CurrentSprite.UseBackgroundColor ? spriteEditor.CurrentSprite.BackgroundColor : SKColor.Empty,
-                settings.Scale);
+                spriteEditor.CurrentSprite.UseBackgroundColor ? spriteEditor.CurrentSprite.BackgroundColor : SKColor.Empty, Scale);
         Preview.SetBitmap(preview);
     }
 

@@ -2,7 +2,7 @@
 
 namespace Pix2d.Views.Export;
 
-public class PngExportSettingsView : ExportSettingsViewBase
+public class PngExportSettingsView : ComponentBase, IExportSettingsViewBase<PngImageExporter>
 {
     protected override object Build() =>
         new StackPanel() //Exporter options
@@ -10,5 +10,5 @@ public class PngExportSettingsView : ExportSettingsViewBase
                 new TextBlock().Text("No extra settings yet")
             ); // exporter options
 
-    public override string ExporterName => "Png exporter";
+    public PngImageExporter Exporter { get; set; }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.NodeTypes;
 using SkiaNodes;
@@ -11,21 +12,25 @@ using SkiaSharp;
 namespace Pix2d.Exporters
 {
 
-    public abstract class SKNodeExporterBase : IExporter
+    public abstract class SKNodeExporterBase : IStreamExporter
     {
         protected abstract Stream EncodeFrames(IEnumerable<SKBitmap> frames, float frameRate, double scale);
 
         public virtual string Title => GetType().Name;
+        public virtual Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Stream Export(IEnumerable<SKNode> nodesToExport, double scale = 1)
+        public Task<Stream> ExportToStreamAsync(IEnumerable<SKNode> nodes, double scale = 1)
         {
             try
             {
                 var frameRate = 0.0001f;
-                var nodes = nodesToExport.ToArray();
-                List<SKBitmap> frames = new List<SKBitmap>();
+                var nodesToExport = nodes.ToArray();
+                var frames = new List<SKBitmap>();
 
-                if (nodes.Length > 0 && nodes[0] is IAnimatedNode sprite)
+                if (nodesToExport.Length > 0 && nodesToExport[0] is IAnimatedNode sprite)
                 {
                     frameRate = sprite.FrameRate;
                     var framesCount = sprite.GetFramesCount();
@@ -34,7 +39,7 @@ namespace Pix2d.Exporters
                     for (int index = 0; index < framesCount; index++)
                     {
                         sprite.SetFrameIndex(index);
-                        var frame = nodes.RenderToBitmap(SKColor.Empty);
+                        var frame = nodesToExport.RenderToBitmap(SKColor.Empty);
                         frames.Add(frame);
                     }
 
@@ -48,7 +53,7 @@ namespace Pix2d.Exporters
                 }
 
                 var stream = EncodeFrames(frames, frameRate, scale);
-                return stream;
+                return Task.FromResult(stream);
 
             }
             catch (Exception e)
