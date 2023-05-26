@@ -20,7 +20,7 @@ public class AppState : StateBase
     public Pix2DAppSettings Settings { get; set; } = new();
     public UiState UiState { get; set; } = new();
 
-    public new List<ProjectState> LoadedProjects { get; set; } = new();
+    public List<ProjectState> LoadedProjects { get; set; } = new();
 
     public ProjectState CurrentProject { get; set; } = new();
     

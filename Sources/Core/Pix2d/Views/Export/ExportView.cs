@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System;
 using System.Linq;
 using Mvvm;
+using Pix2d.Abstract.Export;
 using SkiaNodes.Extensions;
 
 namespace Pix2d.Views.Export;
@@ -18,8 +19,8 @@ namespace Pix2d.Views.Export;
 public class ExportView : ComponentBase
 {
     private readonly IDataTemplate _itemTemplate =
-        new FuncDataTemplate<ExportSettingsViewBase>((itemVm, ns)
-            => new TextBlock().Text(itemVm?.ExporterName ?? ""));
+        new FuncDataTemplate<IExporter>((itemVm, ns)
+            => new TextBlock().Text(itemVm?.Title ?? ""));
 
     protected override object Build() =>
         new Border()
@@ -99,6 +100,7 @@ public class ExportView : ComponentBase
                     )
             );
 
+    [Inject] IExportService ExportService { get; set; }
 
     [Inject] IBusyController BusyController { get; set; }
     [Inject] AppState AppState { get; set; }
@@ -122,7 +124,7 @@ public class ExportView : ComponentBase
 
     public SKBitmapObservable Preview { get; } = new();
 
-    public List<ExportSettingsViewBase> Exporters { get; set; } = new();
+    public List<IExporter> Exporters => ExportService.Exporters.ToList();
 
     public ICommand ExportCommand => new LoggedRelayCommand(OnExportCommandExecute, () => true, "Exported image");
 
@@ -133,9 +135,6 @@ public class ExportView : ComponentBase
             if (AppState.UiState.ShowExportDialog)
                 UpdatePreview();
         }));
-
-        Exporters.Add(new PngExportSettingsView());
-
     }
 
     private async void OnExportCommandExecute()
@@ -147,6 +146,7 @@ public class ExportView : ComponentBase
                 Logger.LogEventWithParams("Exporting image", new Dictionary<string, string> { { "Exporter", SelectedExporter.Name } });
 
                 var nodesToExport = GetNodesToExport();
+                await ExportService.ExportNodesAsync(nodesToExport, SelectedExporter);
                 //await SelectedExporter.Export(nodesToExport, new );
 
                 Commands.View.HideExportDialogCommand.Execute();

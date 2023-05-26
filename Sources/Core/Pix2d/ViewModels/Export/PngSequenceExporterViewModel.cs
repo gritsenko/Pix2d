@@ -51,18 +51,6 @@ namespace Pix2d.ViewModels.Export
 
         }
 
-        public override Task<Stream> ExportToStream(IEnumerable<SKNode> nodes, ImageExportSettings settings)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void Reset()
-        {
-            //var pm = ServiceLocator.Current.GetInstance<ProjectManager>();
-            //FileName = pm.GetDefaultFileName();
-            base.Reset();
-        }
-
         public override void OnSelected()
         {
             if (string.IsNullOrEmpty(FileName))

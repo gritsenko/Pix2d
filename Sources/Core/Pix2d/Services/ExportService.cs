@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Exporters;
@@ -20,6 +21,14 @@ namespace Pix2d.Services
             SelectionService = selectionService;
             FileService = fileService;
         }
+
+        public IReadOnlyList<IExporter> Exporters { get; } = new List<IExporter>()
+        {
+            new PngImageExporter(),
+            new GifImageExporter(),
+            new SpritesheetImageExporter(),
+            new SvgImageExporter()
+        };
 
         public void ExportSelectedNode()
         {

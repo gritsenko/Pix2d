@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using Pix2d.Abstract.Export;
-using Pix2d.Abstract.Platform;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -11,6 +10,8 @@ namespace Pix2d.Exporters
 {
     public class SvgImageExporter : IExporter
     {
+        public string Title => "SVG Image exporter";
+
         public Stream Export(IEnumerable<SKNode> nodesToExport, double scale = 1)
         {
             try

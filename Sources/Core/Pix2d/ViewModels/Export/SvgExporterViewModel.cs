@@ -24,21 +24,16 @@ namespace Pix2d.ViewModels.Export
             var file = await fs.GetFileToSaveWithDialogAsync(settings.DefaultFileName ?? "Sprite.svg", new[] { ".svg" }, "export");
             if (file != null)
             {
-                using (var stream = await ExportToStream(nodes, settings))
-                {
-                    await file.SaveAsync(stream);
-                }
+
+                var exporter = new SvgImageExporter();
+                ;
+                using var stream = exporter.Export(nodes, settings.Scale);
+                await file.SaveAsync(stream);
             }
             else
             {
                 throw new OperationCanceledException("Selection file canceled");
             }
-        }
-
-        public override Task<Stream> ExportToStream(IEnumerable<SKNode> nodes, ImageExportSettings settings)
-        {
-            var exporter = new SvgImageExporter();
-            return Task.FromResult(exporter.Export(nodes, settings.Scale));
         }
 
         public override void Reset()

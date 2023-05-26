@@ -32,8 +32,6 @@ public abstract class ExporterViewModel : ViewModelBase
         }
     }
 
-    public abstract Task<Stream> ExportToStream(IEnumerable<SKNode> node, ImageExportSettings settings);
-
     public virtual void OnSelected()
     {
             

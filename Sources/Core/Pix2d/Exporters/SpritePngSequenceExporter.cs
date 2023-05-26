@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Pix2d.Abstract.NodeTypes;
-using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using SkiaNodes;
 using SkiaNodes.Extensions;

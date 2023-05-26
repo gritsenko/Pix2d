@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.NodeTypes;
-using Pix2d.Abstract.Platform;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -15,6 +14,8 @@ namespace Pix2d.Exporters
     public abstract class SKNodeExporterBase : IExporter
     {
         protected abstract Stream EncodeFrames(IEnumerable<SKBitmap> frames, float frameRate, double scale);
+
+        public virtual string Title => GetType().Name;
 
         public Stream Export(IEnumerable<SKNode> nodesToExport, double scale = 1)
         {

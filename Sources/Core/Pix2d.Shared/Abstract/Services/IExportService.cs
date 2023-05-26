@@ -1,16 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform.FileSystem;
 using SkiaNodes;
 
-namespace Pix2d.Abstract.Services
+namespace Pix2d.Abstract.Services;
+
+public interface IExportService
 {
-    public interface IExportService
-    {
-        void ExportSelectedNode();
-        //void ExportAssets();
-        //void BuildProject();
-        //void RunProject();
-        Task ExportNodesAsync(IFileContentSource fileContentSource, IEnumerable<SKNode> nodesToRender, double scale);
-    }
+    IReadOnlyList<IExporter> Exporters { get; }
+    void ExportSelectedNode();
+
+    Task ExportNodesAsync(IFileContentSource fileContentSource, IEnumerable<SKNode> nodesToRender, double scale);
 }
