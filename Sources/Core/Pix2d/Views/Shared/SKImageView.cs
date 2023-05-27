@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Data;
-using Pix2d.ViewModels.Preview;
 using SkiaSharp;
 
 namespace Pix2d.Shared;

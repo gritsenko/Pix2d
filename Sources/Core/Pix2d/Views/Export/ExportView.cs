@@ -2,7 +2,6 @@
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Shared;
-using Pix2d.ViewModels.Preview;
 using SkiaNodes;
 using SkiaSharp;
 using System.Collections.Generic;

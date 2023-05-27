@@ -1,6 +1,4 @@
-﻿
-using Mvvm;
-using Pix2d.ViewModels.Preview;
+﻿using Mvvm;
 using SkiaSharp;
 using System.Threading.Tasks;
 

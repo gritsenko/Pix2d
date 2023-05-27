@@ -3,7 +3,7 @@ using Mvvm;
 using Pix2d.Abstract.UI;
 using SkiaSharp;
 
-namespace Pix2d.ViewModels.Preview;
+namespace Pix2d.Common;
 
 public class SKBitmapObservable : ObservableObject, ISKBitmapObservable
 {
