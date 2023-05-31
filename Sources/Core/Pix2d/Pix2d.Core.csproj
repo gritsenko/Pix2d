@@ -84,10 +84,4 @@
     <ProjectReference Include="..\Pix2d.Shared\Pix2d.Shared.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="Mono.Android">
-      <HintPath>..\..\..\..\..\Program Files\dotnet\packs\Microsoft.Android.Ref.33\33.0.46\ref\net7.0\Mono.Android.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>
