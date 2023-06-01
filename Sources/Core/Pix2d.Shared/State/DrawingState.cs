@@ -24,6 +24,11 @@ public class DrawingState : StateBase
         get => Get(new BrushSettings());
         set => Set(value);
     }
+    public BrushSettings CurrentPixelBrushPreset
+    {
+        get => Get(new BrushSettings());
+        set => Set(value);
+    }
 
     public bool IsPixelPerfectDrawingModeEnabled
     {

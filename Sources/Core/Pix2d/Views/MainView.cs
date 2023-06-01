@@ -7,6 +7,7 @@ using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
 using Pix2d.Views.Text;
 using Pix2d.Views.ToolBar;
+using Pix2d.Views.ToolBar.Tools;
 
 namespace Pix2d.Views;
 

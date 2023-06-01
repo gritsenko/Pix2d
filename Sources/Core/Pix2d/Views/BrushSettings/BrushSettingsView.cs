@@ -1,13 +1,14 @@
 ﻿using Pix2d.Shared;
-using Pix2d.ViewModels.ToolBar.ToolSettings;
 using static Pix2d.Resources.StaticResources;
 using Colors = Avalonia.Media.Colors;
 
 namespace Pix2d.Views.BrushSettings;
 
-public class BrushSettingsView : ViewBaseSingletonVm<BrushToolSettingsViewModel>
+public class BrushSettingsView : ComponentBase
 {
-    protected override object Build(BrushToolSettingsViewModel vm) =>
+    [Inject] private AppState AppState { get; set; } = null!;
+
+    protected override object Build() =>
         new ScrollViewer()
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Content(
@@ -28,8 +29,8 @@ public class BrushSettingsView : ViewBaseSingletonVm<BrushToolSettingsViewModel>
                             .MinHeight(72)
                             .BorderThickness(1)
                             .Padding(4)
-                            .ItemsSource(Bind(vm.BrushPresets))
-                            .SelectedItem(Bind(vm.CurrentPixelBrushPreset, BindingMode.TwoWay))
+                            .ItemsSource(AppState.DrawingState.BrushPresets)
+                            .SelectedItem(AppState.DrawingState.CurrentPixelBrushPreset, BindingMode.TwoWay)
                             .ItemsPanel(Templates.WrapPanelTemplate)
                             .ItemTemplate((Primitives.Drawing.BrushSettings item) => new BrushItemView().Preset(item)),
 
@@ -37,23 +38,24 @@ public class BrushSettingsView : ViewBaseSingletonVm<BrushToolSettingsViewModel>
                             .Header("Size")
                             .Units("px")
                             .Minimum(1)
-                            .Value(@vm.BrushScale, BindingMode.TwoWay)
+                            .Value(AppState.DrawingState.CurrentBrushSettings.Scale, BindingMode.TwoWay)
                             .Row(2),
 
                         new SliderEx()
                             .Header("Opacity")
                             .Units("%")
-                            .Value(@vm.BrushOpacity, BindingMode.TwoWay)
+                            .Value(AppState.DrawingState.CurrentBrushSettings.Opacity, BindingMode.TwoWay)
                             .Row(3),
 
                         new SliderEx()
                             .Header("Spacing")
                             .Units("px")
-                            .Value(@vm.BrushSpacing, BindingMode.TwoWay)
+                            .Value(AppState.DrawingState.CurrentBrushSettings.Spacing, BindingMode.TwoWay)
                             .Row(4),
 
                         new ToggleSwitch()
-                            .IsChecked(@vm.IsPixelPerfectModeEnabled, BindingMode.TwoWay)
+                            .IsChecked(AppState.DrawingState.IsPixelPerfectDrawingModeEnabled, BindingMode.TwoWay)
                             .Row(5)
                     ));
+
 }
