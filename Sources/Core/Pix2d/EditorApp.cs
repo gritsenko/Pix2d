@@ -37,7 +37,7 @@ public class EditorApp : Application
         Resources.Add("ColorPickerThumb",
             new ImageBrush()
             {
-                Source = new Bitmap(ViewBase.GetAsset(StaticResources.GetEmbeddedResourceURI("/Assets/ColorThumb.png").ToString()))
+                Source = StaticResources.ColorThumb 
             });
     }
     //FluentTheme GetFluentTheme() =>

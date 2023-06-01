@@ -312,7 +312,8 @@ public class SkiaCanvas : Control
 
     private void OnPinch(object sender, PinchEventArgs e)
     {
-        Input.SetPointerMoved(ToSKPoint(_pinchRecognizer.Offset), false, KeyModifier.None, true);
+        
+        //Input.SetPointerMoved(ToSKPoint(_pinchRecognizer.Offset), false, KeyModifier.None, true);
 
         if (!_isPinching)
         {

@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using Pix2d.Drawing.Tools;
+using Pix2d.Plugins.Drawing.Tools;
 using Pix2d.Primitives.Drawing;
 using Pix2d.ViewModels.ToolSettings;
 

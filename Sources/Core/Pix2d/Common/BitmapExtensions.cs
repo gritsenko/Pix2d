@@ -19,6 +19,18 @@ public static class BitmapExtensions
         return result;
     }
 
+    public static SKBitmap ToSKBitmap(this Bitmap bitmap)
+    {
+        var info = new SKImageInfo(bitmap.PixelSize.Width, bitmap.PixelSize.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        var result = new SKBitmap(info);
+        var dest = result.GetPixels(out var len);
+        var stride = bitmap.PixelSize.Width * 4;
+
+        bitmap.CopyPixels(new PixelRect(bitmap.PixelSize), dest, (int)len, stride);
+
+        return result;
+    }
+
     public static ImageBrush ToBrush(this SKBitmap bitmap)
     {
         return new ImageBrush(bitmap.ToBitmap());

@@ -9,14 +9,7 @@ namespace Pix2d.Abstract.Tools;
 
 public abstract class BaseTool : ITool
 {
-    //public ISceneService SceneService { get; }
-    //protected ISelectionService SelectionService => ServiceLocator.ServiceLocatorProvider().GetInstance<ISelectionService>();
-    //protected IDrawingService DrawingService => DefaultServiceLocator.ServiceLocatorProvider().GetInstance<IDrawingService>();
-
-    //protected ISceneService SceneService => DefaultServiceLocator.ServiceLocatorProvider().GetInstance<ISceneService>();
-    //protected IEditService EditService => DefaultServiceLocator.ServiceLocatorProvider().GetInstance<IEditService>();
-
-    protected SKNode RootNode => SKInput.Current.RootNodeProvider?.Invoke();
+    protected SKNode? RootNode => SKInput.Current.RootNodeProvider?.Invoke();
     public string Key => GetType().Name;
     public virtual EditContextType EditContextType => EditContextType.General;
     public bool IsActive { get; private set; }
@@ -34,7 +27,8 @@ public abstract class BaseTool : ITool
             {
                 return command.DefaultShortcut.Key.ToString();
             }
-            return null;}
+            return null;
+        }
     }
 
     private bool _isPointerCatched = false;
@@ -43,10 +37,14 @@ public abstract class BaseTool : ITool
     {
         Debug.WriteLine(Key + " Tool activated");
         IsActive = true;
+
+        if (RootNode == null) return Task.CompletedTask;
+
         RootNode.PointerPressed += OnPointerPressed;
         RootNode.PointerReleased += OnPointerReleased;
         RootNode.PointerMoved += OnPointerMoved;
         RootNode.DoubleClicked += OnPointerDoubleClicked;
+
         return Task.CompletedTask;
     }
 
@@ -56,6 +54,9 @@ public abstract class BaseTool : ITool
             ReleasePointer();
         IsActive = false;
         Debug.WriteLine(Key + " Tool deactivated");
+
+        if (RootNode == null) return;
+        
         RootNode.PointerPressed -= OnPointerPressed;
         RootNode.PointerReleased -= OnPointerReleased;
         RootNode.PointerMoved -= OnPointerMoved;

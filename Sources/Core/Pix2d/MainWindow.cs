@@ -6,7 +6,7 @@ public class MainWindow : Window
     public MainWindow()
     {
         Title = "Pix2d Ultimate";
-        var iconStream = ViewBase.GetAsset(StaticResources.GetEmbeddedResourceURI("/Assets/app1.png").ToString());
+        var iconStream = StaticResources.AppIcon;
         Icon = new WindowIcon(iconStream);
         Width = 800;
         Height = 600;

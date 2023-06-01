@@ -2,6 +2,7 @@
 using Pix2d.Drawing.Tools;
 using Pix2d.Infrastructure;
 using Pix2d.Plugins.Drawing.Commands;
+using Pix2d.Plugins.Drawing.Tools;
 using Pix2d.Services;
 
 namespace Pix2d.Plugins.Drawing

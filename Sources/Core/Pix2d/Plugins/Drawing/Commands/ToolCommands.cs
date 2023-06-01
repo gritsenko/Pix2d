@@ -1,6 +1,7 @@
 ﻿using Pix2d.Abstract.Commands;
 using Pix2d.Command;
 using Pix2d.Drawing.Tools;
+using Pix2d.Plugins.Drawing.Tools;
 using Pix2d.Primitives;
 using Pix2d.Primitives.Drawing;
 using SkiaNodes.Interactive;

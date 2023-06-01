@@ -36,9 +36,7 @@ public class ColorPicker : ViewBase
         set => SetAndRaise(ColorHueProperty, ref _colorHue, value);
     }
 
-
-    private IAssetLoader AssetLoader => AvaloniaLocator.Current.GetService<IAssetLoader>();
-    private IBitmap ThumbImage => new Bitmap(AssetLoader.Open(new Uri("avares://Pix2d.Core/Assets/ColorThumb.png")));
+    private Bitmap ThumbImage => StaticResources.ColorThumb;
 
     protected override object Build() =>
         new Grid()

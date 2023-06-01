@@ -1,14 +1,13 @@
 ﻿using Pix2d.Abstract.Drawing;
 
-namespace Pix2d.Drawing.Tools
-{
-    public class EraserTool : BrushTool
-    {
-        public override string DisplayName => "Eraser tool";
-        public override BrushDrawingMode DrawingMode => BrushDrawingMode.Erase;
+namespace Pix2d.Plugins.Drawing.Tools;
 
-        public EraserTool(IDrawingService drawingService, ISelectionService selectionService) : base(drawingService, selectionService)
-        {
-        }
+public class EraserTool : BrushTool
+{
+    public override string DisplayName => "Eraser tool";
+    public override BrushDrawingMode DrawingMode => BrushDrawingMode.Erase;
+
+    public EraserTool(IDrawingService drawingService, ISelectionService selectionService) : base(drawingService, selectionService)
+    {
     }
 }

@@ -1,6 +1,4 @@
 ﻿using Avalonia.Styling;
-using Pix2d.ViewModels;
-using Pix2d.ViewModels.Color;
 using Pix2d.ViewModels.ToolBar;
 using Pix2d.ViewModels.ToolBar.ToolSettings;
 using Pix2d.Views.BrushSettings;
@@ -41,8 +39,9 @@ public class ToolBarView : ViewBaseSingletonVm<ToolBarViewModel>
                     .CornerRadius(25)
                     .BorderThickness(3)
                     .BorderBrush(Colors.White.ToBrush())
-                    .Background(Bind(GetViewModel<ColorPickerViewModel>(), m => m.SelectedColor)
-                        .Converter(StaticResources.Converters.SKColorToBrushConverter)),
+                    //.Background(Bind(GetViewModel<ColorPickerViewModel>(), m => m.SelectedColor)
+                    //    .Converter(StaticResources.Converters.SKColorToBrushConverter))
+                    ,
 
                 new Button() //Brush settings button
                     .Classes("toolbar-button")

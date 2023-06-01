@@ -9,6 +9,7 @@ using Pix2d.Drawing.Tools;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;
 using Pix2d.Mvvm;
+using Pix2d.Plugins.Drawing.Tools;
 using Pix2d.Tools;
 using Pix2d.ViewModels.ToolBar.ToolSettings;
 using Pix2d.ViewModels.ToolSettings;
@@ -45,7 +46,6 @@ public class ToolBarViewModel : Pix2dViewModelBase
 
     public static Dictionary<string, Type> SettingsVmMapping = new()
     {
-        {nameof(ObjectManipulationTool), typeof(ObjectManipulateToolViewModel)},
         {nameof(BrushTool), typeof(BrushToolSettingsViewModel)},
         {nameof(EraserTool), typeof(ToolSettingsBaseViewModel)},
         {nameof(FillTool), typeof(FillToolSettingsViewModel)},

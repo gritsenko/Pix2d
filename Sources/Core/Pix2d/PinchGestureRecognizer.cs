@@ -3,7 +3,7 @@ using Avalonia.Input.GestureRecognizers;
 
 namespace Pix2d;
 
-public class PinchGestureRecognizer : StyledElement, IGestureRecognizer
+public class PinchGestureRecognizer : GestureRecognizer
 {
     private IInputElement? _target;
     private IGestureRecognizerActionsDispatcher? _actions;

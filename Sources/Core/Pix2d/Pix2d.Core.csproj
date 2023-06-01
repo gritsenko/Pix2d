@@ -18,6 +18,7 @@
   <ItemGroup>
     <Compile Remove="Common\BarPlotter.cs" />
     <Compile Remove="Common\Label.cs" />
+    <Compile Remove="PinchGestureRecognizer.cs" />
     <Compile Remove="Views\MarkupExtensions.cs" />
   </ItemGroup>
 
@@ -70,10 +71,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.0.0-preview8" />
-    <PackageReference Include="Avalonia.Skia" Version="11.0.0-preview8" />
-    <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.0-preview8" />
-    <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.0.0-preview8" />
+    <PackageReference Include="Avalonia" Version="11.0.0-rc1.1" />
+    <PackageReference Include="Avalonia.Skia" Version="11.0.0-rc1.1" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.0-rc1.1" />
+    <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.0.0-rc1.1" />
   </ItemGroup>
 
   <ItemGroup>
