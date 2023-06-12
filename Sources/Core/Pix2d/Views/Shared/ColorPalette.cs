@@ -106,21 +106,21 @@ public class ColorPalette : ViewBase
                 new ItemsControl()
                     .Ref(out _itemsControl)
                     .ItemsPanel(StaticResources.Templates.WrapPanelTemplate)
-                    .ItemsSource(Bind(ColorsProperty))
+                    .ItemsSource(ColorsProperty)
                     .ItemTemplate(new FuncDataTemplate<SKColor>((itemVm, ns) =>
                             itemVm == SKColor.Empty
                                 ? new Button() //ADD COLOR BUTTON
                                     .Content("+")
-                                    .Command(Bind(AddColorCommandProperty))
-                                    .CommandParameter(Bind(ColorToAddProperty))
-                                    .Background(Bind(ColorToAddProperty).Converter(StaticResources.Converters.SKColorToBrushConverter))
+                                    .Command(AddColorCommandProperty)
+                                    .CommandParameter(ColorToAddProperty)
+                                    .Background(ColorToAddProperty, converter: StaticResources.Converters.SKColorToBrushConverter)
                                     .Width(36)
                                     .Height(36)
                                 : new Button() // COLOR ITEM
                                     .Background(itemVm.ToBrush())
                                     .BorderBrush(itemVm.ToBrush())
                                     .CommandParameter(itemVm)
-                                    .Command(Bind(SelectColorCommandProperty))
+                                    .Command(SelectColorCommandProperty)
                                     .Width(36)
                                     .Height(36)
                                     .With(b =>

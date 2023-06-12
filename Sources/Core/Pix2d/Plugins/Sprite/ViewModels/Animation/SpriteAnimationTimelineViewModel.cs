@@ -17,7 +17,7 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Sprite.ViewModels.Animation;
 
-public class SpriteAnimationTimelineViewModel : ViewModelBase
+public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
 {
     private SpriteEditor _editor;
     private AnimationFrameViewModel _currentFrame;

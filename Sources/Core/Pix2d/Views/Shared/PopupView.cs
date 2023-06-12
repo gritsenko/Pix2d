@@ -101,22 +101,22 @@ public class PopupView : ViewBase
             .Children(
 
                 new Grid().Cols("*, Auto, Auto")
-                    .IsVisible(Bind(ShowHeaderProperty))
+                    .IsVisible(@ShowHeaderProperty)
                     .Children(
 
                         new TextBlock() { IsHitTestVisible = false }
                             .Margin(8,0,0,0)
                             .VerticalAlignment(VerticalAlignment.Center)
-                            .Text(Bind(HeaderProperty, BindingMode.OneWay)),
+                            .Text(@HeaderProperty, BindingMode.OneWay),
 
                         new Button().Col(1) // pin button
                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                            .IsVisible(Bind(ShowPinButtonProperty, BindingMode.OneWay))
+                            .IsVisible(@ShowPinButtonProperty, BindingMode.OneWay)
                             .Content("\xE840"),
 
                         new Button().Col(2) //Close button
                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                            .Command(Bind(CloseButtonCommandProperty, BindingMode.OneWay))
+                            .Command(@CloseButtonCommandProperty, BindingMode.OneWay)
                             .Content("\xE894"),
 
                         new Thumb()
@@ -130,7 +130,7 @@ public class PopupView : ViewBase
 
                 new ContentControl().Row(1)
                     .Ref(out _contentControl)
-                    .Content(Bind(ContentProperty, BindingMode.OneWay))
+                    .Content(@ContentProperty, BindingMode.OneWay)
                     .VerticalContentAlignment(VerticalAlignment.Stretch)
                     .HorizontalContentAlignment(HorizontalAlignment.Stretch)
             );

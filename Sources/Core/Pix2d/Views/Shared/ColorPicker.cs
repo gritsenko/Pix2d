@@ -65,7 +65,7 @@ public class ColorPicker : ViewBase
                         GradientStops =
                         {
                                 new GradientStop {Color = Colors.White, Offset = 0},
-                                new GradientStop {[!GradientStop.ColorProperty] = Bind(this, vm=>vm.ColorHue), Offset = 1}
+                                new GradientStop {[!GradientStop.ColorProperty] = new Binding("ColorHue"){Source = this }, Offset = 1}
                         }
                     }),
 
@@ -130,7 +130,7 @@ public class ColorPicker : ViewBase
     private Image _hueThumb;
 
     private Size SquareSize => _colorSquare.Bounds.Size;
-        
+
     private double _sat;
     private double _val;
     private double _hue;
@@ -173,7 +173,7 @@ public class ColorPicker : ViewBase
         _hue = Clamp(position.Y / _tickHeight, 0, 360);
         UpdateHueThumb();
         UpdateColorProperty();
-     }
+    }
 
     private double Clamp(double value, double min, double max) => Math.Min(Math.Max(value, 0), 360);
 
@@ -269,7 +269,7 @@ public class ColorPicker : ViewBase
         UpdateHueColor();
         UpdateHueThumb();
         UpdateThumb();
-        
+
         return result;
     }
 }

@@ -20,7 +20,7 @@ using SkiaSharp;
 
 namespace Pix2d.ViewModels.Layers;
 
-public class LayersListViewModel : ViewModelBase
+public class LayersListViewModel : Pix2dViewModelBase
 {
     public IEditService EditService { get; }
     public IEffectsService EffectsService { get; } 

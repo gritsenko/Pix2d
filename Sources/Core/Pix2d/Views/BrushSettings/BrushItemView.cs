@@ -9,7 +9,7 @@ public class BrushItemView : ComponentBase
     protected override object Build() =>
         new Grid()
             .Background(Bind(Preview)
-                .Converter(StaticResources.Converters.SKBitmapToBrushConverter)
+                .Converter(StaticResources.Converters.SKBitmapToIBrushConverter)
             )
             .Width(48)
             .Height(48);

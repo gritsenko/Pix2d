@@ -64,7 +64,7 @@ public class AppButton : ViewBase
 
     protected override object Build() =>
         new Button()
-            .Command(Bind(CommandProperty))
+            .Command(CommandProperty)
             .Background(Brushes.Transparent)
             .BorderBrush(Brushes.Transparent)
             .HorizontalAlignment(HorizontalAlignment.Stretch)
@@ -76,7 +76,7 @@ public class AppButton : ViewBase
             .OnClick(args => Click?.Invoke(this, args))
             .Content(
                 new Border()
-                    .Background(Bind(BackgroundProperty))
+                    .Background(BackgroundProperty)
                     .Child(
                         new Grid()
                             .Rows("24, Auto")
@@ -88,11 +88,11 @@ public class AppButton : ViewBase
                                     .VerticalAlignment(VerticalAlignment.Center)
                                     .HorizontalContentAlignment(HorizontalAlignment.Stretch)
                                     .VerticalContentAlignment(VerticalAlignment.Stretch)
-                                    .FontFamily(Bind(IconFontFamilyProperty))
-                                    .Content(Bind(ContentProperty)),
+                                    .FontFamily(IconFontFamilyProperty)
+                                    .Content(ContentProperty),
 
                                 new TextBlock().Row(1)
-                                    .Text(Bind(LabelProperty))
+                                    .Text(LabelProperty)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
                             )
                     )

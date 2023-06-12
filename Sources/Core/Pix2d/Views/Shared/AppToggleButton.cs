@@ -14,8 +14,8 @@ public class AppToggleButton : AppButton
 
     protected override object Build() =>
         new ToggleButton()
-            .IsChecked(Bind(IsCheckedProperty))
-            .Command(Bind(CommandProperty))
+            .IsChecked(IsCheckedProperty)
+            .Command(CommandProperty)
             .Background(Brushes.Transparent)
             .BorderBrush(Brushes.Transparent)
             .HorizontalAlignment(HorizontalAlignment.Stretch)
@@ -26,7 +26,7 @@ public class AppToggleButton : AppButton
             .Margin(0)
             .Content(
                 new Border()
-                    .Background(Bind(BackgroundProperty))
+                    .Background(BackgroundProperty)
                     .Child(
                         new Grid()
                             .Rows("24, Auto")
@@ -38,11 +38,11 @@ public class AppToggleButton : AppButton
                                     .VerticalAlignment(VerticalAlignment.Center)
                                     .HorizontalContentAlignment(HorizontalAlignment.Stretch)
                                     .VerticalContentAlignment(VerticalAlignment.Stretch)
-                                    .FontFamily(Bind(IconFontFamilyProperty))
-                                    .Content(Bind(ContentProperty)),
+                                    .FontFamily(IconFontFamilyProperty)
+                                    .Content(ContentProperty),
 
                                 new TextBlock().Row(1)
-                                    .Text(Bind(LabelProperty))
+                                    .Text(LabelProperty)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
                             )
                     )

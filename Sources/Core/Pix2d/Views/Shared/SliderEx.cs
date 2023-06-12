@@ -58,17 +58,17 @@ public class SliderEx : ViewBase
             .Margin(0, 4)
             .Children(
                 new TextBlock()
-                    .Text(Bind(HeaderProperty, BindingMode.OneWay))
+                    .Text(HeaderProperty, BindingMode.OneWay)
                     .VerticalAlignment(VerticalAlignment.Center),
 
                 new NumericUpDown()
                     .Col(1)
                     .HorizontalAlignment(HorizontalAlignment.Right)
                     .Width(80)
-                    .Value(Bind(ValueProperty, BindingMode.TwoWay)),
+                    .Value(ValueProperty, BindingMode.TwoWay),
 
                 new TextBlock()
-                    .Text(Bind(UnitsProperty, BindingMode.TwoWay))
+                    .Text(UnitsProperty, BindingMode.TwoWay)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .Margin(4)
                     .Col(2),
@@ -78,10 +78,10 @@ public class SliderEx : ViewBase
                     .ColSpan(3)
                     .TickFrequency(1)
                     .IsSnapToTickEnabled(true)
-                    .Maximum(Bind(MaximumProperty))
-                    .Minimum(Bind(MinimumProperty))
+                    .Maximum(MaximumProperty)
+                    .Minimum(MinimumProperty)
                     .SmallChange(1)
                     .LargeChange(10)
-                    .Value(Bind(ValueProperty, BindingMode.TwoWay))
+                    .Value(ValueProperty, BindingMode.TwoWay)
             );
 }
