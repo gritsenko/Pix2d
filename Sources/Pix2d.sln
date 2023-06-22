@@ -17,7 +17,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Core", "Core\Pix2d\Pi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Android", "PlatformHeads\Pix2d.Android\Pix2d.Android.csproj", "{3453A519-A81A-4500-BEE3-E174847F144D}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Avalonia.Markup,Declarative", "Avalonia.Markup,Declarative", "{9A13A2F1-F71D-4328-BA8E-A48904B6949A}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Avalonia.Markup.Declarative", "Avalonia.Markup.Declarative", "{9A13A2F1-F71D-4328-BA8E-A48904B6949A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Avalonia.Markup.Declarative", "..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative\Avalonia.Markup.Declarative.csproj", "{194827E2-7488-4A2C-A93F-2E0F1C591B12}"
 EndProject

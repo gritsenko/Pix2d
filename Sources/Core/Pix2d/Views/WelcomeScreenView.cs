@@ -8,14 +8,10 @@ public class WelcomeScreenView : ComponentBase
         new Grid()
             .Children(
                 new AppButton()
-                    .With(ButtonStyle)
+                    .Classes("TopBar")
                     .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
                     .Label("Clear")
+                    .Width(68)
                     .Content("\xE894")
             );
-
-    private void ButtonStyle(AppButton b) => b
-            .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
-            .Width(68)
-            .Classes("TopBar");
 }
