@@ -90,6 +90,8 @@ public class ToolService : IToolService
         {
             _defaultContextTool[context] = toolMeta.Key;
         }
+
+        AppState.UiState.Tools.Add(new ToolState(typeof(TTool)) { Context = context });
     }
 
     public ITool GetToolByKey(string key)
@@ -116,6 +118,7 @@ public class ToolService : IToolService
     }
     protected virtual void OnToolChanged(ITool oldTool, ITool newTool)
     {
+        AppState.UiState.CurrentToolKey = newTool.Key;
         Messenger.Send(new CurrentToolChangedMessage(oldTool, newTool));
     }
 

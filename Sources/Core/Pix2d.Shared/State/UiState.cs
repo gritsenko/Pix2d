@@ -1,4 +1,5 @@
 ﻿using Pix2d.Abstract.State;
+using System.Collections.Generic;
 
 namespace Pix2d.State;
 
@@ -115,4 +116,7 @@ public class UiState : StateBase
         set => Set(value);
     }
 
+    public List<ToolState> Tools = new List<ToolState>();
+
+    public string CurrentToolKey { get; set; }
 }

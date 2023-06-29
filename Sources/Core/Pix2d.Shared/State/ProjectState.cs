@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -29,6 +30,7 @@ public class ProjectState : StateBase
     public SKSize SelectionSize => HasSelection ? Selection.Bounds.Size : (SceneNode?.GetChildrenBounds().Size ?? SKSize.Empty);
     public bool HasSelection => Selection?.Nodes?.Any() == true;
 
+    [Obsolete]
     public ITool CurrentTool { get; set; }
     public INodeEditor CurrentNodeEditor { get; set; }
     public EditContextType DefaultEditContextType { get; set; }

@@ -1,0 +1,38 @@
+﻿using Pix2d.Drawing.Tools;
+using Pix2d.Messages;
+using Pix2d.Plugins.Drawing.Tools;
+using Pix2d.Views.ToolBar.Tools;
+
+namespace Pix2d.Views.ToolBar;
+
+public class ToolSettingsContainerView : ComponentBase
+{
+
+    public IDataTemplate BrushToolSettingsTemplate { get; } =
+    new FuncDataTemplate<BrushTool>((vm, ns) => new BrushToolSettingsView());
+
+    public IDataTemplate FillToolSettingsTemplate { get; } =
+        new FuncDataTemplate<FillTool>((vm, ns) => new FillToolSettingsView());
+
+    public IDataTemplate PixelSelectToolSettingsTemplate { get; } =
+        new FuncDataTemplate<PixelSelectTool>((vm, ns) => new SelectionToolSettingsView());
+
+    protected override object Build() =>
+        new ContentControl()
+            .Background(StaticResources.Brushes.MainBackgroundBrush)
+            .DataTemplates(
+                BrushToolSettingsTemplate,
+                FillToolSettingsTemplate,
+                PixelSelectToolSettingsTemplate
+            )
+            .Content(() => AppState.CurrentProject.CurrentTool);
+
+    [Inject] AppState AppState { get; set; } = null!;
+    [Inject] IMessenger Messenger { get; set; } = null!;
+
+    protected override void OnAfterInitialized()
+    {
+        Messenger.Register<CurrentToolChangedMessage>(this, msg => StateHasChanged());
+    }
+
+}

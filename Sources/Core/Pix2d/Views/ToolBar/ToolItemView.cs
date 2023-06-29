@@ -1,26 +1,30 @@
-﻿using System.Windows.Input;
-using Avalonia.Controls.Shapes;
+﻿using Avalonia.Controls.Shapes;
+using Avalonia.Interactivity;
+using Pix2d.Abstract.Tools;
+using Pix2d.Messages;
 
 namespace Pix2d.Views.ToolBar;
 
 public class ToolItemView : ComponentBase
 {
+    private ToolState toolState;
+
     protected override object Build() =>
         new Grid().Children(
             new Border()
                 .BorderThickness(4, 0, 0, 0)
                 .BorderBrush(StaticResources.Brushes.SelectedHighlighterBrush)
                 .Background(StaticResources.Brushes.SelectedItemBrush)
-                .IsVisible(IsSelected),
+                .IsVisible(() => IsSelected),
 
             new Button()
                 .Classes("toolbar-button")
-                .Command(SelectToolCommand)
+                .OnClick(OnButtonClicked)
                 .CommandParameter(new Binding())
-                .DataTemplates(StaticResources.Templates.ToolIconTemplateSelector)
                 .Background(Colors.Transparent.ToBrush())
-                .Content(ToolKey)
-                .ToolTip(Tooltip),
+                .Content(() => ToolKey)
+                .DataTemplates(StaticResources.Templates.ToolIconTemplateSelector)
+                .ToolTip(() => ToolState?.ToolTip),
 
             new Path()
                 .Data(Geometry.Parse("F1 M 4,0L 4,4L 0,4"))
@@ -33,28 +37,38 @@ public class ToolItemView : ComponentBase
                 .IsVisible(new Binding("HasToolProperties"))
         );
 
-    public ICommand? SelectToolCommand { get; set; } = null!;
+    [Inject] IToolService ToolService { get; set; } = null!;
+    [Inject] AppState AppState { get; set; } = null!;
+    [Inject] private IMessenger Messenger { get; set; } = null!;
+    public string ToolKey => ToolState?.Name ?? "";
+    public bool IsSelected => AppState.UiState.CurrentToolKey == ToolKey;
 
-    public string ToolKey { get; set; }
+    public ToolState ToolState
+    {
+        get => toolState; set
+        {
+            toolState = value;
+            StateHasChanged();
+        }
+    }
 
-    public string ToolIconPath { get; } = null!;
-    public bool IsSelected { get; set; }
+    protected override void OnAfterInitialized()
+    {
+        Messenger.Register<CurrentToolChangedMessage>(this, msg => StateHasChanged());
+    }
 
-    public string Title { get; }
+    private void OnButtonClicked(RoutedEventArgs args)
+    {
+        if (IsSelected)
+        {
+            AppState.UiState.ShowToolProperties = !AppState.UiState.ShowToolProperties;
+        }
+        else
+        {
+            AppState.UiState.ShowToolProperties = false;
+            ToolService.ActivateTool(this.toolState.Name);
+        }
 
-    public string Tooltip { get; set; }
-
-    //public ToolItemViewModel(string toolKey, Func<ToolSettingsBaseViewModel> settingsVmProvider)
-    //{
-    //    _settingsVmProvider = settingsVmProvider;
-    //    ToolKey = toolKey;
-
-    //    var tool = CoreServices.ToolService.GetToolByKey(toolKey);
-    //    Title = tool.DisplayName.ToUpper();
-
-    //    if (tool is BaseTool baseTool)
-    //        ToolIconPath = baseTool.ToolIconData;
-
-    //    Tooltip = tool.HotKey != null ? $"{tool.DisplayName} ({tool.HotKey})" : tool.DisplayName;
-    //}
+        this.StateHasChanged();
+    }
 }

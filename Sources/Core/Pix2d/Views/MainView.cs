@@ -13,8 +13,8 @@ namespace Pix2d.Views;
 
 public class MainView : ComponentBase
 {
-    [Inject] private AppState AppState { get; set; }
-    private UiState UiState => AppState.UiState;
+    [Inject] private AppState? AppState { get; set; }
+    private UiState? UiState => AppState?.UiState;
 
     protected override object Build() =>
         new Grid()
@@ -80,7 +80,7 @@ public class MainView : ComponentBase
                     .VerticalAlignment(VerticalAlignment.Top)
                     .HorizontalAlignment(HorizontalAlignment.Right),
 
-                new ToolSettingsView().Col(1).Row(2)
+                new ToolSettingsContainerView().Col(1).Row(2)
                     .IsVisible(UiState.ShowToolProperties, bindingSource : UiState)
                     .Margin(8, 120, 0, 0)
                     .MinWidth(40)

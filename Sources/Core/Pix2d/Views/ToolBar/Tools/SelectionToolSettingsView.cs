@@ -4,7 +4,7 @@ using Mvvm;
 
 namespace Pix2d.Views.ToolBar.Tools;
 
-public class SelectionToolSettingsView : ToolSettingsView
+public class SelectionToolSettingsView : ComponentBase
 {
     public static void ListItemStyle(ListBoxItem i) => i
         .FontFamily(StaticResources.Fonts.IconFontSegoe)

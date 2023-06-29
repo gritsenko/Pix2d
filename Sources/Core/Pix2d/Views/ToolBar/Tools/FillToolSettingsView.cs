@@ -2,7 +2,7 @@
 
 namespace Pix2d.Views.ToolBar.Tools;
 
-public class FillToolSettingsView : ToolSettingsView
+public class FillToolSettingsView : ComponentBase
 {
     protected override object Build() =>
         new StackPanel()
@@ -16,8 +16,8 @@ public class FillToolSettingsView : ToolSettingsView
 
     private SKColor _lastColor;
 
-    public IDrawingService DrawingService { get; }
-    public AppState AppState { get; }
+    [Inject] IDrawingService DrawingService { get; set; } = null!;
+    [Inject] AppState AppState { get; set; } = null!;
     public DrawingState DrawingState => AppState.DrawingState;
 
     public bool EraseMode { get; set; }

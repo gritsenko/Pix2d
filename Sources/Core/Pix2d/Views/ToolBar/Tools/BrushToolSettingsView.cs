@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Pix2d.Views.ToolBar.Tools;
 
-public class BrushToolSettingsView : ToolSettingsView
+public class BrushToolSettingsView : ComponentBase
 {
     public static void ListItemStyle(ListBoxItem i) => i
         .FontFamily(StaticResources.Fonts.IconFontSegoe)
@@ -74,95 +74,12 @@ public class BrushToolSettingsView : ToolSettingsView
                     ) //List box Items
             ); //Border child
 
-    public IDrawingService DrawingService { get; }
-    public AppState AppState { get; }
+    [Inject] AppState AppState { get; set; } = null!;
     public DrawingState DrawingState => AppState.DrawingState;
-
-    private Primitives.Drawing.BrushSettings _currentPixelBrushSetting;
-    private Primitives.Drawing.BrushSettings _currentPixelBrushPreset;
-
-    public ObservableCollection<Primitives.Drawing.BrushSettings> BrushPresets { get; set; } = new();
-
-    public Primitives.Drawing.BrushSettings CurrentPixelBrushPreset
-    {
-        get => _currentPixelBrushPreset;
-        set
-        {
-            _currentPixelBrushPreset = value;
-            var setting = _currentPixelBrushPreset.Clone();
-            CurrentPixelBrushSetting = setting;
-            DrawingState.CurrentBrushSettings = setting;
-            OnPropertyChanged();
-        }
-    }
-
-    public Primitives.Drawing.BrushSettings CurrentPixelBrushSetting
-    {
-        get => _currentPixelBrushSetting;
-        set
-        {
-            _currentPixelBrushSetting = value;
-
-            OnPropertyChanged();
-        }
-    }
-
-    public float BrushScale
-    {
-        get => DrawingState.CurrentBrushSettings.Scale;
-        set => DrawingState.CurrentBrushSettings.Scale = value;
-    }
-
-    public float BrushOpacity
-    {
-        get => (float)Math.Floor(DrawingState.CurrentBrushSettings.Opacity * 100);
-        set => DrawingState.CurrentBrushSettings.Opacity = value / 100;
-    }
-
-    public float BrushSpacing
-    {
-        get => (float)Math.Floor(DrawingState.CurrentBrushSettings.Spacing);
-        set => DrawingState.CurrentBrushSettings.Spacing = value;
-    }
-    
-    public double BrushSetVisualPositionX { get; set; }
-    public double BrushSetVisualPositionY { get; set; }
-
-    public bool IsPixelPerfectModeEnabled
-    {
-        get => AppState.DrawingState.IsPixelPerfectDrawingModeEnabled;
-        set => AppState.DrawingState.IsPixelPerfectDrawingModeEnabled = value;
-    }
 
     public int SelectedIndex { get; set; } //save selected item state for settings view
 
     protected override void OnAfterInitialized()
     {
-        AppState.DrawingState.WatchFor(x => x.CurrentBrushSettings, OnBrushChanged);
-
-        if (!BrushPresets.Any())
-        {
-            foreach (var preset in AppState.DrawingState.BrushPresets)
-            {
-                BrushPresets.Add(preset);
-            }
-        }
-
-        _currentPixelBrushSetting = DrawingState.CurrentBrushSettings.Clone();
-
-    }
-
-    private void OnBrushChanged()
-    {
-        UpdateCurrentSetting();
-        OnPropertyChanged(nameof(CurrentPixelBrushSetting));
-        OnPropertyChanged(nameof(BrushScale));
-        OnPropertyChanged(nameof(BrushOpacity));
-        OnPropertyChanged(nameof(BrushSpacing));
-    }
-
-    private void UpdateCurrentSetting()
-    {
-        CurrentPixelBrushSetting = DrawingState.CurrentBrushSettings;
     }
 }

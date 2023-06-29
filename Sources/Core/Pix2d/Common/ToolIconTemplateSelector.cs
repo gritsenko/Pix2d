@@ -13,8 +13,8 @@ public class ToolIconTemplateSelector : IDataTemplate
 
     public Control Build(object data)
     {
-        var toolType = (Type)data;
-        var templateKey = toolType.Name;
+        var toolType = (string)data;
+        var templateKey = toolType;
 
         //if (toolType.ToolIconPath != default)
         //{
@@ -36,6 +36,6 @@ public class ToolIconTemplateSelector : IDataTemplate
 
     public bool Match(object data)
     {
-        return data is Type;
+        return data is string;
     }
 }

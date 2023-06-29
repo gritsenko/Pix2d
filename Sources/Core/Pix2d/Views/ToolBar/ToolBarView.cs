@@ -1,9 +1,9 @@
 ﻿using Avalonia.Styling;
 using Pix2d.Abstract.Tools;
-using Pix2d.Messages.Edit;
 using Pix2d.Messages;
 using Pix2d.Views.BrushSettings;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Pix2d.Views.ToolBar;
 
@@ -39,9 +39,10 @@ public class ToolBarView : ComponentBase
                     .CornerRadius(25)
                     .BorderThickness(3)
                     .BorderBrush(Colors.White.ToBrush())
-                    //.Background(Bind(GetViewModel<ColorPickerViewModel>(), m => m.SelectedColor)
-                    //    .Converter(StaticResources.Converters.SKColorToBrushConverter))
-                    ,
+                    .Background(AppState.DrawingState.CurrentColor, 
+                        bindingMode: BindingMode.OneWay, 
+                        converter: StaticResources.Converters.SKColorToBrushConverter,
+                        bindingSource: AppState.DrawingState),
 
                 new Button() //Brush settings button
                     .Classes("toolbar-button")
@@ -54,7 +55,8 @@ public class ToolBarView : ComponentBase
                     .ContentTemplate(new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) => new BrushItemView().Preset(itemVm))),
 
                 new ItemsControl() //tools list
-                    .ItemsSource(Tools)
+                    .ItemsSource(AppState.UiState.Tools.Where(x=>x.Context == EditContextType.Sprite))
+                    .ItemTemplate(new FuncDataTemplate<ToolState>((item, ns) => new ToolItemView() { ToolState = item }))
             );
 
 
@@ -64,16 +66,14 @@ public class ToolBarView : ComponentBase
 
     private bool IsSpriteEditMode = true;
 
-    private EditContextType EditContextType => AppState.CurrentProject.CurrentContextType;
-    private ITool CurrentTool => AppState.CurrentProject.CurrentTool;
     public List<ToolItemView> Tools { get; set; } = new();
 
 
     protected override void OnAfterInitialized()
     {
-        Messenger.Register<EditContextChangedMessage>(this, msg => UpdateToolsFromCurrentContext());
-        Messenger.Register<CurrentToolChangedMessage>(this, ToolChanged);
-        UpdateToolsFromCurrentContext(false);
+        //Messenger.Register<EditContextChangedMessage>(this, msg => UpdateToolsFromCurrentContext());
+        Messenger.Register<CurrentToolChangedMessage>(this, msg => StateHasChanged());
+        //UpdateToolsFromCurrentContext(false);
     }
 
     //private void OnSelectToolCommandExecute(ToolItemViewModel item)
@@ -99,43 +99,4 @@ public class ToolBarView : ComponentBase
     //    else
     //        AppState.UiState.ShowToolProperties = false;
     //}
-
-    private void ToolChanged(CurrentToolChangedMessage message)
-    {
-        //SelectedToolSettings?.Deactivated();
-
-        foreach (var item in Tools)
-        {
-            item.IsSelected = item.ToolKey == CurrentTool.Key;
-
-            //if (item.IsSelected)
-            //    SelectedToolItem = item;
-        }
-
-        //SelectedToolSettings = SelectedToolItem?.GetSettingsVm();
-
-        //if (SelectedToolSettings != null)
-        //{
-        //    SelectedToolSettings.Tool = CurrentTool;
-        //    SelectedToolSettings.Activated();
-        //}
-
-    }
-
-    private void UpdateToolsFromCurrentContext(bool updateActiveTool = true)
-    {
-        OnPropertyChanged(nameof(EditContextType));
-
-        Tools.Clear();
-
-        var tools = ToolService.GetTools(EditContextType);
-
-        foreach (var toolType in tools)
-        {
-            //Tools.Add(new ToolItemViewModel(toolType.Name, callback));
-        }
-
-        if (updateActiveTool)
-            ToolService.ActivateDefaultTool();
-    }
 }

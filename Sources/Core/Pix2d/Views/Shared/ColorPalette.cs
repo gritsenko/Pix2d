@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Mvvm;
 using SkiaSharp;
 
 namespace Pix2d.Shared;

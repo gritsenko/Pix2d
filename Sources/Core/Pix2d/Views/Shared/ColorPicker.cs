@@ -1,6 +1,5 @@
 ﻿using System;
 using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using SkiaSharp;
 using Avalonia.Controls.Shapes;
 
