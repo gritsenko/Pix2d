@@ -1,7 +1,9 @@
 ﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Tools;
 
 namespace Pix2d.Plugins.Drawing.Tools;
 
+[Pix2dTool(HasSettings = false)]
 public class EraserTool : BrushTool
 {
     public override string DisplayName => "Eraser tool";

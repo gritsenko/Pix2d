@@ -34,7 +34,7 @@ public class ToolItemView : ComponentBase
                 .Stretch(Stretch.Fill)
                 .VerticalAlignment(VerticalAlignment.Bottom)
                 .HorizontalAlignment(HorizontalAlignment.Right)
-                .IsVisible(new Binding("HasToolProperties"))
+                .IsVisible(() => ShowProperties)
         );
 
     [Inject] IToolService ToolService { get; set; } = null!;
@@ -43,6 +43,7 @@ public class ToolItemView : ComponentBase
     public string ToolKey => ToolState?.Name ?? "";
     public bool IsSelected => AppState.UiState.CurrentToolKey == ToolKey;
 
+    public bool ShowProperties => ToolState?.HasToolProperties ?? false;
     public ToolState ToolState
     {
         get => toolState; set

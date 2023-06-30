@@ -13,6 +13,8 @@ using SkiaSharp;
 
 namespace Pix2d.Drawing.Tools;
 
+
+[Pix2dTool(HasSettings = true)]
 public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 {
     public IDrawingService DrawingService { get; }

@@ -10,6 +10,7 @@ using SkiaNodes.Interactive;
 
 namespace Pix2d.Plugins.Drawing.Tools;
 
+[Pix2dTool(HasSettings = true)]
 public class BrushTool : BaseTool, IDrawingTool
 {
     public IDrawingService DrawingService { get; }

@@ -4,37 +4,36 @@ using System.Threading.Tasks;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Tools;
 using Pix2d.Drawing.Brushes;
-using Pix2d.Tools;
 
-namespace Pix2d.Drawing.Tools
+namespace Pix2d.Plugins.Drawing.Tools;
+
+[Pix2dTool(HasSettings = true)]
+public class FillTool : BaseTool, IDrawingTool
 {
-    public class FillTool : BaseTool, IDrawingTool
+    public IDrawingService DrawingService { get; }
+    private readonly IPixelBrush _previewBrush = new SquareSolidBrush();
+
+    public virtual BrushDrawingMode DrawingMode => BrushDrawingMode.Fill;
+
+    public override EditContextType EditContextType => EditContextType.Sprite;
+    public override string DisplayName => "Fill tool";
+
+    public FillTool(IDrawingService drawingService)
     {
-        public IDrawingService DrawingService { get; }
-        private readonly IPixelBrush _previewBrush = new SquareSolidBrush();
+        DrawingService = drawingService;
+    }
 
-        public virtual BrushDrawingMode DrawingMode => BrushDrawingMode.Fill;
-
-        public override EditContextType EditContextType => EditContextType.Sprite;
-        public override string DisplayName => "Fill tool";
-
-        public FillTool(IDrawingService drawingService)
+    public override async Task Activate()
+    {
+        await base.Activate();
+        try
         {
-            DrawingService = drawingService;
+            DrawingService.DrawingLayer.SetDrawingLayerMode(DrawingMode);
         }
-
-        public override async Task Activate()
+        catch (Exception e)
         {
-            await base.Activate();
-            try
-            {
-                DrawingService.DrawingLayer.SetDrawingLayerMode(DrawingMode);
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e.Message);
-                throw;
-            }
+            Debug.WriteLine(e.Message);
+            throw;
         }
     }
 }
