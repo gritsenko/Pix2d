@@ -169,7 +169,11 @@ public class ColorPickerView : ComponentBase
     public SKColor SelectedColor
     {
         get => AppState.DrawingState.CurrentColor;
-        set => DrawingService.SetCurrentColor(value);
+        set
+        {
+            DrawingService.SetCurrentColor(value);
+            OnPropertyChanged();
+        }
     }
 
     public ColorPickerColorType ColorType { get; set; }

@@ -1,6 +1,7 @@
 ﻿using Pix2d.Primitives.Drawing;
 using System.Windows.Input;
 using Mvvm;
+using Pix2d.Drawing.Tools;
 
 namespace Pix2d.Views.ToolBar.Tools;
 
@@ -19,8 +20,8 @@ public class SelectionToolSettingsView : ComponentBase
             .SelectedIndex(0)
             .OnSelectionChanged(args =>
             {
-                //if(args.AddedItems.Count > 0 && args.AddedItems[0] is ListBoxItem item)
-                //    vm.SelectModeCommand.Execute(item.DataContext);
+                if(args.AddedItems.Count > 0 && args.AddedItems[0] is ListBoxItem item)
+                    SelectModeCommand.Execute(item.DataContext);
             })
             .Items(
                 new ListBoxItem()
@@ -46,5 +47,8 @@ public class SelectionToolSettingsView : ComponentBase
     public ICommand SelectModeCommand => new RelayCommand<PixelSelectionMode>(mode =>
     {
         SelectionMode = mode;
+        var dc = this.DataContext as PixelSelectTool;
+        if (dc != null)
+            dc.SelectionMode = SelectionMode;
     });
 }
