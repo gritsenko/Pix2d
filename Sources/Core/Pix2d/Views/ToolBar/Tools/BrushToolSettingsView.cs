@@ -3,6 +3,9 @@ using Avalonia.Controls.Shapes;
 using System.Collections.ObjectModel;
 using System;
 using System.Linq;
+using Mvvm;
+using System.Windows.Input;
+using Pix2d.Plugins.Drawing.Tools;
 
 namespace Pix2d.Views.ToolBar.Tools;
 
@@ -25,8 +28,8 @@ public class BrushToolSettingsView : ComponentBase
                     .SelectedIndex(0)
                     .OnSelectionChanged(args =>
                     {
-                        //if (args.AddedItems.Count > 0 && args.AddedItems[0] is ListBoxItem item)
-                        //    vm.SelectShapeCommand.Execute(item.DataContext);
+                        if (args.AddedItems.Count > 0 && args.AddedItems[0] is ListBoxItem item)
+                            SelectShapeCommand.Execute(item.DataContext);
                     })
                     .Items(
                         new ListBoxItem()
@@ -78,6 +81,13 @@ public class BrushToolSettingsView : ComponentBase
     public DrawingState DrawingState => AppState.DrawingState;
 
     public int SelectedIndex { get; set; } //save selected item state for settings view
+
+    public ICommand SelectShapeCommand => new RelayCommand<ShapeType>(shapeType =>
+    {
+        var dc = this.DataContext as BrushTool;
+        if (dc != null)
+            dc.ShapeType = shapeType;
+    });
 
     protected override void OnAfterInitialized()
     {
