@@ -5,6 +5,7 @@
     <RootNamespace>Pix2d</RootNamespace>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
