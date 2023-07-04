@@ -20,6 +20,11 @@ public class AiPixelSelector : IPixelSelector
     private int _imageRight;
     private int _imageBot;
     public SKSizeI SelectionSize => new SKSizeI(_width, _height);
+    public SKPath GetSelectionPath()
+    {
+        return null;
+    }
+
     public SKPoint Offset => new SKPoint(-_offsetX, -_offsetY);
 
     public void AddSelectionPoint(SKPointI pos, Action<int, int> plot)

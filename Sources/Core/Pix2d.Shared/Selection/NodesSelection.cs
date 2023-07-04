@@ -13,7 +13,7 @@ using SkiaSharp;
 
 namespace Pix2d.Abstract.Selection
 {
-    public class NodesSelection : INodesSelection, IDisposable
+    public class NodesSelection : INodesSelection
     {
         ISceneService SceneService => ServiceLocator.Current.GetInstance<ISceneService>();
 

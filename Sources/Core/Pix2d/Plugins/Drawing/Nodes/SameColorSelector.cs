@@ -19,6 +19,11 @@ namespace Pix2d.Drawing.Nodes
         private int _imageRight;
         private int _imageBot;
 
+        public SKPath GetSelectionPath()
+        {
+            return null;
+        }
+
         public SKPoint Offset => new SKPoint(_offsetX, _offsetY);
 
         public SameColorSelector(SKBitmap bitmap)

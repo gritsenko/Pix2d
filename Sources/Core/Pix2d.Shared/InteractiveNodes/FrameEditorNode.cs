@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Pix2d.Abstract.Selection;
+using Pix2d.CommonNodes;
 using Pix2d.CommonNodes.Controls.Thumbs;
 using Pix2d.CommonNodes.Controls.Thumbs.Resize;
 using Pix2d.Operations;
@@ -26,6 +27,7 @@ namespace Pix2d.InteractiveNodes
         private bool _forceIsChanged = false;
         private bool _allowResize = true;
         private RotateThumbNode _rotateThumb;
+        private readonly LineHighlightNode _highlightNode;
 
         public NodeReparentMode ReparentMode { get; set; }
 
@@ -57,6 +59,8 @@ namespace Pix2d.InteractiveNodes
 
             _rotateThumb = new RotateThumbNode(){ SnapToPixels = false, AngleLockProviderFunc = GetAspectLock };
 
+            _highlightNode = new LineHighlightNode();
+
             _moveThumb.DragStarted += MoveThumb_DragStarted;
             _moveThumb.DragDelta += Thumb_DragDelta;
             _moveThumb.DragComplete += ThumbOnDragComplete;
@@ -80,6 +84,7 @@ namespace Pix2d.InteractiveNodes
             _rotateThumb.DragDelta += Thumb_DragDelta;
             _rotateThumb.DragComplete += ThumbOnDragComplete;
 
+            Nodes.Add(_highlightNode);
             Nodes.Add(_moveThumb);
             Nodes.Add(_sizeThumb[0]);
             Nodes.Add(_sizeThumb[1]);
@@ -135,10 +140,11 @@ namespace Pix2d.InteractiveNodes
             OnSelectionEditing();
         }
 
-        public void SetSelection(INodesSelection selection)
+        public void SetSelection(INodesSelection selection, SKPath highlightPath = null)
         {
             EditStarted = false;
             _selection = selection as NodesSelection;
+            _highlightNode.SetSelection(_selection, highlightPath);
 
             this.IsVisible = _selection?.Nodes.Any() ?? false;
 
@@ -232,6 +238,11 @@ namespace Pix2d.InteractiveNodes
             OnSelectionEditStarted();
             _selection.Rotation += angle;
             OnSelectionEdited();
+        }
+
+        public void SetHighlight(SKPath selectionLayerSelectionPath)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -988,6 +988,7 @@ namespace Pix2d.Drawing.Nodes
             OnPixelsBeforeSelected(selectionBitmap);
 
             _selectionLayer.Bitmap = selectionBitmap;
+            _selectionLayer.SelectionPath = selector.GetSelectionPath();
             _selectionLayer.Size = _selectionLayer.Size;
             _selectionLayer.PivotPosition = default;
             _selectionLayer.Position = selector.Offset;
@@ -1006,8 +1007,8 @@ namespace Pix2d.Drawing.Nodes
         {
             var adornerLayer = SkiaNodes.AdornerLayer.GetAdornerLayer(this);
             adornerLayer.Add(_selectionEditor);
+            _selectionEditor.SetSelection(new NodesSelection(new[] { _selectionLayer }, null) { GenerateOperations = false }, _selectionLayer.SelectionPath);
             _selectionEditor.IsVisible = true;
-            _selectionEditor.SetSelection(new NodesSelection(new[] { _selectionLayer }, null) { GenerateOperations = false });
         }
 
         public void SetCustomPixelSelector(IPixelSelector pixelSelector)

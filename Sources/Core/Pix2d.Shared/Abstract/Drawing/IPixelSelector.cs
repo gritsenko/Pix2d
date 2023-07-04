@@ -7,6 +7,7 @@ public interface IPixelSelector
 {
     void FinishSelection();
     SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap);
+    SKPath GetSelectionPath();
     SKPoint Offset { get; }
     void BeginSelection(SKPointI point);
     void AddSelectionPoint(SKPointI point, Action<int, int> plot);

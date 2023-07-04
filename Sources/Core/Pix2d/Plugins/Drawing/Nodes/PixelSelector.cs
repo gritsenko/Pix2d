@@ -11,7 +11,7 @@ public class PixelSelector : IPixelSelector
 {
     private SKPointI _lastSelectionPoint;
     private readonly HashSet<SKPointI> _selectionPoints = new HashSet<SKPointI>();
-    //private GdfPath _selectionPath;
+    private SKPath _selectionPath;
     private byte[] _pixelsBuff;
     private int _offsetX;
     private int _offsetY;
@@ -71,7 +71,7 @@ public class PixelSelector : IPixelSelector
             SetPixel(p.X, p.Y);
 
         Algorithms.FillPolygon(pts, SetPixel);
-        //BuildSlectionPath();
+        BuildSlectionPath();
     }
 
     private void SetPixel(int x, int y) => _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] = 1;
@@ -154,7 +154,10 @@ public class PixelSelector : IPixelSelector
         AddCorner(cur.GetFreePoint(prev));
         AddCorner(firstPoint);
 
-        //_selectionPath = GdfPath.FromPoints(corners.Select(p => new Vector2D(p.X, p.Y)));
+        var path = new SKPath();
+        path.AddPoly(corners.Select(p => new SKPoint(p.X, p.Y)).ToArray());
+
+        _selectionPath = path;
     }
 
     public void ClearSelectionFromBitmap(ref SKBitmap bitmap)
@@ -231,5 +234,9 @@ public class PixelSelector : IPixelSelector
 
         return bitmap;
     }
-
+    
+    public SKPath GetSelectionPath()
+    {
+        return _selectionPath;
+    }
 }

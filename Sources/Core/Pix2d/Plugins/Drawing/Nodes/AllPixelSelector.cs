@@ -15,6 +15,11 @@ namespace Pix2d.Drawing.Nodes
             return sourceBitmap;
         }
 
+        public SKPath GetSelectionPath()
+        {
+            return null;
+        }
+
         public SKPoint Offset { get; }
         public void BeginSelection(SKPointI point)
         {
