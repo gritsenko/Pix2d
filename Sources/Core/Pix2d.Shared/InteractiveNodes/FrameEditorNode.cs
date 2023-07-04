@@ -239,10 +239,5 @@ namespace Pix2d.InteractiveNodes
             _selection.Rotation += angle;
             OnSelectionEdited();
         }
-
-        public void SetHighlight(SKPath selectionLayerSelectionPath)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
