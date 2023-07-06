@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using Pix2d.Abstract.Drawing;
+using Pix2d.Common.Drawing;
 using SkiaSharp;
 
 namespace Pix2d.Drawing.Nodes
@@ -18,10 +20,11 @@ namespace Pix2d.Drawing.Nodes
         private int _imageTop;
         private int _imageRight;
         private int _imageBot;
+        private SKPath _selectionPath;
 
         public SKPath GetSelectionPath()
         {
-            return null;
+            return _selectionPath;
         }
 
         public SKPoint Offset => new SKPoint(_offsetX, _offsetY);
@@ -70,6 +73,7 @@ namespace Pix2d.Drawing.Nodes
             var bottom = 0;
 
             var spanSrc = sourceBitmap.GetPixelSpan();
+            var selectionPoints = new HashSet<SKPointI>();
 
             for (int y = 0; y < sourceBitmap.Height; y++)
             for (int x = 0; x < sourceBitmap.Width; x++)
@@ -90,6 +94,7 @@ namespace Pix2d.Drawing.Nodes
                         right = Math.Max(right, x);
                         bottom = Math.Max(bottom, y);
                         _pixelsBuff[x + y * sourceBitmap.Width] = 1;
+                        selectionPoints.Add(new SKPointI(srcX, srcY));
                     }
             }
 
@@ -104,6 +109,10 @@ namespace Pix2d.Drawing.Nodes
 
             _width = right - left + 1;
             _height = bottom - top + 1;
+
+            _selectionPath = Algorithms.GetContour(selectionPoints, _pixelsBuff,
+                new SKRectI(0, 0, _bitmap.Width, _bitmap.Height), new SKPointI(0, 0),
+                new SKSizeI(_bitmap.Width, _bitmap.Height));
         }
 
         private bool GetPixel(int x, int y)

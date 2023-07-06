@@ -71,7 +71,7 @@ public class PixelSelector : IPixelSelector
             SetPixel(p.X, p.Y);
 
         Algorithms.FillPolygon(pts, SetPixel);
-        BuildSlectionPath();
+        BuildSelectionPath();
     }
 
     private void SetPixel(int x, int y) => _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] = 1;
@@ -83,81 +83,9 @@ public class PixelSelector : IPixelSelector
         return _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] > 0;
     }
 
-    private void BuildSlectionPath()
+    private void BuildSelectionPath()
     {
-        bool IsPSet(int x, int y) => GetPixel(x, y);
-
-
-        var sortedEdges = new List<Edge>();
-
-        var edges = new List<Edge>();
-
-        void AddEdge(int x0, int y0, int x1, int y1) => edges.Add(new Edge(x0, y0, x1, y1));
-
-        {
-            int x, y;
-            foreach (var spt in _selectionPoints)
-            {
-                x = spt.X;
-                y = spt.Y;
-
-                if (!IsPSet(x, y - 1)) AddEdge(x, y, x + 1, y);
-                if (!IsPSet(x, y + 1)) AddEdge(x, y + 1, x + 1, y + 1);
-                if (!IsPSet(x - 1, y)) AddEdge(x, y, x, y + 1);
-                if (!IsPSet(x + 1, y)) AddEdge(x + 1, y, x + 1, y + 1);
-
-            }
-        }
-
-        for (var i = 0; i < edges.Count && edges.Any(); i++)
-        {
-            foreach (var edge in edges.ToArray())
-            {
-                if (!sortedEdges.Any() || sortedEdges.Last().IsConnectedTo(edge))
-                {
-                    sortedEdges.Add(edge);
-                    edges.Remove(edge);
-                    i = 0;
-                }
-                else if (sortedEdges[0].IsConnectedTo(edge))
-                {
-                    sortedEdges.Insert(0, edge);
-                    edges.Remove(edge);
-                    i = 0;
-                }
-            }
-        }
-
-
-        var corners = new List<SKPointI>();
-
-        void AddCorner(SKPointI pt)
-        {
-            if (corners.Count == 0 || corners.Last() != pt)
-                corners.Add(pt);
-        }
-
-        var prev = sortedEdges[0];
-        var cur = sortedEdges[1];
-
-        var firstPoint = prev.GetFreePoint(cur);
-        AddCorner(firstPoint);
-
-        for (var i = 1; i < sortedEdges.Count; i++)
-        {
-            prev = sortedEdges[i - 1];
-            cur = sortedEdges[i];
-            var pt = cur.GetConnectionPoint(prev);
-            AddCorner(pt);
-        }
-
-        AddCorner(cur.GetFreePoint(prev));
-        AddCorner(firstPoint);
-
-        var path = new SKPath();
-        path.AddPoly(corners.Select(p => new SKPoint(p.X, p.Y)).ToArray());
-
-        _selectionPath = path;
+        _selectionPath = Algorithms.GetContour(_selectionPoints, _pixelsBuff, new SKRectI(_imageLeft, _imageTop, _imageRight, _imageBot), new SKPointI(_offsetX, _offsetY), new SKSizeI(_width, _height));
     }
 
     public void ClearSelectionFromBitmap(ref SKBitmap bitmap)
