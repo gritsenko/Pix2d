@@ -13,24 +13,26 @@ public class ArtworkPreviewView : ComponentBase
 {
     protected override object Build()
     {
-        var vm = this;
-        DataContext = vm;
         return new Grid()
-            .Rows("*,Auto")
+            .Height(50)
+            .Width(50)
+            .Rows("*,32")
+            .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(
-                new ScrollViewer()
-                    .Background(StaticResources.Brushes.CheckerTilesBrush)
-                    .Content(
-                        new SKImageView()
-                            .HorizontalAlignment(HorizontalAlignment.Center)
-                            .VerticalAlignment(VerticalAlignment.Center)
-                            .Source(@vm.Preview)
-                    ),
-                new Grid().Row(1).HorizontalAlignment(HorizontalAlignment.Center)
+                //new ScrollViewer()
+                //    .Background(StaticResources.Brushes.CheckerTilesBrush)
+                //    .Content(
+                //        new SKImageView()
+                //            .HorizontalAlignment(HorizontalAlignment.Center)
+                //            .VerticalAlignment(VerticalAlignment.Center)
+                //            .Source(Preview, bindingSource: this)
+                //    ),
+                new Grid().Row(0)
+                    .HorizontalAlignment(HorizontalAlignment.Center)
                     .Children(
                         new ComboBox()
-                            .ItemsSource(vm.AvailableScales)
-                            //.SelectedItem(@vm.SelectedScaleItem, BindingMode.TwoWay)
+                            .ItemsSource(AvailableScales)
+                            .SelectedItem(Scale, BindingMode.TwoWay, bindingSource: this)
                             .ItemTemplate(_itemTemplate)
                     )
             );
@@ -45,12 +47,21 @@ public class ArtworkPreviewView : ComponentBase
 
     private SpriteEditor _editor;
     private ViewPort _viewPort;
+    private double _scale = 1;
 
     public SKBitmapObservable Preview { get; } = new SKBitmapObservable();
 
     public List<int> AvailableScales { get; set; } = new();
 
-    public double Scale { get; set; }
+    public double Scale
+    {
+        get => _scale; 
+        set
+        {
+            _scale = value;
+            OnPropertyChanged();
+        }
+    }
 
     protected override void OnAfterInitialized()
     {

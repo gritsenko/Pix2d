@@ -66,6 +66,11 @@ public class SKImageView : ViewBase
 
     private void UpdateBitmapControl(SKBitmap newBitmap)
     {
+        if(newBitmap != null && (newBitmap.Width < 1 || newBitmap.Height < 1))
+        {
+            newBitmap = null;
+        }
+
         _imageControl.Source = newBitmap?.ToBitmap();
 
         if(newBitmap != null)
