@@ -6,7 +6,7 @@ namespace Pix2d.Drawing.Nodes
 {
     public class AllPixelSelector : IPixelSelector
     {
-        public void FinishSelection()
+        public void FinishSelection(bool highlightSelection)
         {
         }
 

@@ -53,7 +53,7 @@ public class AiPixelSelector : IPixelSelector
         _lastSelectionPoint = pos;
     }
 
-    public void FinishSelection()
+    public void FinishSelection(bool highlightSelection)
     {
         var pts = _selectionPoints.Select(x => new SKPoint(x.X, x.Y)).ToArray();
 

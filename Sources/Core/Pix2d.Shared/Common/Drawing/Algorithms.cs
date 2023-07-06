@@ -221,7 +221,7 @@ public static class Algorithms
     {
         bool IsPSet(int x, int y)
         {
-            if (x < bounds.Left || y < bounds.Top || x >= bounds.Right || y >= bounds.Bottom)
+            if (x < bounds.Left || y < bounds.Top || x > bounds.Right || y > bounds.Bottom)
                 return false;
 
             var index = x + offset.X + (y + offset.Y) * size.Width;
@@ -265,6 +265,11 @@ public static class Algorithms
                 if (!IsPSet(x + 1, y)) AddEdge(x + 1, y, x + 1, y + 1);
 
             }
+        }
+        
+        foreach (var (_, edgeIndices) in vertices)
+        {
+            Debug.Assert(edgeIndices.Count == 2 || edgeIndices.Count == 4);
         }
 
         var contours = new List<List<SKPoint>>();

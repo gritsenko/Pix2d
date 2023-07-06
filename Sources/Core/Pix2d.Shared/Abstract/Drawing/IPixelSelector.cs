@@ -5,7 +5,7 @@ namespace Pix2d.Abstract.Drawing;
 
 public interface IPixelSelector
 {
-    void FinishSelection();
+    void FinishSelection(bool highlightSelection);
     SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap);
     SKPath GetSelectionPath();
     SKPoint Offset { get; }

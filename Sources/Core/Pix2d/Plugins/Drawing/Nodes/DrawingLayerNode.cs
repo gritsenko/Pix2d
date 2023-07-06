@@ -977,7 +977,7 @@ namespace Pix2d.Drawing.Nodes
             State = DrawingLayerState.Ready;
 
             var selector = _pixelSelector;
-            selector.FinishSelection();
+            selector.FinishSelection(SelectionMode != PixelSelectionMode.Rectangle);
             ClearWorkingBitmap();
 
             var size = DrawingTarget.GetSize();

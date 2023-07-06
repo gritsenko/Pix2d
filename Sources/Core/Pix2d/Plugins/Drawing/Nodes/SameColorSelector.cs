@@ -43,7 +43,7 @@ namespace Pix2d.Drawing.Nodes
         {
         }
 
-        public void FinishSelection()
+        public void FinishSelection(bool highlightSelection)
         {
             _color = SKColor.Empty;
 
@@ -110,9 +110,16 @@ namespace Pix2d.Drawing.Nodes
             _width = right - left + 1;
             _height = bottom - top + 1;
 
-            _selectionPath = Algorithms.GetContour(selectionPoints, _pixelsBuff,
-                new SKRectI(0, 0, _bitmap.Width, _bitmap.Height), new SKPointI(0, 0),
-                new SKSizeI(_bitmap.Width, _bitmap.Height));
+            if (highlightSelection)
+            {
+                _selectionPath = Algorithms.GetContour(selectionPoints, _pixelsBuff,
+                    new SKRectI(0, 0, _bitmap.Width - 1, _bitmap.Height - 1), new SKPointI(0, 0),
+                    new SKSizeI(_bitmap.Width, _bitmap.Height));
+            }
+            else
+            {
+                _selectionPath = null;
+            }
         }
 
         private bool GetPixel(int x, int y)

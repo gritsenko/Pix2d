@@ -50,7 +50,7 @@ public class PixelSelector : IPixelSelector
         _lastSelectionPoint = pos;
     }
 
-    public void FinishSelection()
+    public void FinishSelection(bool highlightSelection)
     {
         var pts = _selectionPoints.Select(x => new SKPoint(x.X, x.Y)).ToArray();
 
@@ -71,7 +71,15 @@ public class PixelSelector : IPixelSelector
             SetPixel(p.X, p.Y);
 
         Algorithms.FillPolygon(pts, SetPixel);
-        BuildSelectionPath();
+
+        if (highlightSelection)
+        {
+            BuildSelectionPath();
+        }
+        else
+        {
+            _selectionPath = null;
+        }
     }
 
     private void SetPixel(int x, int y) => _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] = 1;
