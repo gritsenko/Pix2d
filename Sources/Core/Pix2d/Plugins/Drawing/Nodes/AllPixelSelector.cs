@@ -6,13 +6,18 @@ namespace Pix2d.Drawing.Nodes
 {
     public class AllPixelSelector : IPixelSelector
     {
-        public void FinishSelection()
+        public void FinishSelection(bool highlightSelection)
         {
         }
 
         public SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap)
         {
             return sourceBitmap;
+        }
+
+        public SKPath GetSelectionPath()
+        {
+            return null;
         }
 
         public SKPoint Offset { get; }

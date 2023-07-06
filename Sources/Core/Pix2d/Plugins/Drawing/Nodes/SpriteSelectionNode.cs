@@ -1,7 +1,9 @@
-﻿using Pix2d.CommonNodes;
+﻿using System;
+using Pix2d.CommonNodes;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
+using AdornerLayer = SkiaNodes.AdornerLayer;
 
 namespace Pix2d.Plugins.Drawing.Nodes
 {
@@ -9,6 +11,7 @@ namespace Pix2d.Plugins.Drawing.Nodes
     {
         public int MaxRotSpriteEdgeSize = 256;
         private SKBitmap _upscaledBitmap;
+        public SKPath SelectionPath { get; set; }
 
         protected override void OnBitmapChanged(SKBitmap newBitmap)
         {
@@ -41,7 +44,6 @@ namespace Pix2d.Plugins.Drawing.Nodes
                 var rect = new SKRect(0, 0, _upscaledBitmap.Width, _upscaledBitmap.Height);
                 canvas.DrawBitmap(_upscaledBitmap, rect, _nodeRect);
             }
-
         }
     }
 }

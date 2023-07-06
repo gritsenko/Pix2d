@@ -41,7 +41,6 @@ namespace Pix2d.Drawing.Nodes
         private readonly SpriteSelectionNode _selectionLayer = new() {IsVisible = false};
         private readonly SKColor _selectionColor = new(0, 0, 0, 127);
         private readonly FrameEditorNode _selectionEditor;
-        private int _selectionDistance;
         private SKColor _drawingColor;
         private SKPointI _previewPos;
         private IPixelBrush _brush;
@@ -190,7 +189,6 @@ namespace Pix2d.Drawing.Nodes
             _lastPos = eventArgs.Pointer.WorldPosition.ToSkPointI();
             if (_drawingMode == BrushDrawingMode.Select)
             {
-                _selectionDistance = 0;
                 BeginSelection(StartPosI);
                 AddSelectionPoint(StartPosI);
             }
@@ -225,13 +223,6 @@ namespace Pix2d.Drawing.Nodes
                 {
                     AddSelectionPoint(StartPosI);
                     FinishSelection();
-                    if (_selectionDistance < 1 && SelectionMode != PixelSelectionMode.SameColor)
-                    {
-                        _selectionEditor.IsVisible = false;
-                        ClearWorkingBitmap();
-                        State = DrawingLayerState.Ready;
-                        OnSelectionRemoved();
-                    }
                 }
                 else if (_drawingMode == BrushDrawingMode.Fill)
                 {
@@ -296,7 +287,6 @@ namespace Pix2d.Drawing.Nodes
                 }
                 else if (State == DrawingLayerState.Selection)
                 {
-                    _selectionDistance++;
                     switch (SelectionMode)
                     {
                         case PixelSelectionMode.Rectangle:
@@ -977,37 +967,40 @@ namespace Pix2d.Drawing.Nodes
             State = DrawingLayerState.Ready;
 
             var selector = _pixelSelector;
-            selector.FinishSelection();
+            selector.FinishSelection(SelectionMode != PixelSelectionMode.Rectangle);
             ClearWorkingBitmap();
 
             var size = DrawingTarget.GetSize();
             var tmpBitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, SKColorType.Bgra8888));
             DrawingTarget.CopyBitmapTo(tmpBitmap);
             var selectionBitmap = selector.GetSelectionBitmap(tmpBitmap);
+            if (selectionBitmap.Pixels.Length > 1)
+            {
+                OnPixelsBeforeSelected(selectionBitmap);
 
-            OnPixelsBeforeSelected(selectionBitmap);
+                _selectionLayer.Bitmap = selectionBitmap;
+                _selectionLayer.SelectionPath = selector.GetSelectionPath();
+                _selectionLayer.Size = _selectionLayer.Size;
+                _selectionLayer.PivotPosition = default;
+                _selectionLayer.Position = selector.Offset;
+                _selectionLayer.Rotation = 0;
+                _selectionLayer.Opacity = 1f;
+                _selectionLayer.IsVisible = false; //don't show it until manipualtion is begin
 
-            _selectionLayer.Bitmap = selectionBitmap;
-            _selectionLayer.Size = _selectionLayer.Size;
-            _selectionLayer.PivotPosition = default;
-            _selectionLayer.Position = selector.Offset;
-            _selectionLayer.Rotation = 0;
-            _selectionLayer.Opacity = 1f;
-            _selectionLayer.IsVisible = false; //don't show it until manipualtion is begin
+                ActivateEditor();
+                //OnNodeChanged();
+                _workingBitmap.NotifyPixelsChanged();
 
-            ActivateEditor();
-            //OnNodeChanged();
-            _workingBitmap.NotifyPixelsChanged();
-
-            OnPixelsSelected();
+                OnPixelsSelected();
+            }
         }
 
         public void ActivateEditor()
         {
             var adornerLayer = SkiaNodes.AdornerLayer.GetAdornerLayer(this);
             adornerLayer.Add(_selectionEditor);
+            _selectionEditor.SetSelection(new NodesSelection(new[] { _selectionLayer }, null) { GenerateOperations = false }, _selectionLayer.SelectionPath);
             _selectionEditor.IsVisible = true;
-            _selectionEditor.SetSelection(new NodesSelection(new[] { _selectionLayer }, null) { GenerateOperations = false });
         }
 
         public void SetCustomPixelSelector(IPixelSelector pixelSelector)

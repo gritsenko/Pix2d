@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using Pix2d.Abstract.Drawing;
 using SkiaSharp;
 
 namespace Pix2d.Common.Drawing;
@@ -212,4 +216,106 @@ public static class Algorithms
             }
         }
     }
+    
+    public static SKPath GetContour(HashSet<SKPointI> points, byte[] pixelBuff, SKRectI bounds, SKPointI offset, SKSizeI size)
+    {
+        bool IsPSet(int x, int y)
+        {
+            if (x < bounds.Left || y < bounds.Top || x > bounds.Right || y > bounds.Bottom)
+                return false;
+
+            var index = x + offset.X + (y + offset.Y) * size.Width;
+
+            return index < pixelBuff.Length && pixelBuff[index] > 0;
+        }
+
+        var sortedEdges = new List<Edge>();
+
+        var edges = new List<Edge>();
+        var vertices = new Dictionary<SKPointI, List<int>>();
+
+        void AddVertex(int x, int y, int index)
+        {
+            var vertex = new SKPointI(x, y);
+            if (!vertices.ContainsKey(vertex))
+            {
+                vertices.Add(vertex, new List<int>());
+            }
+            
+            vertices[vertex].Add(index);
+        }
+
+        void AddEdge(int x0, int y0, int x1, int y1)
+        {
+            var index = edges.Count;
+            edges.Add(new Edge(x0, y0, x1, y1));
+            AddVertex(x0, y0, index);
+            AddVertex(x1, y1, index);
+        }
+
+        {
+            foreach (var spt in points)
+            {
+                var x = spt.X;
+                var y = spt.Y;
+
+                if (!IsPSet(x, y - 1)) AddEdge(x, y, x + 1, y);
+                if (!IsPSet(x, y + 1)) AddEdge(x, y + 1, x + 1, y + 1);
+                if (!IsPSet(x - 1, y)) AddEdge(x, y, x, y + 1);
+                if (!IsPSet(x + 1, y)) AddEdge(x + 1, y, x + 1, y + 1);
+
+            }
+        }
+        
+        foreach (var (_, edgeIndices) in vertices)
+        {
+            Debug.Assert(edgeIndices.Count == 2 || edgeIndices.Count == 4);
+        }
+
+        var contours = new List<List<SKPoint>>();
+        while (vertices.Any())
+        {
+            var (firstKey, firstValue) = vertices.First();
+            var contour = new List<SKPoint> {firstKey};
+            var nextEdgeIndex = firstValue.Last();
+            firstValue.RemoveAt(firstValue.Count - 1);
+            var nextPoint = firstKey;
+
+            while (nextEdgeIndex >= 0)
+            {
+                var nextEdge = edges[nextEdgeIndex];
+                nextPoint = nextEdge.P0 == nextPoint ? nextEdge.P1 : nextEdge.P0;
+
+                var nextEdgesList = vertices[nextPoint];
+                nextEdgesList.Remove(nextEdgeIndex);
+                
+                contour.Add(nextPoint);
+
+                if (nextEdgesList.Any())
+                {
+                    nextEdgeIndex = nextEdgesList.Last();
+                    nextEdgesList.RemoveAt(nextEdgesList.Count - 1);
+                }
+                else
+                {
+                    nextEdgeIndex = -1;
+                }
+
+                if (!nextEdgesList.Any())
+                {
+                    vertices.Remove(nextPoint);
+                }
+            }
+            
+            contours.Add(contour);
+        }
+        
+        var path = new SKPath();
+        foreach (var contour in contours)
+        {
+            path.AddPoly(contour.ToArray());
+        }
+
+        return path;
+    }   
 }
