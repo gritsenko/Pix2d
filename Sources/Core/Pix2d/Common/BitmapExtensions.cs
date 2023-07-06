@@ -8,6 +8,9 @@ public static class BitmapExtensions
 {
     public static Bitmap ToBitmap(this SKBitmap bitmap)
     {
+        if (bitmap == null)
+            return null;
+
         var result = new Bitmap(
             PixelFormat.Bgra8888,
             AlphaFormat.Premul,

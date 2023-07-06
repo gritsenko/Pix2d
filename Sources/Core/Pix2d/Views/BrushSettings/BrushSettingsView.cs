@@ -8,6 +8,8 @@ public class BrushSettingsView : ComponentBase
 {
     [Inject] private AppState AppState { get; set; } = null!;
 
+    private DrawingState DrawingState => AppState.DrawingState;
+
     protected override object Build() =>
         new ScrollViewer()
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
@@ -29,8 +31,8 @@ public class BrushSettingsView : ComponentBase
                             .MinHeight(72)
                             .BorderThickness(1)
                             .Padding(4)
-                            .ItemsSource(AppState.DrawingState.BrushPresets)
-                            .SelectedItem(AppState.DrawingState.CurrentPixelBrushPreset, BindingMode.TwoWay)
+                            .ItemsSource(DrawingState.BrushPresets, bindingSource: DrawingState)
+                            .SelectedItem(DrawingState.CurrentPixelBrushPreset, BindingMode.TwoWay, bindingSource: DrawingState)
                             .ItemsPanel(Templates.WrapPanelTemplate)
                             .ItemTemplate((Primitives.Drawing.BrushSettings item) => new BrushItemView().Preset(item)),
 
@@ -38,24 +40,35 @@ public class BrushSettingsView : ComponentBase
                             .Header("Size")
                             .Units("px")
                             .Minimum(1)
-                            .Value(AppState.DrawingState.CurrentBrushSettings.Scale, BindingMode.TwoWay)
+                            .Value(BrushScale, BindingMode.TwoWay, bindingSource: DrawingState)
                             .Row(2),
 
                         new SliderEx()
                             .Header("Opacity")
                             .Units("%")
-                            .Value(AppState.DrawingState.CurrentBrushSettings.Opacity, BindingMode.TwoWay)
+                            .Value(DrawingState.CurrentBrushSettings.Opacity, BindingMode.TwoWay, bindingSource: DrawingState.CurrentBrushSettings)
                             .Row(3),
 
                         new SliderEx()
                             .Header("Spacing")
                             .Units("px")
-                            .Value(AppState.DrawingState.CurrentBrushSettings.Spacing, BindingMode.TwoWay)
+                            .Value(DrawingState.CurrentBrushSettings.Spacing, BindingMode.TwoWay, bindingSource: DrawingState.CurrentBrushSettings)
                             .Row(4),
 
                         new ToggleSwitch()
-                            .IsChecked(AppState.DrawingState.IsPixelPerfectDrawingModeEnabled, BindingMode.TwoWay)
+                            .IsChecked(DrawingState.IsPixelPerfectDrawingModeEnabled, BindingMode.TwoWay, bindingSource: DrawingState)
                             .Row(5)
                     ));
 
+
+    public float BrushScale
+    {
+        get => DrawingState.CurrentBrushSettings.Scale;
+        set
+        {
+            if (value.Equals(DrawingState.CurrentBrushSettings.Scale)) return;
+            DrawingState.CurrentBrushSettings.Scale = value;
+            OnPropertyChanged();
+        }
+    }
 }

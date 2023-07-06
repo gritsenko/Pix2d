@@ -6,16 +6,24 @@ namespace Pix2d.Views.BrushSettings;
 
 public class BrushItemView : ComponentBase
 {
+    private Primitives.Drawing.BrushSettings _preset;
+
     protected override object Build() =>
         new Grid()
-            .Background(Bind(Preview)
-                .Converter(StaticResources.Converters.SKBitmapToIBrushConverter)
-            )
+            .Background(() => Preview.Bitmap.ToBrush())
             .Width(48)
             .Height(48);
 
 
-    public Primitives.Drawing.BrushSettings Preset { get; set; }
+    public Primitives.Drawing.BrushSettings Preset
+    {
+        get => _preset;
+        set
+        {
+            _preset = value;
+            StateHasChanged();
+        }
+    }
 
     public SKBitmapObservable Preview { get; set; } = new();
 

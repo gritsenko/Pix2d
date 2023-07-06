@@ -24,6 +24,29 @@ public class DrawingState : StateBase
         get => Get(new BrushSettings());
         set => Set(value);
     }
+
+    public float Scale
+    {
+        get => CurrentBrushSettings.Scale;
+        set
+        {
+            CurrentBrushSettings.Scale = value; 
+            OnPropertyChanged();
+        }
+    }
+
+    public float Opacity
+    {
+        get => Get(100f);
+        set => Set(value);
+    }
+
+    public float Spacing
+    {
+        get => Get(1f);
+        set => Set(value);
+    }
+    
     public BrushSettings CurrentPixelBrushPreset
     {
         get => Get(new BrushSettings());
