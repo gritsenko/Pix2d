@@ -5,7 +5,8 @@ using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Shared;
 using SkiaNodes;
 using SkiaSharp;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
 
 namespace Pix2d.Views;
 
@@ -14,52 +15,56 @@ public class ArtworkPreviewView : ComponentBase
     protected override object Build()
     {
         return new Grid()
-            .Height(50)
-            .Width(50)
-            .Rows("*,32")
+            .Rows("*,Auto")
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(
-                //new ScrollViewer()
-                //    .Background(StaticResources.Brushes.CheckerTilesBrush)
-                //    .Content(
-                //        new SKImageView()
-                //            .HorizontalAlignment(HorizontalAlignment.Center)
-                //            .VerticalAlignment(VerticalAlignment.Center)
-                //            .Source(Preview, bindingSource: this)
-                //    ),
-                new Grid().Row(0)
+                new ScrollViewer()
+                    .Background(new ImageBrush(StaticResources.CheckerTilesBitmap).Stretch(Stretch.UniformToFill))
+                    .VerticalScrollBarVisibility(ScrollBarVisibility.Hidden)
+                    .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden)
+                    .Content(
+                        new SKImageView()
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .Source(Preview, bindingSource: this)
+                    ),
+                new Grid().Row(1)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Children(
                         new ComboBox()
                             .ItemsSource(AvailableScales)
-                            .SelectedItem(Scale, BindingMode.TwoWay, bindingSource: this)
+                            .SelectedItem(SelectedScale, BindingMode.TwoWay, bindingSource: this)
                             .ItemTemplate(_itemTemplate)
                     )
             );
     }
 
-    private IDataTemplate _itemTemplate =
-        new FuncDataTemplate<int>((itemVm, ns)
-            => new TextBlock().Text(itemVm.ToString()));
+    private readonly IDataTemplate _itemTemplate =
+        new FuncDataTemplate<ScaleItem>((itemVm, ns)
+            => new TextBlock().Text(itemVm?.Scale.ToString(CultureInfo.InvariantCulture) ?? "1"));
 
     [Inject] AppState AppState { get; }
     [Inject] IMessenger Messenger { get; }
 
     private SpriteEditor _editor;
     private ViewPort _viewPort;
-    private double _scale = 1;
+    
+    private ScaleItem _selectedScale = new(1);
 
     public SKBitmapObservable Preview { get; } = new SKBitmapObservable();
 
-    public List<int> AvailableScales { get; set; } = new();
+    public record ScaleItem(double Scale);
 
-    public double Scale
+    public ObservableCollection<ScaleItem> AvailableScales { get; set; } = new();
+
+    public ScaleItem SelectedScale
     {
-        get => _scale; 
+        get => _selectedScale ?? new ScaleItem(1); 
         set
         {
-            _scale = value;
+            _selectedScale = value;
             OnPropertyChanged();
+            UpdatePreview();
         }
     }
 
@@ -69,7 +74,7 @@ public class ArtworkPreviewView : ComponentBase
         Messenger.Register<NodeEditorChangedMessage>(this, msg => InvalidateEditor());
         Messenger.Register<OperationInvokedMessage>(this, msg => UpdatePreview());
 
-        for (var i = 1; i <= 10; i++) AvailableScales.Add(i);
+        for (var i = 1; i <= 10; i++) AvailableScales.Add(new ScaleItem(i));
         UpdatePreview();
     }
 
@@ -104,9 +109,9 @@ public class ArtworkPreviewView : ComponentBase
         {
             var sf = 1f;
             var sprite = _editor.CurrentSprite;
-            var w = (int)(sprite.Size.Width * Scale * sf);
-            var h = (int)(sprite.Size.Height * Scale * sf);
-            var scale = (float)(sf * Scale);
+            var scale = (float)(sf * SelectedScale.Scale);
+            var w = (int)(sprite.Size.Width * scale);
+            var h = (int)(sprite.Size.Height * scale);
             var frameIndex = _editor.CurrentFrameIndex;
 
             var curBitmap = Preview.Bitmap;
@@ -118,10 +123,9 @@ public class ArtworkPreviewView : ComponentBase
                 _viewPort = new ViewPort(curBitmap.Width, curBitmap.Height);
                 _viewPort.Settings.RenderAdorners = false;
 
-                if (Math.Abs(scale - 1f) > 0.1)
+                if (Math.Abs(SelectedScale.Scale - 1f) > 0.1)
                 {
                     _viewPort.ShowArea(sprite.GetBoundingBox());
-
                 }
             }
 
