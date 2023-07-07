@@ -15,7 +15,7 @@ public interface IDrawingLayer
     event EventHandler SelectionStarted;
     event EventHandler SelectionRemoved;
 
-    event EventHandler DrawingApplied;
+    event EventHandler<DrawingAppliedEventArgs> DrawingApplied;
         
     event EventHandler PixelsSelected;
     event EventHandler<PixelsBeforeSelectedEventArgs> PixelsBeforeSelected;
@@ -72,4 +72,5 @@ public interface IDrawingLayer
     void ActivateEditor();
     void SetCustomPixelSelector(IPixelSelector pixelSelector);
     void ClearCustomPixelSelector();
+    void CancelCurrentOperation();
 }

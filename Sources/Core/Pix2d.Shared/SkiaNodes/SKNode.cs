@@ -631,6 +631,8 @@ namespace SkiaNodes
         }
 
         private static Random random = new Random();
+        private SKPoint _originalPosition;
+        private SKSize _originalSize;
 
         public static string RandomString(int length)
         {
@@ -682,6 +684,28 @@ namespace SkiaNodes
         public virtual void OnUnload()
         {
 
+        }
+
+        public void ResetTransform()
+        {
+            _position = _originalPosition;
+            _pivotPosition = default;
+            _rotation = 0;
+            Size = _originalSize;
+
+            SetDirty();
+        }
+
+        public void ResetTransform(SKPoint position, SKPoint pivotPosition, float rotation, SKSize size)
+        {
+            _position = position;
+            _originalPosition = position;
+            _rotation = rotation;
+            _pivotPosition = pivotPosition;
+            Size = size;
+            _originalSize = size;
+            
+            SetDirty();
         }
     }
 }

@@ -33,6 +33,12 @@ public class EditCommands : CommandsListBase
             EditContextType.General,
             () => CoreServices.SelectionService.Selection?.Delete());
 
+    public Pix2dCommand CancelSelection
+        => GetCommand("Cancel Selection",
+            new CommandShortcut(VirtualKeys.Escape),
+            EditContextType.General,
+            () => CoreServices.SelectionService.ClearSelection());
+
     public Pix2dCommand DuplicateSelection
         => GetCommand("Duplicate",
             new CommandShortcut(VirtualKeys.D, KeyModifier.Ctrl),

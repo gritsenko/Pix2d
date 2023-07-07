@@ -117,13 +117,14 @@ namespace Pix2d.Services
             _currentDrawingOperation = new DrawingOperation(CurrentDrawingTarget);
         }
 
-        private void DrawingLayer_DrawingApplied(object sender, EventArgs e)
+        private void DrawingLayer_DrawingApplied(object sender, DrawingAppliedEventArgs e)
         {
             if (_currentDrawingOperation == null || CurrentDrawingTarget != _currentDrawingOperation.GetDrawingTarget())
                 return;
 
             _currentDrawingOperation.SetFinalData();
             _currentDrawingOperation.PushToHistory();
+            
             OnDrawn();
         }
 
@@ -283,6 +284,11 @@ namespace Pix2d.Services
         public void SelectAll()
         {
             _drawingLayer.SelectAll();
+        }
+
+        public void CancelCurrentOperation()
+        {
+            _drawingLayer.CancelCurrentOperation();
         }
     }
 }

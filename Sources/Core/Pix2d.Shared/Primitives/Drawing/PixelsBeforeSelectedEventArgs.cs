@@ -12,3 +12,13 @@ public class PixelsBeforeSelectedEventArgs : EventArgs
         SelectionBitmap = selectionBitmap;
     }
 }
+
+public class DrawingAppliedEventArgs : EventArgs
+{
+    public bool SaveToUndo { get; set; }
+
+    public DrawingAppliedEventArgs(bool saveToUndo)
+    {
+        SaveToUndo = saveToUndo;
+    }
+}
