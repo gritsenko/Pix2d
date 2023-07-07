@@ -45,8 +45,14 @@ namespace Pix2d.CommonNodes.Controls.Thumbs
 
         protected void DragNode(SKNode node, SKPoint initialGlobalPos, SKPoint delta, bool snapToPixels)
         {
-            var newGlobalPos = initialGlobalPos + delta;
-            node.SetGlobalPosition(snapToPixels ? newGlobalPos.Floor() : newGlobalPos);
+            if (snapToPixels)
+            {
+                node.SetGlobalPosition(initialGlobalPos + delta.Floor());
+            }
+            else
+            {
+                node.SetGlobalPosition(initialGlobalPos + delta);
+            }
         }
 
         private void SelectionOnInvalidated(object sender, EventArgs e)
