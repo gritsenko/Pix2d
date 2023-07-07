@@ -205,11 +205,6 @@ namespace Pix2d.Drawing.Nodes
 
             try
             {
-                if (State == DrawingLayerState.Ready)
-                {
-                    return;
-                }
-                
                 if (_selectionEditor.IsVisible &&
                     _selectionEditor.SelectionBounds.Contains(eventArgs.Pointer.WorldPosition))
                 {
@@ -224,7 +219,7 @@ namespace Pix2d.Drawing.Nodes
                     return;
                 }
 
-                if (_drawingMode == BrushDrawingMode.Select)
+                if (State == DrawingLayerState.Selection && _drawingMode == BrushDrawingMode.Select)
                 {
                     AddSelectionPoint(StartPosI);
                     FinishSelection();
