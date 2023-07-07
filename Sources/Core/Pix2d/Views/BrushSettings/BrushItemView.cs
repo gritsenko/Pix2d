@@ -10,9 +10,9 @@ public class BrushItemView : ComponentBase
 
     protected override object Build() =>
         new Grid()
-            .Background(() => Preview.Bitmap.ToBrush())
-            .Width(48)
-            .Height(48);
+            .Background(() => PreviewBitmap.ToBrush())
+            .Width(32)
+            .Height(32);
 
 
     public Primitives.Drawing.BrushSettings Preset
@@ -21,11 +21,14 @@ public class BrushItemView : ComponentBase
         set
         {
             _preset = value;
+            UpdatePreview();
             StateHasChanged();
         }
     }
 
     public SKBitmapObservable Preview { get; set; } = new();
+
+    public SKBitmap PreviewBitmap => Preview.Bitmap;
 
     public double Scale
     {
@@ -35,7 +38,7 @@ public class BrushItemView : ComponentBase
             Preset.Scale = value > 0 ? (float)value : 1;
             OnPropertyChanged();
             OnPropertyChanged(nameof(SizeStr));
-            UpdatePreviewAsync();
+            UpdatePreview();
             UpdateBrush();
         }
     }
@@ -47,7 +50,7 @@ public class BrushItemView : ComponentBase
         {
             Preset.Opacity = (float)value;
             OnPropertyChanged();
-            UpdatePreviewAsync();
+            UpdatePreview();
             UpdateBrush();
         }
     }
@@ -62,9 +65,10 @@ public class BrushItemView : ComponentBase
     //}
     protected override void OnAfterInitialized()
     {
+
     }
 
-    private async void UpdatePreviewAsync()
+    private void UpdatePreview()
     {
         const int size = 36;
         var src = Preset.Brush.GetPreview((float)Scale);
@@ -79,12 +83,9 @@ public class BrushItemView : ComponentBase
             Preview.SetBitmap(new SKBitmap(size, size, SKColorType.Bgra8888, SKAlphaType.Premul));
         }
 
-        await Task.Run(() =>
-        {
-            using var canvas = new SKCanvas(Preview.Bitmap);
-            canvas.Clear();
-            canvas.DrawBitmap(src, x, y);
-        });
+        using var canvas = new SKCanvas(Preview.Bitmap);
+        canvas.Clear();
+        canvas.DrawBitmap(src, x, y);
 
         Preview.RaiseBitmapChanged();
     }

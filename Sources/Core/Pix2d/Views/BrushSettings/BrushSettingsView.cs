@@ -6,6 +6,7 @@ namespace Pix2d.Views.BrushSettings;
 
 public class BrushSettingsView : ComponentBase
 {
+
     [Inject] private AppState AppState { get; set; } = null!;
 
     private DrawingState DrawingState => AppState.DrawingState;
@@ -25,6 +26,7 @@ public class BrushSettingsView : ComponentBase
                             .Text("Presets"),
 
                         new ListBox()
+                            .Background("#414953".ToColor().ToBrush())
                             .HorizontalScrollBarVisibility(ScrollBarVisibility.Disabled)
                             .Row(1)
                             .Padding(0)
@@ -32,7 +34,7 @@ public class BrushSettingsView : ComponentBase
                             .BorderThickness(1)
                             .Padding(4)
                             .ItemsSource(DrawingState.BrushPresets, bindingSource: DrawingState)
-                            .SelectedItem(DrawingState.CurrentPixelBrushPreset, BindingMode.TwoWay, bindingSource: DrawingState)
+                            .SelectedItem(CurrentPixelBrushPreset, BindingMode.TwoWay, bindingSource: this)
                             .ItemsPanel(Templates.WrapPanelTemplate)
                             .ItemTemplate((Primitives.Drawing.BrushSettings item) => new BrushItemView().Preset(item)),
 
@@ -40,19 +42,19 @@ public class BrushSettingsView : ComponentBase
                             .Header("Size")
                             .Units("px")
                             .Minimum(1)
-                            .Value(BrushScale, BindingMode.TwoWay, bindingSource: DrawingState)
+                            .Value(BrushScale, BindingMode.TwoWay, bindingSource: this)
                             .Row(2),
 
                         new SliderEx()
                             .Header("Opacity")
                             .Units("%")
-                            .Value(DrawingState.CurrentBrushSettings.Opacity, BindingMode.TwoWay, bindingSource: DrawingState.CurrentBrushSettings)
+                            .Value(BrushOpacity, BindingMode.TwoWay, bindingSource: this)
                             .Row(3),
 
                         new SliderEx()
                             .Header("Spacing")
                             .Units("px")
-                            .Value(DrawingState.CurrentBrushSettings.Spacing, BindingMode.TwoWay, bindingSource: DrawingState.CurrentBrushSettings)
+                            .Value(BrushSpacing, BindingMode.TwoWay, bindingSource: this)
                             .Row(4),
 
                         new ToggleSwitch()
@@ -60,14 +62,63 @@ public class BrushSettingsView : ComponentBase
                             .Row(5)
                     ));
 
+    public Pix2d.Primitives.Drawing.BrushSettings CurrentPixelBrushPreset
+    {
+        get => DrawingState.CurrentPixelBrushPreset;
+        set
+        {
+            DrawingState.CurrentPixelBrushPreset = value;
+
+            if(value != null)
+            {
+                DrawingState.CurrentBrushSettings = value.Clone();
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(BrushScale));
+                OnPropertyChanged(nameof(BrushOpacity));
+                OnPropertyChanged(nameof(BrushSpacing));
+            }
+        }
+    }
 
     public float BrushScale
     {
         get => DrawingState.CurrentBrushSettings.Scale;
         set
         {
-            if (value.Equals(DrawingState.CurrentBrushSettings.Scale)) return;
-            DrawingState.CurrentBrushSettings.Scale = value;
+            var brush = DrawingState.CurrentBrushSettings.Clone();
+            brush.Scale = value;
+
+            if (brush.Equals(DrawingState.CurrentBrushSettings)) return;
+
+            DrawingState.CurrentBrushSettings = brush;
+            OnPropertyChanged();
+        }
+    }
+    public float BrushOpacity
+    {
+        get => DrawingState.CurrentBrushSettings.Opacity * 100f;
+        set
+        {
+            var brush = DrawingState.CurrentBrushSettings.Clone();
+            brush.Opacity = value / 100f;
+
+            if (brush.Equals(DrawingState.CurrentBrushSettings)) return;
+
+            DrawingState.CurrentBrushSettings = brush;
+            OnPropertyChanged();
+        }
+    }
+
+    public float BrushSpacing
+    {
+        get => DrawingState.CurrentBrushSettings.Spacing;
+        set
+        {
+            var brush = DrawingState.CurrentBrushSettings.Clone();
+            brush.Spacing = value;
+            if (brush.Equals(DrawingState.CurrentBrushSettings)) return;
+
+            DrawingState.CurrentBrushSettings = brush;
             OnPropertyChanged();
         }
     }

@@ -26,7 +26,7 @@ namespace Pix2d.Primitives.Drawing
 
         protected bool Equals(BrushSettings other)
         {
-            return Equals(Brush, other.Brush) && Scale.Equals(other.Scale) && Opacity.Equals(other.Opacity);
+            return Equals(Brush, other.Brush) && Scale.Equals(other.Scale) && Opacity.Equals(other.Opacity) && Spacing.Equals(other.Spacing);
         }
 
         public override bool Equals(object obj)
@@ -44,6 +44,7 @@ namespace Pix2d.Primitives.Drawing
                 var hashCode = (Brush != null ? Brush.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ Scale.GetHashCode();
                 hashCode = (hashCode * 397) ^ Opacity.GetHashCode();
+                hashCode = (hashCode * 397) ^ Spacing.GetHashCode();
                 return hashCode;
             }
         }

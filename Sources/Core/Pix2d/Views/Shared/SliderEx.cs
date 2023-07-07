@@ -65,6 +65,8 @@ public class SliderEx : ViewBase
                     .Col(1)
                     .HorizontalAlignment(HorizontalAlignment.Right)
                     .Width(80)
+                    .Minimum(MinimumProperty)
+                    .Maximum(MaximumProperty)
                     .Value(ValueProperty, BindingMode.TwoWay),
 
                 new TextBlock()

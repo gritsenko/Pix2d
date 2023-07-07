@@ -105,7 +105,7 @@ public class MainView : ComponentBase
                             .Header("Brush settings")
                             .IsOpen(UiState.ShowBrushSettings, bindingSource: UiState)
                             .CloseButtonCommand(Commands.View.ToggleBrushSettingsCommand)
-                            .Width(200)
+                            .Width(210)
                             .Content(new BrushSettingsView()),
 
                         new PopupView()

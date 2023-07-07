@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Primitives.Drawing;
 using SkiaSharp;
