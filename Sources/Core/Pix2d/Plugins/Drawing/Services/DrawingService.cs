@@ -122,8 +122,13 @@ namespace Pix2d.Services
             if (_currentDrawingOperation == null || CurrentDrawingTarget != _currentDrawingOperation.GetDrawingTarget())
                 return;
 
-            _currentDrawingOperation.SetFinalData();
-            _currentDrawingOperation.PushToHistory();
+            if (e.SaveToUndo)
+            {
+                _currentDrawingOperation.SetFinalData();
+                _currentDrawingOperation.PushToHistory();
+            }
+            
+            ViewPortService.Refresh();
             
             OnDrawn();
         }
