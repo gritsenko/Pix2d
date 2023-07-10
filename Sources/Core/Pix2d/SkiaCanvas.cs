@@ -212,7 +212,7 @@ public class SkiaCanvas : Control
         //if (top == 0)
         //    top = Parent.Bounds.Top;
 
-        _drawingOp = new SkNodeDrawOp(new Rect(left, top, Bounds.Width, Bounds.Height), this);
+        _drawingOp = new SkNodeDrawOp(new Rect(left, top, Bounds.Width * VisualRoot.RenderScaling, Bounds.Height * VisualRoot.RenderScaling), this);
     }
 
     private void OnPointerWheelChanged(object sender, PointerWheelEventArgs e)
@@ -247,7 +247,7 @@ public class SkiaCanvas : Control
             return;
         }
 
-        Input.SetPointerReleased(ToSKPoint(e.GetPosition(this)), ToModifiers(e.KeyModifiers), e.Pointer.Type == PointerType.Touch);
+        Input.SetPointerReleased(ToSKPoint(e.GetPosition(this) * VisualRoot.RenderScaling), ToModifiers(e.KeyModifiers), e.Pointer.Type == PointerType.Touch);
         InvalidateVisual();
     }
 
@@ -273,7 +273,8 @@ public class SkiaCanvas : Control
 
         Input.EraserMode = props.IsRightButtonPressed;
 
-        Input.SetPointerPressed(ToSKPoint(e.GetPosition(this)), ToModifiers(e.KeyModifiers),
+        var position = e.GetPosition(this) * VisualRoot.RenderScaling;
+        Input.SetPointerPressed(ToSKPoint(position), ToModifiers(e.KeyModifiers),
             e.Pointer.Type == PointerType.Touch);
         InvalidateVisual();
     }
@@ -287,7 +288,7 @@ public class SkiaCanvas : Control
 
         var props = e.GetCurrentPoint(this).Properties;
         var pointerType = e.Pointer.Type;
-        var pos = e.GetPosition(this);
+        var pos = e.GetPosition(this) * VisualRoot.RenderScaling;
 
         if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed)
         {
@@ -305,7 +306,7 @@ public class SkiaCanvas : Control
             return;
         }
 
-        Input.SetPointerMoved(ToSKPoint(e.GetPosition(this)), props.IsLeftButtonPressed, ToModifiers(e.KeyModifiers),
+        Input.SetPointerMoved(ToSKPoint(pos), props.IsLeftButtonPressed, ToModifiers(e.KeyModifiers),
             pointerType == PointerType.Touch);
         InvalidateVisual();
     }
@@ -349,6 +350,14 @@ public class SkiaCanvas : Control
 
     public override void Render(DrawingContext context)
     {
+        // Sometimes, particularly on load, UI scale factor can change without triggering size change events. So wee need
+        // to check that the size is not changed here to prevent broken UI on load.
+        var size = GetViewPortSize();
+        if (ViewPort?.Size != size)
+        {
+            ViewPort.Size = size;
+        }
+        
         if (Design.IsDesignMode)
         {
             base.Render(context);
@@ -368,8 +377,8 @@ public class SkiaCanvas : Control
 
     private SKSize GetViewPortSize()
     {
-        var w = (int)(Bounds.Width); // * (SystemScaleFactor / ViewPortScaleFactor));
-        var h = (int)(Bounds.Height); // * (SystemScaleFactor / ViewPortScaleFactor));
+        var w = (int)(Bounds.Width * VisualRoot.RenderScaling); // * (SystemScaleFactor / ViewPortScaleFactor));
+        var h = (int)(Bounds.Height * VisualRoot.RenderScaling); // * (SystemScaleFactor / ViewPortScaleFactor));
         return new SKSize(w, h);
     }
 
