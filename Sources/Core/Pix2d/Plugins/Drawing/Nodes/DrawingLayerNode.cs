@@ -518,7 +518,7 @@ namespace Pix2d.Drawing.Nodes
         {
             if (_selectionLayer.IsVisible)
             {
-                _selectionLayer.ResetTransform();
+                _selectionEditor.ResetEdit();
                 UpdateWorkingBitmapFromSelection();
                 ApplyWorkingBitmap();
             }

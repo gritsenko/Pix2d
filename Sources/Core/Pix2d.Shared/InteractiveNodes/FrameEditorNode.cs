@@ -241,5 +241,12 @@ namespace Pix2d.InteractiveNodes
             _selection.Rotation += angle;
             OnSelectionEdited();
         }
+
+        public void ResetEdit()
+        {
+            _selection.SetPosition(_initialPos);
+            _selection.SetRotation(_initialRotation);
+            _selection.SetSize(_initialSize);
+        }
     }
 }
