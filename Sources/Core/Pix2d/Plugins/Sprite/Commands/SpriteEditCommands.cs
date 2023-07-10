@@ -96,7 +96,7 @@ public class SpriteEditCommands : CommandsListBase
 
     public Pix2dCommand Clear => GetCommand("Clear pixels", new CommandShortcut(VirtualKeys.Delete),
         EditContextType.Sprite,
-        () => { CoreServices.DrawingService.CancelCurrentOperation(); });
+        () => { CoreServices.DrawingService.ClearCurrentLayer(); });
 
     public Pix2dCommand Cancel => GetCommand("Cancel drawing", new CommandShortcut(VirtualKeys.Escape),
         EditContextType.Sprite,
