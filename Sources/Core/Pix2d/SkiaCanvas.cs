@@ -262,18 +262,19 @@ public class SkiaCanvas : Control
         {
             Input.PanMode = true;
         }
+        
+        var position = e.GetPosition(this) * VisualRoot.RenderScaling;
 
         if (Input.PanMode)
         {
             _initialPan = ViewPort.Pan;
-            _initialPos = e.GetPosition(this);
+            _initialPos = position;
             //Refresh();
             return;
         }
 
         Input.EraserMode = props.IsRightButtonPressed;
 
-        var position = e.GetPosition(this) * VisualRoot.RenderScaling;
         Input.SetPointerPressed(ToSKPoint(position), ToModifiers(e.KeyModifiers),
             e.Pointer.Type == PointerType.Touch);
         InvalidateVisual();
