@@ -165,6 +165,11 @@ public class ColorPickerView : ComponentBase
     private float _hsvVPart;
 
     private string _hexValue;
+    
+    // Because of double-way binding, when changing one of the HSV values may change others due to
+    // color value conversion to RGB and rounding. To prevent such unexpected behaviour we add this
+    // guard.
+    private bool _isUsingHsvControls;
 
     public SKColor SelectedColor
     {
@@ -178,7 +183,15 @@ public class ColorPickerView : ComponentBase
 
     public ColorPickerColorType ColorType { get; set; }
 
-    public int ColorTypeIndex => (int)ColorType;
+    public int ColorTypeIndex
+    {
+        get => (int) ColorType;
+        set
+        {
+            ColorType = (ColorPickerColorType) value;
+            UpdateEditors();
+        }
+    }
     
     public bool EditorMode { get; set; }
     public SKColor PreviousColor { get; set; }
@@ -193,6 +206,7 @@ public class ColorPickerView : ComponentBase
             if (value == _rgbRPart)
                 return;
 
+            _rgbRPart = value;
             SelectedColor = new SKColor(value, _rgbGPart, _rgbBPart);
         }
     }
@@ -205,6 +219,7 @@ public class ColorPickerView : ComponentBase
             if (value == _rgbGPart)
                 return;
 
+            _rgbGPart = value;
             SelectedColor = new SKColor(_rgbRPart, value, _rgbBPart);
         }
     }
@@ -217,6 +232,7 @@ public class ColorPickerView : ComponentBase
             if (value == _rgbBPart)
                 return;
 
+            _rgbBPart = value;
             SelectedColor = new SKColor(_rgbRPart, _rgbGPart, value);
         }
     }
@@ -233,7 +249,10 @@ public class ColorPickerView : ComponentBase
             if (Math.Abs(value - _hsvHPart) < float.Epsilon)
                 return;
 
+            _isUsingHsvControls = true;
+            _hsvHPart = value;
             SelectedColor = SKColor.FromHsv(value, _hsvSPart, _hsvVPart);
+            _isUsingHsvControls = false;
         }
     }
 
@@ -245,7 +264,10 @@ public class ColorPickerView : ComponentBase
             if (Math.Abs(value - _hsvSPart) < float.Epsilon)
                 return;
 
+            _isUsingHsvControls = true;
+            _hsvSPart = value;
             SelectedColor = SKColor.FromHsv(_hsvHPart, value, _hsvVPart);
+            _isUsingHsvControls = false;
         }
     }
 
@@ -257,7 +279,10 @@ public class ColorPickerView : ComponentBase
             if (Math.Abs(value - _hsvVPart) < float.Epsilon)
                 return;
 
+            _isUsingHsvControls = true;
+            _hsvVPart = value;
             SelectedColor = SKColor.FromHsv(_hsvHPart, _hsvSPart, value);
+            _isUsingHsvControls = false;
         }
     }
 
@@ -333,12 +358,12 @@ public class ColorPickerView : ComponentBase
         }
 
 
-        if (ColorType == ColorPickerColorType.Hsv)
+        if (ColorType == ColorPickerColorType.Hsv && !_isUsingHsvControls)
         {
             value.ToHsv(out var hsvHPart, out var hsvSPart, out var hsvVPart);
-            _hsvHPart = (float)Math.Floor(hsvHPart);
-            _hsvSPart = (float)Math.Floor(hsvSPart);
-            _hsvVPart = (float)Math.Floor(hsvVPart);
+            _hsvHPart = (float)Math.Round(hsvHPart);
+            _hsvSPart = (float)Math.Round(hsvSPart);
+            _hsvVPart = (float)Math.Round(hsvVPart);
 
             OnPropertyChanged(nameof(HsvHPart));
             OnPropertyChanged(nameof(HsvSPart));
@@ -414,8 +439,8 @@ public class ColorPickerView : ComponentBase
 
     public enum ColorPickerColorType : byte
     {
-        Hex,
-        Hsv,
-        Rgb,
+        Hex = 1,
+        Hsv = 2,
+        Rgb = 3,
     }
 }
