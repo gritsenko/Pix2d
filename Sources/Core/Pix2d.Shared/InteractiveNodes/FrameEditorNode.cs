@@ -24,6 +24,7 @@ namespace Pix2d.InteractiveNodes
         private NodesSelection _selection;
         private SKPoint _initialPos;
         private SKSize _initialSize;
+        private float _initialRotation;
         private bool _forceIsChanged = false;
         private bool _allowResize = true;
         private RotateThumbNode _rotateThumb;
@@ -47,7 +48,7 @@ namespace Pix2d.InteractiveNodes
         public SKRect SelectionBounds => _moveThumb.GetBoundingBox();
 
         public bool EditStarted { get; set; }
-        public bool IsChanged => _initialPos != _moveThumb.Position || _initialSize != _moveThumb.Size || _forceIsChanged; 
+        public bool IsChanged => _initialPos != _moveThumb.Position || _initialSize != _moveThumb.Size || _forceIsChanged || Math.Abs(_moveThumb.Rotation - _initialRotation) > 0.01; 
 
         public FrameEditorNode()
         {
@@ -173,6 +174,7 @@ namespace Pix2d.InteractiveNodes
             _forceIsChanged = false;
             _initialPos = _moveThumb.Position;
             _initialSize = _moveThumb.Size;
+            _initialRotation = _moveThumb.Rotation;
         }
 
         public override void Hide()
@@ -238,6 +240,13 @@ namespace Pix2d.InteractiveNodes
             OnSelectionEditStarted();
             _selection.Rotation += angle;
             OnSelectionEdited();
+        }
+
+        public void ResetEdit()
+        {
+            _selection.SetPosition(_initialPos);
+            _selection.SetRotation(_initialRotation);
+            _selection.SetSize(_initialSize);
         }
     }
 }

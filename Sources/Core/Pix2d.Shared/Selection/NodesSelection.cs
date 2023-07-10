@@ -172,7 +172,7 @@ namespace Pix2d.Abstract.Selection
             Invalidate();
         }
 
-        private void SetRotation(float angleDegrees)
+        public void SetRotation(float angleDegrees)
         {
             var delta = angleDegrees - Frame.Rotation;
 

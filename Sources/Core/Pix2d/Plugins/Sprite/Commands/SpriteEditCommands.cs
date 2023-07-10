@@ -98,6 +98,14 @@ public class SpriteEditCommands : CommandsListBase
         EditContextType.Sprite,
         () => { CoreServices.DrawingService.ClearCurrentLayer(); });
 
+    public Pix2dCommand Cancel => GetCommand("Cancel drawing", new CommandShortcut(VirtualKeys.Escape),
+        EditContextType.Sprite,
+        () => { CoreServices.DrawingService.CancelCurrentOperation(); });
+
+    public Pix2dCommand ApplySelection => GetCommand("Apply selection", new CommandShortcut(VirtualKeys.Return),
+        EditContextType.Sprite,
+        () => { CoreServices.DrawingService.DrawingLayer.ApplySelection(); });
+
     public Pix2dCommand SendLayerBackward =>
         GetCommand("Send current layer backward", new CommandShortcut(VirtualKeys.OEM4, KeyModifier.Ctrl), EditContextType.Sprite,
             () => { SpriteEditor.SendLayerBackward(); });

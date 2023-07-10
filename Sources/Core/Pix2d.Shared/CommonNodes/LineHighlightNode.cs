@@ -24,6 +24,8 @@ public class LineHighlightNode : SKNode, IDisposable
         Path = selectionPath;
         _offset = TargetSelection.Frame.PivotPosition - TargetSelection.Frame.Position;
         _originalSize = TargetSelection.Frame.Size;
+        
+        AdjustToTarget(null, null);
     }
 
     private void AdjustToTarget(object sender, EventArgs e)
