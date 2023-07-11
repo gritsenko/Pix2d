@@ -1,4 +1,6 @@
-﻿namespace Pix2d.Shared;
+﻿using System.Globalization;
+
+namespace Pix2d.Shared;
 
 public class SliderEx : ViewBase
 {
@@ -67,6 +69,8 @@ public class SliderEx : ViewBase
                     .Width(80)
                     .Minimum(MinimumProperty)
                     .Maximum(MaximumProperty)
+                    .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
+                    .Increment(1)
                     .Value(ValueProperty, BindingMode.TwoWay),
 
                 new TextBlock()
