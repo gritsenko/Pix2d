@@ -60,16 +60,24 @@ public class SkiaCanvas : Control
 
     private void SkiaCanvas_AttachedToVisualTree(object sender, VisualTreeAttachmentEventArgs e)
     {
-        var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-        //on windows 1 is working fine
-        _renderScaling = !isWindows ? VisualRoot!.RenderScaling : 1;
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel != null)
+            topLevel.ScalingChanged += SkiaCanvas_ScalingChanged;
 
+        //var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        ////on windows 1 is working fine
+        //_renderScaling = !isWindows ? VisualRoot!.RenderScaling : 1;
         var root = e.Root as Control;
         if (root != null)
         {
             root.KeyDown += OnKeyDown;
             root.KeyUp += OnKeyUp;
         }
+    }
+
+    private void SkiaCanvas_ScalingChanged(object sender, EventArgs e)
+    {
+        OnSizeChanged();
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
@@ -133,6 +141,7 @@ public class SkiaCanvas : Control
 
         if (ViewPort != null && !IsBoundsEmpty())
         {
+            ViewPort.ScaleFactor = (float) VisualRoot!.RenderScaling;
             ViewPort.Size = GetViewPortSize();
             ViewPort.Refresh();
         }
