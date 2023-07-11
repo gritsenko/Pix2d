@@ -9,8 +9,14 @@ namespace Pix2d.Drawing.Tools
 {
     public class EyedropperTool : BaseTool, IDrawingTool
     {
+        public static ToolSettings ToolSettings { get; } = new()
+        {
+            DisplayName = "Eyedropper tool",
+            HotKey = null,
+        };
+    
         public IDrawingService DrawingService { get; }
-        public override string DisplayName => "Eyedropper tool";
+        public override string DisplayName => ToolSettings.DisplayName;
 
         public override EditContextType EditContextType => EditContextType.Sprite;
 

@@ -10,13 +10,19 @@ namespace Pix2d.Plugins.Drawing.Tools;
 [Pix2dTool(HasSettings = true)]
 public class FillTool : BaseTool, IDrawingTool
 {
+    public static ToolSettings ToolSettings { get; } = new()
+    {
+        DisplayName = "Fill tool",
+        HotKey = null,
+    };
+    
     public IDrawingService DrawingService { get; }
     private readonly IPixelBrush _previewBrush = new SquareSolidBrush();
 
     public virtual BrushDrawingMode DrawingMode => BrushDrawingMode.Fill;
 
     public override EditContextType EditContextType => EditContextType.Sprite;
-    public override string DisplayName => "Fill tool";
+    public override string DisplayName => ToolSettings.DisplayName;
 
     public FillTool(IDrawingService drawingService)
     {

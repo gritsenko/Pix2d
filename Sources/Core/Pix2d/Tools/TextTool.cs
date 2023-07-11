@@ -1,10 +1,17 @@
 ﻿using System;
+using Pix2d.Abstract.Tools;
 using SkiaSharp;
 
 namespace Pix2d.Tools
 {
     public class TextTool : ObjectCreationTool
     {
+        public static ToolSettings ToolSettings { get; } = new()
+        {
+            DisplayName = "Text tool",
+            HotKey = null,
+        };
+
 
         protected override void CreateObjectCore(SKRect destRect)
         {
@@ -13,6 +20,6 @@ namespace Pix2d.Tools
             ObjectCreationService.CreateText(destRect);
         }
 
-        public override string DisplayName => "Text tool";
+        public override string DisplayName => ToolSettings.DisplayName;
     }
 }

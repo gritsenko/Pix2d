@@ -7,25 +7,32 @@ namespace Pix2d.Views.ToolBar;
 
 public class ToolItemView : ComponentBase
 {
-    private ToolState toolState;
+    private ToolState _toolState;
+
+    public ToolItemView(ToolState toolState)
+    {
+        _toolState = toolState;
+        Initialize();
+    }
 
     protected override object Build() =>
-        new Grid().Children(
+        new Grid()
+            // Add tooltip here and not to the button because using `DataTemplates` somehow breaks the
+            // tooltip content.
+            .ToolTip(_toolState?.ToolTip)
+            .Children(
             new Border()
                 .BorderThickness(4, 0, 0, 0)
                 .BorderBrush(StaticResources.Brushes.SelectedHighlighterBrush)
                 .Background(StaticResources.Brushes.SelectedItemBrush)
                 .IsVisible(() => IsSelected),
-
             new Button()
                 .Classes("toolbar-button")
                 .OnClick(OnButtonClicked)
                 .CommandParameter(new Binding())
                 .Background(Colors.Transparent.ToBrush())
                 .Content(() => ToolKey)
-                .DataTemplates(StaticResources.Templates.ToolIconTemplateSelector)
-                .ToolTip(() => ToolState?.ToolTip),
-
+                .DataTemplates(StaticResources.Templates.ToolIconTemplateSelector),
             new Path()
                 .Data(Geometry.Parse("F1 M 4,0L 4,4L 0,4"))
                 .Fill(Color.Parse("#FFCCCCCC").ToBrush())
@@ -46,9 +53,9 @@ public class ToolItemView : ComponentBase
     public bool ShowProperties => ToolState?.HasToolProperties ?? false;
     public ToolState ToolState
     {
-        get => toolState; set
+        get => _toolState; set
         {
-            toolState = value;
+            _toolState = value;
             StateHasChanged();
         }
     }
@@ -67,7 +74,7 @@ public class ToolItemView : ComponentBase
         else
         {
             AppState.UiState.ShowToolProperties = false;
-            ToolService.ActivateTool(this.toolState.Name);
+            ToolService.ActivateTool(this._toolState.Name);
         }
 
         this.StateHasChanged();

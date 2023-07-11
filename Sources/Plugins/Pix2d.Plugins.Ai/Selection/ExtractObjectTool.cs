@@ -16,7 +16,13 @@ namespace Pix2d.Plugins.Ai.Selection;
 
 public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 {
-    public override string DisplayName => "Object selection tool";
+    public static ToolSettings ToolSettings { get; } = new()
+    {
+        DisplayName = "Object selection tool",
+        HotKey = null,
+    };
+
+    public override string DisplayName => ToolSettings.DisplayName;
 
     public override string ToolIconData => AiPlugin.ToolIcon;
 

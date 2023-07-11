@@ -13,6 +13,12 @@ namespace Pix2d.Plugins.Drawing.Tools;
 [Pix2dTool(HasSettings = true)]
 public class BrushTool : BaseTool, IDrawingTool
 {
+    public static ToolSettings ToolSettings { get; } = new()
+    {
+        DisplayName = "Brush tool",
+        HotKey = null,
+    };
+
     public IDrawingService DrawingService { get; }
     public ISelectionService SelectionService { get; }
     private SKNode _drawingLayerNode;
@@ -30,7 +36,7 @@ public class BrushTool : BaseTool, IDrawingTool
 
     public override EditContextType EditContextType => EditContextType.Sprite;
 
-    public override string DisplayName => "Brush tool";
+    public override string DisplayName => ToolSettings.DisplayName;
     public ShapeType ShapeType
     {
         get => _shapeType;

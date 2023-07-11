@@ -4,6 +4,7 @@ using Pix2d.Messages;
 using Pix2d.Views.BrushSettings;
 using System.Collections.Generic;
 using System.Linq;
+using Pix2d.Primitives;
 
 namespace Pix2d.Views.ToolBar;
 
@@ -39,6 +40,7 @@ public class ToolBarView : ComponentBase
                     .CornerRadius(25)
                     .BorderThickness(3)
                     .BorderBrush(Colors.White.ToBrush())
+                    .With(ButtonStyle)
                     .Background(AppState.DrawingState.CurrentColor, 
                         bindingMode: BindingMode.OneWay, 
                         converter: StaticResources.Converters.SKColorToBrushConverter,
@@ -52,11 +54,12 @@ public class ToolBarView : ComponentBase
                     .Padding(0)
                     .Command(Commands.View.ToggleBrushSettingsCommand)
                     .Content(AppState.DrawingState.CurrentBrushSettings)
+                    .With(ButtonStyle)
                     .ContentTemplate(new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) => new BrushItemView().Preset(itemVm))),
 
                 new ItemsControl() //tools list
                     .ItemsSource(AppState.UiState.Tools.Where(x=>x.Context == EditContextType.Sprite))
-                    .ItemTemplate(new FuncDataTemplate<ToolState>((item, ns) => new ToolItemView() { ToolState = item }))
+                    .ItemTemplate(new FuncDataTemplate<ToolState>((item, ns) => new ToolItemView(item)))
             );
 
 
@@ -74,6 +77,14 @@ public class ToolBarView : ComponentBase
         //Messenger.Register<EditContextChangedMessage>(this, msg => UpdateToolsFromCurrentContext());
         Messenger.Register<CurrentToolChangedMessage>(this, msg => StateHasChanged());
         //UpdateToolsFromCurrentContext(false);
+    }
+    
+    private void ButtonStyle(Button b)
+    {
+        if(b.Command is Pix2dCommand pc)
+        {
+            b.ToolTip(pc.Tooltip);
+        }
     }
 
     //private void OnSelectToolCommandExecute(ToolItemViewModel item)

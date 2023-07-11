@@ -13,6 +13,12 @@ namespace Pix2d.Tools
 {
     public class ObjectManipulationTool : BaseTool
     {
+        public static ToolSettings ToolSettings { get; } = new()
+        {
+            DisplayName = "Objects tool",
+            HotKey = null,
+        };
+
         public IEditService EditService { get; }
         public ISelectionService SelectionService { get; }
         public ISceneService SceneService { get; }
@@ -27,7 +33,7 @@ namespace Pix2d.Tools
         private SKPoint _endPos;
         private SKPoint _delta;
 
-        public override string DisplayName => "Objects tool";
+        public override string DisplayName => ToolSettings.DisplayName;
 
         public ObjectManipulationTool(IEditService editService, ISelectionService selectionService, ISceneService sceneService, IMessenger messenger)
         {

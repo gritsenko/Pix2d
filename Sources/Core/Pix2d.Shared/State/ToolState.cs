@@ -17,7 +17,11 @@ public class ToolState
         {
             HasToolProperties = toolAttr.HasSettings;
         }
-        //ToolTip = ToolState.HotKey != null ? $"{tool.DisplayName} ({tool.HotKey})" : tool.DisplayName
+
+        if (toolType.GetProperty("ToolSettings")?.GetValue(null) is ToolSettings settings)
+        {
+            ToolTip = settings.HotKey != null ? $"{settings.DisplayName} ({settings.HotKey})" : settings.DisplayName;
+        }
     }
 
     public EditContextType Context { get; set; }

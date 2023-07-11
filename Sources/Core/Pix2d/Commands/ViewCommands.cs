@@ -57,7 +57,10 @@ public class ViewCommands : CommandsListBase
     public Pix2dCommand ToggleMainMenuCommand => GetCommand(() => AppState.UiState.ShowMenu = !AppState.UiState.ShowMenu);
 
     public Pix2dCommand ToggleCanvasSizePanelCommand => GetCommand(() => AppState.UiState.ShowCanvasResizePanel = !AppState.UiState.ShowCanvasResizePanel);
-    public Pix2dCommand ToggleBrushSettingsCommand => GetCommand(() => AppState.UiState.ShowBrushSettings = !AppState.UiState.ShowBrushSettings);
+    public Pix2dCommand ToggleBrushSettingsCommand => GetCommand("Brush settings", 
+        null,
+        EditContextType.All,
+        () => AppState.UiState.ShowBrushSettings = !AppState.UiState.ShowBrushSettings);
 
 
     public Pix2dCommand ShowLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = true);
@@ -68,7 +71,7 @@ public class ViewCommands : CommandsListBase
     public Pix2dCommand HideClipboardBarCommand => GetCommand(() => AppState.UiState.ShowClipboardBar = false);
     public Pix2dCommand ToggleClipboardBarCommand => GetCommand(() => AppState.UiState.ShowClipboardBar = !AppState.UiState.ShowClipboardBar);
 
-    public Pix2dCommand ToggleColorEditorCommand => GetCommand(() =>
+    public Pix2dCommand ToggleColorEditorCommand => GetCommand("Select color", null, EditContextType.All, () =>
     {
         var uiState = AppState.UiState;
         uiState.ShowColorEditor = !uiState.ShowColorEditor;

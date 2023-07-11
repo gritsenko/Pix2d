@@ -22,12 +22,18 @@ namespace Pix2d.Drawing.Tools
 {
     public class PixelTextTool : BaseTool, IDrawingTool
     {
+        public static ToolSettings ToolSettings { get; } = new()
+        {
+            DisplayName = "Pixels text tool",
+            HotKey = null,
+        };
+    
         public IDrawingService DrawingService { get; }
         public IMessenger Messenger { get; }
         public AppState AppState { get; }
         private DrawingOperation _pixelSelectDrawingOperation;
         private TextBarViewModel _textVm;
-        public override string DisplayName => "Pixel text tool";
+        public override string DisplayName => ToolSettings.DisplayName;
 
         private IDrawingLayer DrawingLayer => DrawingService.DrawingLayer;
 

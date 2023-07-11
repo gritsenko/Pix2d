@@ -71,7 +71,14 @@ public abstract class Pix2dCommand : ICommand
         return $"{DefaultShortcut}";
     }
 
-    public string Tooltip => Description + " [" + GetShortcutString() + "]"; 
+    public string Tooltip
+    {
+        get
+        {
+            var shortcutString = GetShortcutString();
+            return $"{Description}{(shortcutString == string.Empty ? "" : $" [{shortcutString}]")}";
+        }
+    }
 
     public bool CanExecute(object? parameter = default)
     {

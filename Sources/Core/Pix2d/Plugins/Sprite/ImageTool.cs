@@ -7,12 +7,18 @@ namespace Pix2d.Plugins.Sprite;
 
 public class ImageTool : BaseTool
 {
+    public static ToolSettings ToolSettings { get; } = new()
+    {
+        DisplayName = "Image tool",
+        HotKey = null,
+    };
+
     protected IImportService ImportService => DefaultServiceLocator.ServiceLocatorProvider().GetInstance<IImportService>();
 
     public override ToolBehaviorType Behavior => ToolBehaviorType.OneAction;
 
     public override string NextToolKey { get; } = nameof(ObjectManipulationTool);
-    public override string DisplayName => "Image tool";
+    public override string DisplayName => ToolSettings.DisplayName;
 
     public override Task Activate()
     {
