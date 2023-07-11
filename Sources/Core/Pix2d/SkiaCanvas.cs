@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Linq;
-using Avalonia.Controls.Embedding;
+using System.Runtime.InteropServices;
 using Avalonia.Input;
 using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using Avalonia.Threading;
 using CommonServiceLocator;
-using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
 using SkiaNodes;
 using SkiaNodes.Interactive;
@@ -36,11 +34,17 @@ public class SkiaCanvas : Control
     public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
 
+    private readonly double _renderScaling = 1;
+
     public SkiaCanvas()
     {
         ClipToBounds = true;
         if (Design.IsDesignMode)
             return;
+
+        var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        //on windows 1 is working fine
+        _renderScaling = isWindows ? 1 : VisualRoot!.RenderScaling;
 
         Focusable = true;
 
@@ -187,7 +191,7 @@ public class SkiaCanvas : Control
         //    }
         //}
 
-        return (float)VisualRoot.RenderScaling;
+        return (float)(VisualRoot?.RenderScaling ?? 1f);
     }
 
     private void OnViewportInitialized()
@@ -212,7 +216,7 @@ public class SkiaCanvas : Control
         //if (top == 0)
         //    top = Parent.Bounds.Top;
 
-        _drawingOp = new SkNodeDrawOp(new Rect(left, top, Bounds.Width * VisualRoot.RenderScaling, Bounds.Height * VisualRoot.RenderScaling), this);
+        _drawingOp = new SkNodeDrawOp(new Rect(left, top, Bounds.Width * _renderScaling, Bounds.Height * _renderScaling), this);
     }
 
     private void OnPointerWheelChanged(object sender, PointerWheelEventArgs e)
@@ -247,7 +251,7 @@ public class SkiaCanvas : Control
             return;
         }
 
-        Input.SetPointerReleased(ToSKPoint(e.GetPosition(this) * VisualRoot.RenderScaling), ToModifiers(e.KeyModifiers), e.Pointer.Type == PointerType.Touch);
+        Input.SetPointerReleased(ToSKPoint(e.GetPosition(this) * _renderScaling), ToModifiers(e.KeyModifiers), e.Pointer.Type == PointerType.Touch);
         InvalidateVisual();
     }
 
@@ -262,8 +266,8 @@ public class SkiaCanvas : Control
         {
             Input.PanMode = true;
         }
-        
-        var position = e.GetPosition(this) * VisualRoot.RenderScaling;
+
+        var position = e.GetPosition(this) * _renderScaling;
 
         if (Input.PanMode)
         {
@@ -289,7 +293,7 @@ public class SkiaCanvas : Control
 
         var props = e.GetCurrentPoint(this).Properties;
         var pointerType = e.Pointer.Type;
-        var pos = e.GetPosition(this) * VisualRoot.RenderScaling;
+        var pos = e.GetPosition(this) * _renderScaling;
 
         if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed)
         {
@@ -314,7 +318,7 @@ public class SkiaCanvas : Control
 
     private void OnPinch(object sender, PinchEventArgs e)
     {
-        
+
         //Input.SetPointerMoved(ToSKPoint(_pinchRecognizer.Offset), false, KeyModifier.None, true);
 
         if (!_isPinching)
@@ -358,7 +362,7 @@ public class SkiaCanvas : Control
         {
             ViewPort.Size = size;
         }
-        
+
         if (Design.IsDesignMode)
         {
             base.Render(context);
@@ -378,15 +382,15 @@ public class SkiaCanvas : Control
 
     private SKSize GetViewPortSize()
     {
-        var w = (int)(Bounds.Width * VisualRoot.RenderScaling); // * (SystemScaleFactor / ViewPortScaleFactor));
-        var h = (int)(Bounds.Height * VisualRoot.RenderScaling); // * (SystemScaleFactor / ViewPortScaleFactor));
+        var w = (int)(Bounds.Width * _renderScaling); // * (SystemScaleFactor / ViewPortScaleFactor));
+        var h = (int)(Bounds.Height * _renderScaling); // * (SystemScaleFactor / ViewPortScaleFactor));
         return new SKSize(w, h);
     }
 
     private class SkNodeDrawOp : ICustomDrawOperation
     {
         private readonly SkiaCanvas _parent;
-        
+
         public Rect Bounds { get; }
         public bool HitTest(Point p) => true;
         public bool Equals(ICustomDrawOperation other) => false;
