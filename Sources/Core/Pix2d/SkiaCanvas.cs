@@ -34,17 +34,13 @@ public class SkiaCanvas : Control
     public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
 
-    private readonly double _renderScaling = 1;
+    private double _renderScaling = 1;
 
     public SkiaCanvas()
     {
         ClipToBounds = true;
         if (Design.IsDesignMode)
             return;
-
-        var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-        //on windows 1 is working fine
-        _renderScaling = isWindows ? 1 : VisualRoot!.RenderScaling;
 
         Focusable = true;
 
@@ -64,6 +60,10 @@ public class SkiaCanvas : Control
 
     private void SkiaCanvas_AttachedToVisualTree(object sender, VisualTreeAttachmentEventArgs e)
     {
+        var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        //on windows 1 is working fine
+        _renderScaling = !isWindows ? VisualRoot!.RenderScaling : 1;
+
         var root = e.Root as Control;
         if (root != null)
         {
