@@ -34,8 +34,6 @@ public class SkiaCanvas : Control
     public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
 
-    private double _renderScaling = 1;
-
     public SkiaCanvas()
     {
         ClipToBounds = true;
@@ -225,7 +223,7 @@ public class SkiaCanvas : Control
         //if (top == 0)
         //    top = Parent.Bounds.Top;
 
-        _drawingOp = new SkNodeDrawOp(new Rect(left, top, Bounds.Width * _renderScaling, Bounds.Height * _renderScaling), this);
+        _drawingOp = new SkNodeDrawOp(new Rect(left, top, Bounds.Width, Bounds.Height), this);
     }
 
     private void OnPointerWheelChanged(object sender, PointerWheelEventArgs e)
@@ -260,7 +258,7 @@ public class SkiaCanvas : Control
             return;
         }
 
-        Input.SetPointerReleased(ToSKPoint(e.GetPosition(this) * _renderScaling), ToModifiers(e.KeyModifiers), e.Pointer.Type == PointerType.Touch);
+        Input.SetPointerReleased(ToSKPoint(e.GetPosition(this)), ToModifiers(e.KeyModifiers), e.Pointer.Type == PointerType.Touch);
         InvalidateVisual();
     }
 
@@ -276,7 +274,7 @@ public class SkiaCanvas : Control
             Input.PanMode = true;
         }
 
-        var position = e.GetPosition(this) * _renderScaling;
+        var position = e.GetPosition(this);
 
         if (Input.PanMode)
         {
@@ -302,7 +300,7 @@ public class SkiaCanvas : Control
 
         var props = e.GetCurrentPoint(this).Properties;
         var pointerType = e.Pointer.Type;
-        var pos = e.GetPosition(this) * _renderScaling;
+        var pos = e.GetPosition(this);
 
         if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed)
         {
@@ -391,8 +389,8 @@ public class SkiaCanvas : Control
 
     private SKSize GetViewPortSize()
     {
-        var w = (int)(Bounds.Width * _renderScaling); // * (SystemScaleFactor / ViewPortScaleFactor));
-        var h = (int)(Bounds.Height * _renderScaling); // * (SystemScaleFactor / ViewPortScaleFactor));
+        var w = (int)(Bounds.Width); // * (SystemScaleFactor / ViewPortScaleFactor));
+        var h = (int)(Bounds.Height); // * (SystemScaleFactor / ViewPortScaleFactor));
         return new SKSize(w, h);
     }
 
