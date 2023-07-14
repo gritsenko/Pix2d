@@ -29,12 +29,35 @@ namespace Pix2d.Drawing.Nodes
         public event EventHandler<DrawingAppliedEventArgs> DrawingApplied;
         public event EventHandler<PixelsBeforeSelectedEventArgs> PixelsBeforeSelected;
         public event EventHandler SelectionTransformed;
+        public event EventHandler LayerModified;
         public event EventHandler PixelsSelected;
 
         private IPixelSelector _customPixelSelector;
         private IPixelSelector _pixelSelector;
 
-        private SKBitmap _workingBitmap;
+        private SKBitmap _backgroundBitmap;
+        private SKBitmap _foregroundBitmap;
+
+        private SKBitmap WorkingBitmap
+        {
+            get
+            {
+                if (IsPixelPerfectMode) return _backgroundBitmap;
+                
+                if (_drawingMode == BrushDrawingMode.Draw || _drawingMode == BrushDrawingMode.Erase || _drawingMode == BrushDrawingMode.Fill)
+                {
+                    return _foregroundBitmap;
+                }
+
+                if (_drawingMode == BrushDrawingMode.Select && SelectionMode == PixelSelectionMode.Freeform)
+                {
+                    return _foregroundBitmap;
+                }
+
+                return _backgroundBitmap;
+            }
+        }
+        
         private SKPoint _lastPos;
         // private SKSurface _currentTargetSurface;
         private BrushDrawingMode _drawingMode;
@@ -91,16 +114,10 @@ namespace Pix2d.Drawing.Nodes
 
         private SKPointI StartPosI => StartPos.ToSkPointI();
         private SKPointI EndPosI => EndPos.ToSkPointI();
-
-        public SKBitmap GetWorkingBitmap()
-        {
-            return _workingBitmap;
-        }
         public SKNode GetSelectionLayer()
         {
             return _selectionLayer;
         }
-
         public IAspectSnapper AspectSnapper { get; set; }
 
         public AxisLockMode AxisLockMode { get; set; }
@@ -122,24 +139,25 @@ namespace Pix2d.Drawing.Nodes
             UpdateWorkingBitmapFromSelection();
         }
 
+        /// <summary>
+        /// Sets the content of working bitmap to the selection layer contents.
+        /// </summary>
         private void UpdateWorkingBitmapFromSelection()
         {
             if (HasSelection)
             {
-                ClearWorkingBitmap();
-                using (var canvas = new SKCanvas(_workingBitmap))
-                {
-                    //canvas.DrawBitmap(_selectionLayer.Bitmap, 0,0);
-                    _selectionLayer.Render(canvas, new ViewPort((int)Size.Width, (int)Size.Height));
-                    canvas.Flush();
-                    _workingBitmap.NotifyPixelsChanged();
-                }
+                using var canvas = new SKCanvas(_backgroundBitmap);
+                
+                _selectionLayer.Render(canvas, new ViewPort((int)Size.Width, (int)Size.Height));
+                canvas.Flush();
+                _backgroundBitmap.NotifyPixelsChanged();
+                SwapWorkingBitmap();
             }
         }
 
         private void ClearWorkingBitmap()
         {
-            _workingBitmap?.Erase(SKColor.Empty);
+            _backgroundBitmap?.Erase(SKColor.Empty);
         }
 
         private void SelectionEditor_SelectionEdited(object sender, EventArgs e)
@@ -234,8 +252,9 @@ namespace Pix2d.Drawing.Nodes
                     if(IsPixelPerfectMode)
                     {
                         var ppf = PixelPerfect(_strokePoints);
-                        _workingBitmap.Clear();
+                        _backgroundBitmap.Clear();
                         DrawStroke(ppf);
+                        SwapWorkingBitmap();
                     }
 
                     if (State == DrawingLayerState.Drawing && StartPosI == EndPosI)
@@ -260,6 +279,14 @@ namespace Pix2d.Drawing.Nodes
             {
                 base.OnPointerReleased(eventArgs);
             }
+        }
+
+        private void SwapWorkingBitmap()
+        {
+            (_backgroundBitmap, _foregroundBitmap) = (_foregroundBitmap, _backgroundBitmap);
+            _backgroundBitmap.Clear();
+            
+            LayerModified?.Invoke(this, EventArgs.Empty);
         }
 
         public override void OnPointerMoved(PointerActionEventArgs eventArgs)
@@ -306,6 +333,8 @@ namespace Pix2d.Drawing.Nodes
                     }
                 }
             }
+            
+            LayerModified?.Invoke(this, EventArgs.Empty);
         }
 
         private void DrawStroke(IEnumerable<SKPointI> path)
@@ -358,7 +387,6 @@ namespace Pix2d.Drawing.Nodes
             else
                 _strokePoints.Add(intpos);
 
-            _workingBitmap.Clear();
             DrawStroke(PixelPerfect(_strokePoints));
         }
 
@@ -403,8 +431,10 @@ namespace Pix2d.Drawing.Nodes
             //if size changed, create new working bitmap
             if (Math.Abs(newSize.Width - Size.Width) > 0.01 || Math.Abs(newSize.Height - Size.Height) > 0.01)
             {
-                _workingBitmap = new SKBitmap((int) newSize.Width, (int) newSize.Height, SKColorType.Bgra8888,
+                _backgroundBitmap = new SKBitmap((int) newSize.Width, (int) newSize.Height, SKColorType.Bgra8888,
                     SKAlphaType.Premul);
+                _foregroundBitmap = _backgroundBitmap.Copy();
+                
                 Size = newSize;
             }
             ClearWorkingBitmap();
@@ -424,7 +454,7 @@ namespace Pix2d.Drawing.Nodes
             if (!InBounds(x, y))
                 return;
 
-            _workingBitmap.SetPixel(x, y, color);
+            WorkingBitmap.SetPixel(x, y, color);
         }
 
         private bool InBounds(int x, int y) => x >= 0 && y >= 0 && x < Size.Width && y < Size.Height;
@@ -444,10 +474,15 @@ namespace Pix2d.Drawing.Nodes
 
             if (LockTransparentPixels)
             {
-                DrawingTarget.CopyBitmapTo(_workingBitmap);
+                DrawingTarget.CopyBitmapTo(WorkingBitmap);
             }
 
             State = DrawingLayerState.Drawing;
+        }
+
+        public void FinishCurrentDrawing()
+        {
+            SwapWorkingBitmap();
         }
 
         private void ApplyWorkingBitmap(SKBlendMode blendMode = SKBlendMode.SrcOver)
@@ -476,11 +511,11 @@ namespace Pix2d.Drawing.Nodes
                             Color = SKColors.White.WithAlpha((byte) (Opacity * 255)),
                             BlendMode = blendMode
                         };
-                        drawingTargetCanvas.DrawBitmap(_workingBitmap, 0, 0, opacityPaint);
+                        drawingTargetCanvas.DrawBitmap(_foregroundBitmap, 0, 0, opacityPaint);
                     }
                     else
                     {
-                        drawingTargetCanvas.DrawBitmap(_workingBitmap, 0, 0);
+                        drawingTargetCanvas.DrawBitmap(_foregroundBitmap, 0, 0);
                     }
                 });
             }
@@ -495,6 +530,7 @@ namespace Pix2d.Drawing.Nodes
 
             State = DrawingLayerState.Ready;
             ClearWorkingBitmap();
+            SwapWorkingBitmap();
 
             Opacity = 1;
 
@@ -551,7 +587,7 @@ namespace Pix2d.Drawing.Nodes
                 return;
 
 
-            canvas.DrawBitmap(_workingBitmap, 0, 0);
+            canvas.DrawBitmap(_foregroundBitmap, 0, 0);
         }
 
         private void RenderBrushPreview(SKCanvas canvas)
@@ -581,11 +617,11 @@ namespace Pix2d.Drawing.Nodes
 
         private void DrawToWorkingBitmap(Action<SKCanvas> action)
         {
-            using (var canvas = new SKCanvas(_workingBitmap))
+            using (var canvas = new SKCanvas(WorkingBitmap))
             {
                 action?.Invoke(canvas);
                 canvas.Flush();
-                _workingBitmap.NotifyPixelsChanged();
+                WorkingBitmap.NotifyPixelsChanged();
             }
         }
 
@@ -821,7 +857,7 @@ namespace Pix2d.Drawing.Nodes
             ClearWorkingBitmap();
             //_workingBitmap.Pixels = floodFiller.FilledPixels;
             var data = floodFiller.GetPixelBytes();
-            _workingBitmap.CopyPixelsToBitmap(data);
+            WorkingBitmap.CopyPixelsToBitmap(data);
         }
 
         public void SetDrawingLayerMode(BrushDrawingMode drawingMode)
@@ -873,7 +909,7 @@ namespace Pix2d.Drawing.Nodes
             OnSelectionStarted();
             State = DrawingLayerState.Selection;
             ClearWorkingBitmap();
-            _workingBitmap.NotifyPixelsChanged();
+            WorkingBitmap.NotifyPixelsChanged();
             _pixelSelector = new AllPixelSelector();
             FinishSelection();
         }
@@ -884,12 +920,12 @@ namespace Pix2d.Drawing.Nodes
             {
                 ClearWorkingBitmap();
                 _selectionLayer.IsVisible = true;
-                using (var canvas = new SKCanvas(_workingBitmap))
+                using (var canvas = new SKCanvas(WorkingBitmap))
                 {
                     _selectionLayer.Render(canvas, new ViewPort((int)Size.Width, (int)Size.Height));
                     canvas.DrawColor(color, SKBlendMode.SrcATop);
                     canvas.Flush();
-                    _workingBitmap.NotifyPixelsChanged();
+                    WorkingBitmap.NotifyPixelsChanged();
                 }
                 ApplySelection();
             }
@@ -922,7 +958,7 @@ namespace Pix2d.Drawing.Nodes
             OnSelectionStarted();
             State = DrawingLayerState.Selection;
             ClearWorkingBitmap();
-            _workingBitmap.NotifyPixelsChanged();
+            WorkingBitmap.NotifyPixelsChanged();
 
             if (SelectionMode == PixelSelectionMode.SameColor)
             {
@@ -994,6 +1030,7 @@ namespace Pix2d.Drawing.Nodes
             var selector = _pixelSelector;
             selector.FinishSelection(SelectionMode != PixelSelectionMode.Rectangle);
             ClearWorkingBitmap();
+            SwapWorkingBitmap();
 
             var size = DrawingTarget.GetSize();
             var tmpBitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, SKColorType.Bgra8888));
@@ -1011,7 +1048,7 @@ namespace Pix2d.Drawing.Nodes
 
                 ActivateEditor();
                 //OnNodeChanged();
-                _workingBitmap.NotifyPixelsChanged();
+                WorkingBitmap.NotifyPixelsChanged();
 
                 OnPixelsSelected();
             }
@@ -1070,7 +1107,6 @@ namespace Pix2d.Drawing.Nodes
 
         public void SetSelectionRect(SKPoint startPos, SKPoint endPos)
         {
-            ClearWorkingBitmap();
             var pivot = SKPoint.Empty;
             GetGlobalTransform().TryInvert(out var invertedTransform);
 
@@ -1094,6 +1130,7 @@ namespace Pix2d.Drawing.Nodes
             var w = Math.Abs(p3.X - p1.X);
             var h = Math.Abs(p3.Y - p1.Y);
             SelectionSize = new SKSizeI(w + 1, h + 1);
+            SwapWorkingBitmap();
             //            OnNodeChanged();
         }
 

@@ -8,8 +8,6 @@ namespace Pix2d.Drawing.Tools
     {
         protected override void DrawShape(SKPoint p0, SKPoint p1)
         {
-            WorkingBitmap.Clear();
-
             var dln = ((DrawingLayerNode)DrawingLayer);
 
             if (dln.AspectSnapper?.IsAspectLocked == true)

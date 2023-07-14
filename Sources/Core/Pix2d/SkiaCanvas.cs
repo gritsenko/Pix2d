@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using Avalonia.Input;
 using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
@@ -320,7 +319,6 @@ public class SkiaCanvas : Control
 
         Input.SetPointerMoved(ToSKPoint(pos), props.IsLeftButtonPressed, ToModifiers(e.KeyModifiers),
             pointerType == PointerType.Touch);
-        InvalidateVisual();
     }
 
     private void OnPinch(object sender, PinchEventArgs e)
