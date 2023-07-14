@@ -125,6 +125,10 @@ public class BrushTool : BaseTool, IDrawingTool
             _currentBuilder?.SetNextPointPreview(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
             DrawingService.DrawingLayer.FinishCurrentDrawing();
             DrawingService.Refresh();
+        } 
+        else if (DrawingService.DrawingLayer.ShowBrushPreview)
+        {
+            DrawingService.Refresh();
         }
     }
 

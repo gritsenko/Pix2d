@@ -577,7 +577,7 @@ namespace Pix2d.Drawing.Nodes
 
         public override void OnDraw(SKCanvas canvas, ViewPort vp)
         {
-            if (ShowBrushPreview && State != DrawingLayerState.Drawing)
+            if (ShowBrushPreview && (State != DrawingLayerState.Drawing || _drawingMode == BrushDrawingMode.ExternalDraw))
             {
                 RenderBrushPreview(canvas);
             }
