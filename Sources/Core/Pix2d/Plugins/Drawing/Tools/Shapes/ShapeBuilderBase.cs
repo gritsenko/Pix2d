@@ -12,12 +12,9 @@ namespace Pix2d.Drawing.Tools
 
         public AddPointInputMode AddPointInputMode = AddPointInputMode.PressAndHold;
 
-        public SKBitmap WorkingBitmap { get; set; }
-
         public virtual void Initialize(IDrawingLayer drawingLayer)
         {
             DrawingLayer = drawingLayer;
-            WorkingBitmap = DrawingLayer.GetWorkingBitmap();
         }
 
         public virtual void AddPoint(SKPoint point)

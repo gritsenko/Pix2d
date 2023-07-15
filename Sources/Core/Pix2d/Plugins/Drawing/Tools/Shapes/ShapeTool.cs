@@ -91,6 +91,7 @@ namespace Pix2d.Drawing.Tools
             }
 
             _currentBuilder.SetNextPointPreview(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
+            DrawingService.Refresh();
         }
 
         protected override void OnPointerReleased(object sender, PointerActionEventArgs e)

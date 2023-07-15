@@ -20,6 +20,7 @@ public interface IDrawingLayer
     event EventHandler PixelsSelected;
     event EventHandler<PixelsBeforeSelectedEventArgs> PixelsBeforeSelected;
     event EventHandler SelectionTransformed;
+    event EventHandler LayerModified;
 
     bool IsPixelPerfectMode{ get; set; }
         
@@ -49,12 +50,15 @@ public interface IDrawingLayer
     SKSize SelectionSize { get; }
     IDrawingTarget DrawingTarget { get; }
 
-    SKBitmap GetWorkingBitmap();
-
     SKNode GetSelectionLayer();
 
     void BeginDrawing(bool hideTarget = true);
 
+    /// <summary>
+    /// Finalizes current drawing operation and sets the drawing layer as ready to be drawn to the UI.
+    /// </summary>
+    void FinishCurrentDrawing();
+    
     /// <summary>
     /// Applies pixels from working bitmat to target layer, then clears working bitmap
     /// </summary>

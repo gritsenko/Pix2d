@@ -6,7 +6,9 @@ using Pix2d.Abstract.Tools;
 using Pix2d.Drawing.Tools;
 using Pix2d.Primitives.Drawing;
 using SkiaNodes;
+using SkiaNodes.Extensions;
 using SkiaNodes.Interactive;
+using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Tools;
 
@@ -121,6 +123,12 @@ public class BrushTool : BaseTool, IDrawingTool
         if (e.Pointer.IsPressed && ShapeType != ShapeType.Free && _currentBuilder?.AddPointInputMode == AddPointInputMode.PressAndHold)
         {
             _currentBuilder?.SetNextPointPreview(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
+            DrawingService.DrawingLayer.FinishCurrentDrawing();
+            DrawingService.Refresh();
+        } 
+        else if (DrawingService.DrawingLayer.ShowBrushPreview)
+        {
+            DrawingService.Refresh();
         }
     }
 

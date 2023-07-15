@@ -99,6 +99,7 @@ namespace Pix2d.Services
                 _drawingLayer.DrawingApplied -= DrawingLayer_DrawingApplied;
                 _drawingLayer.DrawingStarted -= DrawingLayerOnDrawingStarted;
                 _drawingLayer.SelectionStarted -= DrawingLayerOnDrawingStarted;
+                _drawingLayer.LayerModified -= DrawingLayerOnModified;
             }
 
             _drawingLayer = newDrawingLayer;
@@ -109,7 +110,13 @@ namespace Pix2d.Services
                 _drawingLayer.DrawingApplied += DrawingLayer_DrawingApplied;
                 _drawingLayer.SelectionStarted += DrawingLayerOnDrawingStarted;
                 _drawingLayer.DrawingStarted += DrawingLayerOnDrawingStarted;
+                _drawingLayer.LayerModified += DrawingLayerOnModified;
             }
+        }
+
+        private void DrawingLayerOnModified(object sender, EventArgs e)
+        {
+            Refresh();
         }
 
         private void DrawingLayerOnDrawingStarted(object sender, EventArgs e)
@@ -294,6 +301,11 @@ namespace Pix2d.Services
         public void CancelCurrentOperation()
         {
             _drawingLayer.CancelCurrentOperation();
+        }
+
+        public void Refresh()
+        {
+            ViewPortService.Refresh();
         }
     }
 }
