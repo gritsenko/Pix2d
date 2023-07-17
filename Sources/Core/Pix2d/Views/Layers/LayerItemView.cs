@@ -25,7 +25,6 @@ public class LayerItemView : ViewBase<LayerViewModel>
                     .Padding(0)
                     .Command(vm.SelectLayerCommand)
                     .CommandParameter(vm)
-                    .Background(Brushes.Transparent)
                     .Template(buttonTemplate)
                     .Content(
                         new SKImageView()

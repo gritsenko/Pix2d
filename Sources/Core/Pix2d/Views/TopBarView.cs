@@ -43,16 +43,16 @@ public class TopBarView : ComponentBase
                             .Label("Clear")
                             .Content("\xE894"),
 
-                        new AppButton()
+                        new AppToggleButton()
+                            .IsChecked(AppState.UiState.ShowExtraTools, BindingMode.TwoWay, bindingSource: AppState.UiState)
                             .With(ButtonStyle)
                             .Label("Tools")
-                            .Command(Commands.View.ToggleExtraToolsCommand)
                             .Content("\xEC7A"),
 
-                        new AppButton()
+                        new AppToggleButton()
+                            .IsChecked(AppState.UiState.ShowTimeline, BindingMode.TwoWay, bindingSource: AppState.UiState)
                             .With(ButtonStyle)
                             .Label("Animate")
-                            .Command(Commands.View.ToggleTimelineCommand)
                             .Content("\xED5A"),
 
                         new AppButton()
@@ -104,6 +104,8 @@ public class TopBarView : ComponentBase
 
     [Inject] private IOperationService OperationService { get; set; } = null!;
     [Inject] private IMessenger Messenger { get; set; } = null!;
+    [Inject] private AppState AppState { get; set; } = null;
+    
     public int UndoSteps => OperationService?.UndoOperationsCount ?? 0;
 
     protected override void OnAfterInitialized()

@@ -1,4 +1,5 @@
-﻿using Avalonia.Styling;
+﻿using Avalonia.Controls.Presenters;
+using Avalonia.Styling;
 using Pix2d.Shared;
 
 namespace Pix2d;
@@ -12,7 +13,6 @@ public class AppStyles : Styles
             {
                 new Style<Border>(s => s.OfType<Border>().Class("Panel"))
                     .CornerRadius(new CornerRadius(0, 0))
-                    .Background("#444E59".ToColor().ToBrush())
                     .BorderBrush(StaticResources.Brushes.MainBackgroundBrush)
                     .BorderThickness(new Thickness()),
 
@@ -34,26 +34,41 @@ public class AppStyles : Styles
                     .Width(52d)
                     .Height(52d),
 
-                new Style<Button>()
+                new Style<ToggleButton>(s => s.Is<ToggleButton>().Class(":checked").Template().Is<ContentPresenter>())
+                    .Background(StaticResources.Brushes.SelectedItemBrush),
+                
+                new Style<ToggleButton>(s => s.Is<ToggleButton>().Class("secondary-button"))
+                    .Foreground(Brushes.Gray),
+                    
+                new Style<ToggleButton>(s => s.Is<ToggleButton>().Class("secondary-button").Class(":checked").Template().Is<ContentPresenter>())
+                    .Foreground(Brushes.White)
+                    .Background(StaticResources.Brushes.SecondaryButtonBrush),
+                
+                new Style<ToggleButton>(s => s.Is<ToggleButton>().Class("secondary-button").Class(":pointerover"))
+                    .Foreground(Brushes.White),
+                
+                new Style<ToggleButton>(s => s.Is<ToggleButton>().Class("secondary-button").Class(":pressed").Template().Is<ContentPresenter>())
+                    .Foreground(Brushes.White),
+                
+                new Style<Button>(s => s.Is<Button>())
                     .Background(Brushes.Transparent)
                     .BorderThickness(new Thickness(0, 0)),
-
-                new Style<ToggleButton>()
-                    .Background(Brushes.Transparent)
-                    .BorderThickness(new Thickness(0, 0)),
-
-                new Style<ToggleButton>(s => s.OfType<ToggleButton>().Class(":pointerover"))
+                
+                new Style<Button>(s => s.Is<Button>().Class("brush-button"))
+                    .Background(StaticResources.Brushes.BrushButtonBrush),
+                
+                new Style<Button>(s => s.Is<Button>().Class(":pointerover").Not(b => b.Class("color-button")).Template().Is<ContentPresenter>())
                     .Background(StaticResources.Brushes.ButtonHoverBrush),
-
-                new Style<Button>(s => s.OfType<Button>().Class(":pointerover"))
-                    .Background(StaticResources.Brushes.ButtonHoverBrush),
-
-                new Style<AppButton>(s => s.OfType<AppButton>().Class(":pointerover"))
-                    .Setter(AppButton.BackgroundProperty, StaticResources.Brushes.ButtonHoverBrush),
-
-                new Style<AppToggleButton>(s => s.OfType<AppToggleButton>().Class(":pointerover"))
-                    .Setter(AppToggleButton.BackgroundProperty, StaticResources.Brushes.ButtonHoverBrush),
-
+                
+                new Style<Button>(s => s.Is<Button>().Class(":pointerover").Class("color-button").Template().Is<ContentPresenter>())
+                    .BorderBrush(StaticResources.Brushes.ButtonHoverBrush),
+                
+                new Style<Button>(s => s.Is<Button>().Class("secondary-button"))
+                    .Background(StaticResources.Brushes.SecondaryButtonBrush),
+                
+                new Style<Button>(s => s.Is<Button>().Class(":pressed").Not(b => b.Class("color-button")).Template().Is<ContentPresenter>())
+                    .Background(StaticResources.Brushes.ButtonActiveBrush),
+                
                 new Style<TextBlock>(x=>x.OfType<TextBlock>().Class("ToolIcon"))
                     .FontSize(26)
             }

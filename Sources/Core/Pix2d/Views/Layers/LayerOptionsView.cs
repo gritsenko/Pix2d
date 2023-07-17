@@ -164,7 +164,7 @@ public class LayerOptionsView : ViewBaseSingletonVm<LayersListViewModel>
         .Width(16)
         .Height(16);
 
-    private void ButtonStyle(ViewBase v) => v
+    private void ButtonStyle(AppButton v) => v
         .Width(50);
 }
 

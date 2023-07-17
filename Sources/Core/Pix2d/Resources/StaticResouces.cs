@@ -19,7 +19,9 @@ public static class StaticResources
         public static Color SelectedItemColor { get; } = "#FF363d45".ToColor();
         public static Color MyAccentColor { get; } = "#ff4384de".ToColor();
         public static Color ButtonHoverColor { get; } = "#AA4384de".ToColor();
+        public static Color ButtonActiveColor { get; } = "#5883bf".ToColor();
         public static Color MyLinkHighlightColor { get; } = "#ff6ba7f9".ToColor();
+        public static Color BrushButtonColor { get; } = "#414953".ToColor();
     }
 
     public static class Brushes
@@ -31,12 +33,15 @@ public static class StaticResources
         public static Brush SelectedHighlighterBrush { get; } = Colors.MyAccentColor.ToBrush();
         public static Brush AccentBrush { get; } = Colors.MyAccentColor.ToBrush();
         public static Brush ButtonHoverBrush { get; } = Colors.ButtonHoverColor.ToBrush();
+        public static Brush ButtonActiveBrush { get; } = Colors.ButtonActiveColor.ToBrush();
         public static Brush ButtonSolidBrush { get; set; } = Colors.MainBackgroundColor.ToBrush();
         public static Brush LinkHighlightBrush { get; } = Colors.MyLinkHighlightColor.ToBrush();
         public static Brush CheckerTilesBrush { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap);
         public static Brush CheckerTilesBrushNoScale { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap) { Stretch = Stretch.None };
         public static Brush ActionsBarBackground { get; set; } = "#444E59".ToColor().ToBrush();
         public static Brush ModalOverlayBrush { get; set; } = Colors.ModalOverlayColor.ToBrush();
+        public static Brush SecondaryButtonBrush { get; set; } = Colors.SelectedItemColor.ToBrush();
+        public static Brush BrushButtonBrush { get; set; } = Colors.BrushButtonColor.ToBrush();
     }
 
     public static class Fonts

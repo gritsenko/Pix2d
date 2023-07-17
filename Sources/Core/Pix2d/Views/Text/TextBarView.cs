@@ -100,8 +100,6 @@ public class TextBarView : ViewBaseSingletonVm<TextBarViewModel> {
 
     private void ButtonStyle(Button b) {
         b.Classes("AppBarButton")
-            .Background(Colors.Transparent.ToBrush())
-            .BorderBrush(Colors.Transparent.ToBrush())
             .Width(48)
             .Height(48)
             .FontSize(22)

@@ -74,6 +74,10 @@ public class LayersListViewModel : Pix2dViewModelBase
     [NotifiesOn(nameof(SelectedBackgroundColor))]
     [NotifiesOn(nameof(UseBackgroundColor))]
     public SKColor ResultBackgroundColor => UseBackgroundColor ? SelectedBackgroundColor : SKColor.Empty;
+    
+    [NotifiesOn(nameof(SelectedBackgroundColor))]
+    [NotifiesOn(nameof(UseBackgroundColor))]
+    public Brush ResultBackgroundBrush => UseBackgroundColor ? SelectedBackgroundColor.ToBrush() : StaticResources.Brushes.CheckerTilesBrushNoScale;
 
 
     public LayerViewModel SelectedLayer { get; set; }

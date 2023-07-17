@@ -1,6 +1,7 @@
 ﻿using Pix2d.Shared;
 using Pix2d.ViewModels.Layers;
 using Avalonia.Controls.Shapes;
+using SkiaSharp;
 
 namespace Pix2d.Views.Layers;
 
@@ -10,19 +11,15 @@ public class BackgroundSelectorView : ViewBaseSingletonVm<LayersListViewModel>
         new Grid()
             .Children(
                 new Button()
-                    .Padding(10)
-                    .Background(StaticResources.Brushes.CheckerTilesBrushNoScale)
+                    .Classes("color-button")
                     .Width(42)
                     .Height(42)
                     .CornerRadius(32)
-                    .Content(
-                        new Ellipse()
-                            .Width(42)
-                            .Height(42)
-                            .StrokeThickness(3)
-                            .Stroke(Brushes.White)
-                            .Fill(@vm.ResultBackgroundColor, StaticResources.Converters.SKColorToBrushConverter)
-                    )
+                    .BorderThickness(3)
+                    .BorderBrush(Colors.White.ToBrush())
+                    .Background(vm.ResultBackgroundBrush, 
+                        bindingMode: BindingMode.OneWay, 
+                        bindingSource: vm)
                     .Flyout(
                         new Flyout()
                             .Content(
@@ -49,7 +46,6 @@ public class BackgroundSelectorView : ViewBaseSingletonVm<LayersListViewModel>
                     .Width(32)
                     .Height(32)
                     .BorderThickness(0)
-                    .Background(Brushes.Transparent)
                     .FontFamily(StaticResources.Fonts.IconFontSegoe)
                     .FontSize(18)
                     .Content("\xE7B3")
