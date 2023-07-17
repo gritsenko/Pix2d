@@ -17,8 +17,6 @@ public class LayersView : ViewBaseSingletonVm<LayersListViewModel>
                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                     .Children(
                         new Button()
-                            .Background(StaticResources.Brushes.SelectedItemBrush)
-                            .BorderBrush(StaticResources.Brushes.SelectedItemBrush)
                             .Command(vm.AddLayerCommand)
                             .Content("\xE710")
                             .FontFamily(StaticResources.Fonts.IconFontSegoe),

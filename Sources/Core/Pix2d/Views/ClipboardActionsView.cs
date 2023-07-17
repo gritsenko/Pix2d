@@ -42,8 +42,6 @@ public class ClipboardActionsView : ComponentBase
     private void ButtonStyle(Button b)
     {
         b.Classes("AppBarButton")
-        .Background(Colors.Transparent.ToBrush())
-        .BorderBrush(Colors.Transparent.ToBrush())
         .Width(48)
         .Height(48)
         .FontSize(16)

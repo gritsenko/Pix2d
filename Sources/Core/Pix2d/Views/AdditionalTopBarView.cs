@@ -9,7 +9,8 @@ public class AdditionalTopBarView : ComponentBase
         new Grid()
             .Styles(
                 new Style<Button>()
-                    .Background(StaticResources.Brushes.SelectedItemBrush)
+                    .FontFamily(StaticResources.Fonts.IconFontSegoe),
+                new Style<ToggleButton>()
                     .FontFamily(StaticResources.Fonts.IconFontSegoe)
             )
             .Height(32)
@@ -23,32 +24,29 @@ public class AdditionalTopBarView : ComponentBase
                     .StrokeThickness(2),
 
                 //toggle grid 
-                new Button().Col(0)
-                    .Foreground(Bind(ShowGrid).Converter(StaticResources.Converters.BoolToBrushButtonForegroundConverter))
-                    .Command(Commands.View.Snapping.ToggleGrid)
+                new ToggleButton().Col(0)
+                    .Classes("secondary-button")
+                    .IsChecked(AppState.CurrentProject.ViewPortState.ShowGrid, BindingMode.TwoWay, bindingSource: AppState.CurrentProject.ViewPortState)
                     .Content("\xE80A"),
 
                 //toggle preview window
-                new Button().Col(1)
-                    .Foreground(Bind(ShowPreviewPanel).Converter(StaticResources.Converters.BoolToBrushButtonForegroundConverter))
+                new ToggleButton().Col(1)
+                    .Classes("secondary-button")
+                    .IsChecked(AppState.UiState.ShowPreviewPanel, BindingMode.TwoWay, bindingSource: AppState.UiState)
                     .Margin(new Thickness(1, 0, 0, 0))
-                    .Command(Commands.View.TogglePreviewPanelCommand)
                     .Content("\xE91B"),
 
                 new ZoomPanelView().Col(2)
                     .Margin(new Thickness(1, 0, 0, 0)),
 
                 //toggle layers
-                new Button().Col(3)
+                new ToggleButton().Col(3)
+                    .Classes("secondary-button")
                     .IsVisible(Bind(CanShowLayers))
                     .Width(64)
                     .Margin(new Thickness(1, 0, 0, 0))
-                    .Background(StaticResources.Brushes.SelectedItemBrush)
-                    .BorderBrush(StaticResources.Brushes.SelectedItemBrush)
                     .FontSize(16)
-                    .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                    .Command(Commands.View.ToggleShowLayersCommand)
-                    .Foreground(Bind(ShowLayers).Converter(StaticResources.Converters.BoolToBrushButtonForegroundConverter))
+                    .IsChecked(AppState.UiState.ShowLayers, BindingMode.TwoWay, bindingSource: AppState.UiState)
                     .Content("\xE81E")
             );
 

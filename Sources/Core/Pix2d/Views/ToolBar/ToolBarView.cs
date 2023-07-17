@@ -48,8 +48,8 @@ public class ToolBarView : ComponentBase
 
                 new Button() //Brush settings button
                     .Classes("toolbar-button")
+                    .Classes("brush-button")
                     .IsVisible(IsSpriteEditMode)
-                    .Background("#414953".ToColor().ToBrush())
                     .Margin(0, 8)
                     .Padding(0)
                     .Command(Commands.View.ToggleBrushSettingsCommand)

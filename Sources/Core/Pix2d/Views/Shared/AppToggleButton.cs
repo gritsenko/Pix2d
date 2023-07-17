@@ -16,8 +16,6 @@ public class AppToggleButton : AppButton
         new ToggleButton()
             .IsChecked(IsCheckedProperty)
             .Command(CommandProperty)
-            .Background(Brushes.Transparent)
-            .BorderBrush(Brushes.Transparent)
             .HorizontalAlignment(HorizontalAlignment.Stretch)
             .VerticalAlignment(VerticalAlignment.Stretch)
             .HorizontalContentAlignment(HorizontalAlignment.Stretch)
