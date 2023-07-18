@@ -69,7 +69,8 @@ public class ToolItemView : ComponentBase
     {
         if (IsSelected)
         {
-            AppState.UiState.ShowToolProperties = !AppState.UiState.ShowToolProperties;
+            if(ToolState.HasToolProperties)
+                AppState.UiState.ShowToolProperties = !AppState.UiState.ShowToolProperties;
         }
         else
         {
