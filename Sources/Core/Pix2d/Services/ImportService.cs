@@ -149,7 +149,7 @@ namespace Pix2d.Services
             {
 
                 var result = await DialogService.ShowYesNoDialog(
-                    "Imported image size is bigger then current. Resize current image?", "Resize suggestion", "Yes", "No");
+                    "Imported image size is bigger then the current canvas size. Resize current canvas?", "Resize suggestion", "Yes", "No");
                 if (result)
                 {
                     if (currentSprite.Parent is ArtboardNode artboard)

@@ -76,9 +76,12 @@ namespace Pix2d.Services
             //}
         }
 
-        Task<bool> IDialogService.ShowYesNoDialog(string message, string title, string okLabel, string cancelLabel)
+        async Task<bool> IDialogService.ShowYesNoDialog(string message, string title, string okLabel, string cancelLabel)
         {
-            throw new NotImplementedException();
+            if (_dialogContainer == null) return false;
+            var dialog = new YesNoDialogView { Title = title, Message = message, OkLabel = okLabel, CancelLabel = cancelLabel };
+            await _dialogContainer.ShowDialogAsync(dialog);
+            return dialog.DialogResult;
         }
 
         public async Task<bool> ShowAlert(string message, string title)
@@ -86,11 +89,6 @@ namespace Pix2d.Services
             if (_dialogContainer == null) return true;
             await _dialogContainer.ShowDialogAsync(new AlertDialog());
             return true;
-        }
-
-        public Task<bool> ShowYesNoDialogAsync(string message, string title)
-        {
-            throw new NotImplementedException();
         }
 
         public async Task<UnsavedChangesDialogResult> ShowUnsavedChangesInProjectDialog()

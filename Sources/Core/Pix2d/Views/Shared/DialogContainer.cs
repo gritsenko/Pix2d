@@ -24,6 +24,17 @@ public class DialogContainer : ViewBase, IDialogContainer
         set => SetAndRaise(ContentProperty, ref _content, value);
     }
 
+    public static readonly DirectProperty<DialogContainer, string> TitleProperty
+        = AvaloniaProperty.RegisterDirect<DialogContainer, string>(nameof(Title), o => o.Title, (o, v) => o.Title = v);
+
+    private string _title = "Dialog";
+
+    public string Title
+    {
+        get => _title;
+        set => SetAndRaise(TitleProperty, ref _title, value);
+    }
+
     protected override object Build() =>
         new Border()
             .IsVisible(false)
@@ -36,7 +47,7 @@ public class DialogContainer : ViewBase, IDialogContainer
                     .VerticalAlignment(VerticalAlignment.Center)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Ref(out _contentControl)
-                    .Header("Dialog")
+                    .Header(Title, BindingMode.OneWay, bindingSource: this)
                     .IsOpen(true)
                     .CloseButtonCommand(new RelayCommand(OnCloseButtonClicked))
             );
@@ -56,6 +67,7 @@ public class DialogContainer : ViewBase, IDialogContainer
         _cts = new TaskCompletionSource<bool?>();
         if (dialog is ViewBase control)
         {
+            Title = dialog.Title;
             _contentControl.Content = control;
             SetVisible(true);
 
