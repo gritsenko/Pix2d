@@ -555,8 +555,17 @@ namespace Pix2d.Drawing.Nodes
             if (_selectionLayer.IsVisible)
             {
                 _selectionEditor.ResetEdit();
-                UpdateWorkingBitmapFromSelection();
-                ApplyWorkingBitmap();
+
+                if (State == DrawingLayerState.Paste)
+                {
+                    _foregroundBitmap.Clear();
+                    LayerModified?.Invoke(this, EventArgs.Empty);
+                }
+                else
+                {
+                    UpdateWorkingBitmapFromSelection();
+                    ApplyWorkingBitmap();
+                }
             }
         }
 

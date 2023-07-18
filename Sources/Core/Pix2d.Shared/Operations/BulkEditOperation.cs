@@ -12,6 +12,8 @@ namespace Pix2d.Operations
     {
         private readonly List<IEditOperation> _operations = new List<IEditOperation>();
 
+        public bool Empty => !_operations.Any();
+
         public BulkEditOperation(params IEditOperation[] operations)
         {
             _operations.AddRange(operations);

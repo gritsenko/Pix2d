@@ -162,7 +162,11 @@ namespace Pix2d.Services
                     }
 
                     spriteEditor.Resize(maxW, maxH);
-                    importOperation.PushToHistory();
+
+                    if (!importOperation.Empty)
+                    {
+                        importOperation.PushToHistory();
+                    }
                 }
             }
 
