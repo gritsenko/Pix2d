@@ -26,25 +26,29 @@ public class MainMenuView : ComponentBase
                             //.ItemTemplate(_menuItemTemplate)
                             .Items(
                                 new MainMenuItemView()
+                                    .Header("Back")
+                                    .Icon("")
+                                    .OnClicked(_ => Commands.View.HideMainMenuCommand.Execute()),
+                                new MainMenuItemView()
                                     .Header("New")
-                                    .Icon("0xE7C3")
+                                    .Icon("\xE7C3")
                                     .OnClicked(OnItemClick)
                                     .TabViewType(typeof(NewDocumentView)),
 
                                 new MainMenuItemView()
                                     .Header("Open")
-                                    .Icon("0xED41")
+                                    .Icon("\xED41")
                                     .OnClicked(OnItemClick)
                                     .TabViewType(typeof(OpenDocumentView)),
 
                                 new MainMenuItemView()
                                     .Header("Save")
-                                    .Icon("0xE74E")
+                                    .Icon("\xE74E")
                                     .OnClicked(OnItemClick),
 
                                 new MainMenuItemView()
                                     .Header("Save as")
-                                    .Icon("0xE792")
+                                    .Icon("\xE792")
                                     .OnClicked(OnItemClick)
                                     .TabViewType(typeof(SaveDocumentView)),
 
@@ -55,7 +59,7 @@ public class MainMenuView : ComponentBase
 
                                 new MainMenuItemView()
                                     .Header("Community\nand support")
-                                    .Icon("0xE8F2")
+                                    .Icon("\xE8F2")
                                     .OnClicked(OnItemClick)
                                     .TabViewType(typeof(SupportView))
                             ),

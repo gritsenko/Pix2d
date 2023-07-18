@@ -32,7 +32,7 @@ public class MainMenuItemView : ComponentBase
     public event EventHandler<MainMenuItemView>? Clicked;
     public bool IsSelected { get; set; }
     public string Header { get; set; } = "null!";
-    public string Icon { get; set; }
+    public string Icon { get; set; } = "";
     public Type? TabViewType { get; set; }
 
     protected virtual void OnClicked(MainMenuItemView e)
