@@ -1,4 +1,5 @@
 ﻿using Pix2d.Shared;
+using SkiaSharp;
 using static Pix2d.Resources.StaticResources;
 using Colors = Avalonia.Media.Colors;
 
@@ -59,6 +60,7 @@ public class BrushSettingsView : ComponentBase
 
                         new ToggleSwitch()
                             .IsChecked(DrawingState.IsPixelPerfectDrawingModeEnabled, BindingMode.TwoWay, bindingSource: DrawingState)
+                            .Content("Pixel perfect mode")
                             .Row(5)
                     ));
 

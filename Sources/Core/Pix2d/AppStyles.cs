@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls.Presenters;
 using Avalonia.Styling;
 using Pix2d.Shared;
+using SkiaSharp;
 
 namespace Pix2d;
 
@@ -70,7 +71,12 @@ public class AppStyles : Styles
                     .Background(StaticResources.Brushes.ButtonActiveBrush),
                 
                 new Style<TextBlock>(x=>x.OfType<TextBlock>().Class("ToolIcon"))
-                    .FontSize(26)
+                    .FontSize(26),
+                
+                new Style<ToggleSwitch>(s => s.OfType<ToggleSwitch>().Class(":pointerover").Template().Is<ContentPresenter>())
+                    .Background(SKColor.Empty.ToBrush()),
+                new Style<ToggleSwitch>(s => s.OfType<ToggleSwitch>().Class(":checked").Template().Is<ContentPresenter>())
+                    .Background(SKColor.Empty.ToBrush()),
             }
         );
 
