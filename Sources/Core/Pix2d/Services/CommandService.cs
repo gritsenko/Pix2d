@@ -32,6 +32,7 @@ public class CommandService : ICommandService
         RegisterCommandList<EditCommands>();
         RegisterCommandList<ArrangeCommands>();
         RegisterCommandList<WindowCommands>();
+        RegisterCommandList<SnappingCommands>();
 
 #if DEBUG
         //cheats
@@ -51,10 +52,16 @@ public class CommandService : ICommandService
 
     private async void OnKeyPressed(object sender, KeyboardActionEventArgs e)
     {
-        if (e.Key == VirtualKeys.Control || e.Key == VirtualKeys.Menu)
+        if (e.Key is VirtualKeys.Control
+            or VirtualKeys.LeftControl
+            or VirtualKeys.RightControl
+            or VirtualKeys.Menu
+            or VirtualKeys.LeftMenu
+            or VirtualKeys.RightMenu)
         {
             return;
         }
+
         var editContextType = _appState.CurrentProject.CurrentContextType;
         if (FindCommand(e.Key, e.Modifiers, editContextType, out var command))
         {

@@ -10,7 +10,7 @@ public class SnappingCommands : CommandsListBase
 
     public Pix2dCommand ToggleGrid => GetCommand("Toggle grid",
         new CommandShortcut(VirtualKeys.OEMPeriod, KeyModifier.Ctrl),
-        EditContextType.General,
+        EditContextType.All,
         () => AppState.CurrentProject.ViewPortState.ShowGrid = !AppState.CurrentProject.ViewPortState.ShowGrid);
 
 }
