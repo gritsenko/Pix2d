@@ -2,5 +2,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
 	<uses-permission android:name="android.permission.INTERNET" />
 	<application android:label="Pix2d" android:icon="@mipmap/ic_launcher" />
-	<uses-sdk />
+	<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="33" />
 </manifest>
