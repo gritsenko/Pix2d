@@ -15,15 +15,17 @@ public class ArtworkPreviewView : ComponentBase
     protected override object Build()
     {
         return new Grid()
-            .Rows("*,Auto")
+            .Rows("Auto,Auto")
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(
                 new ScrollViewer()
-                    .Background(new ImageBrush(StaticResources.CheckerTilesBitmap).Stretch(Stretch.UniformToFill))
-                    .VerticalScrollBarVisibility(ScrollBarVisibility.Hidden)
-                    .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden)
+                    .MaxWidth(300)
+                    .MaxHeight(300)
+                    .VerticalScrollBarVisibility(ScrollBarVisibility.Auto)
+                    .HorizontalScrollBarVisibility(ScrollBarVisibility.Auto)
                     .Content(
                         new SKImageView()
+                            .ShowCheckerBackground(true)
                             .HorizontalAlignment(HorizontalAlignment.Center)
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Source(Preview, bindingSource: this)
@@ -132,9 +134,6 @@ public class ArtworkPreviewView : ComponentBase
             _editor.CurrentSprite.RenderFramePreview(frameIndex, ref curBitmap, _viewPort, sprite.UseBackgroundColor);
 
             Preview.SetBitmap(curBitmap);
-
-            Width = curBitmap.Width;// / sf;
-            Height = curBitmap.Height;// / sf;
         }
     }
 
