@@ -21,6 +21,7 @@ public class ToolState
         if (toolType.GetProperty("ToolSettings")?.GetValue(null) is ToolSettings settings)
         {
             ToolTip = settings.HotKey != null ? $"{settings.DisplayName} ({settings.HotKey})" : settings.DisplayName;
+            IconKey = settings.IconData;
         }
     }
 
