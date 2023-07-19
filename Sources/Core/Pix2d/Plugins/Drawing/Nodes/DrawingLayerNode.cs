@@ -291,7 +291,10 @@ namespace Pix2d.Drawing.Nodes
 
         public override void OnPointerMoved(PointerActionEventArgs eventArgs)
         {
-            _previewPos = eventArgs.Pointer.GetPosition(this).ToSkPointI();
+            var prevPointerPosition = _previewPos;
+            var currPointerPosition = eventArgs.Pointer.GetPosition(this).ToSkPointI();
+            
+            _previewPos = currPointerPosition;
 
             if (_drawingMode == BrushDrawingMode.ExternalDraw)
                 return;
@@ -305,14 +308,23 @@ namespace Pix2d.Drawing.Nodes
                     var strokeEndPos = EndPosI;
                     if (AspectSnapper?.IsAspectLocked == true)
                     {
-                        var delta = EndPosI - StartPosI;
+                        if (AxisLockMode == AxisLockMode.None && currPointerPosition != prevPointerPosition)
+                        {
+                            var delta = _previewPos - prevPointerPosition;
+                            AxisLockMode = Math.Abs(delta.X) > Math.Abs(delta.Y) ? AxisLockMode.Horizontal : AxisLockMode.Vertical;
+                            StartPos = prevPointerPosition;
+                        }
 
-                        AxisLockMode = Math.Abs(delta.X) > Math.Abs(delta.Y) ? AxisLockMode.Horizontal : AxisLockMode.Vertical;
-
-                        strokeEndPos = AxisLockMode == AxisLockMode.Horizontal
-                            ? new SKPointI(EndPosI.X, StartPosI.Y)
-                            : new SKPointI(StartPosI.X, EndPosI.Y);
+                        if (AxisLockMode == AxisLockMode.Horizontal)
+                        {
+                            strokeEndPos = new SKPointI(EndPosI.X, StartPosI.Y);
+                        }
+                        else if (AxisLockMode == AxisLockMode.Vertical)
+                        {
+                            strokeEndPos = new SKPointI(StartPosI.X, EndPosI.Y);
+                        }
                     }
+                    
                     DrawStroke(strokeEndPos);
                 }
                 else if (State == DrawingLayerState.Selection)
