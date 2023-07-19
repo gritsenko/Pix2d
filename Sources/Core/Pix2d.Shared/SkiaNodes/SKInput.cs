@@ -170,13 +170,35 @@ namespace SkiaNodes.Interactive
 
         public bool SetKeyPressed(VirtualKeys key, KeyModifier keyModifiers)
         {
-            _keyModifiers = keyModifiers;
+            var activeKeyModifier = key.ToModifier();
+            if (activeKeyModifier == KeyModifier.None)
+            {
+                _keyModifiers = keyModifiers;
+            }
+            else
+            {
+                // The modifier key was released. Avalonia reports modifier to be still inactive but we need to set
+                // is as currently active.
+                _keyModifiers |= activeKeyModifier;
+            }
+            
             return OnKeyPressed(new KeyboardActionEventArgs(key, keyModifiers));
         }
 
         public bool SetKeyReleased(VirtualKeys key, KeyModifier keyModifiers)
         {
-            _keyModifiers = keyModifiers;
+            var activeKeyModifier = key.ToModifier();
+            if (activeKeyModifier == KeyModifier.None)
+            {
+                _keyModifiers = keyModifiers;
+            }
+            else
+            {
+                // The modifier key was released. Avalonia reports modifier to be still active but we need to set
+                // is as currently inactive.
+                _keyModifiers &= ~activeKeyModifier;
+            }
+            
             return OnKeyReleased(new KeyboardActionEventArgs(key, keyModifiers));
         }
 
