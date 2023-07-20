@@ -18,9 +18,14 @@ namespace Pix2d.CommonNodes.Controls.Thumbs.Resize
             var d = new SKPoint(-delta.X, delta.Y);
             var newSize = CalculateNewSize(initialSize, d, lockAspect);
 
-            var pos = _initialTargetLocalTransform.MapPoint(_initialTargetPos);
-            pos.Offset(delta.X, 0);
-            TargetSelection.SetPosition(_initialTargetGlobalTransform.MapPoint(pos));
+            var position = _initialTargetLocalTransform.MapPoint(_initialTargetPos);
+            position.Offset(delta.X / 2, delta.Y / 2);
+
+            var pivotPosition = _initialTargetPivotPosition;
+            pivotPosition.Offset(-delta.X / 2,  delta.Y / 2);
+            
+            TargetSelection.SetPosition(_initialTargetGlobalTransform.MapPoint(position));
+            TargetSelection.SetPivotPosition(pivotPosition);
 
             TargetSelection.SetSize(newSize.Width, newSize.Height);
         }

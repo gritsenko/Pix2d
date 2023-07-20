@@ -10,6 +10,7 @@ namespace Pix2d.CommonNodes.Controls.Thumbs.Resize
     {
         private SKPoint _initialThumbLocalPos;
         protected  SKPoint _initialTargetPos;
+        protected SKPoint _initialTargetPivotPosition;
         private SKSize _initialTargetSize;
         private SKSize _actualSize;
 
@@ -33,6 +34,7 @@ namespace Pix2d.CommonNodes.Controls.Thumbs.Resize
             _initialThumbGlobalPos = GetGlobalPosition();
             var frame = TargetSelection.Frame;
             _initialTargetPos = frame.Position;
+            _initialTargetPivotPosition = frame.PivotPosition;
             _initialTargetSize = frame.Size;
 
             _initialTargetGlobalTransform = frame.GetGlobalTransform();
@@ -47,13 +49,13 @@ namespace Pix2d.CommonNodes.Controls.Thumbs.Resize
             var localDelta = _initialTargetLocalTransform.MapPoint(Position) - _initialThumbLocalPos;
             var newX = localDelta.X;
             var newY = localDelta.Y;
-
+            
             // if (SnapToPixels)
             // {
             //     newX = (float) Math.Floor(localDelta.X);
             //     newY = (float) Math.Floor(localDelta.Y);
             // }
-
+            
             var delta = new SKPoint(newX, newY);
             if(delta != SKPoint.Empty)
                 SetNewBounds(_initialTargetSize, delta, AspectLockProviderFunc?.Invoke() ?? false);

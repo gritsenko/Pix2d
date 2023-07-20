@@ -34,13 +34,13 @@ namespace Pix2d.Abstract.Selection
         public float X
         {
             get => Frame.Position.X;
-            set => SetPosition(value, Y);
+            set => SetPosition(new SKPoint(value, Y));
         }
 
         public float Y
         {
             get => Frame.Position.Y;
-            set => SetPosition(X, value);
+            set => SetPosition(new SKPoint(X, value));
         }
 
         public float Width
@@ -142,14 +142,13 @@ namespace Pix2d.Abstract.Selection
         }
 
 
-        public void SetPosition(SKPoint newPos) => SetPosition(newPos.X, newPos.Y);
-        public void SetPosition(float newX, float newY)
+        public void SetPosition(SKPoint newPos)
         {
-            var delta = new SKPoint(newX - X, newY - Y);
+            var delta = newPos - Frame.Position;
             if(delta == SKPoint.Empty)
                 return;
             
-            Frame.Position = new SKPoint(newX, newY);
+            Frame.Position = newPos;
 
             foreach (var node in Nodes)
                 node.Position += delta;
@@ -157,6 +156,19 @@ namespace Pix2d.Abstract.Selection
             Invalidate();
         }
 
+        public void SetPivotPosition(SKPoint newPos)
+        {
+            var delta = newPos - Frame.PivotPosition;
+            if (delta == SKPoint.Empty) return;
+
+            Frame.PivotPosition = newPos;
+            foreach (var node in Nodes)
+            {
+                node.PivotPosition += delta;
+            }
+            
+            Invalidate();
+        }
 
         public void SetSize(SKSize newSize) => SetSize(newSize.Width, newSize.Height);
 
