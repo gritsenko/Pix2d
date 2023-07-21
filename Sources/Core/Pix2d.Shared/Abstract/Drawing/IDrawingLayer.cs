@@ -70,7 +70,7 @@ public interface IDrawingLayer
     void DeactivateSelectionEditor();
 
     void SetSelectionFromExternal(SKBitmap bitmap, in SKPoint position);
-    void ClearSelection();
+    void RemoveSelectionFromTarget();
     void SelectAll();
     void FillSelection(SKColor color);
     void ActivateEditor();

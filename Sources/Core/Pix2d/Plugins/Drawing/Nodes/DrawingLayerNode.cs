@@ -38,6 +38,10 @@ namespace Pix2d.Drawing.Nodes
         private SKBitmap _backgroundBitmap;
         private SKBitmap _foregroundBitmap;
 
+        /// <summary>
+        /// The layer's bitmap currently displayed on the screen. All drawing and selection operations are rendered to
+        /// this bitmap until they are applied to the <see cref="DrawingTarget"/>.
+        /// </summary>
         private SKBitmap WorkingBitmap
         {
             get
@@ -99,6 +103,10 @@ namespace Pix2d.Drawing.Nodes
 
         public DrawingLayerState State { get; set; }
 
+        /// <summary>
+        /// Currently active application layer that the user works with. After drawing or selection operations are done
+        /// they are applied to the DrawingTarget.
+        /// </summary>
         public IDrawingTarget DrawingTarget { get; private set; }
         public PixelSelectionMode SelectionMode { get; set; }
         public bool HasSelection => _selectionLayer.Bitmap != null && (_drawingMode == BrushDrawingMode.Select || _drawingMode == BrushDrawingMode.MoveSelection) && !_selectionLayer.Size.IsEmpty;
@@ -157,7 +165,7 @@ namespace Pix2d.Drawing.Nodes
 
         private void ClearWorkingBitmap()
         {
-            _backgroundBitmap?.Erase(SKColor.Empty);
+            WorkingBitmap?.Erase(SKColor.Empty);
         }
 
         private void SelectionEditor_SelectionEdited(object sender, EventArgs e)
@@ -237,7 +245,7 @@ namespace Pix2d.Drawing.Nodes
                     return;
                 }
 
-                if (State == DrawingLayerState.Selection && _drawingMode == BrushDrawingMode.Select)
+                if (State == DrawingLayerState.DrawingSelectionArea && _drawingMode == BrushDrawingMode.Select)
                 {
                     AddSelectionPoint(StartPosI);
                     FinishSelection();
@@ -327,7 +335,7 @@ namespace Pix2d.Drawing.Nodes
                     
                     DrawStroke(strokeEndPos);
                 }
-                else if (State == DrawingLayerState.Selection)
+                else if (State == DrawingLayerState.DrawingSelectionArea)
                 {
                     switch (SelectionMode)
                     {
@@ -922,7 +930,7 @@ namespace Pix2d.Drawing.Nodes
 
             if (_selectionEditor.IsVisible)
             {
-                ClearSelection();
+                RemoveSelectionFromTarget();
                 DeactivateSelectionEditor();
                 OnDrawingApplied(true);
             }
@@ -934,20 +942,20 @@ namespace Pix2d.Drawing.Nodes
             }
 
         }
-        public void ClearSelection()
+        
+        /// <summary>
+        /// Removes the currently selected pixels from the drawing target. 
+        /// </summary>
+        public void RemoveSelectionFromTarget()
         {
-            if (State != DrawingLayerState.Selection)
-            {
-                DrawingTarget.ModifyBitmap(bitmap=> _pixelSelector?.ClearSelectionFromBitmap(ref bitmap));
-                DeactivateSelectionEditor();
-            }
+            DrawingTarget.ModifyBitmap(bitmap=> _pixelSelector?.ClearSelectionFromBitmap(ref bitmap));
         }
 
         public void SelectAll()
         {
             ApplySelection();
             OnSelectionStarted();
-            State = DrawingLayerState.Selection;
+            State = DrawingLayerState.DrawingSelectionArea;
             ClearWorkingBitmap();
             WorkingBitmap.NotifyPixelsChanged();
             _pixelSelector = new AllPixelSelector();
@@ -973,7 +981,6 @@ namespace Pix2d.Drawing.Nodes
 
         public void SetSelectionFromExternal(SKBitmap bitmap, in SKPoint position)
         {
-            ApplySelection();
             OnSelectionStarted();
             ClearWorkingBitmap();
 
@@ -982,7 +989,7 @@ namespace Pix2d.Drawing.Nodes
             _selectionLayer.Bitmap = bitmap;
             _selectionLayer.ResetTransform(position, default, 0, bitmap.Info.Size);
             _selectionLayer.Opacity = 1f;
-            //this.Nodes.Add(_selectionLayer);
+            
             UpdateWorkingBitmapFromSelection();
             _selectionLayer.IsVisible = true;
 
@@ -996,7 +1003,7 @@ namespace Pix2d.Drawing.Nodes
         {
             ApplySelection();
             OnSelectionStarted();
-            State = DrawingLayerState.Selection;
+            State = DrawingLayerState.DrawingSelectionArea;
             ClearWorkingBitmap();
             WorkingBitmap.NotifyPixelsChanged();
 
@@ -1030,6 +1037,10 @@ namespace Pix2d.Drawing.Nodes
             _selectionEditor.IsVisible = false;
             _selectionLayer?.Clear();
             _selectionLayer?.Bitmap?.NotifyPixelsChanged();
+            
+            OnDrawingApplied(false);
+            
+            OnSelectionRemoved();
 
             State = DrawingLayerState.Ready;
         }
@@ -1054,12 +1065,18 @@ namespace Pix2d.Drawing.Nodes
         {
             _selectionLayer?.Hide();
             _selectionEditor?.Hide();
-            ClearWorkingBitmap();
+            
+            SwapWorkingBitmap();
             _selectionLayer?.Clear();
+            
             OnSelectionRemoved();
             OnDrawingApplied(false);
         }
 
+        /// <summary>
+        /// Activates selection editor using currently drawn selection area. If nothing is selected (1 pixel is in
+        /// the selected area), editor is not activated.
+        /// </summary>
         public void FinishSelection()
         {
             if (_pixelSelector == null)
@@ -1117,7 +1134,7 @@ namespace Pix2d.Drawing.Nodes
             switch (State)
             {
                 case DrawingLayerState.Drawing:
-                case DrawingLayerState.Selection:
+                case DrawingLayerState.DrawingSelectionArea:
                     CancelDrawing();
                     break;
                 case DrawingLayerState.Ready:

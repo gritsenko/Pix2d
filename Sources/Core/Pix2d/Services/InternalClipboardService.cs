@@ -74,7 +74,7 @@ namespace Pix2d.Services
 
                 drawingLayer.DrawBitmap(emptyBitmap, pos);
 
-                drawingLayer.ClearSelection();
+                drawingLayer.RemoveSelectionFromTarget();
 
                 ViewPortService.Refresh();
             }

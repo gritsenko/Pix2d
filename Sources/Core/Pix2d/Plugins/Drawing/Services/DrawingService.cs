@@ -261,6 +261,7 @@ namespace Pix2d.Services
         public void PasteBitmap(SKBitmap bitmap, SKPoint pos)
         {
             ToolService.ActivateTool(nameof(PixelSelectTool));
+            DrawingLayer?.ApplySelection();
             DrawingLayer?.SetSelectionFromExternal(bitmap, SKPoint.Empty);
         }
 

@@ -56,7 +56,7 @@ namespace Pix2d.Drawing.Tools
             DrawingLayer.SetDrawingLayerMode(BrushDrawingMode.MoveSelection);
             DrawingLayer.SelectionTransformed += DrawingLayerOnSelectionTransformed;
             DrawingLayer.PixelsBeforeSelected += DrawingLayerOnPixelsBeforeSelected;
-            DrawingLayer.DrawingApplied += DrawingLayer_DrawingApplied;
+            DrawingLayer.SelectionRemoved += DrawingLayer_SelectionRemoved;
 
             AppState.DrawingState.WatchFor(x => x.CurrentColor, OnStateColorPropertyChanged);
 
@@ -64,19 +64,19 @@ namespace Pix2d.Drawing.Tools
 
             _textVm = ServiceLocator.Current.GetInstance<IViewModelService>().GetViewModel<TextBarViewModel>(true);
             _textVm.PropertyChanged += TextVm_PropertyChanged;
-            _textVm.TextAplied += TextVmOnTextAplied;
+            _textVm.TextAplied += TextVmOnTextApplied;
 
             await base.Activate();
 
             Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
         }
 
-        private void DrawingLayer_DrawingApplied(object sender, EventArgs e)
+        private void DrawingLayer_SelectionRemoved(object sender, EventArgs e)
         {
-            
+            _textVm.Text = "";
         }
 
-        private void TextVmOnTextAplied(object sender, EventArgs e)
+        private void TextVmOnTextApplied(object sender, EventArgs e)
         {
             DrawingLayer.ApplySelection();
             _textVm.Text = "";
@@ -95,11 +95,11 @@ namespace Pix2d.Drawing.Tools
 
             _textVm.Text = "";
             _textVm.PropertyChanged -= TextVm_PropertyChanged;
-            _textVm.TextAplied -= TextVmOnTextAplied;
+            _textVm.TextAplied -= TextVmOnTextApplied;
             _textVm = null;
 
             DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;
-            DrawingLayer.DrawingApplied -= DrawingLayer_DrawingApplied;
+            DrawingLayer.SelectionRemoved -= DrawingLayer_SelectionRemoved;
 
             AppState.DrawingState.Unwatch(x => x.CurrentColor, OnStateColorPropertyChanged);
 
@@ -121,7 +121,6 @@ namespace Pix2d.Drawing.Tools
         private void UpdateText()
         {
             var textBm = BuildTextBitmap();
-            DrawingLayer.ClearSelection();
             if (textBm != null)
             {
                 if (_selectionPosition == default)
@@ -190,7 +189,7 @@ namespace Pix2d.Drawing.Tools
             }
             else
             {
-                DrawingLayer.DeactivateSelectionEditor();
+                // DrawingLayer.DeactivateSelectionEditor();
             }
         }
 

@@ -41,7 +41,7 @@ public class TextBarViewModel : Pix2dViewModelBase
     [UpdateCanExecute(nameof(Text))]
     public ICommand ApplyCommand => GetCommand(() =>
     {
-        OnTextAplied();
+        OnTextApplied();
         Logger.Log("Apply text");
         Text = "";
     }, () => !string.IsNullOrEmpty(Text));
@@ -91,7 +91,7 @@ public class TextBarViewModel : Pix2dViewModelBase
             Fonts.FirstOrDefault();
     }
 
-    protected virtual void OnTextAplied()
+    protected virtual void OnTextApplied()
     {
         TextAplied?.Invoke(this, EventArgs.Empty);
     }
