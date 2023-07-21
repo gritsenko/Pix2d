@@ -46,12 +46,12 @@ public class TextBarView : ViewBaseSingletonVm<TextBarViewModel> {
                                             .Text("Font"),
 
                                         new ComboBox()
-                                            .Width(140)
+                                            .Width(180)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .ItemsSource(vm.Fonts)
                                             .SelectedItem(@vm.SelectedFont, BindingMode.TwoWay)
                                             .ItemTemplate(
-                                                (FontItemViewModel item) => new TextBlock().Text(item?.Name ?? "")),
+                                                (FontItemViewModel item) => new TextBlock().Width(150).Text(item?.Name ?? "")),
 
                                         new TextBlock()
                                             .Margin(8,0)
