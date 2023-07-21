@@ -23,16 +23,19 @@ public class BackgroundSelectorView : ViewBaseSingletonVm<LayersListViewModel>
                     .Flyout(
                         new Flyout()
                             .Content(
-                                new Grid().Width(200).Height(200)
-                                    .Rows("Auto,*")
+                                new Grid()
+                                    .Rows("Auto, Auto, Auto")
                                     .Children(
                                         new TextBlock().Text("Background"),
                                         new ColorPicker().Row(1)
                                             .Margin(10)
                                             .Color(@vm.SelectedBackgroundColor, BindingMode.TwoWay)
                                             .Margin(0, 8)
-                                            .Height(140)
-                                            
+                                            .Width(200)
+                                            .Height(140),
+                                        new ToggleSwitch().Row(2)
+                                            .IsChecked(vm.UseBackgroundColor, BindingMode.TwoWay, bindingSource: vm)
+                                            .Content("Show background")
                                     )
                             )
                     ),
