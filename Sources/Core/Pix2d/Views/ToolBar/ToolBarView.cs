@@ -53,7 +53,7 @@ public class ToolBarView : ComponentBase
                     .Margin(0, 8)
                     .Padding(0)
                     .Command(Commands.View.ToggleBrushSettingsCommand)
-                    .Content(AppState.DrawingState.CurrentBrushSettings)
+                    .Content(AppState.DrawingState.CurrentBrushSettings, BindingMode.OneWay, bindingSource: AppState.DrawingState)
                     .With(ButtonStyle)
                     .ContentTemplate(new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) => new BrushItemView().Preset(itemVm))),
 
