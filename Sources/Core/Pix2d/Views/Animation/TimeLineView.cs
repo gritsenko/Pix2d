@@ -4,6 +4,7 @@ using Pix2d.Plugins.Sprite.ViewModels;
 using Pix2d.ViewModels.Animations;
 using SkiaSharp;
 using Avalonia.Controls.Shapes;
+using Avalonia.Interactivity;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.ViewModels.Animation;
 
@@ -11,6 +12,7 @@ namespace Pix2d.Views.Animation;
 
 public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel>
 {
+    private bool IsPlaying { get; set; }
 
     protected override object Build(SpriteAnimationTimelineViewModel vm) =>
         new Grid()
@@ -19,8 +21,6 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(new Control[]
             {
-
-
                 new StackPanel()
                 {
                     Orientation = Orientation.Horizontal,
@@ -33,11 +33,17 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                             .Command(SpritePlugin.AnimationCommands.PrevFrame)
                             .Content("\xe91f")
                             .With(ButtonStyle),
-                        new Button()
-                            .Command(SpritePlugin.AnimationCommands.TogglePlay)
-                            .Content("\xE91E")
-                            .With(ButtonStyle)
-                            .Background(StaticResources.Brushes.AccentBrush),
+                        new ToggleButton()
+                            // .Command(SpritePlugin.AnimationCommands.TogglePlay)
+                            .IsChecked(vm.IsPlaying, BindingMode.OneWay, bindingSource: vm)
+                            .Content(vm.IsPlaying, BindingMode.OneWay, bindingSource: vm)
+                            .OnClick(_ => SpritePlugin.AnimationCommands.TogglePlay.Execute())
+                            .ContentTemplate(new FuncDataTemplate<bool>((v, _) => 
+                                new TextBlock()
+                                    .FontSize(14)
+                                    .FontFamily(StaticResources.Fonts.Pix2dThemeFontFamily)
+                                    .Text(v ? "\xE92b" : "\xe91e")))
+                            .With(ButtonStyle),
                         new Button()
                             .Command(SpritePlugin.AnimationCommands.PrevFrame)
                             .Content("\xe91a")
