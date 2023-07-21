@@ -22,7 +22,11 @@ public class DrawingState : StateBase
     public BrushSettings CurrentBrushSettings
     {
         get => Get(new BrushSettings());
-        set => Set(value);
+        set
+        {
+            value.InitBrush();
+            Set(value);
+        }
     }
 
     public float Scale

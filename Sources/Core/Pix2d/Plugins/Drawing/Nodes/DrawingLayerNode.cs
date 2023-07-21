@@ -286,7 +286,7 @@ namespace Pix2d.Drawing.Nodes
             (_backgroundBitmap, _foregroundBitmap) = (_foregroundBitmap, _backgroundBitmap);
             _backgroundBitmap.Clear();
             
-            LayerModified?.Invoke(this, EventArgs.Empty);
+            Refresh();
         }
 
         public override void OnPointerMoved(PointerActionEventArgs eventArgs)
@@ -346,7 +346,7 @@ namespace Pix2d.Drawing.Nodes
                 }
             }
             
-            LayerModified?.Invoke(this, EventArgs.Empty);
+            Refresh();
         }
 
         private void DrawStroke(IEnumerable<SKPointI> path)
@@ -571,7 +571,7 @@ namespace Pix2d.Drawing.Nodes
                 if (State == DrawingLayerState.Paste)
                 {
                     _foregroundBitmap.Clear();
-                    LayerModified?.Invoke(this, EventArgs.Empty);
+                    Refresh();
                 }
                 else
                 {
@@ -594,11 +594,30 @@ namespace Pix2d.Drawing.Nodes
             {
                 _brushPreviewBitmap = ((BasePixelBrush)Brush).GetBrushBitmap(DrawingColor.WithAlpha((byte)(Brush.Opacity * 255)), Brush.Size);
             }
+
+            if (IsShowingBrush())
+            {
+                Refresh();
+            }
+        }
+
+        private bool IsShowingBrush()
+        {
+            return ShowBrushPreview &&
+                   (State != DrawingLayerState.Drawing || _drawingMode == BrushDrawingMode.ExternalDraw);
+        }
+
+        /// <summary>
+        /// Requests redrawing the drawing layer on the screen.
+        /// </summary>
+        private void Refresh()
+        {
+            LayerModified?.Invoke(this, EventArgs.Empty);
         }
 
         public override void OnDraw(SKCanvas canvas, ViewPort vp)
         {
-            if (ShowBrushPreview && (State != DrawingLayerState.Drawing || _drawingMode == BrushDrawingMode.ExternalDraw))
+            if (IsShowingBrush())
             {
                 RenderBrushPreview(canvas);
             }
