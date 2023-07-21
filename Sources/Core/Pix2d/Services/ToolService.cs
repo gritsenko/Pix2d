@@ -91,7 +91,12 @@ public class ToolService : IToolService
             _defaultContextTool[context] = toolMeta.Key;
         }
 
-        AppState.UiState.Tools.Add(new ToolState(typeof(TTool)) { Context = context });
+        var toolState = new ToolState(typeof(TTool)) { Context = context };
+        AppState.UiState.Tools.Add(toolState);
+        if (toolState.IconKey != null)
+        {
+            ToolIcons.ToolIconTemplateSelector.Templates.Add(toolState.Name, ToolIcons.GetToolTemplate(toolState.IconKey));
+        }
     }
 
     public ITool GetToolByKey(string key)

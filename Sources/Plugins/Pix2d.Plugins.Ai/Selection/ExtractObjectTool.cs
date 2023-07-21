@@ -20,6 +20,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
     {
         DisplayName = "Object selection tool",
         HotKey = null,
+        IconData = AiPlugin.ToolIcon,
     };
 
     public override string DisplayName => ToolSettings.DisplayName;

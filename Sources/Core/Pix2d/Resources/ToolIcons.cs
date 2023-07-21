@@ -72,4 +72,21 @@ public static class ToolIcons
                     .Width(26).Height(26).Fill(Brushes.White)),
         }
     };
+
+    public static IDataTemplate GetToolTemplate(string iconData)
+    {
+        return new FuncDataTemplate(typeof(object), (o, ns) =>
+        {
+            var geometry = Geometry.Parse(iconData);
+            var bounds = geometry.Bounds;
+            var scaleX = 26 / bounds.Width;
+            var scaleY = 26 / bounds.Height;
+            geometry.Transform(Transform.Parse($"{scaleX}, 0, 0, {scaleY}, 0, 0"));
+
+            return new Path()
+                .Classes("ToolIcon")
+                .Data(geometry)
+                .Width(26).Height(26).Fill(Brushes.White);
+        });
+    }
 }
