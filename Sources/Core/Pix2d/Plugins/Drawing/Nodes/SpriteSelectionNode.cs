@@ -13,6 +13,13 @@ namespace Pix2d.Plugins.Drawing.Nodes
         private SKBitmap _upscaledBitmap;
         public SKPath SelectionPath { get; set; }
 
+        public void Clear()
+        {
+            Bitmap?.Clear();
+            _upscaledBitmap?.Clear();
+            SelectionPath = null;
+        }
+
         protected override void OnBitmapChanged(SKBitmap newBitmap)
         {
             UpdateScaledBitmap(newBitmap);

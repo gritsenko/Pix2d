@@ -1028,7 +1028,7 @@ namespace Pix2d.Drawing.Nodes
             }
             
             _selectionEditor.IsVisible = false;
-            _selectionLayer?.Bitmap?.Erase(SKColor.Empty);
+            _selectionLayer?.Clear();
             _selectionLayer?.Bitmap?.NotifyPixelsChanged();
 
             State = DrawingLayerState.Ready;
@@ -1055,7 +1055,7 @@ namespace Pix2d.Drawing.Nodes
             _selectionLayer?.Hide();
             _selectionEditor?.Hide();
             ClearWorkingBitmap();
-            _selectionLayer?.Bitmap?.Erase(SKColor.Empty);
+            _selectionLayer?.Clear();
             OnSelectionRemoved();
             OnDrawingApplied(false);
         }
