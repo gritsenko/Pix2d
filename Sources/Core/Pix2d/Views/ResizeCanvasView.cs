@@ -6,8 +6,13 @@ namespace Pix2d.Views;
 
 public class ResizeCanvasView : ComponentBase
 {
-    protected override object Build() =>
-        new Border()
+    protected override object Build() {
+
+        ResizeCommand = new LoggedRelayCommand(OnResizeCanvasCommandExecute, () => true, "Resize");
+        ResetCommand = new LoggedRelayCommand(OnResetCommandExecute,
+            () => OriginalWidth != CanvasWidth || OriginalHeight != CanvasHeight, "Reset size");
+
+        return new Border()
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Child(
                 new StackPanel()
@@ -94,6 +99,8 @@ public class ResizeCanvasView : ComponentBase
                             )
                     )
             );
+    }
+
     public void UpdateData()
     {
         UpdateSizeProperties();
@@ -219,8 +226,8 @@ public class ResizeCanvasView : ComponentBase
         }
     }
 
-    public IRelayCommand ResizeCommand => new LoggedRelayCommand(OnResizeCanvasCommandExecute, () => true, "Resize");
-    public IRelayCommand ResetCommand => new LoggedRelayCommand(OnResetCommandExecute, () => OriginalWidth != CanvasWidth || OriginalHeight != CanvasHeight, "Reset size");
+    public IRelayCommand ResizeCommand { get; private set; }
+    public IRelayCommand ResetCommand { get; private set; }
 
     protected override void OnAfterInitialized()
     {
