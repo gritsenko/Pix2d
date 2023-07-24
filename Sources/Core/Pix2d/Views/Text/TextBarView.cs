@@ -1,4 +1,5 @@
-﻿using Pix2d.Plugins.Drawing.ViewModels;
+﻿using System.Globalization;
+using Pix2d.Plugins.Drawing.ViewModels;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Primitives;
 
@@ -60,6 +61,8 @@ public class TextBarView : ViewBaseSingletonVm<TextBarViewModel> {
 
                                         new NumericUpDown()
                                             .VerticalAlignment(VerticalAlignment.Center)
+                                            .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
+                                            .Increment(1)
                                             .Value(vm.FontSize, BindingMode.TwoWay),
 
                                         new ToggleButton()

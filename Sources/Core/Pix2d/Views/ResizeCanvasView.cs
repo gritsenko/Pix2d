@@ -1,4 +1,5 @@
-﻿using Mvvm;
+﻿using System.Globalization;
+using Mvvm;
 using Pix2d.Messages;
 using SkiaSharp;
 
@@ -24,22 +25,23 @@ public class ResizeCanvasView : ComponentBase
                             .Children(
                                 new TextBlock()
                                     .Text("Width"),
-
                                 new NumericUpDown()
                                     .Row(1)
+                                    .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
+                                    .Increment(1)
                                     .Value(Bind(CanvasWidth, BindingMode.TwoWay)),
-
                                 new TextBlock().Col(1)
                                     .Row(1)
                                     .VerticalAlignment(VerticalAlignment.Center)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
                                     .Text("✕"),
-
                                 new TextBlock()
                                     .Col(2)
                                     .Text("Height"),
                                 new NumericUpDown().Col(2)
                                     .Row(1)
+                                    .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
+                                    .Increment(1)
                                     .Value(Bind(CanvasHeight, BindingMode.TwoWay))
                             ),
 
