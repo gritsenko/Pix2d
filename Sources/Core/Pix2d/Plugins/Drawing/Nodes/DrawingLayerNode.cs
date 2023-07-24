@@ -46,7 +46,7 @@ namespace Pix2d.Drawing.Nodes
         {
             get
             {
-                if (IsPixelPerfectMode) return _backgroundBitmap;
+                if (IsPixelPerfectMode && _drawingMode != BrushDrawingMode.Fill) return _backgroundBitmap;
                 
                 if (_drawingMode == BrushDrawingMode.Draw || _drawingMode == BrushDrawingMode.Erase || _drawingMode == BrushDrawingMode.Fill)
                 {
