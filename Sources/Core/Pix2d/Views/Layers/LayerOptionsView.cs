@@ -155,7 +155,7 @@ public class LayerOptionsView : ViewBaseSingletonVm<LayersListViewModel>
                     .ToolTip("Delete effect"),
 
                 new ContentControl().Row(1).Col(0).ColSpan(3)
-                    .Content(@vm)
+                    .Content(vm)
                     .ContentTemplate(EffectTemplates.GetTemplateByEffect(vm))
                 )
     );
@@ -172,14 +172,18 @@ public static class EffectTemplates
 {
     public static FuncDataTemplate<EffectViewModel> ColorOverlayEffectTemplate => new((vm, ns) =>
         new StackPanel().Children(
-            new TextBlock().Text("Color"),
-            new ColorPickerButton(),
-            new TextBlock().Text("Opacity"),
+            new Grid().Cols("*, Auto")
+                .Children(
+                    new TextBlock().Col(0).Text("Color"),
+                    new ColorPickerButton().Col(1).Color(((ColorOverlayEffect)vm.Effect).Color, BindingMode.TwoWay, bindingSource: vm.Effect)
+                ),
             new SliderEx()
                 .Minimum(0)
                 .Maximum(255)
+                .Header("Opacity")
+                .Units("%")
                 .DataContext((ColorOverlayEffect)vm.Effect, out var effect)
-                .Value(@effect.Opacity)
+                .Value(effect.Opacity, BindingMode.TwoWay, bindingSource: effect)
             )
     );
 
