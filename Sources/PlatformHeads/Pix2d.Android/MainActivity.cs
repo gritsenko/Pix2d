@@ -6,29 +6,32 @@ using Android.Content.PM;
 using Android.OS;
 using Avalonia;
 using Avalonia.Android;
+using Avalonia.Markup.Declarative;
 
 namespace Pix2d.Android;
 
-[Activity(Label = "Pix2d.Android", Theme = "@style/MyTheme.NoActionBar", Icon = "@mipmap/ic_launcher", LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize)]
-//[Activity(
-//    Label = "AvaloniaTest.Android",
-//    Theme = "@style/MyTheme.NoActionBar",
-//    Icon = "@drawable/icon",
-//    MainLauncher = true,
-//    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
+[Activity(
+    Label = "Pix2d",
+    Theme = "@style/MyTheme.NoActionBar",
+    Icon = "@mipmap/ic_launcher",
+    MainLauncher = true,
+    LaunchMode = LaunchMode.SingleTop,
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
 
 public class MainActivity : AvaloniaMainActivity<EditorApp>
 {
-    internal static MainActivity Instance { get; private set; }
+    internal static MainActivity Instance { get; private set; } = null!;
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
         return base.CustomizeAppBuilder(builder)
+            .UseServiceProvider(DefaultServiceLocator.ServiceLocatorProvider())
             .WithInterFont();
     }
 
     protected override void OnCreate(Bundle savedInstanceState)
     {
         Instance = this;
+        EditorApp.Pix2dBootstrapper ??= new AndroidPix2dBootstrapper();
 
         base.OnCreate(savedInstanceState);
         Xamarin.Essentials.Platform.Init(this, savedInstanceState);
