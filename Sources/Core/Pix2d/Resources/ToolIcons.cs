@@ -1,4 +1,5 @@
-﻿using Avalonia.Controls.Shapes;
+﻿using System;
+using Avalonia.Controls.Shapes;
 
 namespace Pix2d.Resources;
 
@@ -81,7 +82,7 @@ public static class ToolIcons
             var bounds = geometry.Bounds;
             var scaleX = 26 / bounds.Width;
             var scaleY = 26 / bounds.Height;
-            geometry.Transform(Transform.Parse($"{scaleX}, 0, 0, {scaleY}, 0, 0"));
+            geometry.Transform(Transform.Parse(FormattableString.Invariant($"{scaleX}, 0, 0, {scaleY}, 0, 0")));
 
             return new Path()
                 .Classes("ToolIcon")
