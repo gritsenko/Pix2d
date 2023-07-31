@@ -222,6 +222,12 @@ namespace Pix2d.Drawing.Nodes
             {
                 if (DrawingTarget.IsTargetBitmapVisible())
                     BeginDrawing(LockTransparentPixels);
+
+                if (State == DrawingLayerState.Drawing)
+                {
+                    DrawStroke(_lastPos);
+                    Refresh();
+                }
             }
         }
 
