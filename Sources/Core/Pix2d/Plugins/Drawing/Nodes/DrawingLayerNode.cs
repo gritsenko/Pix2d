@@ -46,9 +46,9 @@ namespace Pix2d.Drawing.Nodes
         {
             get
             {
-                if (IsPixelPerfectMode && _drawingMode != BrushDrawingMode.Fill) return _backgroundBitmap;
+                if (IsPixelPerfectMode && _drawingMode != BrushDrawingMode.Fill && _drawingMode != BrushDrawingMode.FillErase) return _backgroundBitmap;
                 
-                if (_drawingMode == BrushDrawingMode.Draw || _drawingMode == BrushDrawingMode.Erase || _drawingMode == BrushDrawingMode.Fill)
+                if (_drawingMode == BrushDrawingMode.Draw || _drawingMode == BrushDrawingMode.Erase || _drawingMode == BrushDrawingMode.Fill || _drawingMode == BrushDrawingMode.FillErase)
                 {
                     return _foregroundBitmap;
                 }
@@ -205,7 +205,7 @@ namespace Pix2d.Drawing.Nodes
                 ApplySelection();
             }
 
-            if (_drawingMode == BrushDrawingMode.ExternalDraw || _drawingMode == BrushDrawingMode.Fill || (eventArgs.KeyModifiers & KeyModifier.Alt) != 0)
+            if (_drawingMode == BrushDrawingMode.ExternalDraw || _drawingMode == BrushDrawingMode.Fill || _drawingMode == BrushDrawingMode.FillErase || (eventArgs.KeyModifiers & KeyModifier.Alt) != 0)
                 return;
 
             base.OnPointerPressed(eventArgs, clickCount);
@@ -259,7 +259,12 @@ namespace Pix2d.Drawing.Nodes
                 else if (_drawingMode == BrushDrawingMode.Fill)
                 {
                     FillRegion(EndPos, DrawingColor);
-                    FinishDrawing(false, DrawingColor == SKColor.Empty ? SKBlendMode.DstOut : SKBlendMode.SrcOver);
+                    FinishDrawing();
+                }
+                else if (_drawingMode == BrushDrawingMode.FillErase)
+                {
+                    FillRegion(EndPos, SKColors.White);
+                    FinishDrawing(false, SKBlendMode.DstOut);
                 }
                 else
                 {
@@ -517,6 +522,7 @@ namespace Pix2d.Drawing.Nodes
             if (_drawingMode == BrushDrawingMode.Draw
                 || _drawingMode == BrushDrawingMode.Select
                 || _drawingMode == BrushDrawingMode.Fill
+                || _drawingMode == BrushDrawingMode.FillErase
                 || _drawingMode == BrushDrawingMode.ExternalDraw
                 || _drawingMode == BrushDrawingMode.MoveSelection)
             {
@@ -549,7 +555,7 @@ namespace Pix2d.Drawing.Nodes
 
         public void FinishDrawing(bool cancel = false, SKBlendMode blendMode = SKBlendMode.SrcOver)
         {
-            if (!cancel) ApplyWorkingBitmap();
+            if (!cancel) ApplyWorkingBitmap(blendMode);
 
             if (State == DrawingLayerState.Drawing)
                 DrawingTarget.ShowTargetBitmap();
@@ -884,11 +890,6 @@ namespace Pix2d.Drawing.Nodes
 
         public void FillRegion(SKPoint origin, SKColor fillColor, float tolerance = 0)
         {
-            if (fillColor == SKColor.Empty)
-            {
-                fillColor = SKColors.White;
-            }
-
             DrawingStarted?.Invoke(this, EventArgs.Empty);
 
             var Pivot = SKPoint.Empty;

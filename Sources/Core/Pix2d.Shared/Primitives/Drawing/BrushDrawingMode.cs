@@ -7,6 +7,7 @@
         Select,
         MoveSelection,
         ExternalDraw,
-        Fill
+        Fill,
+        FillErase,
     }
 }
