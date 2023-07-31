@@ -80,14 +80,6 @@ public class MainView : ComponentBase
                     .VerticalAlignment(VerticalAlignment.Top)
                     .HorizontalAlignment(HorizontalAlignment.Right),
 
-                new ToolSettingsContainerView().Col(1).Row(2)
-                    .IsVisible(UiState.ShowToolProperties, bindingSource : UiState)
-                    .Margin(8, 120, 0, 0)
-                    .MinWidth(40)
-                    .MinHeight(40)
-                    .HorizontalAlignment(HorizontalAlignment.Left)
-                    .VerticalAlignment(VerticalAlignment.Top),
-
                 new Canvas().Col(1).Row(2)
                     .Children(new Control[]
                     {
@@ -135,6 +127,15 @@ public class MainView : ComponentBase
                             .Right(100)
                             .Content(new LayerOptionsView())
                     }),
+                
+                new ToolSettingsContainerView().Col(1).Row(2)
+                    .IsVisible(UiState.ShowToolProperties, bindingSource : UiState)
+                    .Margin(8, 120, 0, 0)
+                    .MinWidth(40)
+                    .MinHeight(40)
+                    .HorizontalAlignment(HorizontalAlignment.Left)
+                    .VerticalAlignment(VerticalAlignment.Top),
+
 
                 new PopupView()
                     .Col(0).ColSpan(2)
