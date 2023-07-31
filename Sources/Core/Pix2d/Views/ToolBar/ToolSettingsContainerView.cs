@@ -14,7 +14,7 @@ public class ToolSettingsContainerView : ComponentBase
         new FuncDataTemplate<EraserTool>((vm, ns) => new Grid());
 
     public IDataTemplate FillToolSettingsTemplate { get; } =
-        new FuncDataTemplate<FillTool>((vm, ns) => new FillToolSettingsView());
+        new FuncDataTemplate<FillTool>((vm, ns) => new FillToolSettingsView(vm));
 
     public IDataTemplate PixelSelectToolSettingsTemplate { get; } =
         new FuncDataTemplate<PixelSelectTool>((vm, ns) => new SelectionToolSettingsView());
