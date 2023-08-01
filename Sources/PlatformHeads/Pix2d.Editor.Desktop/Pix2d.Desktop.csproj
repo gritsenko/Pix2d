@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net7.0-windows</TargetFramework>
+		<TargetFrameworks>net7.0;net7.0-windows</TargetFrameworks>
 		<ApplicationIcon>Assets\app1.ico</ApplicationIcon>
 		<StartupObject />
 		<AssemblyName>Pix2d</AssemblyName>
-		<UseWindowsForms>true</UseWindowsForms>
+		<UseWindowsForms Condition="'$(TargetFramework)' == 'net7.0-windows'">true</UseWindowsForms>
     <Version>3.0.2</Version>
     <PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
 	</PropertyGroup>
