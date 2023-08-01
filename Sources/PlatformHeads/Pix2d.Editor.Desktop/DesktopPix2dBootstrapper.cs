@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -46,7 +47,7 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
             return;
 
         if (!Avalonia.Controls.Design.IsDesignMode) Pix2dViewModelBase.SetRuntimeMode();
-        
+
         Crashes.GetErrorAttachments = report =>
         {
             return new[]
@@ -55,8 +56,14 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
                     "operations.log")
             };
         };
-        
+
+        var ff = RuntimeInformation.FrameworkDescription;
+
+#if WINFORMS 
+        Debug.WriteLine("Register appcenter for winforms");
         AppCenter.Start("2c0dc23b-1bcd-42dc-b7c2-d6944fab2c58", typeof(Analytics), typeof(Crashes));
+#endif
+
         Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
 
         var container = IoC.Get<SimpleContainer>();
@@ -82,6 +89,7 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
 
         await Pix2DApp.CreateInstanceAsync(Pix2dSettings);
     }
+    Type? GetTypeByName(string name) => AppDomain.CurrentDomain.GetAssemblies().Reverse().Select(assembly => assembly.GetType(name)).FirstOrDefault(tt => tt != null);
 
     public static string AppDataFolder()
     {

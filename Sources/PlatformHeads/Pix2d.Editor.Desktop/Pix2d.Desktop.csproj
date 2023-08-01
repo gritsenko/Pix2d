@@ -9,6 +9,9 @@
     <Version>3.0.2</Version>
     <PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net7.0-windows'">
+	  <DefineConstants>$(DefineConstants);WINFORMS</DefineConstants>
+	</PropertyGroup>
 	<ItemGroup>
 		<Compile Update="**\*.xaml.cs">
 			<DependentUpon>%(Filename)</DependentUpon>
