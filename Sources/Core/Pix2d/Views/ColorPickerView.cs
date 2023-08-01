@@ -315,10 +315,7 @@ public class ColorPickerView : ComponentBase
         }
     });
 
-    public ICommand SetColorCommand => new RelayCommand<SKColor>(c =>
-    {
-        SelectedColor = c;
-    }, c => true);
+    public ICommand SetColorCommand => new RelayCommand<SKColor>(c => { SelectedColor = c; }, c => true);
 
     protected override void OnAfterInitialized()
     {
