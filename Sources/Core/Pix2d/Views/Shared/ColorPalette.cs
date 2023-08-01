@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Avalonia.Interactivity;
 using SkiaSharp;
 
 namespace Pix2d.Shared;
@@ -109,17 +110,23 @@ public class ColorPalette : ViewBase
                     .ItemTemplate(new FuncDataTemplate<SKColor>((itemVm, ns) =>
                             itemVm == SKColor.Empty
                                 ? new Button() //ADD COLOR BUTTON
-                                    .Content("+")
-                                    .Command(AddColorCommandProperty)
-                                    .CommandParameter(ColorToAddProperty)
-                                    .Background(ColorToAddProperty, converter: StaticResources.Converters.SKColorToBrushConverter)
+                                    .Content(
+                                        new Border()
+                                            .Background(ColorToAddProperty, converter: StaticResources.Converters.SKColorToBrushConverter)
+                                            .Child(new TextBlock()
+                                                .Text("+")
+                                                .FontSize(18)
+                                                .FontWeight(FontWeight.Bold)
+                                            )
+    )
+                                    .OnClick(OnAddColorClicked)
+                                    .Background(Brushes.Transparent/*, converter: StaticResources.Converters.SKColorToBrushConverter*/)
                                     .Width(36)
                                     .Height(36)
                                 : new Button() // COLOR ITEM
                                     .Background(itemVm.ToBrush())
                                     .BorderBrush(itemVm.ToBrush())
-                                    .CommandParameter(itemVm)
-                                    .Command(SelectColorCommandProperty)
+                                    .OnClick(args => OnColorItemClicked(itemVm))
                                     .Width(36)
                                     .Height(36)
                                     .With(b =>
@@ -134,7 +141,21 @@ public class ColorPalette : ViewBase
             );
 
     private ItemsControl _itemsControl;
+
     private IList<SKColor> _sourceColorsCollection;
+
+    private void OnAddColorClicked(RoutedEventArgs obj)
+    {
+        if (AddColorCommand?.CanExecute(ColorToAdd) == true)
+        {
+            AddColorCommand?.Execute(ColorToAdd);
+        }
+    }
+
+    private void OnColorItemClicked(SKColor itemVm)
+    {
+        SelectColorCommand?.Execute(itemVm);
+    }
 
     private void OnColorsSet(ref IList<SKColor> colors)
     {
@@ -169,10 +190,5 @@ public class ColorPalette : ViewBase
         colors.AddRange(_sourceColorsCollection);
         colors.Add(SKColor.Empty);
         return colors;
-    }
-
-    protected override void OnCreated()
-    {
-
     }
 }

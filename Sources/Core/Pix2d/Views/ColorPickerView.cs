@@ -69,7 +69,7 @@ public class ColorPickerView : ComponentBase
                                                     .Text("Recent colors"),
                                                 new ColorPalette().Row(1)
                                                     .Colors(vm.RecentColors)
-                                                    .SelectColorCommand(vm.SetColorCommand),
+                                                    .SelectColorCommand(vm.SetColorCommand, BindingMode.Default, bindingSource: this),
                                                 new TextBlock()
                                                     .Text("Custom colors"),
                                                 new ColorPalette().Row(1)
@@ -178,8 +178,11 @@ public class ColorPickerView : ComponentBase
         {
             DrawingService.SetCurrentColor(value);
             OnPropertyChanged();
+            OnPropertyChanged(nameof(SelectedColorBrush));
         }
     }
+
+    public Brush SelectedColorBrush => SelectedColor.ToBrush();
 
     public ColorPickerColorType ColorType { get; set; }
 
