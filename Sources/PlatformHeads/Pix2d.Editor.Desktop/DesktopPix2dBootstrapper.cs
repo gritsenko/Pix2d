@@ -1,14 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Microsoft.AppCenter;
+using Microsoft.AppCenter.Analytics;
+using Microsoft.AppCenter.Crashes;
 using Mvvm.Messaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
+using Pix2d.Common;
 using Pix2d.Desktop.Logging;
 using Pix2d.Desktop.Services;
 using Pix2d.Editor.Desktop.Services;
@@ -43,6 +48,23 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
 
         if (!Avalonia.Controls.Design.IsDesignMode) Pix2dViewModelBase.SetRuntimeMode();
 
+        Crashes.GetErrorAttachments = report =>
+        {
+            return new[]
+            {
+                ErrorAttachmentLog.AttachmentWithText(SessionLogger.Instance.GetSessionOperationLogText(),
+                    "operations.log")
+            };
+        };
+
+        var ff = RuntimeInformation.FrameworkDescription;
+
+#if WINFORMS 
+        Debug.WriteLine("Register appcenter for winforms");
+        AppCenter.Start("2c0dc23b-1bcd-42dc-b7c2-d6944fab2c58", typeof(Analytics), typeof(Crashes));
+#endif
+
+        Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
         //Logger.RegisterLoggerTarget(new GALoggerTarget("G-K2TCKSBBCX", "LOVC5ToFRJ2-b54hKgDiaQ"));
 
         var container = IoC.Get<SimpleContainer>();
@@ -68,6 +90,7 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
 
         await Pix2DApp.CreateInstanceAsync(Pix2dSettings);
     }
+    Type? GetTypeByName(string name) => AppDomain.CurrentDomain.GetAssemblies().Reverse().Select(assembly => assembly.GetType(name)).FirstOrDefault(tt => tt != null);
 
     public static string AppDataFolder()
     {
@@ -82,5 +105,4 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
 
         return path;
     }
-
 }

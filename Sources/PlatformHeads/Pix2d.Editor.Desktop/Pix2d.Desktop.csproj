@@ -1,12 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net7.0</TargetFramework>
+		<TargetFrameworks>net7.0;net7.0-windows</TargetFrameworks>
 		<ApplicationIcon>Assets\app1.ico</ApplicationIcon>
 		<StartupObject />
 		<AssemblyName>Pix2d</AssemblyName>
-    <Version>3.0.2</Version>
-    <PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
+		<UseWindowsForms Condition="'$(TargetFramework)' == 'net7.0-windows'">true</UseWindowsForms>
+		<Version>3.0.2</Version>
+		<PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net7.0-windows'">
+		<EnableWindowsTargeting>true</EnableWindowsTargeting>
+		<DefineConstants>$(DefineConstants);WINFORMS</DefineConstants>
 	</PropertyGroup>
 	<ItemGroup>
 		<Compile Update="**\*.xaml.cs">
@@ -23,6 +28,9 @@
 		<PackageReference Include="Clowd.Clipboard" Version="1.0.1" />
 		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.0.1" />
 		<PackageReference Include="Dock.Avalonia.Themes.Default" Version="0.10.0" />
+		<PackageReference Include="Microsoft.AppCenter" Version="5.0.2" />
+		<PackageReference Include="Microsoft.AppCenter.Analytics" Version="5.0.2" />
+		<PackageReference Include="Microsoft.AppCenter.Crashes" Version="5.0.2" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
