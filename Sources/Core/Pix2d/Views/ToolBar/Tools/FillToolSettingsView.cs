@@ -1,51 +1,20 @@
-﻿using SkiaSharp;
+﻿using Pix2d.Plugins.Drawing.Tools;
+using SkiaSharp;
 
 namespace Pix2d.Views.ToolBar.Tools;
 
-public class FillToolSettingsView : ComponentBase
+public class FillToolSettingsView : ViewBase<FillTool>
 {
-    protected override object Build() =>
+    protected override object Build(FillTool vm) =>
         new StackPanel()
             .Margin(8)
             .Children(
-                new TextBlock()
-                    .Text("Erase mode"),
                 new ToggleSwitch()
-                    .IsChecked(false)
+                    .Content("Erase mode")
+                    .IsChecked(vm.EraseMode , BindingMode.TwoWay, bindingSource: vm)
             );
 
-    private SKColor _lastColor;
-
-    [Inject] IDrawingService DrawingService { get; set; } = null!;
-    [Inject] AppState AppState { get; set; } = null!;
-    public DrawingState DrawingState => AppState.DrawingState;
-
-    public bool EraseMode { get; set; }
-
-    private void SetEraseMode(bool value)
+    public FillToolSettingsView(FillTool viewModel) : base(viewModel)
     {
-        if (value)
-        {
-            _lastColor = DrawingState.CurrentColor;
-            DrawingService.SetCurrentColor(SKColor.Empty);
-        }
-        else
-            DrawingService.SetCurrentColor(_lastColor);
-    }
-
-    public void Activated()
-    {
-        _lastColor = DrawingState.CurrentColor;
-
-        if (EraseMode)
-        {
-            DrawingService.SetCurrentColor(SKColor.Empty);
-        }
-    }
-
-    public void Deactivated()
-    {
-        if (EraseMode)
-            DrawingService.SetCurrentColor(_lastColor);
     }
 }

@@ -18,11 +18,23 @@ public class FillTool : BaseTool, IDrawingTool
     
     public IDrawingService DrawingService { get; }
     private readonly IPixelBrush _previewBrush = new SquareSolidBrush();
+    private bool _eraseMode;
 
-    public virtual BrushDrawingMode DrawingMode => BrushDrawingMode.Fill;
+    public virtual BrushDrawingMode DrawingMode => EraseMode ? BrushDrawingMode.FillErase : BrushDrawingMode.Fill;
 
     public override EditContextType EditContextType => EditContextType.Sprite;
     public override string DisplayName => ToolSettings.DisplayName;
+
+    public bool EraseMode
+    {
+        get => _eraseMode;
+        set
+        {
+            _eraseMode = value;
+            if (IsActive)
+                DrawingService.DrawingLayer.SetDrawingLayerMode(DrawingMode);
+        }
+    }
 
     public FillTool(IDrawingService drawingService)
     {
