@@ -43,7 +43,7 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
 
         if (!Avalonia.Controls.Design.IsDesignMode) Pix2dViewModelBase.SetRuntimeMode();
 
-        Logger.RegisterLoggerTarget(new AppStatLoggerTarget());
+        //Logger.RegisterLoggerTarget(new GALoggerTarget("G-K2TCKSBBCX", "LOVC5ToFRJ2-b54hKgDiaQ"));
 
         var container = IoC.Get<SimpleContainer>();
 

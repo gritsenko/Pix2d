@@ -58,6 +58,10 @@ namespace Pix2d
             _instance.AddLogEntry(ex, message, args);
         }
 
+        public static void LogWithId(string eventId, string message, params object[] args)
+        {
+            _instance.AddLogEntry(null, message, args);
+        }
         public static void Log(string message, params object[] args)
         {
             _instance.AddLogEntry(null, message, args);
@@ -84,10 +88,14 @@ namespace Pix2d
         }
 
 
-        private void AddLogEntry(Exception ex, string message, params object[] args)
+        private void AddLogEntry(Exception ex, string message, object[] args = default, string eventId = "unidentified_event")
         {
 //            var extraInfo = ExtraInfoProvider != null ? ExtraInfoProvider.GetExtraInfo() : "";
-            var entry = new LogEntry(message, args) {Exception = ex};
+            var entry = new LogEntry(message, args)
+            {
+                Exception = ex,
+                EventId = eventId
+            };
            // _instance._logs.Add(entry);
 
             if (entry.ExtraParams == null)
@@ -149,6 +157,7 @@ namespace Pix2d
     {
         public DateTime Time { get; set; }
         public string Message { get; set; }
+        public string EventId { get; set; }
         public Exception? Exception { get; set; }
         public bool IsEvent { get; set; }
         public IDictionary<string, string>? ExtraParams { get; set; }

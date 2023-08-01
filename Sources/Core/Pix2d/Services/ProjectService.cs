@@ -203,6 +203,7 @@ public class ProjectService : IProjectService
     private void OnProjectLoaded(SKNode scene, bool isSessionMode)
     {
         var bounds = scene.GetChildrenBounds();
+        Logger.LogWithId("project_loaded", "Project loaded");
         Logger.LogEventWithParams("Project loaded", new Dictionary<string, string>() { { "size", bounds.Size.ToString() } });
         OpLog(bounds.Size.Width + "x" + bounds.Size.Height);
 
