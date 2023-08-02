@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
+using Pix2d.Plugins.Drawing.Operations;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -37,9 +38,7 @@ namespace Pix2d.Services
             var img = await GetImageFromClipboard();
             if (img != null)
             {
-                DrawingService.PasteBitmap(img, SKPoint.Empty);
-
-                ViewPortService.Refresh();
+                new PasteOperation(img, SKPoint.Empty).Invoke();
             }
         }
 
@@ -59,17 +58,7 @@ namespace Pix2d.Services
             if (!await TryCopyNodesAsBitmapAsync(nodes, backgroundColor))
                 return false;
             
-            var drawingLayer = DrawingService.DrawingLayer;
-            if (drawingLayer.HasSelection)
-            {
-                drawingLayer.EraseSelection();
-                ViewPortService.Refresh();
-            }
-            else
-            {
-                drawingLayer.ClearTarget();
-            }
-
+            DrawingService.DrawingLayer.ClearTarget();
             return true;
         }
     }

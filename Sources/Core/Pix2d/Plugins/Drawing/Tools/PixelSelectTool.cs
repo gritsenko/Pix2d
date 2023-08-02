@@ -93,7 +93,7 @@ public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 
     private void OnOperationInvoked(OperationInvokedMessage e)
     {
-        if (e.Operation is SelectionOperation)
+        if (e.Operation is SelectionOperation || e.Operation is PasteOperation)
         {
             return;
         }

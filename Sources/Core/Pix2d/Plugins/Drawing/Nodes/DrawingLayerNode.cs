@@ -135,7 +135,16 @@ namespace Pix2d.Drawing.Nodes
 
         public SKBitmap GetSelectionBackground()
         {
-            return _selectionBackground?.Copy();
+            if (_selectionBackground != null || _selectionLayer == null)
+            {
+                return _selectionBackground?.Copy();
+            }
+
+            var size = DrawingTarget.GetSize();
+            var bitmap = new SKBitmap((int) size.Width, (int) size.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+            DrawingTarget.CopyBitmapTo(bitmap);
+
+            return bitmap;
         }
 
         public DrawingLayerNode()
