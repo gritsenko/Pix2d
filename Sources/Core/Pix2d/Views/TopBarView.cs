@@ -1,4 +1,9 @@
-﻿using Pix2d.Messages;
+﻿using System;
+using Avalonia.Controls.Presenters;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Utilities;
+using Pix2d.Messages;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Shared;
 
@@ -13,7 +18,7 @@ public class TopBarView : ComponentBase
 
     protected override object Build() =>
         new Grid()
-            .Cols("52,*,Auto")
+            .Cols("Auto,*,Auto")
             .Background("#444E59".ToColor().ToBrush())
             .Children(
                 //MENU BUTTON
@@ -31,36 +36,42 @@ public class TopBarView : ComponentBase
                     ),
 
                 //CENTRAL BLOCK
-                new StackPanel().Col(1)
-                    .HorizontalAlignment(HorizontalAlignment.Center)
-                    .Orientation(Orientation.Horizontal)
-                    .Children(
+                new ScrollViewer()
+                    .Col(1)
+                    .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden)
+                    .Content(
+                    new StackPanel()
+                         .HorizontalAlignment(HorizontalAlignment.Center)
+                         .Orientation(Orientation.Horizontal)
+                         .Children(
 
-                        new AppButton()
-                            .With(ButtonStyle)
-                            .Command(SpritePlugin.EditCommands.Clear)
-                            .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
-                            .Label("Clear")
-                            .Content("\xE894"),
+                            new AppButton()
+                                .With(ButtonStyle)
+                                .Command(SpritePlugin.EditCommands.Clear)
+                                .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
+                                .Label("Clear")
+                                .Content("\xE894"),
 
-                        new AppToggleButton()
-                            .IsChecked(AppState.UiState.ShowExtraTools, BindingMode.TwoWay, bindingSource: AppState.UiState)
-                            .With(ButtonStyle)
-                            .Label("Tools")
-                            .Content("\xEC7A"),
+                            new AppToggleButton()
+                                .IsChecked(AppState.UiState.ShowExtraTools, BindingMode.TwoWay, bindingSource: AppState.UiState)
+                                .With(ButtonStyle)
+                                .Label("Tools")
+                                .Content("\xEC7A"),
 
-                        new AppToggleButton()
-                            .IsChecked(AppState.UiState.ShowTimeline, BindingMode.TwoWay, bindingSource: AppState.UiState)
-                            .With(ButtonStyle)
-                            .Label("Animate")
-                            .Content("\xED5A"),
+                            new AppToggleButton()
+                                .IsChecked(AppState.UiState.ShowTimeline, BindingMode.TwoWay, bindingSource: AppState.UiState)
+                                .With(ButtonStyle)
+                                .Label("Animate")
+                                .Content("\xED5A"),
 
-                        new AppButton()
-                            .With(ButtonStyle)
-                            .Label("Export")
-                            .Command(Commands.View.ShowExportDialogCommand)
-                            .Content("\xE72D")
-                    ),
+                            new AppButton()
+                                .With(ButtonStyle)
+                                .Label("Export")
+                                .Command(Commands.View.ShowExportDialogCommand)
+                                .Content("\xE72D")
+                        )
+                ),
+                
                 //UNDO REDO BLOCK
                 new StackPanel().Col(2)
                     .Orientation(Orientation.Horizontal)

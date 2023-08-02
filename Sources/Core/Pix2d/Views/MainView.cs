@@ -43,8 +43,12 @@ public class MainView : ComponentBase
                 new Border().Col(0).Row(2)
                     .BorderThickness(0, 0, 1, 0)
                     .Child(
-                        new ToolBarView()
-                            .HorizontalAlignment(HorizontalAlignment.Left)
+                        new ScrollViewer()
+                            .VerticalScrollBarVisibility(ScrollBarVisibility.Hidden)
+                            .Content(
+                            new ToolBarView()
+                                .HorizontalAlignment(HorizontalAlignment.Left)
+                        )
                     ),
 
                 new AdditionalTopBarView().Col(1).Row(2)
