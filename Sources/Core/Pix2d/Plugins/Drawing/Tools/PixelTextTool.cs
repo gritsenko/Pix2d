@@ -78,7 +78,7 @@ namespace Pix2d.Drawing.Tools
 
         private void TextVmOnTextApplied(object sender, EventArgs e)
         {
-            DrawingLayer.ApplySelection();
+            DrawingLayer.ApplySelection(true);
             _textVm.Text = "";
         }
 
@@ -104,7 +104,7 @@ namespace Pix2d.Drawing.Tools
             AppState.DrawingState.Unwatch(x => x.CurrentColor, OnStateColorPropertyChanged);
 
             Messenger.Unregister<OperationInvokedMessage>(this, OnOperationInvoked);
-            DrawingLayer.ApplySelection();
+            DrawingLayer.ApplySelection(true);
         }
 
         private void TextVm_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

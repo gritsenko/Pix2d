@@ -262,7 +262,9 @@ namespace Pix2d.Services
         {
             ToolService.ActivateTool(nameof(PixelSelectTool));
             DrawingLayer?.ApplySelection();
-            DrawingLayer?.SetSelectionFromExternal(bitmap, SKPoint.Empty);
+            DrawingLayer?.SetSelectionFromExternal(bitmap, pos);
+            
+            Refresh();
         }
 
         public void ChangeBrushSize(float delta)

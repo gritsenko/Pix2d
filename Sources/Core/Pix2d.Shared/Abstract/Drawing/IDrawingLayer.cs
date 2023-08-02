@@ -65,12 +65,12 @@ public interface IDrawingLayer
     /// <param name="cancel">If true, just clears working bitmap without aplying pixels</param>
     void FinishDrawing(bool cancel = false, SKBlendMode blendMode = SKBlendMode.SrcOver);
 
-    void ApplySelection();
+    void ApplySelection(bool saveToUndo = false);
+    void EraseSelection();
     void InvalidateSelectionEditor();
     void DeactivateSelectionEditor();
 
     void SetSelectionFromExternal(SKBitmap bitmap, in SKPoint position);
-    void RemoveSelectionFromTarget();
     void SelectAll();
     void FillSelection(SKColor color);
     void ActivateEditor();

@@ -683,15 +683,5 @@ namespace SkiaNodes
         {
 
         }
-
-        public void ResetTransform(SKPoint position, SKPoint pivotPosition, float rotation, SKSize size)
-        {
-            _position = position;
-            _rotation = rotation;
-            _pivotPosition = pivotPosition;
-            Size = size;
-            
-            SetDirty();
-        }
     }
 }
