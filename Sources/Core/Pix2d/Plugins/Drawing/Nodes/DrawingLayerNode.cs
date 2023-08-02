@@ -617,28 +617,7 @@ namespace Pix2d.Drawing.Nodes
         public void CancelDrawing() => FinishDrawing(true);
         public void CancelSelect()
         {
-            RestoreSelectedImage();
             DeactivateSelectionEditor();
-            State = DrawingLayerState.Ready;
-        }
-
-        private void RestoreSelectedImage()
-        {
-            if (_selectionLayer != null)
-            {
-                _selectionEditor.ResetEdit();
-
-                if (State == DrawingLayerState.Paste)
-                {
-                    _foregroundBitmap.Clear();
-                    Refresh();
-                }
-                else
-                {
-                    UpdateWorkingBitmapFromSelection();
-                    ApplyWorkingBitmap();
-                }
-            }
         }
 
         private void UpdateBrushPreview(IPixelBrush brush)
@@ -1091,7 +1070,7 @@ namespace Pix2d.Drawing.Nodes
             DeactivateSelectionEditor();
         }
 
-        public void ApplySelection()
+        public void ApplySelection(bool saveToUndo = false)
         {
             _pixelSelector = null;
             if (_selectionLayer == null)
@@ -1110,6 +1089,8 @@ namespace Pix2d.Drawing.Nodes
                 
                 ClearWorkingBitmap();
                 SwapWorkingBitmap();
+                
+                OnDrawingApplied(saveToUndo);
             }
             
             DeactivateSelectionEditor();
@@ -1199,7 +1180,6 @@ namespace Pix2d.Drawing.Nodes
             adornerLayer.Add(_selectionEditor);
             
             var selection = new NodesSelection(new[] { _selectionLayer }, null) { GenerateOperations = false };
-            selection.Frame.Rotation = _selectionLayer.Rotation;
             
             _selectionEditor.SetSelection(selection, _selectionLayer.SelectionPath);
             _selectionEditor.IsVisible = true;

@@ -9,6 +9,7 @@ using System.Linq;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
+using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Plugins.Sprite.Editors;
 using SkiaNodes.Common;
 using SkiaNodes.Extensions;
@@ -170,7 +171,7 @@ namespace Pix2d.Services
                 }
             }
 
-            DrawingService.PasteBitmap(bm,SKPoint.Empty);
+            new PasteOperation(bm, SKPoint.Empty).Invoke();
             //await spriteEditor?.ImportImages(bitmaps, SpriteImportMode.ToCurrentLayer);
 
             // DrawingService.UpdateDrawingTarget();

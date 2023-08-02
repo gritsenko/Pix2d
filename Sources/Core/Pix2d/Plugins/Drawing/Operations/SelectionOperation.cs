@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Drawing.Nodes;
 using Pix2d.Operations;
 using Pix2d.Plugins.Drawing.Nodes;
@@ -22,6 +23,8 @@ public class SelectionOperation : EditOperationBase
         {
             SelectionLayer = (SpriteSelectionNode)drawingLayer.GetSelectionLayer(),
             SelectionBackground = drawingLayer.GetSelectionBackground(),
+            DrawingTarget = drawingLayer.DrawingTarget,
+            DrawingTargetData = drawingLayer.DrawingTarget.GetData(),
         };
 
         _initialState = new SKNodeTransformState(_selectionData.SelectionLayer);
@@ -42,12 +45,14 @@ public class SelectionOperation : EditOperationBase
     public override void OnPerform()
     {
         _finalState.ApplyTo(_selectionData.SelectionLayer);
+        _selectionData.DrawingTarget.SetData(_selectionData.DrawingTargetData);
         _drawingLayer.SetSelection(_selectionData.SelectionLayer, _selectionData.SelectionBackground);
     }
 
     public override void OnPerformUndo()
     {
         _initialState.ApplyTo(_selectionData.SelectionLayer);
+        _selectionData.DrawingTarget.SetData(_selectionData.DrawingTargetData);
         _drawingLayer.SetSelection(_selectionData.SelectionLayer, _selectionData.SelectionBackground);
     }
 
@@ -60,5 +65,7 @@ public class SelectionOperation : EditOperationBase
     {
         public SpriteSelectionNode SelectionLayer { get; set; }
         public SKBitmap SelectionBackground { get; set; }
+        public IDrawingTarget DrawingTarget { get; set; }
+        public byte[] DrawingTargetData { get; set; }
     }
 }
