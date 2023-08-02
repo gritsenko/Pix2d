@@ -24,6 +24,5 @@ namespace Pix2d.Abstract.Operations
             Node.Rotation = Rotation;
             Node.Size = Size;
         }
-
     }
 }

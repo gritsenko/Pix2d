@@ -62,20 +62,7 @@ namespace Pix2d.Services
             var drawingLayer = DrawingService.DrawingLayer;
             if (drawingLayer.HasSelection)
             {
-                var selectionLayer = drawingLayer.GetSelectionLayer();
-
-                if (!(selectionLayer is BitmapNode bmNode)) return true;
-
-                var selectionBitmap = bmNode.Bitmap;
-                var emptyBitmap = selectionBitmap.Copy();
-                emptyBitmap.Clear();
-
-                var pos = selectionLayer.Position;
-
-                drawingLayer.DrawBitmap(emptyBitmap, pos);
-
-                drawingLayer.RemoveSelectionFromTarget();
-
+                drawingLayer.EraseSelection();
                 ViewPortService.Refresh();
             }
             else

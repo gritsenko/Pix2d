@@ -66,11 +66,11 @@ public interface IDrawingLayer
     void FinishDrawing(bool cancel = false, SKBlendMode blendMode = SKBlendMode.SrcOver);
 
     void ApplySelection();
+    void EraseSelection();
     void InvalidateSelectionEditor();
     void DeactivateSelectionEditor();
 
     void SetSelectionFromExternal(SKBitmap bitmap, in SKPoint position);
-    void RemoveSelectionFromTarget();
     void SelectAll();
     void FillSelection(SKColor color);
     void ActivateEditor();

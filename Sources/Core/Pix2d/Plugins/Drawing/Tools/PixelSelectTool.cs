@@ -93,6 +93,11 @@ public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 
     private void OnOperationInvoked(OperationInvokedMessage e)
     {
+        if (e.Operation is SelectionOperation)
+        {
+            return;
+        }
+        
         if (e.Operation is MoveOperation)
         {
             if (e.OperationType != OperationEventType.Perform)

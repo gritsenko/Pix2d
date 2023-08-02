@@ -105,14 +105,12 @@ namespace Pix2d.InteractiveNodes
         private void MoveThumb_DragStarted(object sender, DragStartedEventArgs e)
         {
             _selection.InitOperation<MoveOperation>();
-            if(!EditStarted)
-                OnSelectionEditStarted();
+            OnSelectionEditStarted();
         }
         private void RotateThumb_DragStarted(object sender, DragStartedEventArgs e)
         {
             _selection.InitOperation<RotateOperation>();
-            if(!EditStarted)
-                OnSelectionEditStarted();
+            OnSelectionEditStarted();
         }
 
         private void ThumbOnDragComplete(object sender, DragCompletedEventArgs e)
