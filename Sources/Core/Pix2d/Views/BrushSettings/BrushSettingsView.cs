@@ -27,12 +27,12 @@ public class BrushSettingsView : ComponentBase
                             .Text("Presets"),
 
                         new ListBox()
-                            .Background("#414953".ToColor().ToBrush())
+                            .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
                             .HorizontalScrollBarVisibility(ScrollBarVisibility.Disabled)
                             .Row(1)
                             .Padding(0)
                             .MinHeight(72)
-                            .BorderThickness(1)
+                            .BorderThickness(0)
                             .Padding(4)
                             .ItemsSource(DrawingState.BrushPresets, bindingSource: DrawingState)
                             .SelectedItem(CurrentPixelBrushPreset, BindingMode.TwoWay, bindingSource: this)

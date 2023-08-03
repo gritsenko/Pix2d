@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Pix2d.Common.Converters;
@@ -22,6 +23,7 @@ public static class StaticResources
         public static Color ButtonActiveColor { get; } = "#5883bf".ToColor();
         public static Color MyLinkHighlightColor { get; } = "#ff6ba7f9".ToColor();
         public static Color BrushButtonColor { get; } = "#414953".ToColor();
+        public static Color InnerPanelBackgroundColor { get; } = "#3a3f46".ToColor();
     }
 
     public static class Brushes
@@ -42,6 +44,7 @@ public static class StaticResources
         public static Brush ModalOverlayBrush { get; set; } = Colors.ModalOverlayColor.ToBrush();
         public static Brush SecondaryButtonBrush { get; set; } = Colors.SelectedItemColor.ToBrush();
         public static Brush BrushButtonBrush { get; set; } = Colors.BrushButtonColor.ToBrush();
+        public static Brush InnerPanelBackgroundBrush { get; } = Colors.InnerPanelBackgroundColor.ToBrush();
     }
 
     public static class Fonts

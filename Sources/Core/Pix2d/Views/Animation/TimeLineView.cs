@@ -16,7 +16,7 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
 
     protected override object Build(SpriteAnimationTimelineViewModel vm) =>
         new Grid()
-            .Rows("50,*")
+            .Rows("36,*")
             .Cols("52,*,Auto")
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(new Control[]
@@ -34,7 +34,6 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                             .Content("\xe91f")
                             .With(ButtonStyle),
                         new ToggleButton()
-                            // .Command(SpritePlugin.AnimationCommands.TogglePlay)
                             .IsChecked(vm.IsPlaying, BindingMode.OneWay, bindingSource: vm)
                             .Content(vm.IsPlaying, BindingMode.OneWay, bindingSource: vm)
                             .OnClick(_ => SpritePlugin.AnimationCommands.TogglePlay.Execute())
@@ -95,6 +94,8 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                     }),
 
                 new ListBox().Row(1).ColSpan(3)
+                    .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
+                    .BorderThickness(0)
                     .ItemsPanel(new StackPanel().Orientation(Orientation.Horizontal))
                     .ItemsSource(vm.Frames)
                     .SelectedItem(@vm.CurrentFrame, BindingMode.TwoWay)
