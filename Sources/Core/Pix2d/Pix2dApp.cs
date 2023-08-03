@@ -225,7 +225,7 @@ public class Pix2DApp : IViewPortService, AppStateService<AppState>
 
     public async void OnStartup()
     {
-        //If whe already have loaded scene
+        //If we already have loaded scene
         //android after back button and return
         if (AppState.CurrentProject.SceneNode != null)
         {

@@ -28,7 +28,7 @@ namespace Pix2d.Abstract.Services
         Task<bool> SaveCurrentProjectToFileAsync(IFileContentSource targetFile, bool isSessionMode = false);
 
         Task<bool> OpenFilesAsync();
-        Task<bool> OpenFilesAsync(IFileContentSource[] file, bool isSessionMode = false);
+        Task<bool> OpenFilesAsync(IFileContentSource[] file, bool isLoadingFromLocalSession = false);
 
         Task CreateNewProjectAsync(SKSize newProjectSize);
         Task<IFileContentSource[]> GetRecentProjectsAsync();

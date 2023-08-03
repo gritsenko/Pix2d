@@ -41,10 +41,12 @@ public class SessionService : ISessionService
 
     private void OnProjectLoaded(ProjectLoadedMessage message)
     {
-        if (!message.IsSessionMode)
+        if (!message.LoadedFromLocalSession)
         {
             ClearSessionInfo();
         }
+
+        StartAutoSave();
     }
 
     public void StartAutoSave()

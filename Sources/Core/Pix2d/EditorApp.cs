@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Linq;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.LogicalTree;
-using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Themes.Simple;
 using Avalonia.VisualTree;
@@ -18,6 +17,7 @@ public class EditorApp : Application
 
     public static IPix2dBootstrapper Pix2dBootstrapper { get; set; }
     public static Action<object> OnAppStarted { get; set; }
+    public static Func<bool> OnAppClosing { get; set; }
     public static TopLevel TopLevel { get; private set; }
 
     public override void Initialize()
@@ -72,6 +72,12 @@ public class EditorApp : Application
             };
             OnAppStarted?.Invoke(desktop.MainWindow);
             TopLevel = desktop.MainWindow.GetVisualRoot() as TopLevel;
+            desktop.MainWindow.Closing += (sender, args) =>
+            {
+                if (OnAppClosing == null) return;
+                var close = OnAppClosing.Invoke();
+                if (close == false) args.Cancel = true;
+            };
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewLifetime) //WEB ASSEMBLY
         {

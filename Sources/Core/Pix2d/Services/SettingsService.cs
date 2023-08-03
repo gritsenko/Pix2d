@@ -35,7 +35,7 @@ public class SettingsService : ISettingsService {
         }
 
         var json = File.ReadAllText(_dbFullPath);
-        Settings = JsonConvert.DeserializeObject<Dictionary<string, object>>(json) ?? new Dictionary<string, object>();
+        Settings = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, _serializerSettings) ?? new Dictionary<string, object>();
     }
 
     public T? Get<T>(string key) {

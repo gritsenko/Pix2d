@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Markup.Declarative;
+using Pix2d.Abstract.Services;
 
 namespace Pix2d.Desktop;
 
@@ -14,6 +16,7 @@ class Program
     {
         EditorApp.Pix2dBootstrapper = new DesktopPix2dBootstrapper();
         EditorApp.OnAppStarted = OnAppStarted;
+        EditorApp.OnAppClosing = OnAppClosing;
         BuildAvaloniaApp()
             .StartWithClassicDesktopLifetime(args);
     }
@@ -25,6 +28,16 @@ class Program
             .UseServiceProvider(DefaultServiceLocator.ServiceLocatorProvider())
             //.UseManagedSystemDialogs()
             .LogToTrace();
+
+    private static bool OnAppClosing()
+    {
+        var ss = CommonServiceLocator.ServiceLocator.Current.GetInstance<ISessionService>();
+        if (ss != null)
+        {
+            Task.Run(() => ss.SaveSessionAsync()).GetAwaiter().GetResult();
+        }
+        return true;
+    }
 
     static void OnAppStarted(object root)
     {

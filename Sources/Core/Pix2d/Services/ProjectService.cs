@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -140,7 +139,7 @@ public class ProjectService : IProjectService
         return await OpenFilesAsync(files.ToArray());
     }
 
-    public async Task<bool> OpenFilesAsync(IFileContentSource[] files, bool isSessionMode = false)
+    public async Task<bool> OpenFilesAsync(IFileContentSource[] files, bool isLoadingFromLocalSession = false)
     {
         OpLog();
 
@@ -158,7 +157,7 @@ public class ProjectService : IProjectService
                 var scene = await loader.Invoke(files);
                 if (scene != default)
                 {
-                    if (isSessionMode)
+                    if (isLoadingFromLocalSession)
                     {
                         HasUnsavedChanges = true;
                     }
@@ -169,7 +168,7 @@ public class ProjectService : IProjectService
                         ProjectState.File = file;
                     }
 
-                    OnProjectLoaded(scene, isSessionMode);
+                    OnProjectLoaded(scene, isLoadingFromLocalSession);
                 }
             });
     }
@@ -200,15 +199,15 @@ public class ProjectService : IProjectService
         return scene;
     }
 
-    private void OnProjectLoaded(SKNode scene, bool isSessionMode)
+    private void OnProjectLoaded(SKNode scene, bool isLoadingFromLocalSession)
     {
         var bounds = scene.GetChildrenBounds();
         Logger.LogWithId("project_loaded", "Project loaded");
         Logger.LogEventWithParams("Project loaded", new Dictionary<string, string>() { { "size", bounds.Size.ToString() } });
         OpLog(bounds.Size.Width + "x" + bounds.Size.Height);
 
-        Messenger.Send(new ProjectLoadedMessage(scene, isSessionMode));
-        UpdateProjectName(isSessionMode);
+        Messenger.Send(new ProjectLoadedMessage(scene, isLoadingFromLocalSession));
+        UpdateProjectName(isLoadingFromLocalSession);
     }
 
     private async Task<SKNode> LoadProjectFiles(IFileContentSource file)

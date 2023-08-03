@@ -1,13 +1,12 @@
 ﻿using System.Threading.Tasks;
 
-namespace Pix2d.Abstract.Services
+namespace Pix2d.Abstract.Services;
+
+public interface ISessionService
 {
-    public interface ISessionService
-    {
-        Task SaveSessionAsync();
+    Task SaveSessionAsync();
         
-        Task<bool> TryLoadSessionAsync();
-        void StopAutoSave();
-        void StartAutoSave();
-    }
+    Task<bool> TryLoadSessionAsync();
+    void StopAutoSave();
+    void StartAutoSave();
 }
