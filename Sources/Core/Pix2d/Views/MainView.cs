@@ -26,9 +26,9 @@ public class MainView : ComponentBase
             .AddBehavior(
                 new AdaptiveBehavior()
                     .Setters(
-                        new AdaptiveClassSetter() {MinWidth = 0, MaxWidth = 400, ClassName = "small"},
+                        new AdaptiveClassSetter() { MinWidth = 0, MaxWidth = 400, ClassName = "small" },
                         new AdaptiveClassSetter()
-                            {MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide"}
+                        { MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide" }
                     )
             )
             .Children(new Control[]
@@ -164,11 +164,12 @@ public class MainView : ComponentBase
                     .CloseButtonCommand(Commands.View.HideExportDialogCommand)
                     .Content(new ExportView()),
 
-                new Border()
+                new Border() //MAIN MENU
                     .Col(0).ColSpan(2)
-                    .Row(0).RowSpan(3)
+                    .Row(0).RowSpan(4)
                     .IsVisible(UiState.ShowMenu, bindingSource: UiState)
-                    .Child(new MainMenuView()),
+                    .Child(
+                        new MainMenuView()),
 
                 new Border()
                     .Col(0).ColSpan(2)
