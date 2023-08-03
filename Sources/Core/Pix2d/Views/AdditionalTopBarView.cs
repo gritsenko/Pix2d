@@ -1,4 +1,6 @@
-﻿using Avalonia.Controls.Shapes;
+﻿using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Shapes;
+using Avalonia.Styling;
 using Pix2d.Messages;
 
 namespace Pix2d.Views;
@@ -26,7 +28,8 @@ public class AdditionalTopBarView : ComponentBase
                 //toggle grid 
                 new ToggleButton().Col(0)
                     .Classes("secondary-button")
-                    .IsChecked(AppState.CurrentProject.ViewPortState.ShowGrid, BindingMode.TwoWay, bindingSource: AppState.CurrentProject.ViewPortState)
+                    .IsChecked(AppState.CurrentProject.ViewPortState.ShowGrid, BindingMode.TwoWay,
+                        bindingSource: AppState.CurrentProject.ViewPortState)
                     .Content("\xE80A"),
 
                 //toggle preview window
@@ -46,9 +49,18 @@ public class AdditionalTopBarView : ComponentBase
                     .Width(64)
                     .Margin(new Thickness(1, 0, 0, 0))
                     .FontSize(16)
+                    .Styles(LayersButtonStyle)
                     .IsChecked(AppState.UiState.ShowLayers, BindingMode.TwoWay, bindingSource: AppState.UiState)
                     .Content("\xE81E")
             );
+
+    protected Style LayersButtonStyle => new(s => s.OfType<ToggleButton>().Class(":checked").Template().Is<ContentPresenter>())
+    {
+        Setters =
+        {
+            new Setter(ToggleButton.BackgroundProperty, StaticResources.Brushes.ButtonActiveBrush),
+        }
+    };
 
     [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private AppState AppState { get; set; } = null!;
