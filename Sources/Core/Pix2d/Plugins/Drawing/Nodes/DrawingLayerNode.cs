@@ -360,7 +360,7 @@ namespace Pix2d.Drawing.Nodes
 
             base.OnPointerMoved(eventArgs);
 
-            if (eventArgs.Pointer.IsPressed)
+            if (eventArgs.Pointer.IsPressed || eventArgs.Pointer.IsEraser)
             {
                 if (State == DrawingLayerState.Drawing)
                 {
