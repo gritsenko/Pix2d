@@ -32,11 +32,22 @@ public class BrushSettingsView : ComponentBase
                             .Padding(0)
                             .MinHeight(72)
                             .BorderThickness(0)
-                            .Padding(4)
+                            .Padding(0)
                             .ItemsSource(DrawingState.BrushPresets, bindingSource: DrawingState)
                             .SelectedItem(CurrentPixelBrushPreset, BindingMode.TwoWay, bindingSource: this)
                             .ItemsPanel(Templates.WrapPanelTemplate)
-                            .ItemTemplate(new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) => new BrushPresetView(itemVm))),
+                            .ItemTemplate((Primitives.Drawing.BrushSettings itemVm) => 
+                                new ContentControl()
+                                    .Width(34)
+                                    .Height(34)
+                                    .HorizontalContentAlignment(HorizontalAlignment.Stretch)
+                                    .VerticalContentAlignment(VerticalAlignment.Stretch)
+                                    .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
+                                    .Content(
+                                        new BrushItemView()
+                                            .Preset(itemVm)
+                                            .ShowSizeText(true)
+                                    )),
 
                         new SliderEx()
                             .Header("Size")
@@ -70,7 +81,7 @@ public class BrushSettingsView : ComponentBase
         {
             DrawingState.CurrentPixelBrushPreset = value;
 
-            if(value != null)
+            if (value != null)
             {
                 DrawingState.CurrentBrushSettings = value.Clone();
                 OnPropertyChanged();

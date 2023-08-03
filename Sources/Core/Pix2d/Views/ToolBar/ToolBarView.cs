@@ -56,6 +56,8 @@ public class ToolBarView : ComponentBase
                     .Command(Commands.View.ToggleBrushSettingsCommand)
                     .Content(AppState.DrawingState.CurrentBrushSettings, BindingMode.OneWay, bindingSource: AppState.DrawingState)
                     .With(ButtonStyle)
+                    .VerticalContentAlignment(VerticalAlignment.Stretch)
+                    .HorizontalContentAlignment(HorizontalAlignment.Stretch)
                     .ContentTemplate(new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) => new BrushItemView().Preset(itemVm))),
 
                 new ItemsControl() //tools list
