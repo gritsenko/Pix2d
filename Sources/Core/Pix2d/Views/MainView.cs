@@ -1,4 +1,7 @@
-﻿using Avalonia.Xaml.Interactions.Responsive;
+﻿using Avalonia.Interactivity;
+using Avalonia.Xaml.Interactions.Responsive;
+using CommonServiceLocator;
+using Pix2d.Messages;
 using Pix2d.Shared;
 using Pix2d.Views.Animation;
 using Pix2d.Views.BrushSettings;
@@ -7,7 +10,6 @@ using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
 using Pix2d.Views.Text;
 using Pix2d.Views.ToolBar;
-using Pix2d.Views.ToolBar.Tools;
 
 namespace Pix2d.Views;
 
@@ -23,8 +25,9 @@ public class MainView : ComponentBase
             .AddBehavior(
                 new AdaptiveBehavior()
                     .Setters(
-                        new AdaptiveClassSetter() { MinWidth = 0, MaxWidth = 400, ClassName = "small" },
-                        new AdaptiveClassSetter() { MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide" }
+                        new AdaptiveClassSetter() {MinWidth = 0, MaxWidth = 400, ClassName = "small"},
+                        new AdaptiveClassSetter()
+                            {MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide"}
                     )
             )
             .Children(new Control[]
@@ -46,9 +49,9 @@ public class MainView : ComponentBase
                         new ScrollViewer()
                             .VerticalScrollBarVisibility(ScrollBarVisibility.Hidden)
                             .Content(
-                            new ToolBarView()
-                                .HorizontalAlignment(HorizontalAlignment.Left)
-                        )
+                                new ToolBarView()
+                                    .HorizontalAlignment(HorizontalAlignment.Left)
+                            )
                     ),
 
                 new AdditionalTopBarView().Col(1).Row(2)
@@ -58,12 +61,12 @@ public class MainView : ComponentBase
                 new InfoPanelView().Col(0).Row(3).ColSpan(2),
 
                 new ActionsBarView().Col(1).Row(2)
-                    .IsVisible(UiState.ShowExtraTools, bindingSource:UiState)
+                    .IsVisible(UiState.ShowExtraTools, bindingSource: UiState)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Top),
 
                 new ClipboardActionsView().Col(1).Row(2)
-                    .IsVisible(UiState.ShowClipboardBar, bindingSource : UiState)
+                    .IsVisible(UiState.ShowClipboardBar, bindingSource: UiState)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Top),
 
@@ -76,7 +79,7 @@ public class MainView : ComponentBase
 
                 new TimeLineView().Col(1).Row(2)
                     .VerticalAlignment(VerticalAlignment.Bottom)
-                    .IsVisible(UiState.ShowTimeline, bindingSource:UiState),
+                    .IsVisible(UiState.ShowTimeline, bindingSource: UiState),
 
                 new LayersView().Col(1).Row(2)
                     .IsVisible(UiState.ShowLayers, bindingSource: UiState)
@@ -92,21 +95,22 @@ public class MainView : ComponentBase
                             .Header("Color edit")
                             .Top(10)
                             .Left(10)
-                            .IsOpen(UiState.ShowColorEditor, bindingSource: UiState)
+                            .IsOpen(UiState.ShowColorEditor, BindingMode.TwoWay, bindingSource: UiState)
                             .CloseButtonCommand(Commands.View.ToggleColorEditorCommand)
                             .ShowPinButton(true)
                             .Content(new ColorPickerView()),
 
                         new PopupView()
                             .Header("Brush settings")
-                            .IsOpen(UiState.ShowBrushSettings, bindingSource: UiState)
+                            .IsOpen(UiState.ShowBrushSettings, BindingMode.TwoWay, bindingSource: UiState)
                             .CloseButtonCommand(Commands.View.ToggleBrushSettingsCommand)
                             .Width(210)
+                            .ShowPinButton(true)
                             .Content(new BrushSettingsView()),
 
                         new PopupView()
                             .Header("Preview")
-                            .IsOpen(UiState.ShowPreviewPanel, bindingSource : UiState)
+                            .IsOpen(UiState.ShowPreviewPanel, bindingSource: UiState)
                             .CloseButtonCommand(Commands.View.TogglePreviewPanelCommand)
                             .Top(40)
                             .Right(100)
@@ -114,7 +118,7 @@ public class MainView : ComponentBase
 
                         new PopupView()
                             .Header("Image/Canvas size")
-                            .IsOpen(UiState.ShowCanvasResizePanel, bindingSource : UiState)
+                            .IsOpen(UiState.ShowCanvasResizePanel, bindingSource: UiState)
                             .CloseButtonCommand(Commands.View.ToggleCanvasSizePanelCommand)
                             .Width(220)
                             .Top(100)
@@ -131,9 +135,9 @@ public class MainView : ComponentBase
                             .Right(100)
                             .Content(new LayerOptionsView())
                     }),
-                
+
                 new ToolSettingsContainerView().Col(1).Row(2)
-                    .IsVisible(UiState.ShowToolProperties, bindingSource : UiState)
+                    .IsVisible(UiState.ShowToolProperties, bindingSource: UiState)
                     .Margin(8, 120, 0, 0)
                     .MinWidth(40)
                     .MinHeight(40)
@@ -152,13 +156,13 @@ public class MainView : ComponentBase
                 new Border()
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
-                    .IsVisible(UiState.ShowMenu, bindingSource : UiState)
+                    .IsVisible(UiState.ShowMenu, bindingSource: UiState)
                     .Child(new MainMenuView()),
 
                 new Border()
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
-                    .IsVisible(AppState.IsBusy, bindingSource : AppState)
+                    .IsVisible(AppState.IsBusy, bindingSource: AppState)
                     .Background(StaticResources.Brushes.ModalOverlayBrush)
                     .Child(
                         new TextBlock()
@@ -170,5 +174,15 @@ public class MainView : ComponentBase
                 new DialogContainer()
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
+            })
+            .With(self =>
+            {
+                self.AddHandler(PointerPressedEvent, (_, e) =>
+                {
+                    if (e.Source is StyledElement element)
+                    {
+                        ServiceLocator.Current.GetInstance<IMessenger>()?.Send(new WindowClickedMessage(element));
+                    }
+                }, RoutingStrategies.Tunnel);
             });
 }

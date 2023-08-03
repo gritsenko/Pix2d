@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Windows.Input;
 using Avalonia.Controls.Shapes;
+using CommonServiceLocator;
+using Pix2d.Messages;
 
 namespace Pix2d.Shared;
 
@@ -34,7 +36,20 @@ public class PopupView : ViewBase
             SetAndRaise(IsOpenProperty, ref _isOpen, value);
             IsVisible = value;
             if (value)
+            {
+                if (ShowPinButton)
+                {
+                    ServiceLocator.Current.GetInstance<IMessenger>().Register<WindowClickedMessage>(this, OnWindowClicked);
+                }
                 _onShowAction?.Invoke();
+            }
+            else
+            {
+                if (ShowPinButton)
+                {
+                    ServiceLocator.Current.GetInstance<IMessenger>().Unregister<WindowClickedMessage>(this, OnWindowClicked);
+                }
+            }
         }
     }
 
@@ -85,6 +100,15 @@ public class PopupView : ViewBase
         get => _showPinButton;
         set => SetAndRaise(ShowPinButtonProperty, ref _showPinButton, value);
     }
+    
+    public static readonly DirectProperty<PopupView, bool> IsPinnedProperty
+        = AvaloniaProperty.RegisterDirect<PopupView, bool>(nameof(IsPinned), o => o.IsPinned, (o, v) => o.IsPinned = v);
+    private bool _isPinned = false;
+    public bool IsPinned
+    {
+        get => _isPinned;
+        set => SetAndRaise(IsPinnedProperty, ref _isPinned, value);
+    }
 
     #endregion
 
@@ -104,15 +128,19 @@ public class PopupView : ViewBase
                     .IsVisible(@ShowHeaderProperty)
                     .Children(
 
-                        new TextBlock() { IsHitTestVisible = false }
-                            .Margin(8,0,0,0)
+                        new TextBlock() {IsHitTestVisible = false}
+                            .Margin(8, 0, 0, 0)
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Text(@HeaderProperty, BindingMode.OneWay),
 
-                        new Button().Col(1) // pin button
-                            .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                        new ToggleButton().Col(1) // pin button
                             .IsVisible(@ShowPinButtonProperty, BindingMode.OneWay)
-                            .Content("\xE840"),
+                            .IsChecked(IsPinned, BindingMode.TwoWay, bindingSource: this)
+                            .Content(IsPinned, BindingMode.OneWay, bindingSource: this)
+                            .ContentTemplate(new FuncDataTemplate<bool>((v, _) => 
+                                new TextBlock()
+                                    .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                                    .Text(v ? "\xE840" : "\xE141"))),
 
                         new Button().Col(2) //Close button
                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
@@ -175,5 +203,18 @@ public class PopupView : ViewBase
     {
         _onShowAction = action;
         return this;
+    }
+
+    private void OnWindowClicked(WindowClickedMessage message)
+    {
+        if (!IsPinned && !IsInside(message.Target))
+        {
+            IsOpen = false;
+        }
+    }
+
+    private bool IsInside(StyledElement element)
+    {
+        return ReferenceEquals(element, this) || element.Parent != null && IsInside(element.Parent);
     }
 }

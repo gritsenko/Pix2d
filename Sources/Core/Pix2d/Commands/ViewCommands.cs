@@ -74,12 +74,6 @@ public class ViewCommands : CommandsListBase
     {
         var uiState = AppState.UiState;
         uiState.ShowColorEditor = !uiState.ShowColorEditor;
-
-        if (uiState.ShowColorEditor && !uiState.PinColorPicker)
-        {
-            uiState.ShowBrushSettings = false;
-            uiState.ShowToolProperties = false;
-        }
     });
 
     public SnappingCommands Snapping { get; } = new();
