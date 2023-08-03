@@ -7,7 +7,7 @@ namespace Pix2d.Abstract.Platform
 {
     public interface IClipboardService
     {
-        Task<SKBitmap> GetImageFromClipboard();
+        Task<SKBitmap?> GetImageFromClipboard();
         void TryPaste();
         Task<bool> TryCopyNodesAsBitmapAsync(IEnumerable<SKNode> nodes, SKColor backgroundColor);
         Task<bool> TryCutNodesAsBitmapAsync(IEnumerable<SKNode> nodes, SKColor backgroundColor);

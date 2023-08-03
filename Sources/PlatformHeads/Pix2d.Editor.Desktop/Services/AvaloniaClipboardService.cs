@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -11,6 +12,7 @@ using Pix2d.Abstract.Tools;
 using SkiaNodes;
 using SkiaSharp;
 using SkiaNodes.Extensions;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Pix2d.Services;
 
@@ -27,7 +29,7 @@ public class AvaloniaClipboardService : InternalClipboardService
     public override async Task<bool> TryCopyNodesAsBitmapAsync(IEnumerable<SKNode> nodes, SKColor backgroundColor)
     {
         var result = await base.TryCopyNodesAsBitmapAsync(nodes, backgroundColor);
-        if(result)
+        if (result)
             await PutImageIntoClipboard(SavedBitmap);
         return result;
     }
@@ -58,7 +60,7 @@ public class AvaloniaClipboardService : InternalClipboardService
         Clowd.Clipboard.ClipboardGdi.SetImage(bm);
     }
 
-    public override async Task<SKBitmap> GetImageFromClipboard()
+    public override async Task<SKBitmap?> GetImageFromClipboard()
     {
         // last objects in clipboard from us
         var formats = await Clipboard.GetFormatsAsync();
@@ -75,26 +77,13 @@ public class AvaloniaClipboardService : InternalClipboardService
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             using var image = await Clowd.Clipboard.ClipboardGdi.GetImageAsync();
-            //using var ms = new MemoryStream();
-            //image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-            //    var bitmap = SKBitmap.Decode(data,);
-            var info = new SKImageInfo(image.Width, image.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
-            var skBitmap = new SKBitmap(info);
 
-            var data = image.LockBits(
-                new System.Drawing.Rectangle(0, 0, image.Width, image.Height),
-                System.Drawing.Imaging.ImageLockMode.ReadOnly,
-                System.Drawing.Imaging.PixelFormat.Format32bppPArgb
-            );
+            if (image == null)
+                return null;
 
-
-            using (var pixmap = new SKPixmap(info, data.Scan0, info.RowBytes))
-            {
-                skBitmap.InstallPixels(pixmap);
-            }
-
-            image.UnlockBits(data);
-            
+            using var ms = new MemoryStream();
+            image.Save(ms, ImageFormat.Png);
+            var skBitmap = SKBitmap.Decode(ms.GetBuffer());
             return skBitmap;
         }
 

@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Tools;
-using Pix2d.CommonNodes;
 using Pix2d.Plugins.Drawing.Operations;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -25,7 +24,7 @@ namespace Pix2d.Services
             ViewPortService = viewPortService;
         }
 
-        public virtual Task<SKBitmap> GetImageFromClipboard()
+        public virtual Task<SKBitmap?> GetImageFromClipboard()
         {
             if (SavedBitmap == null)
                 return Task.FromResult<SKBitmap>(null);
