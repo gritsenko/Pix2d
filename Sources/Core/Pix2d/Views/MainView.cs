@@ -1,4 +1,5 @@
 ﻿using Avalonia.Interactivity;
+using Avalonia.Reactive;
 using Avalonia.Xaml.Interactions.Responsive;
 using CommonServiceLocator;
 using Pix2d.Messages;
@@ -35,6 +36,16 @@ public class MainView : ComponentBase
 
                 new Border().Col(0).Row(0)
                     .ColSpan(2).RowSpan(3)
+                    .With(self =>
+                    {
+                        self.AddHandler(PointerPressedEvent, (_, e) =>
+                        {
+                            if (e.Source is StyledElement element)
+                            {
+                                ServiceLocator.Current.GetInstance<IMessenger>()?.Send(new WindowClickedMessage(element));
+                            }
+                        }, RoutingStrategies.Tunnel);
+                    })
                     .Name("Pix2dCanvasContainer"),
 
 #if DEBUG
@@ -174,15 +185,5 @@ public class MainView : ComponentBase
                 new DialogContainer()
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
-            })
-            .With(self =>
-            {
-                self.AddHandler(PointerPressedEvent, (_, e) =>
-                {
-                    if (e.Source is StyledElement element)
-                    {
-                        ServiceLocator.Current.GetInstance<IMessenger>()?.Send(new WindowClickedMessage(element));
-                    }
-                }, RoutingStrategies.Tunnel);
             });
 }

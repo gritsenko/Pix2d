@@ -8,6 +8,8 @@ namespace Pix2d.Shared;
 
 public class PopupView : ViewBase
 {
+    private static readonly TimeSpan AutoCloseTimeout = TimeSpan.FromMilliseconds(500);
+    
     #region control properties
 
     /// <summary>
@@ -33,6 +35,12 @@ public class PopupView : ViewBase
         get => _isOpen;
         set
         {
+            // if (value && (DateTime.Now - _autoCloseTime < AutoCloseTimeout))
+            // {
+            //     SetAndRaise(IsOpenProperty, ref _isOpen, false);
+            //     return;
+            // }
+            
             SetAndRaise(IsOpenProperty, ref _isOpen, value);
             IsVisible = value;
             if (value)
@@ -165,6 +173,7 @@ public class PopupView : ViewBase
 
     private ContentControl _contentControl;
     private Action _onShowAction;
+    private DateTime _autoCloseTime;
 
     private Point GetCurrentPos()
     {
@@ -207,8 +216,9 @@ public class PopupView : ViewBase
 
     private void OnWindowClicked(WindowClickedMessage message)
     {
-        if (!IsPinned && !IsInside(message.Target))
+        if (!IsPinned && IsOpen && !IsInside(message.Target))
         {
+            _autoCloseTime = DateTime.Now;
             IsOpen = false;
         }
     }
