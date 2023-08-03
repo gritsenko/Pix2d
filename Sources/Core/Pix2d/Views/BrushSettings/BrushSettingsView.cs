@@ -1,5 +1,4 @@
 ﻿using Pix2d.Shared;
-using SkiaSharp;
 using static Pix2d.Resources.StaticResources;
 using Colors = Avalonia.Media.Colors;
 
@@ -37,11 +36,7 @@ public class BrushSettingsView : ComponentBase
                             .ItemsSource(DrawingState.BrushPresets, bindingSource: DrawingState)
                             .SelectedItem(CurrentPixelBrushPreset, BindingMode.TwoWay, bindingSource: this)
                             .ItemsPanel(Templates.WrapPanelTemplate)
-                            .ItemTemplate((Primitives.Drawing.BrushSettings item) => 
-                                new ContentControl()
-                                    .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
-                                    .Content(new BrushItemView().Preset(item))
-                            ),
+                            .ItemTemplate(new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) => new BrushPresetView(itemVm))),
 
                         new SliderEx()
                             .Header("Size")

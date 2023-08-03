@@ -1,18 +1,17 @@
-﻿using Mvvm;
+﻿using System;
+using Mvvm;
 using SkiaSharp;
-using System.Threading.Tasks;
 
 namespace Pix2d.Views.BrushSettings;
 
 public class BrushItemView : ComponentBase
 {
+    private const int DefaultSize = 32;
     private Primitives.Drawing.BrushSettings _preset;
 
     protected override object Build() =>
         new Grid()
-            .Background(() => PreviewBitmap.ToBrush())
-            .Width(32)
-            .Height(32);
+            .Background(() => PreviewBitmap.ToBrush());
 
 
     public Primitives.Drawing.BrushSettings Preset
@@ -22,6 +21,8 @@ public class BrushItemView : ComponentBase
         {
             _preset = value;
             UpdatePreview();
+            UpdateViewSize();
+            
             StateHasChanged();
         }
     }
@@ -49,20 +50,30 @@ public class BrushItemView : ComponentBase
         set
         {
             Preset.Opacity = (float)value;
-            OnPropertyChanged();
+            
             UpdatePreview();
             UpdateBrush();
+            
+            OnPropertyChanged();
+        }
+    }
+
+    private void UpdateViewSize()
+    {
+        if (!double.IsFinite(Width))
+        {
+            Width = DefaultSize;
+        }
+
+        if (!double.IsFinite(Height))
+        {
+            Height = DefaultSize;
         }
     }
 
     [NotifiesOn(nameof(Scale))]
     public string SizeStr => Scale + "px";
 
-    //public BrushPresetViewModel(BrushSettings preset)
-    //{
-    //    Preset = preset;
-    //    UpdatePreviewAsync();
-    //}
     protected override void OnAfterInitialized()
     {
 
@@ -70,7 +81,9 @@ public class BrushItemView : ComponentBase
 
     private void UpdatePreview()
     {
-        const int size = 36;
+        if (Preset == null) return;
+
+        var size = double.IsFinite(Width + Height) ? (int)Math.Min(Width, Height) : DefaultSize;
         var src = Preset.Brush.GetPreview((float)Scale);
         if (src == null)
             return;
