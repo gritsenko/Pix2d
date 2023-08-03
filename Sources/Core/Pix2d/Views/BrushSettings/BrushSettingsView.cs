@@ -27,7 +27,7 @@ public class BrushSettingsView : ComponentBase
                             .Text("Presets"),
 
                         new ListBox()
-                            .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
+                            .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                             .HorizontalScrollBarVisibility(ScrollBarVisibility.Disabled)
                             .Row(1)
                             .Padding(0)
@@ -37,7 +37,11 @@ public class BrushSettingsView : ComponentBase
                             .ItemsSource(DrawingState.BrushPresets, bindingSource: DrawingState)
                             .SelectedItem(CurrentPixelBrushPreset, BindingMode.TwoWay, bindingSource: this)
                             .ItemsPanel(Templates.WrapPanelTemplate)
-                            .ItemTemplate((Primitives.Drawing.BrushSettings item) => new BrushItemView().Preset(item)),
+                            .ItemTemplate((Primitives.Drawing.BrushSettings item) => 
+                                new ContentControl()
+                                    .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
+                                    .Content(new BrushItemView().Preset(item))
+                            ),
 
                         new SliderEx()
                             .Header("Size")

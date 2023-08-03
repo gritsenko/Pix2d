@@ -174,7 +174,7 @@ namespace Pix2d.Services
                 new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 2, Opacity = 1f },
                 new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 3, Opacity = 1f },
                 new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 4, Opacity = 1f },
-                new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 4, Opacity = 1f },
+                new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 5, Opacity = 1f },
                 new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 4, Opacity = 1f },
                 new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 6, Opacity = 1f },
                 new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 8, Opacity = 1f },

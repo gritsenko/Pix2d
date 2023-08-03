@@ -5,6 +5,7 @@ using Pix2d.Views.BrushSettings;
 using System.Collections.Generic;
 using System.Linq;
 using Pix2d.Primitives;
+using SkiaSharp;
 
 namespace Pix2d.Views.ToolBar;
 
