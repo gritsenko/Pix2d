@@ -31,6 +31,7 @@ public class LayersListViewModel : Pix2dViewModelBase
     private SpriteEditor _editor;
     private ChangeOpacityOperation _changeOpacityOperation;
     private int _reorderingNodeOldIndex;
+    private LayerViewModel _selectedLayer;
 
     public ObservableCollection<LayerViewModel> Layers { get; set; } = new();
 
@@ -80,7 +81,15 @@ public class LayersListViewModel : Pix2dViewModelBase
     public Brush ResultBackgroundBrush => UseBackgroundColor ? SelectedBackgroundColor.ToBrush() : StaticResources.Brushes.CheckerTilesBrushNoScale;
 
 
-    public LayerViewModel SelectedLayer { get; set; }
+    public LayerViewModel SelectedLayer
+    {
+        get => _selectedLayer;
+        set
+        {
+            _selectedLayer = value;
+            OnPropertyChanged();
+        }
+    }
 
     public List<EffectViewModel> AvailableEffects { get; set; } = new List<EffectViewModel>();
 

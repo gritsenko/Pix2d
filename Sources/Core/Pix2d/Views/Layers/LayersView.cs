@@ -26,7 +26,7 @@ public class LayersView : ViewBaseSingletonVm<LayersListViewModel>
                             .BorderThickness(0)
                             .Classes("ItemsDragAndDrop")
                             .ItemsSource(vm.Layers)
-                            .SelectedItem(vm.SelectedLayer, bindingMode: BindingMode.OneWay)
+                            .SelectedItem(vm.SelectedLayer, bindingMode: BindingMode.TwoWay)
                             .AddBehavior(new ContextDropBehavior { Handler = new ItemsListBoxDropHandler() })
                             .ItemTemplate((LayerViewModel itemVm) =>
                             {

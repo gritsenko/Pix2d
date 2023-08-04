@@ -1,4 +1,6 @@
 ﻿using Avalonia.Input;
+using Avalonia.Rendering;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Xaml.Interactions.DragAndDrop;
 using Pix2d.ViewModels.Layers;
@@ -41,8 +43,9 @@ public class ItemsListBoxDropHandler : DropHandlerBase
             {
                 if (bExecute)
                 {
-                    MoveItem(items, sourceIndex, targetIndex);
-                    vm.SelectLayerCommand.Execute(sourceItem);
+                    var selected = vm.SelectedLayer;
+                    items.Move(sourceIndex, targetIndex);
+                    vm.SelectedLayer = selected;
                 }
                 return true;
             }
