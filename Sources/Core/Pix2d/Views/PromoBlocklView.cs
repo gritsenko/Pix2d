@@ -1,9 +1,23 @@
-﻿namespace Pix2d.Views;
+﻿using Avalonia.Styling;
+
+namespace Pix2d.Views;
 
 public class PromoBlockView : ComponentBase
 {
+    public PromoBlockView()
+    {
+        this.Styles.AddRange(new IStyle[]
+        {
+            new Style<Button>(s => s.Class("wide").Descendant().Class("promo-grid")).Width(110),
+            new Style<Button>(s => s.Class("small").Descendant().Class("promo-grid"))
+                                        .Width(51)
+                                        .IsVisible(false)
+        });
+    }
+
     protected override object Build()
         => new Button()
+            .Classes("promo-grid")
             //.Command(ShowLicenseInfoCommand)
             .OnClick(e =>
             {
@@ -27,8 +41,7 @@ public class PromoBlockView : ComponentBase
                     )
             )
             .HorizontalAlignment(HorizontalAlignment.Center)
-            .VerticalAlignment(VerticalAlignment.Stretch)
-            .Width(51);
+            .VerticalAlignment(VerticalAlignment.Stretch);
 
     public ILicenseService? LicenseService { get; } = null!;
     public string CallToActionText { get; set; } = "PRO";
@@ -37,13 +50,13 @@ public class PromoBlockView : ComponentBase
     protected override void OnAfterInitialized()
     {
         var isPro = LicenseService?.IsPro ?? true;
-        #if BETA
-        CallToActionText = "ULT";
+#if BETA
+        CallToActionText = "ULTIMATE";
         Suffix = "𝛽";
-        #else
+#else
         CallToActionText = isPro ? "PRO" : "ESS";
-        #endif
-        
+#endif
+
         StateHasChanged();
     }
 
