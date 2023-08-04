@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
+using CommonServiceLocator;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Common.FileSystem;
@@ -64,7 +65,7 @@ public class AvaloiaFileService : IFileService {
         return EditorApp.TopLevel.StorageProvider;
     }
 
-    public async Task<IFileContentSource> GetFileToSaveWithDialogAsync(string defaultFileName, string[] fileTypeFilter, string contextKey = null) {
+    public async Task<IFileContentSource> GetFileToSaveWithDialogAsync(string[] fileTypeFilter, string contextKey = null, string defaultFileName = null) {
         if (_isDialogOpened)
             return null;
 
@@ -73,13 +74,19 @@ public class AvaloiaFileService : IFileService {
 
 
             var options = new FilePickerSaveOptions();
+            var extension = string.Join(", ", fileTypeFilter);
             options.FileTypeChoices = new[]
             {
-                new FilePickerFileType("Pix2d supported images") { Patterns = fileTypeFilter.Select(x=>"*" + x).ToArray() }
+                new FilePickerFileType(extension) { Patterns = fileTypeFilter.Select(x=>"*" + x).ToArray() },
+                new FilePickerFileType("All files") { Patterns = new [] { "*" } },
             };
 
-            options.DefaultExtension = fileTypeFilter.FirstOrDefault().Trim('.');
-            options.SuggestedFileName = defaultFileName;
+            if (fileTypeFilter.Length > 0)
+            {
+                options.DefaultExtension = fileTypeFilter.First().Trim('.');
+            }
+            
+            options.SuggestedFileName = defaultFileName ?? CoreServices.ProjectService.GetDefaultFileName();
 
             var sp = GetStorageProvider();
 

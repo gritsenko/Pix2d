@@ -14,7 +14,7 @@ namespace Pix2d.Exporters;
 
 public class SvgImageExporter : IFilePickerExporter
 {
-    public string Title => "SVG Image exporter";
+    public string Title => "SVG image";
     public Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {
         return ExportToFileAsync(nodes, scale);
@@ -24,8 +24,7 @@ public class SvgImageExporter : IFilePickerExporter
     {
         var fs = ServiceLocator.Current.GetInstance<IFileService>();
         var firstNode = nodes.FirstOrDefault();
-        var DefaultFileName = "DSsdfsdfs";
-        var file = await fs.GetFileToSaveWithDialogAsync(DefaultFileName ?? "Sprite.svg", new[] { ".svg" }, "export");
+        var file = await fs.GetFileToSaveWithDialogAsync(new[] { ".svg" }, "export");
         if (file != null)
         {
 

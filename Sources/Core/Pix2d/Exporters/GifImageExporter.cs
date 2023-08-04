@@ -14,6 +14,7 @@ namespace Pix2d.Exporters;
 
 public class GifImageExporter : SKNodeExporterBase, IFilePickerExporter
 {
+    public override string Title => "GIF animation";
 
     protected override Stream EncodeFrames(IEnumerable<SKBitmap> frames, float frameRate, double scale)
     {
@@ -39,7 +40,7 @@ public class GifImageExporter : SKNodeExporterBase, IFilePickerExporter
         var fs = ServiceLocator.Current.GetInstance<IFileService>();
         var node = nodes.FirstOrDefault();
         var DefaultFileName = "aaaa!!!!";
-        var file = await fs.GetFileToSaveWithDialogAsync(DefaultFileName ?? "Sprite.gif", new[] { ".gif" }, "export");
+        var file = await fs.GetFileToSaveWithDialogAsync(new[] { ".gif" }, "export");
         if (file != null)
         {
             await using var stream = await ExportToStreamAsync(nodes);

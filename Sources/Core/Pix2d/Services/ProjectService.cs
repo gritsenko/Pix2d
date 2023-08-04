@@ -106,9 +106,9 @@ public class ProjectService : IProjectService
     }
 
     private async Task<IFileContentSource> GetFileToExport(string filetype, string defaultName = null)
-        => await FileService.GetFileToSaveWithDialogAsync(defaultName ?? CurrentProjectName, new[] { filetype }, "project");
+        => await FileService.GetFileToSaveWithDialogAsync(new[] { filetype }, "project", defaultName ?? GetDefaultFileName());
 
-    private string GetDefaultFileName()
+    public string GetDefaultFileName()
         => !string.IsNullOrEmpty(CurrentProjectName) && !ProjectState.IsNewProject ? System.IO.Path.GetFileNameWithoutExtension(CurrentProjectName) : "new_project";
 
     public async Task<bool> SaveCurrentProjectToFileAsync(IFileContentSource targetFile, bool isSessionMode = false)

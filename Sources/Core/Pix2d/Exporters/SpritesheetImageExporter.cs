@@ -14,6 +14,7 @@ namespace Pix2d.Exporters;
 
 public class SpritesheetImageExporter : SKNodeExporterBase, IFilePickerExporter
 {
+    public override string Title => "PNG sprite sheet";
     public int MaxColumns { get; set; } = 4;
     protected override Stream EncodeFrames(IEnumerable<SKBitmap> frames, float frameRate, double scale)
     {
@@ -73,8 +74,7 @@ public class SpritesheetImageExporter : SKNodeExporterBase, IFilePickerExporter
     {
         var fs = ServiceLocator.Current.GetInstance<IFileService>();
         var firstNode = nodes.FirstOrDefault();
-        var DefaultFileName = "Dsddscsd!!!!";
-        var file = await fs.GetFileToSaveWithDialogAsync(DefaultFileName ?? "Sprite.png", new[] { ".png" }, "export");
+        var file = await fs.GetFileToSaveWithDialogAsync(new[] { ".png" }, "export");
         if (file != null)
         {
             using (var stream = await ExportToStreamAsync(nodes, scale))
