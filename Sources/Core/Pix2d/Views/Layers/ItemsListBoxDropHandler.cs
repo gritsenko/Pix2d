@@ -43,9 +43,8 @@ public class ItemsListBoxDropHandler : DropHandlerBase
             {
                 if (bExecute)
                 {
-                    var selected = vm.SelectedLayer;
                     items.Move(sourceIndex, targetIndex);
-                    vm.SelectedLayer = selected;
+                    vm.SelectedLayer = sourceItem;
                 }
                 return true;
             }
