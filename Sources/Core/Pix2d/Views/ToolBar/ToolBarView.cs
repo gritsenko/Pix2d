@@ -5,7 +5,6 @@ using Pix2d.Views.BrushSettings;
 using System.Collections.Generic;
 using System.Linq;
 using Pix2d.Primitives;
-using SkiaSharp;
 
 namespace Pix2d.Views.ToolBar;
 
@@ -18,7 +17,7 @@ public class ToolBarView : ComponentBase
 
         this.Styles.AddRange(new IStyle[]
         {
-            new Style<Button>(s => WideButtonSelector(s).Class("toolbar-button")).Width(52).Height(52),
+            new Style<Button>(s => WideButtonSelector(s).Class("toolbar-button")).Width(51).Height(51),
             new Style<Button>(s => WideButtonSelector(s).Class("color-button")).Width(40).Height(40),
 
             new Style<Button>(s => SmallButtonSelector(s).Class("toolbar-button")).Width(40).Height(40),
