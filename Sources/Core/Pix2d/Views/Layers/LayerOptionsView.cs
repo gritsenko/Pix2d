@@ -1,4 +1,5 @@
-﻿using Pix2d.Effects;
+﻿using Avalonia.Styling;
+using Pix2d.Effects;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Shared;
 using Pix2d.ViewModels.Layers;
@@ -8,6 +9,9 @@ namespace Pix2d.Views.Layers;
 public class LayerOptionsView : ViewBaseSingletonVm<LayersListViewModel>
 {
     protected override object Build(LayersListViewModel vm) =>
+        new ScrollViewer()
+            .MaxHeight(400)
+            .Content(
         new Grid()
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Rows("Auto, *, Auto, Auto")
@@ -128,14 +132,29 @@ public class LayerOptionsView : ViewBaseSingletonVm<LayersListViewModel>
                             .ItemsSource(@sl1?.Effects)
 
                     )
+                )
             );
 
     private FuncDataTemplate<EffectViewModel> EffectItemTemplate => new((vm, ns) =>
+        new ContentControl()
+            .BorderThickness(1)
+            .BorderBrush(StaticResources.Brushes.InnerPanelBackgroundBrush)
+            .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
+            .Margin(new Thickness(0, 0, 0, 5))
+            .Content(
         new Grid()
             .Rows("Auto,*")
             .Cols("*,Auto,Auto")
+            .Styles(new Style(s => s.OfType<Grid>())
+            {
+                Setters = 
+                {
+                }
+            })
             .Children(
                 new TextBlock()
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .Padding(new Thickness(5, 0))
                     .Text(@vm.Name),
 
                 new Button()
@@ -156,8 +175,12 @@ public class LayerOptionsView : ViewBaseSingletonVm<LayersListViewModel>
 
                 new ContentControl().Row(1).Col(0).ColSpan(3)
                     .Content(vm)
+                    .Background(StaticResources.Brushes.PanelsBackgroundBrush)
+                    .Padding(5)
                     .ContentTemplate(EffectTemplates.GetTemplateByEffect(vm))
                 )
+        
+        )
     );
 
     private void IconStyle(PathIcon icon) => icon
@@ -189,24 +212,73 @@ public static class EffectTemplates
 
     public static FuncDataTemplate<EffectViewModel> ShadowEffectTemplate => new((vm, ns) =>
         new StackPanel().Children(
-            new TextBlock().Text("Shadow")
+            new Grid().Cols("*, Auto")
+                .Children(
+                    new TextBlock().Col(0).Text("Color"),
+                    new ColorPickerButton().Col(1).Color(((PixelShadowEffect)vm.Effect).Color, BindingMode.TwoWay, bindingSource: vm.Effect)
+                ),
+            
+            new TextBlock().Text("Offset X"),
+            new Slider()
+                .Minimum(-20)
+                .Maximum(20)
+                .Value(((PixelShadowEffect)vm.Effect).DeltaX, BindingMode.TwoWay, bindingSource: vm.Effect),
+            
+            new TextBlock().Text("Offset Y"),
+            new Slider()
+                .Minimum(-20)
+                .Maximum(20)
+                .Value(((PixelShadowEffect)vm.Effect).DeltaY, BindingMode.TwoWay, bindingSource: vm.Effect),
+            
+            new TextBlock().Text("Blur"),
+            new Slider()
+                .Minimum(0)
+                .Maximum(200)
+                .Value(((PixelShadowEffect)vm.Effect).Blur, BindingMode.TwoWay, bindingSource: vm.Effect),
+            
+            new TextBlock().Text("Opacity"),
+            new Slider()
+                .Minimum(0)
+                .Maximum(255)
+                .Value(((PixelShadowEffect)vm.Effect).Opacity, BindingMode.TwoWay, bindingSource: vm.Effect)
+            
             )
     );
 
     public static FuncDataTemplate<EffectViewModel> BlurEffectTemplate => new((vm, ns) =>
         new StackPanel().Children(
-            new TextBlock().Text("Blur")
+            new TextBlock().Text("Blur amount"),
+            new Slider()
+                .Maximum(20)
+                .Minimum(0)
+                .SmallChange(0.1)
+                .LargeChange(3)
+                .Value(((PixelBlurEffect)vm.Effect).Blur, BindingMode.TwoWay, bindingSource: vm.Effect)
             )
     );
 
     public static FuncDataTemplate<EffectViewModel> GrayscaleEffectTemplate => new((vm, ns) =>
         new StackPanel().Children(
-            new TextBlock().Text("Grayscale")
+            new TextBlock().Text("No settings")
             )
     );
     public static FuncDataTemplate<EffectViewModel> ImageAdjustSettingsEffectTemplate => new((vm, ns) =>
         new StackPanel().Children(
-            new TextBlock().Text("ImageAdjustSettings")
+            new TextBlock().Text("Hue"),
+            new Slider()
+                .Minimum(-180)
+                .Maximum(180)
+                .Value(((ImageAdjustEffect)vm.Effect).Hue, BindingMode.TwoWay, bindingSource: vm.Effect),
+            new TextBlock().Text("Brightness"),
+            new Slider()
+                .Minimum(-100)
+                .Maximum(100)
+                .Value(((ImageAdjustEffect)vm.Effect).Lightness, BindingMode.TwoWay, bindingSource: vm.Effect),
+            new TextBlock().Text("Saturation"),
+            new Slider()
+                .Minimum(-100)
+                .Maximum(100)
+                .Value(((ImageAdjustEffect)vm.Effect).Saturation, BindingMode.TwoWay, bindingSource: vm.Effect)
             )
     );
 
