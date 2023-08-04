@@ -13,7 +13,7 @@ namespace Pix2d.Exporters;
 
 public class PngImageExporter : IStreamExporter, IFilePickerExporter
 {
-    public string Title => "Png image exporter";
+    public string Title => "PNG image";
 
     public Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {
@@ -39,8 +39,7 @@ public class PngImageExporter : IStreamExporter, IFilePickerExporter
     public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {
         var fs = ServiceLocator.Current.GetInstance<IFileService>();
-        var DefaultFileName = "new project.png";
-        var file = await fs.GetFileToSaveWithDialogAsync(DefaultFileName ?? "Sprite.png", new[] { ".png" }, "project");
+        var file = await fs.GetFileToSaveWithDialogAsync(new[] { ".png" }, "project");
         if (file != null)
         {
             await using var stream = await ExportToStreamAsync(nodes, scale);

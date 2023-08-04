@@ -82,7 +82,7 @@ public class ExportService : IExportService
 
     private async Task<IFileContentSource> GetFileToExport(string filetype, string defaultName = null)
     {
-        return await FileService.GetFileToSaveWithDialogAsync(defaultName, new []{filetype}, "export");
+        return await FileService.GetFileToSaveWithDialogAsync(new []{filetype}, "export", defaultName);
     }
 
     //public async void BuildProject()

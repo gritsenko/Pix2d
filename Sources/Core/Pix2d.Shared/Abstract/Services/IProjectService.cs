@@ -32,5 +32,6 @@ namespace Pix2d.Abstract.Services
 
         Task CreateNewProjectAsync(SKSize newProjectSize);
         Task<IFileContentSource[]> GetRecentProjectsAsync();
+        string GetDefaultFileName();
     }
 }
