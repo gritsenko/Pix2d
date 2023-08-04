@@ -29,7 +29,14 @@ class Program
             o.SendClientReports = false;
         });
 
-        
+        SentrySdk.ConfigureScope(scope =>
+        {
+            scope.User = new User
+            {
+                Email = "john.doe@example.com"
+            };
+        });
+
         EditorApp.Pix2dBootstrapper = new DesktopPix2dBootstrapper();
         EditorApp.OnAppStarted = OnAppStarted;
         EditorApp.OnAppClosing = OnAppClosing;
