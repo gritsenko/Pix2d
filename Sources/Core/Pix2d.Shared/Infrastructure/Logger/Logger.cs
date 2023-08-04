@@ -167,13 +167,13 @@ namespace Pix2d
         {
             Time = DateTime.Now;
 
-            if (args.Length == 0)
+            if (args == null || args.Length == 0)
             {
                 Message = message;
                 return;
             }
 
-            Message = String.Format(message, args);
+            Message = string.Format(message, args);
         }
 
         public override string ToString()
