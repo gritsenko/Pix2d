@@ -28,7 +28,12 @@ public class PromoBlockView : ComponentBase
     protected override void OnAfterInitialized()
     {
         var isPro = LicenseService?.IsPro ?? true;
+        #if BETA
+        CallToActionText = "𝛽";
+        #else
         CallToActionText = isPro ? "PRO" : "ESS";
+        #endif
+        
         StateHasChanged();
     }
 
