@@ -1,19 +1,34 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using CommonServiceLocator;
-using Microsoft.AppCenter.Analytics;
 using Microsoft.AppCenter.Crashes;
 using Pix2d.Abstract.Services;
 using Pix2d.Common;
+using Sentry;
 
 namespace Pix2d.Desktop.Logging;
 
-public class AppCenterLoggerTarget : ILoggerTarget
+public class SentryLoggerTarget : ILoggerTarget
 {
+    private readonly IPlatformStuffService _pps;
     public bool EventsOnly => false;
-    private IPlatformStuffService _pps;
 
+    public SentryLoggerTarget()
+    {
+        _pps = ServiceLocator.Current?.GetInstance<IPlatformStuffService>();
+        
+        SentrySdk.Init(o =>
+        {
+            o.Dsn = "https://9088a22c17385d098701c8059b42f460@o4505646237614080.ingest.sentry.io/4505646271692800";
+            o.SendClientReports = false;
+            o.AutoSessionTracking = true;
+            o.StackTraceMode = StackTraceMode.Enhanced;
+            o.IsGlobalModeEnabled = true;
+        });
+    }
+    
     public void OnLogged(LogEntry logEntry)
     {
         if (logEntry.Exception == null)
@@ -23,20 +38,7 @@ public class AppCenterLoggerTarget : ILoggerTarget
 
         var pars = new Dictionary<string, string>();
         pars["lic"] = Pix2DApp.Instance.CurrentLicense;
-
-#if FULL_MODE
-            pars["lic"] = "full";
-#endif
-
-        if (_pps == null)
-        {
-            _pps = ServiceLocator.Current?.GetInstance<IPlatformStuffService>();
-        }
-
-        if (_pps != null)
-        {
-            pars["ram"] = GetRamGroup(_pps.GetMemoryInfo().UsedRam);
-        }
+        pars["ram"] = GetRamGroup(_pps.GetMemoryInfo().UsedRam);
 
         if (logEntry.ExtraParams != null && logEntry.ExtraParams.Any())
             foreach (var param in logEntry.ExtraParams)
@@ -44,32 +46,30 @@ public class AppCenterLoggerTarget : ILoggerTarget
                 pars.Add(param.Key, param.Value);
             }
 
-
-#if !__WASM__
         if (!logEntry.IsEvent)
         {
-            var attaches = new ErrorAttachmentLog[0];
+            var attaches = "";
             try
             {
-                attaches = new[]
-                {
-                    ErrorAttachmentLog.AttachmentWithText(SessionLogger.Instance.GetSessionOperationLogText(), "operations.log")
-                };
+                attaches = SessionLogger.Instance.GetSessionOperationLogText();
             }
             catch
             {
                 //can't get attachments
             }
 
-            Crashes.TrackError(logEntry.Exception, pars, attaches);
+            SentrySdk.CaptureException(logEntry.Exception, s =>
+            {
+                s.Contexts["Custom data"] = pars;
+                s.Contexts["attachments"] = attaches;
+            });
         }
         else
         {
-            Analytics.TrackEvent(logEntry.Message, pars);
+            SentrySdk.CaptureMessage(logEntry.Message, s => s.Contexts["Custom data"] = pars);
         }
-#endif
     }
-
+    
     private string GetRamGroup(ulong ramAmount)
     {
         var mbs = Math.Floor((double) (ramAmount / 104857600)) * 100;

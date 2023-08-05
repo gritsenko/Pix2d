@@ -17,25 +17,6 @@ class Program
     public static void Main(string[] args)
     {
         //DispatcherUnhandledException += App_DispatcherUnhandledException;
-        SentrySdk.Init(o =>
-        {
-            // Tells which project in Sentry to send events to:
-            o.Dsn = "https://9088a22c17385d098701c8059b42f460@o4505646237614080.ingest.sentry.io/4505646271692800";
-            // When configuring for the first time, to see what the SDK is doing:
-            //o.Debug = true;
-            // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
-            // We recommend adjusting this value in production.
-            //o.TracesSampleRate = 1.0;
-            o.SendClientReports = false;
-        });
-
-        SentrySdk.ConfigureScope(scope =>
-        {
-            scope.User = new User
-            {
-                Email = "john.doe@example.com"
-            };
-        });
 
         EditorApp.Pix2dBootstrapper = new DesktopPix2dBootstrapper();
         EditorApp.OnAppStarted = OnAppStarted;

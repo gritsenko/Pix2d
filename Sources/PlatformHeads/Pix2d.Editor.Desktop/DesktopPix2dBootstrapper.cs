@@ -58,15 +58,6 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         };
 
         var ff = RuntimeInformation.FrameworkDescription;
-
-#if WINFORMS 
-        Debug.WriteLine("Register appcenter for winforms");
-        AppCenter.Start("2c0dc23b-1bcd-42dc-b7c2-d6944fab2c58", typeof(Analytics), typeof(Crashes));
-#endif
-
-        Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
-        //Logger.RegisterLoggerTarget(new GALoggerTarget("G-K2TCKSBBCX", "LOVC5ToFRJ2-b54hKgDiaQ"));
-
         var container = IoC.Get<SimpleContainer>();
 
         container.RegisterSingleton<ISettingsService, SettingsService>();
@@ -79,8 +70,17 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         container.RegisterSingleton<IPlatformStuffService, PlatformStuffService>();
         container.RegisterSingleton<IDialogService, AvaloniaDialogService>();
 
-        Pix2DApp.CurrentPlatform = PlatformType.Avalonia;
+#if WINFORMS 
+        Debug.WriteLine("Register appcenter for winforms");
+        AppCenter.Start("2c0dc23b-1bcd-42dc-b7c2-d6944fab2c58", typeof(Analytics), typeof(Crashes));
+        Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
+#else
+        Logger.RegisterLoggerTarget(new SentryLoggerTarget());
+#endif
 
+        //Logger.RegisterLoggerTarget(new GALoggerTarget("G-K2TCKSBBCX", "LOVC5ToFRJ2-b54hKgDiaQ"));
+
+        Pix2DApp.CurrentPlatform = PlatformType.Avalonia;
         Pix2DApp.AppFolder = Path.Combine(AppDataFolder(), "Pix2d");
 
         if (!Directory.Exists(Pix2DApp.AppFolder))
