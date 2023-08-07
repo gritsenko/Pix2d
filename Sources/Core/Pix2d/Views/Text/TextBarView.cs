@@ -25,7 +25,7 @@ public class TextBarView : ViewBaseSingletonVm<TextBarViewModel> {
                                 .Watermark("Enter text")
                                 .Text(@vm.Text, BindingMode.TwoWay)
                                 .VerticalAlignment(VerticalAlignment.Center)
-                                .AcceptsReturn(true)
+                                .AcceptsReturn(false)
                                 .MinWidth(150)
                             );
                     })
