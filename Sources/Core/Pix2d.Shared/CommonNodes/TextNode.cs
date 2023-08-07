@@ -89,8 +89,12 @@ namespace Pix2d.CommonNodes
             _bounds = SKRect.Empty;
             paint.MeasureText(Text, ref _bounds);
             var height = -paint.FontMetrics.Top + paint.FontMetrics.Bottom;
+            // This adds same margin to the right of the text as to the left of the text.
+            // Without this margin sometimes one pixel is lost at the right because of rounding.
+            var right = _bounds.Right + _bounds.Left;
             _bounds.Top = 0;
             _bounds.Bottom = height;
+            _bounds.Right = right;
         }
 
         private SKPaint GetPaint()
