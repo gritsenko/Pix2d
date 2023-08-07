@@ -43,11 +43,16 @@ namespace Pix2d.Services
             RegisterImporterProvider(".jpg", () => new ImageFileImporter(objectCreationService));
             RegisterImporterProvider(".jpeg", () => new ImageFileImporter(objectCreationService));
             RegisterImporterProvider(".gif", () => new GifImporter());
+            RegisterImporterProvider(".PNG", () => new ImageFileImporter(objectCreationService));
+            RegisterImporterProvider(".JPG", () => new ImageFileImporter(objectCreationService));
+            RegisterImporterProvider(".JPEG", () => new ImageFileImporter(objectCreationService));
+            RegisterImporterProvider(".GIF", () => new GifImporter());
         }
 
         public async void ImportToScene()
         {
-            var files = (await FileService.OpenFileWithDialogAsync(new[] {".png"}, true, "import"));
+            var extensions = _importerProviders.Keys.ToArray();
+            var files = (await FileService.OpenFileWithDialogAsync(extensions, true, "import"));
             if(files?.Any() != true)
                 return;
             
