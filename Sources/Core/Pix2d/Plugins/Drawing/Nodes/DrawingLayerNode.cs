@@ -985,10 +985,23 @@ namespace Pix2d.Drawing.Nodes
                 {
                     _selectionLayer.Render(canvas, new ViewPort((int)Size.Width, (int)Size.Height));
                     canvas.DrawColor(color, SKBlendMode.SrcATop);
+                    
+                    if (_selectionBackground != null)
+                    {
+                        canvas.DrawBitmap(_selectionBackground, SKPoint.Empty, new SKPaint() { BlendMode = SKBlendMode.DstOver });
+                    }
                     canvas.Flush();
+                    
                     WorkingBitmap.NotifyPixelsChanged();
                 }
-                ApplySelection();
+
+                if (WorkingBitmap == _backgroundBitmap)
+                {
+                    SwapWorkingBitmap();
+                }
+                
+                _selectionEditor.SetIsChanged();
+                ApplySelection(true);
             }
         }
 
