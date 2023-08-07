@@ -972,9 +972,6 @@ namespace Pix2d.Drawing.Nodes
         {
             ApplySelection();
             OnSelectionStarted();
-            State = DrawingLayerState.DrawingSelectionArea;
-            ClearWorkingBitmap();
-            WorkingBitmap.NotifyPixelsChanged();
             _pixelSelector = new AllPixelSelector();
             FinishSelection();
         }
@@ -1167,7 +1164,6 @@ namespace Pix2d.Drawing.Nodes
                 _selectionBackground = tmpBitmap;
 
                 ActivateEditor();
-                //OnNodeChanged();
                 WorkingBitmap.NotifyPixelsChanged();
 
                 OnPixelsSelected();

@@ -12,7 +12,7 @@ namespace Pix2d.Drawing.Nodes
 
         public SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap)
         {
-            return sourceBitmap;
+            return sourceBitmap.Copy();
         }
 
         public SKPath GetSelectionPath()
