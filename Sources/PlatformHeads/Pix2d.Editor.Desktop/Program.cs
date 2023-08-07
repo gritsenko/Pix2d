@@ -34,6 +34,7 @@ class Program
             SentrySdk.CaptureException(e);
             // here we can work with the exception, for example add it to our log file
             Logger.LogException(e, "Unhandled exception happened");
+            throw;
         }
         finally
         {

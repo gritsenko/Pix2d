@@ -397,10 +397,10 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IUpdatableNode, IDr
         SelectLayer(newSelectedLayer);
     }
 
-    public SKNode DuplicateLayer(Layer layer)
+    public SKNode DuplicateLayer(Layer layer, int insertIndex = -1)
     {
-        var layerCopy = layer.Clone();
-        this.Nodes.Add(layerCopy);
+        var layerCopy = layer.Copy();
+        this.Nodes.Insert(insertIndex, layerCopy);
         SelectLayer(layerCopy);
 
         return layerCopy;

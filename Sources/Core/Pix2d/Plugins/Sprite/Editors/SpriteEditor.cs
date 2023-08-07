@@ -136,10 +136,10 @@ namespace Pix2d.Plugins.Sprite.Editors
             OnLayersChanged();
         }
 
-        public void DuplicateLayer(Pix2dSprite.Layer layer = null)
+        public void DuplicateLayer(Pix2dSprite.Layer layer = null, int insertIndex = -1)
         {
             var oldSelectedLayer = SelectedLayer;
-            var newLayer = CurrentSprite.DuplicateLayer(layer ?? SelectedLayer);
+            var newLayer = CurrentSprite.DuplicateLayer(layer ?? SelectedLayer, insertIndex);
             var operation = new DuplicateLayerOperation(newLayer.Yield(), oldSelectedLayer);
             operation.PushToHistory();
             OnLayersChanged();

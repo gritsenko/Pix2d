@@ -3,6 +3,8 @@ using Avalonia.Rendering;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Xaml.Interactions.DragAndDrop;
+using Pix2d.CommonNodes;
+using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.ViewModels.Layers;
 
 namespace Pix2d.Views.Layers;
@@ -34,8 +36,11 @@ public class ItemsListBoxDropHandler : DropHandlerBase
             {
                 if (bExecute)
                 {
-                    var clone = new LayerViewModel() { LayerName = sourceItem.LayerName + "_copy" };
-                    InsertItem(items, clone, targetIndex + 1);
+                    var editor = vm.EditService.GetCurrentEditor() as SpriteEditor;
+                    var reversedTargetIndex = vm.Layers.Count - targetIndex;
+                    editor.DuplicateLayer(sourceItem.SourceNode, reversedTargetIndex);
+                    // var clone = new LayerViewModel(layerCopy, editor) { Name =  sourceItem.LayerName + "_copy" };
+                    // InsertItem(items, clone, targetIndex);
                 }
                 return true;
             }

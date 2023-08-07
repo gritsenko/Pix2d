@@ -69,6 +69,21 @@ namespace Pix2d.CommonNodes
                 Size = size;
                 InitFrames(framesCount);
             }
+
+            public Layer Copy()
+            {
+                var copy = this.Clone();
+                for (var i = 0; i < Nodes.Count; i++)
+                {
+                    if (copy.Nodes[i] is SpriteNode sprite)
+                    {
+                        sprite.Bitmap = sprite.Bitmap.Copy();
+                    }
+                }
+
+                return copy;
+            }
+            
             private SpriteNode GetActiveFrameSprite() => GetSpriteByFrame(Frames[CurrentFrameIndex]);
             public SpriteNode GetSpriteByFrame(int index) => GetSpriteByFrame(Frames[index]);
             private SpriteNode GetSpriteByFrame(LayerFrameMeta frame) => frame.NodeId == Guid.Empty ? null : Nodes.OfType<SpriteNode>().FirstOrDefault(x=>x.Id == frame.NodeId);

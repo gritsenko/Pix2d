@@ -8,6 +8,7 @@ using Pix2d.CommonNodes;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Sprite.Editors;
 using SkiaNodes;
+using SkiaNodes.Extensions;
 using SkiaSharp;
 
 namespace Pix2d.ViewModels.Layers
@@ -17,7 +18,7 @@ namespace Pix2d.ViewModels.Layers
         private readonly SpriteEditor _editor;
         private float _oldOpacity;
         public string LayerType { get; set; }
-        public SKNode SourceNode { get; set; }
+        public Pix2dSprite.Layer SourceNode { get; set; }
 
         public SKBitmapObservable Preview { get; set; } = new SKBitmapObservable();
 
@@ -195,6 +196,11 @@ namespace Pix2d.ViewModels.Layers
             {
                 Name = node.Name;
             }
+        }
+
+        public LayerViewModel(LayerViewModel toCopy, string newName) : this(toCopy.SourceNode.Clone(), toCopy._editor)
+        {
+            Name = newName;
         }
 
         public void UpdatePreview()
