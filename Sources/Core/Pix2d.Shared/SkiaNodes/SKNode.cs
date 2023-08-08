@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Newtonsoft.Json;
 using SkiaNodes.Extensions;
@@ -516,6 +517,16 @@ namespace SkiaNodes
                 for (var i = curNode.Nodes.Count - 1; i >= 0; i--)
                 {
                     var curChild = curNode.Nodes[i];
+                    if (curChild == null)
+                    {
+                        // This means that the node structure was changed in race condition and we probably want to skip
+                        // this frame. Otherwise something terrible might happen.
+                        #if DEBUG
+                        Debugger.Break();
+                        #else
+                        yield break;
+                        #endif
+                    }
 
                     PushNode(curChild);
                 }

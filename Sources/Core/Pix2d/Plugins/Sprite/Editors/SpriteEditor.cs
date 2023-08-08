@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using Avalonia.Threading;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Operations;
 using Pix2d.CommonNodes;
@@ -81,10 +82,9 @@ namespace Pix2d.Plugins.Sprite.Editors
 
             if (newFrameIndex != frame)
             {
-                // _context.Post(o =>
-                // {
-                    SetFrameIndex(newFrameIndex);
-                // }, null);
+                // Changing frames modifies the node structure. If this is done not in the UI thread, it can result
+                // in race conditions with processing user input.
+                Dispatcher.UIThread.Invoke(() => SetFrameIndex(newFrameIndex));
             }
         }
 
