@@ -45,7 +45,7 @@ public class AdditionalTopBarView : ComponentBase
                 //toggle layers
                 new ToggleButton().Col(3)
                     .Classes("secondary-button")
-                    .IsVisible(Bind(CanShowLayers))
+                    .IsVisible(() => AppState.CurrentProject.CurrentContextType == EditContextType.Sprite)
                     .Width(64)
                     .Margin(new Thickness(1, 0, 0, 0))
                     .FontSize(16)
@@ -65,14 +65,22 @@ public class AdditionalTopBarView : ComponentBase
     [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private AppState AppState { get; set; } = null!;
 
-    private UiState UiState => AppState.UiState;
-    public bool ShowGrid => AppState.CurrentProject.ViewPortState.ShowGrid;
-    public bool ShowPreviewPanel => UiState.ShowPreviewPanel;
-    public bool ShowLayers => UiState.ShowLayers;
-    public bool CanShowLayers => AppState.CurrentProject.CurrentContextType == EditContextType.Sprite;
-
     protected override void OnAfterInitialized()
     {
-        Messenger.Register<StateChangedMessage>(this, msg => StateHasChanged());
+        Messenger.Register<StateChangedMessage>(this, msg =>
+        {
+            if (msg.PropertyName
+               is nameof(AppState.CurrentProject.ViewPortState.ShowGrid)
+               or nameof(AppState.UiState.ShowPreviewPanel)
+               or nameof(AppState.UiState.ShowLayers)
+               or nameof(AppState.CurrentProject.CurrentContextType)
+               )
+                StateHasChanged();
+
+            if (msg.PropertyName is nameof(AppState.UiState.ShowLayers))
+            {
+                CoreServices.SettingsService.Set(nameof(AppState.UiState.ShowLayers), AppState.UiState.ShowLayers);
+            }
+        });
     }
 }

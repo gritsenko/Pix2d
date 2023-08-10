@@ -34,7 +34,11 @@ public class ProjectState : StateBase
     public ITool CurrentTool { get; set; }
     public INodeEditor CurrentNodeEditor { get; set; }
     public EditContextType DefaultEditContextType { get; set; }
-    public EditContextType CurrentContextType { get; set; } = EditContextType.General;
+    public EditContextType CurrentContextType
+    {
+        get => Get(EditContextType.General);
+        set => Set(value);
+    }
 
     public ViewPortState ViewPortState { get; set; } = new();
     #region Not serializable

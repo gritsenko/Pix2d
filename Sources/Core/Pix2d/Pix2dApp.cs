@@ -127,8 +127,15 @@ public class Pix2DApp : IViewPortService, AppStateService<AppState>
         CoreServices.PlatformStuffService.SetWindowTitle("Pix2d");
         CoreServices.SettingsService.Set("LaunchTime", DateTime.Now);
 
+        LoadUiSettings();
         
         SessionLogger.InitInstance(Messenger.Default);
+    }
+
+    private void LoadUiSettings()
+    {
+        AppState.UiState.ShowLayers = CoreServices.SettingsService.Get<bool>(nameof(AppState.UiState.ShowLayers));
+
     }
 
     public void InitializeCoreServices()
@@ -157,6 +164,8 @@ public class Pix2DApp : IViewPortService, AppStateService<AppState>
     public void SwitchToFullMode()
     {
         AppState.CurrentProject.DefaultEditContextType = EditContextType.General;
+        AppState.CurrentProject.CurrentContextType = EditContextType.General;
+
         CoreServices.EditService.ApplyCurrentEdit();
     }
 
