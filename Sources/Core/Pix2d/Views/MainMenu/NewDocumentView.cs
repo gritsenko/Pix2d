@@ -70,7 +70,7 @@ public class NewDocumentView : ComponentBase
     private int _artworkHeight;
 
 
-    private IDataTemplate GetTextTemplate<T>(Func<T, string> func) =>
+    private static IDataTemplate GetTextTemplate<T>(Func<T, string> func) =>
         new FuncDataTemplate<T>((itemVm, ns) => new TextBlock().Text(func(itemVm)));
 
 
@@ -110,6 +110,7 @@ public class NewDocumentView : ComponentBase
             ArtworkWidth = value?.Width ?? 64;
             ArtworkHeight = value?.Height ?? 64;
             StateHasChanged();
+            OnPropertyChanged();
         }
     }
 
