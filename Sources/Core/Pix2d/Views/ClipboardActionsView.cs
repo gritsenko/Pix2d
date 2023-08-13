@@ -33,7 +33,7 @@ public class ClipboardActionsView : ComponentBase
                     {
                         var flyout = new MenuFlyout() { Placement = PlacementMode.Bottom };
                         flyout.AddItem("Fill selection", SpritePlugin.EditCommands.FillSelectionCommand);
-                        flyout.AddItem("Select object", SpritePlugin.EditCommands.SelectObjectCommand);
+                        //flyout.AddItem("Select object", SpritePlugin.EditCommands.SelectObjectCommand);
                         b.Click += (s, e) => flyout.ShowAt(b);
                     })
                     .Content("\xE10C")
