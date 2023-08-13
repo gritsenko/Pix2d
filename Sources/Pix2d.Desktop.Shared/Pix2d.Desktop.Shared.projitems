@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>32f56d57-853e-48c9-8a4e-b57e55845a22</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Pix2d.Desktop.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)DesktopPix2dBootstrapper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logging\AppCenterLoggerTarget.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logging\AppStatLoggerTarget.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logging\SentryLoggerTarget.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Program.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\AvaloniaClipboardService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\AvaloniaFontService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\PlatformStuffService.cs" />
+  </ItemGroup>
+</Project>

@@ -25,6 +25,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Avalonia.Markup.Declarative
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Browser", "PlatformHeads\Pix2d.Browser\Pix2d.Browser.csproj", "{98503B44-F224-4807-85C0-DBB977E165D3}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Pix2d.Desktop.Shared", "Pix2d.Desktop.Shared\Pix2d.Desktop.Shared.shproj", "{32F56D57-853E-48C9-8A4E-B57E55845A22}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -94,8 +96,13 @@ Global
 		{194827E2-7488-4A2C-A93F-2E0F1C591B12} = {9A13A2F1-F71D-4328-BA8E-A48904B6949A}
 		{A0E234FF-FF67-411F-A000-D2220E3F47B1} = {9A13A2F1-F71D-4328-BA8E-A48904B6949A}
 		{98503B44-F224-4807-85C0-DBB977E165D3} = {5FEEA7F9-BD04-4B27-86EC-0620396C37E3}
+		{32F56D57-853E-48C9-8A4E-B57E55845A22} = {5FEEA7F9-BD04-4B27-86EC-0620396C37E3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2D8A82A5-5672-464C-A953-E52A3FCDF1AE}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Pix2d.Desktop.Shared\Pix2d.Desktop.Shared.projitems*{32f56d57-853e-48c9-8a4e-b57e55845a22}*SharedItemsImports = 13
+		Pix2d.Desktop.Shared\Pix2d.Desktop.Shared.projitems*{49791ffa-8106-461e-8b99-90e016e74655}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal
