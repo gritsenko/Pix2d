@@ -45,6 +45,10 @@ public class ProjectState : StateBase
 
     public bool IsProcessing { get; set; }
     public SessionInfo LastSessionInfo { get; set; }
+    public bool IsAnimationPlaying { 
+        get => Get<bool>();
+        set => Set(value);
+    }
 
     #endregion
 }

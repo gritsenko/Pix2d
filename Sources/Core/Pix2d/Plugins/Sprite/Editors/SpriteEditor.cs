@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using Avalonia.Threading;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Operations;
 using Pix2d.CommonNodes;
@@ -35,7 +36,7 @@ namespace Pix2d.Plugins.Sprite.Editors
 
         public Pix2dSprite CurrentSprite { get; set; }
         
-        public SpriteEditor(IDrawingService drawingService, IViewPortService viewPortService, IMessenger messenger)
+        public SpriteEditor(IDrawingService drawingService, IViewPortService viewPortService, IMessenger messenger, AppState state)
         {
             DrawingService = drawingService;
             ViewPortService = viewPortService;
@@ -46,6 +47,7 @@ namespace Pix2d.Plugins.Sprite.Editors
             _context = SynchronizationContext.Current;
 
             _timer = new Timer(OnTick, this, -1, -1);
+            _projectState = state.CurrentProject;
         }
 
         private void OnOperationInvoked(OperationInvokedMessage e)
@@ -81,10 +83,9 @@ namespace Pix2d.Plugins.Sprite.Editors
 
             if (newFrameIndex != frame)
             {
-                // _context.Post(o =>
-                // {
-                    SetFrameIndex(newFrameIndex);
-                // }, null);
+                // Changing frames modifies the node structure. If this is done not in the UI thread, it can result
+                // in race conditions with processing user input.
+                Dispatcher.UIThread.Invoke(() => SetFrameIndex(newFrameIndex));
             }
         }
 
@@ -277,7 +278,13 @@ namespace Pix2d.Plugins.Sprite.Editors
 
         private Timer _timer;
         private SynchronizationContext _context;
-        public bool IsPlaying { get; set; }
+        private readonly ProjectState _projectState;
+
+        public bool IsPlaying
+        {
+            get => _projectState.IsAnimationPlaying;
+            private set => _projectState.IsAnimationPlaying = value;
+        }
 
         public int CurrentFrameIndex => CurrentSprite.CurrentFrameIndex;
 
@@ -307,6 +314,7 @@ namespace Pix2d.Plugins.Sprite.Editors
             if (CurrentSprite == null)
                 return;
 
+            DrawingService.SplitCurrentOperation();
             CurrentSprite.SetFrameIndex(currentFrame);
             DrawingService.UpdateDrawingTarget();
             OnCurrentFrameChanged();

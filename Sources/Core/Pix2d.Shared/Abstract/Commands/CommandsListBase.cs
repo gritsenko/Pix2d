@@ -23,10 +23,10 @@ public abstract class CommandsListBase : ICommandList
         return BaseName + "." + commandName;
     }
 
-    protected Pix2dCommand GetCommand(Action action, EditContextType contextType = EditContextType.All, CommandShortcut shortcut = default, [CallerMemberName] string commandName = null)
-        => GetCommand(commandName, shortcut, contextType, action, commandName);
+    protected Pix2dCommand GetCommand(Action action, EditContextType contextType = EditContextType.All, CommandShortcut shortcut = default, [CallerMemberName] string commandName = null, ICommandBehaviour behaviour = null)
+        => GetCommand(commandName, shortcut, contextType, action, commandName, behaviour);
 
-    protected Pix2dCommand GetCommand(string description, CommandShortcut? shortcut, EditContextType contextType, Action action, [CallerMemberName] string commandName = null)
+    protected Pix2dCommand GetCommand(string description, CommandShortcut? shortcut, EditContextType contextType, Action action, [CallerMemberName] string commandName = null, ICommandBehaviour behaviour = null)
     {
         var key = GetKey(commandName);
         if (CommandService.TryGetCommand(key, out var command))
@@ -34,10 +34,10 @@ public abstract class CommandsListBase : ICommandList
             return command;
         }
 
-        return CommandService.RegisterSyncCommand(key, action, description, shortcut, contextType);
+        return CommandService.RegisterSyncCommand(key, action, description, shortcut, contextType, behaviour);
     }
 
-    protected Pix2dCommand GetCommand(string description, CommandShortcut? shortcut, EditContextType contextType, Func<Task> actionTask, [CallerMemberName] string commandName = null)
+    protected Pix2dCommand GetCommand(string description, CommandShortcut? shortcut, EditContextType contextType, Func<Task> actionTask, [CallerMemberName] string commandName = null, ICommandBehaviour behaviour = null)
     {
         var key = GetKey(commandName);
         if (CommandService.TryGetCommand(key, out var command))
@@ -45,7 +45,7 @@ public abstract class CommandsListBase : ICommandList
             return command;
         }
 
-        return CommandService.RegisterAsyncCommand(key, actionTask, description, shortcut, contextType);
+        return CommandService.RegisterAsyncCommand(key, actionTask, description, shortcut, contextType, behaviour);
     }
 
     public IEnumerable<Pix2dCommand> GetCommands()

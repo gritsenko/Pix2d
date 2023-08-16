@@ -1,4 +1,5 @@
-﻿using Pix2d.Plugins.Sprite;
+﻿using Avalonia.Interactivity;
+using Pix2d.Plugins.Sprite;
 using Pix2d.Shared;
 
 namespace Pix2d.Views;
@@ -11,6 +12,21 @@ public class ActionsBarView : ComponentBase
     void IconStyle(PathIcon icon) => icon
         .Width(16)
         .Height(16);
+    
+    [Inject]public AppState AppState { get; set; }
+    
+    private bool IsAnimationPlaying => AppState.CurrentProject.IsAnimationPlaying;
+
+    protected override void OnLoaded(RoutedEventArgs e)
+    {
+        base.OnLoaded(e);
+        AppState.CurrentProject.WatchFor(x => x.IsAnimationPlaying, StateHasChanged);
+    }
+
+    protected override void OnUnloaded(RoutedEventArgs e)
+    {
+        AppState.CurrentProject.Unwatch(x => x.IsAnimationPlaying, StateHasChanged);
+    }
 
     protected override object Build() =>
         new ScrollViewer()
@@ -28,6 +44,7 @@ public class ActionsBarView : ComponentBase
                             .Command(SpritePlugin.EditCommands.Rotate90)
                             .Width(ButtonWidth)
                             .Height(ButtonHeight)
+                            .IsEnabled(!IsAnimationPlaying)
                             .Content(new PathIcon()
                                 .With(IconStyle)
                                 .Data(Geometry.Parse(
@@ -37,6 +54,7 @@ public class ActionsBarView : ComponentBase
                         new AppButton()
                             .Command(SpritePlugin.EditCommands.FlipHorizontal)
                             .Width(ButtonWidth)
+                            .IsEnabled(!IsAnimationPlaying)
                             .Content(new PathIcon()
                                 .With(IconStyle)
                                 .Data(Geometry.Parse(
@@ -46,6 +64,7 @@ public class ActionsBarView : ComponentBase
                         new AppButton()
                             .Command(SpritePlugin.EditCommands.FlipVertical)
                             .Width(ButtonWidth)
+                            .IsEnabled(!IsAnimationPlaying)
                             .Content(new PathIcon()
                                 .With(IconStyle)
                                 .Data(Geometry.Parse(
@@ -103,6 +122,7 @@ public class ActionsBarView : ComponentBase
                         new AppButton()
                             .Command(Commands.Edit.Import)
                             .Width(ButtonWidth)
+                            .IsEnabled(!IsAnimationPlaying)
                             .Content(new PathIcon()
                                 .With(IconStyle)
                                 .Data(Geometry.Parse(
@@ -113,6 +133,7 @@ public class ActionsBarView : ComponentBase
                         new AppButton()
                             .Command(Commands.View.ToggleCanvasSizePanelCommand)
                             .Width(ButtonWidth)
+                            .IsEnabled(!IsAnimationPlaying)
                             .Content(new PathIcon()
                                 .With(IconStyle)
                                 .Data(Geometry.Parse(

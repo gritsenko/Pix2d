@@ -24,10 +24,10 @@ namespace Pix2d.Drawing.Nodes
     {
 
         public event EventHandler DrawingStarted;
+        public event EventHandler<DrawingAppliedEventArgs> DrawingApplied;
         public event EventHandler SelectionStarted;
         public event EventHandler SelectionRemoved;
 
-        public event EventHandler<DrawingAppliedEventArgs> DrawingApplied;
         public event EventHandler<PixelsBeforeSelectedEventArgs> PixelsBeforeSelected;
         public event EventHandler SelectionTransformed;
         public event EventHandler LayerModified;
@@ -508,7 +508,15 @@ namespace Pix2d.Drawing.Nodes
                 
                 Size = newSize;
             }
-            ClearWorkingBitmap();
+            else
+            {
+                ClearWorkingBitmap();
+            }
+
+            if (State == DrawingLayerState.Drawing)
+            {
+                DrawingStarted?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         private void FlushCurrentEditing()
@@ -590,6 +598,15 @@ namespace Pix2d.Drawing.Nodes
                         drawingTargetCanvas.DrawBitmap(_foregroundBitmap, 0, 0);
                     }
                 });
+            }
+        }
+
+        public void ApplyDrawing()
+        {
+            if (State == DrawingLayerState.Drawing)
+            {
+                ApplyWorkingBitmap();
+                SwapWorkingBitmap();
             }
         }
 

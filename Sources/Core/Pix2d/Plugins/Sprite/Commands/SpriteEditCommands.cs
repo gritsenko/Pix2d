@@ -79,24 +79,25 @@ public class SpriteEditCommands : CommandsListBase
 
     public Pix2dCommand FlipHorizontal =>
         GetCommand("Flip Horizontal", new CommandShortcut(VirtualKeys.H, KeyModifier.Shift), EditContextType.Sprite,
-            () => { SpriteEditor.Flip(FlipMode.Horizontal); });
+            () => { SpriteEditor.Flip(FlipMode.Horizontal); }, behaviour: DisableOnAnimation.Instance);
 
     public Pix2dCommand FlipVertical =>
         GetCommand("Flip Vertical", new CommandShortcut(VirtualKeys.V, KeyModifier.Shift), EditContextType.Sprite,
-            () => { SpriteEditor.Flip(FlipMode.Vertical); });
+            () => { SpriteEditor.Flip(FlipMode.Vertical); }, behaviour: DisableOnAnimation.Instance);
 
     public Pix2dCommand Rotate90 =>
         GetCommand("Rotate 90°", new CommandShortcut(VirtualKeys.R, KeyModifier.Shift), EditContextType.Sprite,
-            () => { SpriteEditor.Rotate(90); });
+            () => { SpriteEditor.Rotate(90); }, behaviour: DisableOnAnimation.Instance);
 
 
     public Pix2dCommand TryPaste => GetCommand("Paste pixels", new CommandShortcut(VirtualKeys.V, KeyModifier.Ctrl),
         EditContextType.Sprite,
-        () => { CoreServices.ClipboardService.TryPaste(); });
+        () => { CoreServices.ClipboardService.TryPaste(); }, behaviour: DisableOnAnimation.Instance);
 
     public Pix2dCommand Clear => GetCommand("Clear pixels", new CommandShortcut(VirtualKeys.Delete),
         EditContextType.Sprite,
-        () => { CoreServices.DrawingService.ClearCurrentLayer(); });
+        () => { CoreServices.DrawingService.ClearCurrentLayer(); },
+        behaviour: DisableOnAnimation.Instance);
 
     public Pix2dCommand Cancel => GetCommand("Cancel drawing", new CommandShortcut(VirtualKeys.Escape),
         EditContextType.Sprite,

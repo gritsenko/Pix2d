@@ -42,6 +42,7 @@ namespace Pix2d.Abstract.Services
 
         IPixelSelectionEditor GetSelectionEditor();
         void SelectAll();
+        void SplitCurrentOperation();
         void CancelCurrentOperation();
         void Refresh();
     }

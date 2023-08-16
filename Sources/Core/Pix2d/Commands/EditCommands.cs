@@ -18,13 +18,15 @@ public class EditCommands : CommandsListBase
         => GetCommand("Undo",
             new CommandShortcut(VirtualKeys.Z, KeyModifier.Ctrl),
             EditContextType.All,
-            () => CoreServices.OperationService.Undo());
+            () => CoreServices.OperationService.Undo(),
+            behaviour: DisableOnAnimation.Instance);
 
     public Pix2dCommand Redo
         => GetCommand("Redo",
             new CommandShortcut(VirtualKeys.Y, KeyModifier.Ctrl),
             EditContextType.All,
-            () => CoreServices.OperationService.Redo());
+            () => CoreServices.OperationService.Redo(),
+            behaviour: DisableOnAnimation.Instance);
 
     //edit selection
     public Pix2dCommand Delete
@@ -90,6 +92,7 @@ public class EditCommands : CommandsListBase
         => GetCommand("Import image",
             new CommandShortcut(VirtualKeys.I, KeyModifier.Ctrl),
             EditContextType.General,
-            () => CoreServices.ImportService.ImportToScene());
+            () => CoreServices.ImportService.ImportToScene(), 
+            behaviour: DisableOnAnimation.Instance);
 
 }

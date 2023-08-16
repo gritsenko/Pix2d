@@ -77,12 +77,23 @@ public class ToolService : IToolService
     public void Initialize()
     {
         RegisterTool<ObjectManipulationTool>(EditContextType.General);
+        AppState.CurrentProject.WatchFor(x => x.IsAnimationPlaying, OnAnimationStateChanged);
+    }
+
+    private void OnAnimationStateChanged()
+    {
+        if (AppState.CurrentProject.IsAnimationPlaying && CurrentTool is {IsActive: true} &&
+            !_tools[CurrentTool.Key].EnabledDuringAnimation)
+        {
+            ActivateDefaultTool();
+        }
     }
 
     public void RegisterTool<TTool>(EditContextType context)
         where TTool : ITool
     {
-        var toolMeta = new ToolMeta<TTool>(context);
+        var toolState = new ToolState(typeof(TTool)) { Context = context };
+        var toolMeta = new ToolMeta<TTool>(context, toolState.EnabledDuringAnimation);
 
         _tools[toolMeta.Key] = toolMeta;
 
@@ -91,7 +102,6 @@ public class ToolService : IToolService
             _defaultContextTool[context] = toolMeta.Key;
         }
 
-        var toolState = new ToolState(typeof(TTool)) { Context = context };
         AppState.UiState.Tools.Add(toolState);
         if (toolState.IconKey != null)
         {
@@ -133,17 +143,19 @@ public class ToolService : IToolService
         public ITool Instance { get; set; }
         public EditContextType ContextType { get; set; }
         public string Key { get; set; }
+        public bool EnabledDuringAnimation { get; set; }
     }
         
     private class ToolMeta<TTool> : ToolMeta
         where TTool : ITool
     {
 
-        public ToolMeta(EditContextType contextType)
+        public ToolMeta(EditContextType contextType, bool enabledDuringAnimation)
         {
             ContextType = contextType;
             Key = typeof(TTool).Name;
             ToolType = typeof(TTool);
+            EnabledDuringAnimation = enabledDuringAnimation;
         }
     }
 

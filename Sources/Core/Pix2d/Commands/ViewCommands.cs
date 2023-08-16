@@ -55,7 +55,7 @@ public class ViewCommands : CommandsListBase
     public Pix2dCommand HideMainMenuCommand => GetCommand(() => AppState.UiState.ShowMenu = false);
     public Pix2dCommand ToggleMainMenuCommand => GetCommand(() => AppState.UiState.ShowMenu = !AppState.UiState.ShowMenu);
 
-    public Pix2dCommand ToggleCanvasSizePanelCommand => GetCommand(() => AppState.UiState.ShowCanvasResizePanel = !AppState.UiState.ShowCanvasResizePanel);
+    public Pix2dCommand ToggleCanvasSizePanelCommand => GetCommand(() => AppState.UiState.ShowCanvasResizePanel = !AppState.UiState.ShowCanvasResizePanel, behaviour: DisableOnAnimation.Instance);
     public Pix2dCommand ToggleBrushSettingsCommand => GetCommand("Brush settings", 
         null,
         EditContextType.All,
