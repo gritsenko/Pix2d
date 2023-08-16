@@ -36,7 +36,7 @@ namespace Pix2d.Plugins.Sprite.Editors
 
         public Pix2dSprite CurrentSprite { get; set; }
         
-        public SpriteEditor(IDrawingService drawingService, IViewPortService viewPortService, IMessenger messenger)
+        public SpriteEditor(IDrawingService drawingService, IViewPortService viewPortService, IMessenger messenger, AppState state)
         {
             DrawingService = drawingService;
             ViewPortService = viewPortService;
@@ -47,6 +47,7 @@ namespace Pix2d.Plugins.Sprite.Editors
             _context = SynchronizationContext.Current;
 
             _timer = new Timer(OnTick, this, -1, -1);
+            _projectState = state.CurrentProject;
         }
 
         private void OnOperationInvoked(OperationInvokedMessage e)
@@ -277,7 +278,13 @@ namespace Pix2d.Plugins.Sprite.Editors
 
         private Timer _timer;
         private SynchronizationContext _context;
-        public bool IsPlaying { get; set; }
+        private readonly ProjectState _projectState;
+
+        public bool IsPlaying
+        {
+            get => _projectState.IsAnimationPlaying;
+            private set => _projectState.IsAnimationPlaying = value;
+        }
 
         public int CurrentFrameIndex => CurrentSprite.CurrentFrameIndex;
 

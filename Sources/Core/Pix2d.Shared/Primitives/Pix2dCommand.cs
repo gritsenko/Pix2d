@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommonServiceLocator;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Services;
+using Pix2d.State;
 using SkiaNodes.Interactive;
 
 namespace Pix2d.Primitives;
@@ -28,8 +30,42 @@ public class Pix2dAsyncCommand : Pix2dCommand
     }
 }
 
+public interface ICommandBehaviour
+{
+    void Attach(Pix2dCommand command);
+}
+
+public class DisableOnAnimation : ICommandBehaviour
+{
+    public static DisableOnAnimation Instance = new DisableOnAnimation();
+
+    private List<Pix2dCommand> _commands = new();
+    private readonly ProjectState _state;
+
+    private DisableOnAnimation()
+    {
+        _state = ServiceLocator.Current.GetInstance<AppState>().CurrentProject;
+        _state.WatchFor(x => x.IsAnimationPlaying, OnAnimationPlayingChanged);
+    }
+
+    private void OnAnimationPlayingChanged()
+    {
+        var canExecute = !_state.IsAnimationPlaying;
+        foreach (var command in _commands)
+        {
+            command.SetCanExecute(canExecute);
+        }
+    }
+
+    public void Attach(Pix2dCommand command)
+    {
+        _commands.Add(command);
+    }
+}
+
 public abstract class Pix2dCommand : ICommand
 {
+    private bool _canExecute = true;
     public string Name { get; }
     public string Description { get; }
     public CommandShortcut? DefaultShortcut { get; }
@@ -82,7 +118,15 @@ public abstract class Pix2dCommand : ICommand
 
     public bool CanExecute(object? parameter = default)
     {
-        return true;
+        return _canExecute;
+    }
+
+    public void SetCanExecute(bool canExecute)
+    {
+        if (canExecute == _canExecute) return;
+        
+        _canExecute = canExecute;
+        CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void Execute(object? parameter = default)

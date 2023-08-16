@@ -84,18 +84,20 @@ public class CommandService : ICommandService
         return false;
     }
 
-    public Pix2dCommand RegisterAsyncCommand(string name, Func<Task> commandActionTask, string description, CommandShortcut? defaultShortcut, EditContextType? editContextType = null)
+    public Pix2dCommand RegisterAsyncCommand(string name, Func<Task> commandActionTask, string description, CommandShortcut? defaultShortcut, EditContextType? editContextType = null, ICommandBehaviour behaviour = null)
     {
         var cmd = new Pix2dAsyncCommand(name, description, defaultShortcut, editContextType, commandActionTask);
+        behaviour?.Attach(cmd);
         if (cmd.DefaultShortcut != null)
             cmd.DefaultShortcut.KeyConverter = KeyToString;
         RegisterCommand(cmd);
         return cmd;
     }
 
-    public Pix2dCommand RegisterSyncCommand(string name, Action commandAction, string description, CommandShortcut? defaultShortcut, EditContextType? editContextType = null)
+    public Pix2dCommand RegisterSyncCommand(string name, Action commandAction, string description, CommandShortcut? defaultShortcut, EditContextType? editContextType = null, ICommandBehaviour behaviour = null)
     {
         var cmd = new Pix2dSyncCommand(name, description, defaultShortcut, editContextType, commandAction);
+        behaviour?.Attach(cmd);
         if (cmd.DefaultShortcut != null)
             cmd.DefaultShortcut.KeyConverter = KeyToString;
         RegisterCommand(cmd);
@@ -116,6 +118,8 @@ public class CommandService : ICommandService
     {
         if (_commands.TryGetValue(name, out var command))
         {
+            if (!command.CanExecute()) return;
+            
             SessionLogger.OpLogCommand(command.Name);
             if (command is Pix2dAsyncCommand asyncCmd)
             {

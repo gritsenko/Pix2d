@@ -12,7 +12,7 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Tools;
 
-[Pix2dTool(HasSettings = true)]
+[Pix2dTool(HasSettings = true, EnabledDuringAnimation = true)]
 public class BrushTool : BaseTool, IDrawingTool
 {
     public static ToolSettings ToolSettings { get; } = new()

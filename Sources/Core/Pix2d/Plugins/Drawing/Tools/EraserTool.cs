@@ -3,7 +3,7 @@ using Pix2d.Abstract.Tools;
 
 namespace Pix2d.Plugins.Drawing.Tools;
 
-[Pix2dTool(HasSettings = false)]
+[Pix2dTool(HasSettings = false, EnabledDuringAnimation = true)]
 public class EraserTool : BrushTool
 {
     public static ToolSettings ToolSettings { get; } = new()

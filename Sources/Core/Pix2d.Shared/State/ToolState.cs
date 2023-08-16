@@ -16,6 +16,7 @@ public class ToolState
         if (toolAttr != null)
         {
             HasToolProperties = toolAttr.HasSettings;
+            EnabledDuringAnimation = toolAttr.EnabledDuringAnimation;
         }
 
         if (toolType.GetProperty("ToolSettings")?.GetValue(null) is ToolSettings settings)
@@ -24,6 +25,8 @@ public class ToolState
             IconKey = settings.IconData;
         }
     }
+
+    public bool EnabledDuringAnimation { get; set; }
 
     public EditContextType Context { get; set; }
     public string Name { get; set; }

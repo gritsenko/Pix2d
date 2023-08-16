@@ -16,6 +16,18 @@ public class ToolItemView : ComponentBase
         Initialize();
     }
 
+    protected override void OnLoaded(RoutedEventArgs e)
+    {
+        base.OnLoaded(e);
+        AppState.CurrentProject.WatchFor(x => x.IsAnimationPlaying, StateHasChanged);
+    }
+
+    protected override void OnUnloaded(RoutedEventArgs e)
+    {
+        base.OnUnloaded(e);
+        AppState.CurrentProject.Unwatch(x => x.IsAnimationPlaying, StateHasChanged);
+    }
+
     protected override object Build() =>
         new Grid()
             // Add tooltip here and not to the button because using `DataTemplates` somehow breaks the
@@ -30,8 +42,9 @@ public class ToolItemView : ComponentBase
             new Button()
                 .Classes("toolbar-button")
                 .OnClick(OnButtonClicked)
-                .CommandParameter(new Binding())
+                // .CommandParameter(new Binding())
                 .Content(() => ToolKey)
+                .IsEnabled(() => !AppState.CurrentProject.IsAnimationPlaying || ToolState.EnabledDuringAnimation)
                 .DataTemplates(StaticResources.Templates.ToolIconTemplateSelector),
             new Path()
                 .Data(Geometry.Parse("F1 M 4,0L 4,4L 0,4"))
