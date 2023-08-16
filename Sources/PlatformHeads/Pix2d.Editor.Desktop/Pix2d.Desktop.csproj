@@ -8,6 +8,7 @@
 		<UseWindowsForms Condition="'$(TargetFramework)' == 'net7.0-windows'">true</UseWindowsForms>
 		<Version>3.0.2</Version>
 		<PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net7.0-windows'">
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
