@@ -33,7 +33,7 @@ namespace Pix2d.Plugins.Drawing.Operations
         public void SetFinalData()
         {
             _finalData = _drawingTarget.GetData();
-
+            
             if (_drawingTarget is IAnimatedNode sprite)
             {
                 _finalFrame = sprite.CurrentFrameIndex;

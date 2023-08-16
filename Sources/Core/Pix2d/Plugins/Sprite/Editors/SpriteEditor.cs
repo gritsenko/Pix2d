@@ -314,6 +314,7 @@ namespace Pix2d.Plugins.Sprite.Editors
             if (CurrentSprite == null)
                 return;
 
+            DrawingService.SplitCurrentOperation();
             CurrentSprite.SetFrameIndex(currentFrame);
             DrawingService.UpdateDrawingTarget();
             OnCurrentFrameChanged();

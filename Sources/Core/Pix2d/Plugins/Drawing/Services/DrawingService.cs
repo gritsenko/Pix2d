@@ -1,13 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 using CommonServiceLocator;
 using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
+using Pix2d.CommonNodes;
 using Pix2d.Drawing.Brushes;
 using Pix2d.Drawing.Nodes;
 using Pix2d.Drawing.Tools;
 using Pix2d.Messages;
+using Pix2d.Operations;
 using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Primitives.Drawing;
 using SkiaNodes;
@@ -25,6 +31,9 @@ namespace Pix2d.Services
         public DrawingState DrawingState => AppState.DrawingState;
 
         private DrawingOperation _currentDrawingOperation;
+        
+        [NotNull]
+        private List<DrawingOperation> _currentDrawingOperations = new();
 
         private IDrawingLayer _drawingLayer;
 
@@ -121,7 +130,18 @@ namespace Pix2d.Services
 
         private void DrawingLayerOnDrawingStarted(object sender, EventArgs e)
         {
+            StartNewDrawingOperation();
+        }
+
+        private void StartNewDrawingOperation()
+        {
+            if (_currentDrawingOperation != null)
+            {
+                _currentDrawingOperation.SetFinalData();
+            }
+            
             _currentDrawingOperation = new DrawingOperation(CurrentDrawingTarget);
+            _currentDrawingOperations.Add(_currentDrawingOperation);
         }
 
         private void DrawingLayer_DrawingApplied(object sender, DrawingAppliedEventArgs e)
@@ -132,8 +152,22 @@ namespace Pix2d.Services
             if (e.SaveToUndo)
             {
                 _currentDrawingOperation.SetFinalData();
-                _currentDrawingOperation.PushToHistory();
+
+                Debug.Assert(_currentDrawingOperations.Count != 0);
+
+                if (_currentDrawingOperations.Count == 1)
+                {
+                    _currentDrawingOperation.PushToHistory();
+                }
+                else
+                {
+                    var operation = new BulkEditOperation(_currentDrawingOperations.ToArray<IEditOperation>());
+                    operation.PushToHistory();
+                }
             }
+
+            _currentDrawingOperation = null;
+            _currentDrawingOperations.Clear();
             
             ViewPortService.Refresh();
             
@@ -206,6 +240,12 @@ namespace Pix2d.Services
             adornerLayer.Add((SKNode)_drawingLayer);
 
             ((SKNode)_drawingLayer).Position = new SKPoint();
+        }
+
+        public void SplitCurrentOperation()
+        {
+            _drawingLayer.ApplyDrawing();
+            StartNewDrawingOperation();
         }
 
         public void SetCurrentColor(SKColor value)
