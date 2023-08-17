@@ -1000,6 +1000,11 @@ namespace Pix2d.Drawing.Nodes
                 ClearWorkingBitmap();
                 using (var canvas = new SKCanvas(WorkingBitmap))
                 {
+                    if (!LockTransparentPixels)
+                    {
+                        _selectionLayer.Bitmap.Erase(color);
+                    }
+
                     _selectionLayer.Render(canvas, new ViewPort((int)Size.Width, (int)Size.Height));
                     canvas.DrawColor(color, SKBlendMode.SrcATop);
                     
