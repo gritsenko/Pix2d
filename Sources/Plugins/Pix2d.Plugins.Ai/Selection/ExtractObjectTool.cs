@@ -120,7 +120,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 
     private void OnOperationInvoked(OperationInvokedMessage e)
     {
-        if (e.Operation is MoveOperation)
+        if (e.Operation is SelectionOperation)
         {
             if (e.OperationType != OperationEventType.Perform)
                 DrawingLayer.InvalidateSelectionEditor();

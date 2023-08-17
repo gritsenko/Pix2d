@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+    <ProjectReference Include="..\..\Core\Pix2d\Pix2d.Core.csproj" />
   </ItemGroup>
 
 </Project>
