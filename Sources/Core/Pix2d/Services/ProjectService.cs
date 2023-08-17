@@ -75,8 +75,6 @@ public class ProjectService : IProjectService
 
         OpLog();
         Logger.Log("Saving project");
-        if (AppState.IsBusy)
-            throw new Exception("Trying to save project, while previous process not finished.");
 
         return await BusyController.RunLongTaskAsync(async () => await SaveCurrentProjectToFileAsync(file));
     }
