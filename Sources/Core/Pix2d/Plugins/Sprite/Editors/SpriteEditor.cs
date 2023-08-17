@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Avalonia.Threading;
 using Pix2d.Abstract.Edit;
@@ -188,13 +189,27 @@ namespace Pix2d.Plugins.Sprite.Editors
         }
         public void RotateSprite(Pix2dSprite sprite)
         {
+            var rotatedNodes = new HashSet<SpriteNode>();
             foreach (var layer in sprite.Layers)
             {
-                (layer.Nodes[CurrentFrameIndex] as BitmapNode)?.RotateSourceBitmap(true);
+                for (var i = 0; i < sprite.GetFramesCount(); i++)
+                {
+                    var node = layer.GetSpriteByFrame(i);
+                    if (!rotatedNodes.Contains(node))
+                    {
+                        node.RotateSourceBitmap(true);
+                        rotatedNodes.Add(node);
+                    }
+                    
+                }
+                
+                layer.Size = new SKSize(layer.Size.Height, layer.Size.Width);
             }
 
             sprite.Size = new SKSize(sprite.Size.Height, sprite.Size.Width);
 
+            ViewPortService?.Refresh();
+            DrawingService.UpdateDrawingTarget();
             OnLayersChanged();
         }
 
