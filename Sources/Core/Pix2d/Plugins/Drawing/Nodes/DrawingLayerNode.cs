@@ -343,7 +343,7 @@ namespace Pix2d.Drawing.Nodes
         private void SwapWorkingBitmap()
         {
             (_backgroundBitmap, _foregroundBitmap) = (_foregroundBitmap, _backgroundBitmap);
-            _backgroundBitmap.Clear();
+            _backgroundBitmap?.Clear();
             
             Refresh();
         }
@@ -1148,7 +1148,7 @@ namespace Pix2d.Drawing.Nodes
             _currentSelectionOperation = null;
             
             SwapWorkingBitmap();
-            DrawingTarget.ShowTargetBitmap();
+            DrawingTarget?.ShowTargetBitmap();
             
             OnSelectionRemoved();
             OnDrawingApplied(false);

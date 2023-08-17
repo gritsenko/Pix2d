@@ -43,11 +43,17 @@ namespace Pix2d.Plugins.Sprite.Editors
             Messenger = messenger;
 
             Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
+            Messenger.Register<ProjectCloseMessage>(this, OnProjectClose);
 
             _context = SynchronizationContext.Current;
 
             _timer = new Timer(OnTick, this, -1, -1);
             _projectState = state.CurrentProject;
+        }
+
+        private void OnProjectClose(ProjectCloseMessage obj)
+        {
+            Stop();
         }
 
         private void OnOperationInvoked(OperationInvokedMessage e)
@@ -387,8 +393,12 @@ namespace Pix2d.Plugins.Sprite.Editors
         {
             IsPlaying = false;
             _timer.Change(-1, -1);
-            CurrentSprite.IsPlaying = false;
-            CurrentSprite.SetFrameIndex(0);
+            if (CurrentSprite != null)
+            {
+                CurrentSprite.IsPlaying = false;
+                CurrentSprite?.SetFrameIndex(0);
+            }
+            
             OnPlaybackStateChanged();
         }
 

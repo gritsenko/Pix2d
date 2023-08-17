@@ -122,5 +122,6 @@ public class TopBarView : ComponentBase
     protected override void OnAfterInitialized()
     {
         Messenger.Register<OperationInvokedMessage>(this, msg => StateHasChanged());
+        Messenger.Register<ProjectLoadedMessage>(this, _ => StateHasChanged());
     }
 }

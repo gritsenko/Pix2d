@@ -71,12 +71,18 @@ namespace Pix2d.Services
             SetNewDrawingLayer(new DrawingLayerNode() { AspectSnapper = snappingService });
 
             messenger.Register<CurrentToolChangedMessage>(this, OnCurrentToolChanged);
+            messenger.Register<ProjectCloseMessage>(this, OnProjectClose);
             messenger.Register<ProjectLoadedMessage>(this, m => UpdateFromDesignerState());
             messenger.Register<CanvasSizeChanged>(this, msg => UpdateDrawingTarget());
 
             DrawingState.WatchFor(x => x.CurrentBrushSettings, OnBrushChanged);
             DrawingState.WatchFor(x => x.CurrentColor, OnColorChanged);
             DrawingState.WatchFor(x => x.IsPixelPerfectDrawingModeEnabled, OnPixelPerfectModeChanged);
+        }
+
+        private void OnProjectClose(ProjectCloseMessage _)
+        {
+            CancelCurrentOperation();
         }
 
         private void OnPixelPerfectModeChanged()
@@ -147,7 +153,11 @@ namespace Pix2d.Services
         private void DrawingLayer_DrawingApplied(object sender, DrawingAppliedEventArgs e)
         {
             if (_currentDrawingOperation == null || CurrentDrawingTarget != _currentDrawingOperation.GetDrawingTarget())
+            {
+                _currentDrawingOperation = null;
+                _currentDrawingOperations.Clear();
                 return;
+            }
 
             if (e.SaveToUndo)
             {
