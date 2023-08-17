@@ -78,8 +78,15 @@ namespace Pix2d.Drawing.Tools
 
         private void TextVmOnTextApplied(object sender, EventArgs e)
         {
-            DrawingLayer.ApplySelection(true);
-            _textVm.Text = "";
+            if (string.IsNullOrWhiteSpace(_textVm.Text))
+            {
+                DrawingLayer.DeactivateSelectionEditor();
+            }
+            else
+            {
+                DrawingLayer.ApplySelection(true);
+                _textVm.Text = "";
+            }
         }
 
         private void DrawingLayerOnSelectionTransformed(object sender, EventArgs e)
@@ -129,6 +136,11 @@ namespace Pix2d.Drawing.Tools
                 }
                 DrawingLayer.SetSelectionFromExternal(textBm, _selectionPosition);
             }
+            else
+            {
+                DrawingLayer.DeactivateSelectionEditor();
+            }
+            
             CoreServices.ViewPortService.Refresh();
         }
 
