@@ -18,6 +18,7 @@ namespace Pix2d.Abstract.Drawing
 
         void HideTargetBitmap();
         void ShowTargetBitmap();
+        void SetTargetBitmapSubstitute(Func<SKBitmap> substitute);
 
         bool IsTargetBitmapVisible();
 

@@ -682,6 +682,11 @@ namespace Pix2d.Drawing.Nodes
                _drawingMode == BrushDrawingMode.Fill)
                 return;
 
+            if (State == DrawingLayerState.Ready)
+            {
+                return;
+            }
+
 
             canvas.DrawBitmap(_foregroundBitmap, 0, 0);
         }
@@ -1153,7 +1158,8 @@ namespace Pix2d.Drawing.Nodes
             _currentSelectionOperation = null;
             
             SwapWorkingBitmap();
-            DrawingTarget?.ShowTargetBitmap();
+            // DrawingTarget?.ShowTargetBitmap();
+            DrawingTarget?.SetTargetBitmapSubstitute(null);
             
             OnSelectionRemoved();
             OnDrawingApplied(false);
@@ -1219,7 +1225,8 @@ namespace Pix2d.Drawing.Nodes
 
             if (_selectionBackground != null)
             {
-                DrawingTarget.HideTargetBitmap();
+                DrawingTarget.SetTargetBitmapSubstitute(() => _foregroundBitmap);
+                // DrawingTarget.HideTargetBitmap();
             }
         }
 
