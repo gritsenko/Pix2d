@@ -15,7 +15,8 @@ namespace Pix2d.Primitives.Drawing
             {
                 Brush = this.Brush,
                 Scale = this.Scale,
-                Opacity = this.Opacity
+                Opacity = this.Opacity,
+                Spacing = this.Spacing,
             };
         }
 
