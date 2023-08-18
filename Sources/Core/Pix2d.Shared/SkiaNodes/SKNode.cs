@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http.Headers;
 using Newtonsoft.Json;
 using SkiaNodes.Extensions;
 using SkiaNodes.TreeObserver;
@@ -274,9 +275,7 @@ namespace SkiaNodes
             var cache = GetRenderCacheBitmap();
             cache.Erase(SKColor.Empty);
             var cacheCanvas = _cacheSurface.Canvas;
-            {
-                renderBranch(cacheCanvas, _cacheViewPort);
-            }
+            renderBranch(cacheCanvas, _cacheViewPort);
 
             if (hasEffects)
             {
@@ -292,7 +291,8 @@ namespace SkiaNodes
                 var replaceEffects = new Queue<ISKNodeEffect>(Effects.Where(x => x.EffectType == EffectType.ReplaceEffect));
                 if (!replaceEffects.Any())
                 {
-                    canvas.DrawBitmap(cache, 0, 0);
+                    var rect = new SKRect(0, 0, vp.Size.Width, vp.Size.Height);
+                    canvas.DrawBitmap(cache, rect);
                 }
                 else
                 {

@@ -93,7 +93,8 @@ namespace Pix2d.Effects
 
             RenderCache(renderResultBitmap);
 
-            canvas.DrawBitmap(_cacheBitmap, 0, 0);
+            var rect = new SKRect(0, 0, vp.Size.Width, vp.Size.Height);
+            canvas.DrawBitmap(_cacheBitmap, rect);
         }
 
         private void RenderCache(SKBitmap renderResultBitmap)

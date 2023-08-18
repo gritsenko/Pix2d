@@ -40,7 +40,8 @@ namespace Pix2d.Effects
             using (var paint = new SKPaint())
             {
                 paint.ImageFilter = _blurFilter;
-                canvas.DrawBitmap(renderResultBitmap, 0, 0, paint);
+                var rect = new SKRect(0, 0, vp.Size.Width, vp.Size.Height);
+                canvas.DrawBitmap(renderResultBitmap, rect, paint);
             }
         }
 

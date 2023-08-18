@@ -67,7 +67,8 @@ namespace Pix2d.Effects
             using (var paint = new SKPaint())
             {
                 paint.ColorFilter = _colorFilter;
-                canvas.DrawBitmap(renderResultBitmap, 0, 0, paint);
+                var rect = new SKRect(0, 0, vp.Size.Width, vp.Size.Height);
+                canvas.DrawBitmap(renderResultBitmap, rect, paint);
             }
 
             base.Render(canvas, vp, node, renderResultBitmap, nextEffects);
