@@ -65,7 +65,7 @@ namespace Pix2d.CommonNodes
                     Buffer.MemoryCopy(pSource, Bitmap.GetPixels().ToPointer(), data.Length, data.Length);
                 }
             }
-            Bitmap.NotifyPixelsChanged();
+            InvalidateBitmap();
         }
 
         public void HideTargetBitmap()

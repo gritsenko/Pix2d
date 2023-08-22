@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
 
@@ -24,7 +25,7 @@ namespace Pix2d.Plugins.Sprite.Operations
             _targetSprite = targetSprite;
             _unmodifidSpriteData = GetFramesData(_targetSprite);
         }
-        private LayerData[] GetFramesData(Pix2dSprite targetSprite)
+        protected LayerData[] GetFramesData(Pix2dSprite targetSprite)
         {
             var result = new LayerData[targetSprite.Layers.Count()];
             
@@ -55,6 +56,37 @@ namespace Pix2d.Plugins.Sprite.Operations
                     frameNode.SetData(pixelsData.Data);
                 }
             }
+        }
+    }
+
+    public class EditSpriteOperation : EditSpriteOperationBase
+    {
+        private LayerData[] _finalData;
+
+        public EditSpriteOperation(Pix2dSprite targetSprite) : base(targetSprite)
+        {
+        }
+
+        public Action Callback { get; set; }
+
+        public new void SetFinalData()
+        {
+            _finalData = GetFramesData(_targetSprite);
+            base.SetFinalData();
+        }
+
+        public override void OnPerform()
+        {
+            base.OnPerform();
+            SetFramesData(_targetSprite, _finalData);
+            Callback?.Invoke();
+        }
+
+        public override void OnPerformUndo()
+        {
+            base.OnPerformUndo();
+            SetFramesData(_targetSprite, _unmodifidSpriteData);
+            Callback?.Invoke();
         }
     }
 }

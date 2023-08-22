@@ -18,6 +18,7 @@ public class SpriteEditCommands : CommandsListBase
     protected override string BaseName => "Sprite.Edit";
 
     private static SpriteEditor SpriteEditor => CoreServices.EditService.GetCurrentEditor() as SpriteEditor;
+    private static IDrawingService DrawingService => CoreServices.DrawingService;
 
     public Pix2dCommand CopyPixels =>
         GetCommand("Copy selected pixels", new CommandShortcut(VirtualKeys.C, KeyModifier.Ctrl),
@@ -87,7 +88,22 @@ public class SpriteEditCommands : CommandsListBase
 
     public Pix2dCommand Rotate90 =>
         GetCommand("Rotate 90°", new CommandShortcut(VirtualKeys.R, KeyModifier.Shift), EditContextType.Sprite,
-            () => { SpriteEditor.Rotate(90); }, behaviour: DisableOnAnimation.Instance);
+            () =>
+            {
+                var selectionEditor = DrawingService.GetSelectionEditor();
+                if (selectionEditor.HasSelection)
+                {
+                    selectionEditor.RotateSelection(90);
+                }
+                else
+                {
+                    SpriteEditor.RotateCurrentFrame();
+                }
+            }, behaviour: DisableOnAnimation.Instance);
+
+    public Pix2dCommand Rotate90All => GetCommand("Rotate all 90",
+        new CommandShortcut(VirtualKeys.R, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite,
+        () => SpriteEditor.RotateSprite());
 
 
     public Pix2dCommand TryPaste => GetCommand("Paste pixels", new CommandShortcut(VirtualKeys.V, KeyModifier.Ctrl),

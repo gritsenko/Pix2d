@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Avalonia.Threading;
 using Pix2d.Abstract.Edit;
@@ -7,6 +8,8 @@ using Pix2d.Abstract.Operations;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Modules.Sprite.Editors;
+using Pix2d.Operations;
+using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Plugins.Sprite.Operations;
 using Pix2d.Primitives.Edit;
 using Pix2d.Primitives.SpriteEditor;
@@ -180,22 +183,24 @@ namespace Pix2d.Plugins.Sprite.Editors
                 }
                 else
                 {
-                    RotateSprite(CurrentSprite);
+                    RotateCurrentFrame(CurrentSprite);
                     DrawingService.UpdateDrawingTarget();
                 }
 
                 ViewPortService.Refresh();
             }
         }
-        public void RotateSprite(Pix2dSprite sprite)
+
+        public void RotateSprite()
         {
+            var operation = new EditSpriteOperation(CurrentSprite) { Callback = OnLayersChanged };
             var rotatedNodes = new HashSet<SpriteNode>();
-            foreach (var layer in sprite.Layers)
+            foreach (var layer in CurrentSprite.Layers)
             {
-                for (var i = 0; i < sprite.GetFramesCount(); i++)
+                for (var i = 0; i < CurrentSprite.GetFramesCount(); i++)
                 {
                     var node = layer.GetSpriteByFrame(i);
-                    if (!rotatedNodes.Contains(node))
+                    if (node != null && !rotatedNodes.Contains(node))
                     {
                         node.RotateSourceBitmap(true);
                         rotatedNodes.Add(node);
@@ -206,7 +211,46 @@ namespace Pix2d.Plugins.Sprite.Editors
                 layer.Size = new SKSize(layer.Size.Height, layer.Size.Width);
             }
 
-            sprite.Size = new SKSize(sprite.Size.Height, sprite.Size.Width);
+            CurrentSprite.Size = new SKSize(CurrentSprite.Size.Height, CurrentSprite.Size.Width);
+            operation.SetFinalData();
+            CoreServices.OperationService.PushOperation(operation);
+
+            ViewPortService?.Refresh();
+            DrawingService.UpdateDrawingTarget();
+            OnLayersChanged();
+        }
+
+        public void RotateCurrentFrame()
+        {
+            var operations = new List<IEditOperation>();
+            if (Math.Abs(CurrentSprite.Size.Width - CurrentSprite.Size.Height) > 0.1)
+            {
+                var size = Math.Max(CurrentSprite.Size.Width, CurrentSprite.Size.Height);
+                var resizeOperation = new ResizeSpriteOperationBase(CurrentSprite, new SKSize(size, size))
+                {
+                    VerticalAnchor = 0.5f,
+                    HorizontalAnchor = 0.5f
+                };
+                resizeOperation.OnPerform();
+                operations.Add(resizeOperation);
+            }
+
+            var rotateOperation = new EditFrameOperation(CurrentSprite);
+            RotateCurrentFrame(CurrentSprite);
+            rotateOperation.SetFinalData();
+            
+            operations.Add(rotateOperation);
+            CoreServices.OperationService.PushOperation(operations.ToArray());
+        }
+
+        private void RotateCurrentFrame(Pix2dSprite sprite)
+        {
+            Debug.Assert(Math.Abs(sprite.Size.Width - sprite.Size.Height) < 0.1);
+            
+            foreach (var layer in sprite.Layers)
+            {
+                layer.RotateSourceBitmap(layer.CurrentFrameIndex, true);
+            }
 
             ViewPortService?.Refresh();
             DrawingService.UpdateDrawingTarget();

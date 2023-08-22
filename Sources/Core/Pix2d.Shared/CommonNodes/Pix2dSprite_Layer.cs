@@ -393,6 +393,12 @@ namespace Pix2d.CommonNodes
                 var frame = Frames[frameIndex];
                 SetSpriteToFrame(frame, null);
             }
+
+            public void RotateSourceBitmap(int frame, bool resize)
+            {
+                EnsureFrameHasUniqueSprite(frame);
+                GetSpriteByFrame(frame).RotateSourceBitmap(resize);
+            }
         }
     }
 }

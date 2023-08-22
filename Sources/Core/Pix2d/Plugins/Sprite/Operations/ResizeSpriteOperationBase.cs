@@ -7,6 +7,9 @@ namespace Pix2d.Plugins.Sprite.Operations
     {
         private SKSize _newSize;
         private SKSize _oldSize;
+        
+        public float VerticalAnchor { get; init; }
+        public float HorizontalAnchor { get; init; }
 
         public ResizeSpriteOperationBase(Pix2dSprite targetSprite, SKSize newSize) : base(targetSprite)
         {
@@ -16,7 +19,7 @@ namespace Pix2d.Plugins.Sprite.Operations
 
         public override void OnPerform()
         {
-            _targetSprite.Resize(_newSize);
+            _targetSprite.Resize(_newSize, VerticalAnchor, HorizontalAnchor);
             
             if(!HasFinalStates)
                 SetFinalData();
