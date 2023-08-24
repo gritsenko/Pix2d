@@ -14,11 +14,20 @@ namespace Pix2d.CommonNodes
         private SKBitmap _bitmap;
         protected SKRect _bitmapRect;
         protected SKRect _nodeRect;
+        private Func<SKBitmap> _substitute;
         public override bool DoNotRenderChildren => true;
 
         public SKBitmap Bitmap
         {
-            get => _bitmap;
+            get
+            {
+                if (_substitute == null)
+                {
+                    return _bitmap;
+                }
+
+                return _substitute();
+            }
             set
             {
                 if (_bitmap != value)
@@ -76,6 +85,11 @@ namespace Pix2d.CommonNodes
         public void ShowTargetBitmap()
         {
             this.IsVisible = true;
+        }
+
+        public void SetTargetBitmapSubstitute(Func<SKBitmap> substitute)
+        {
+            _substitute = substitute;
         }
 
         public bool IsTargetBitmapVisible()
