@@ -25,6 +25,8 @@ namespace Pix2d.Abstract.Services
         Task<bool> ShareImage(Stream bitmapImageStream);
 
         public void ToggleTopmostWindow();
+
+        public bool HasKeyboard { get; }
     }
 
     public enum DeviceFormFactorType

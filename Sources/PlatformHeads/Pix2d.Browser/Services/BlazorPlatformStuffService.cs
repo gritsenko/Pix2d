@@ -40,6 +40,8 @@ namespace Pix2d.Browser.Services
             
         }
 
+        public bool HasKeyboard => true;
+
         public BlazorPlatformStuffService(IMessenger messenger)
         {
             var arch = Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE");

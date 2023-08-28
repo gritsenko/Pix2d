@@ -144,6 +144,8 @@ public class ExportView : ComponentBase
             if (AppState.UiState.ShowExportDialog)
                 UpdatePreview();
         }));
+        
+        AppState.UiState.WatchFor(x => x.PreferredExportFormat, () => SelectExporter(AppState.UiState.PreferredExportFormat));
     }
 
     private async void OnExportCommandExecute()
@@ -189,4 +191,15 @@ public class ExportView : ComponentBase
         Preview.SetBitmap(preview);
     }
 
+    private void SelectExporter(string format)
+    {
+        if (string.IsNullOrWhiteSpace(format))
+            return;
+        
+        var selected = Exporters.FirstOrDefault(x => x.SupportedExtensions.Contains(format));
+        if (selected != default)
+        {
+            SelectedExporter = selected;
+        }
+    }
 }

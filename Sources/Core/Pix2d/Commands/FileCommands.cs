@@ -1,6 +1,7 @@
 ﻿using System;
 using Pix2d.Abstract.Commands;
 using Pix2d.Primitives;
+using Pix2d.Services;
 using SkiaNodes.Interactive;
 
 namespace Pix2d.Command;
@@ -46,6 +47,7 @@ public class FileCommands : CommandsListBase
         () =>
         {
             Commands.View.HideMainMenuCommand.Execute();
+            AppState.UiState.PreferredExportFormat = ".png";
             Commands.View.ShowExportDialogCommand.Execute();
         });
 
@@ -54,6 +56,7 @@ public class FileCommands : CommandsListBase
         async () =>
         {
             Commands.View.HideMainMenuCommand.Execute();
+            AppState.UiState.PreferredExportFormat = ".gif";
             Commands.View.ShowExportDialogCommand.Execute();
             //var exportVm = ViewModelService.GetViewModel<ExportPageViewModel>();
             //exportVm.SelectExporterByFileType(ExportImportProjectType.Gif);

@@ -9,6 +9,8 @@ public interface IExporter
 {
     string Title { get; }
     Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1);
+    
+    string[] SupportedExtensions { get; }
 }
 
 public interface IStreamExporter : IExporter

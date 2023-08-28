@@ -78,6 +78,7 @@ public class PlatformStuffService : IPlatformStuffService
     public string KeyToString(VirtualKeys key)
     {
         var str = key.ToString();
+        str = str.Replace("OEM", "Num ");
         return str;
     }
 
@@ -117,4 +118,6 @@ public class PlatformStuffService : IPlatformStuffService
             wnd.Topmost = !wnd.Topmost;
         }
     }
+
+    public bool HasKeyboard => true;
 }

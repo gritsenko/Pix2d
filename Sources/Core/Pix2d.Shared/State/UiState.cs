@@ -50,6 +50,12 @@ public class UiState : StateBase
         set => Set(value);
     }
 
+    public string PreferredExportFormat
+    {
+        get => Get<string>();
+        set => Set(value);
+    }
+
     public bool ShowClipboardBar
     {
         get => Get<bool>();
