@@ -77,9 +77,7 @@ public class PlatformStuffService : IPlatformStuffService
 
     public string KeyToString(VirtualKeys key)
     {
-        var str = key.ToString();
-        str = str.Replace("OEM", "Num ");
-        return str;
+        return key.ToString();
     }
 
     public string GetAppVersion()
