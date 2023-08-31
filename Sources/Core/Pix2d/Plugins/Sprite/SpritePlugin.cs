@@ -30,8 +30,8 @@ public class SpritePlugin : IPix2dPlugin
 
     public void Initialize()
     {
-        CommandService.RegisterCommandList(AnimationCommands);
         CommandService.RegisterCommandList(EditCommands);
+        CommandService.RegisterCommandList(AnimationCommands);
 
         ToolService.RegisterTool<ImageTool>(EditContextType.General);
         //EditService.RegisterEditor<Pix2dSprite, SpriteEditor>();
