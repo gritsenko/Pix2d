@@ -169,7 +169,7 @@ public class MainView : ComponentBase
                     .Row(0).RowSpan(4)
                     .IsVisible(UiState.ShowMenu, bindingSource: UiState)
                     .Child(
-                        new MainMenuView()),
+                        new MainMenuView(UiState)),
 
                 new Border()
                     .Col(0).ColSpan(2)

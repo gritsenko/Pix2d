@@ -1,4 +1,5 @@
 ﻿using System;
+using static Avalonia.Media.Brushes;
 
 namespace Pix2d.Views.MainMenu;
 
@@ -6,7 +7,8 @@ public class MainMenuItemView : ComponentBase
 {
     protected override object Build() =>
         new Button()
-            .BindClass(this.IsSelected, "selected")
+            .BindClass(IsSelected, "selected")
+            .Background(@Background)
             .FontSize(16)
             .Content(
                 new Grid().Cols("32,*")
@@ -29,8 +31,21 @@ public class MainMenuItemView : ComponentBase
             .CommandParameter(this);
 
     private object? _tabContentInstance;
+    private bool _isSelected;
     public event EventHandler<MainMenuItemView>? Clicked;
-    public bool IsSelected { get; set; }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            _isSelected = value;
+            OnPropertyChanged(nameof(Background));
+        }
+    }
+
+    public Brush Background => IsSelected ? StaticResources.Brushes.ButtonHoverBrush : Colors.Transparent.ToBrush();
+
     public string Header { get; set; } = "null!";
     public string Icon { get; set; } = "";
     public Type? TabViewType { get; set; }

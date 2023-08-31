@@ -70,6 +70,8 @@ public class SpritePngSequenceExporter : IFolderPickerExporter
         return ExportToFolderAsync(nodes, scale);
     }
 
+    public string[] SupportedExtensions => new[] {".png"};
+
     public async Task ExportToFolderAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {
         var fs = ServiceLocator.Current.GetInstance<IFileService>();

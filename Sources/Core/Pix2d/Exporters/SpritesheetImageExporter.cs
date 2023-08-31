@@ -70,6 +70,8 @@ public class SpritesheetImageExporter : SKNodeExporterBase, IFilePickerExporter
         return ExportToFileAsync(nodes, scale);
     }
 
+    public override string[] SupportedExtensions => new[] {".png"};
+
     public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {
         var fs = ServiceLocator.Current.GetInstance<IFileService>();

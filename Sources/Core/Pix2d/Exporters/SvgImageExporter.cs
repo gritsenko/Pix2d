@@ -20,6 +20,8 @@ public class SvgImageExporter : IFilePickerExporter
         return ExportToFileAsync(nodes, scale);
     }
 
+    public string[] SupportedExtensions => new[] {".svg"};
+
     public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {
         var fs = ServiceLocator.Current.GetInstance<IFileService>();

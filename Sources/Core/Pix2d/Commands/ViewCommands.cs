@@ -11,17 +11,17 @@ public class ViewCommands : CommandsListBase
 
     public Pix2dCommand ZoomIn => GetCommand("Zoom In",
         new CommandShortcut(VirtualKeys.OEMPlus),
-        EditContextType.General,
+        EditContextType.All,
         () => CoreServices.ViewPortService.ViewPort.ZoomIn());
 
     public Pix2dCommand ZoomOut => GetCommand("Zoom Out",
         new CommandShortcut(VirtualKeys.OEMMinus),
-        EditContextType.General,
+        EditContextType.All,
         () => CoreServices.ViewPortService.ViewPort.ZoomOut());
 
     public Pix2dCommand ZoomAll => GetCommand("Zoom All",
         new CommandShortcut(VirtualKeys.N0),
-        EditContextType.General,
+        EditContextType.All,
         () =>
         {
             var vp = CoreServices.ViewPortService.ViewPort;
@@ -33,7 +33,7 @@ public class ViewCommands : CommandsListBase
 
     public Pix2dCommand ToggleTimeline => GetCommand("Show/Hide timeline",
         new CommandShortcut(VirtualKeys.T, KeyModifier.Ctrl),
-        EditContextType.General,
+        EditContextType.All,
         () => AppState.UiState.ShowTimeline = !AppState.UiState.ShowTimeline);
 
     public Pix2dCommand TogglePreviewPanelCommand => GetCommand("Toggle preview panel",

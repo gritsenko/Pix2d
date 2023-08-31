@@ -15,6 +15,7 @@ namespace Pix2d.Exporters;
 public class GifImageExporter : SKNodeExporterBase, IFilePickerExporter
 {
     public override string Title => "GIF animation";
+    public override string[] SupportedExtensions => new[] {".gif"};
 
     protected override Stream EncodeFrames(IEnumerable<SKBitmap> frames, float frameRate, double scale)
     {

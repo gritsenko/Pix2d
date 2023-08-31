@@ -17,6 +17,7 @@ namespace Pix2d.Exporters
         protected abstract Stream EncodeFrames(IEnumerable<SKBitmap> frames, float frameRate, double scale);
 
         public virtual string Title => GetType().Name;
+        public abstract string[] SupportedExtensions { get; }
         public virtual Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1)
         {
             throw new NotImplementedException();

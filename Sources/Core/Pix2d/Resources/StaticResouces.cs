@@ -90,6 +90,9 @@ public static class StaticResources
 
     public static Bitmap AppIcon { get; set; } =
         new Bitmap(GetAsset(GetEmbeddedResourceURI("/Assets/app1.png")));
+    
+    public static Bitmap UltimateImage { get; set; } =
+        new Bitmap(GetAsset(GetEmbeddedResourceURI("/Assets/ULTIMATE.png")));
 
     public static Bitmap ColorThumb { get; set; } =
         new Bitmap(GetAsset(GetEmbeddedResourceURI("/Assets/ColorThumb.png")));

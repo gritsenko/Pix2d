@@ -46,6 +46,10 @@ public class SpriteEditCommands : CommandsListBase
                 CoreServices.ClipboardService.TryCutNodesAsBitmapAsync(nodes, backgroundColor);
             });
 
+    public Pix2dCommand TryPaste => GetCommand("Paste pixels", new CommandShortcut(VirtualKeys.V, KeyModifier.Ctrl),
+        EditContextType.Sprite,
+        () => { CoreServices.ClipboardService.TryPaste(); }, behaviour: DisableOnAnimation.Instance);
+
     public Pix2dCommand CropPixels =>
         GetCommand("Crop current sprite", new CommandShortcut(VirtualKeys.K, KeyModifier.Ctrl), EditContextType.Sprite,
             async () =>
@@ -101,14 +105,10 @@ public class SpriteEditCommands : CommandsListBase
                 }
             }, behaviour: DisableOnAnimation.Instance);
 
-    public Pix2dCommand Rotate90All => GetCommand("Rotate all 90",
+    public Pix2dCommand Rotate90All => GetCommand("Rotate all 90°",
         new CommandShortcut(VirtualKeys.R, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite,
         () => SpriteEditor.RotateSprite());
 
-
-    public Pix2dCommand TryPaste => GetCommand("Paste pixels", new CommandShortcut(VirtualKeys.V, KeyModifier.Ctrl),
-        EditContextType.Sprite,
-        () => { CoreServices.ClipboardService.TryPaste(); }, behaviour: DisableOnAnimation.Instance);
 
     public Pix2dCommand Clear => GetCommand("Clear pixels", new CommandShortcut(VirtualKeys.Delete),
         EditContextType.Sprite,

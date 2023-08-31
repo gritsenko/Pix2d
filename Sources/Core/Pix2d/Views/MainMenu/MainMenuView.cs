@@ -1,9 +1,27 @@
 ﻿using Avalonia.Styling;
+using SkiaNodes.Interactive;
 
 namespace Pix2d.Views.MainMenu;
 
 public class MainMenuView : ComponentBase
 {
+    private MainMenuItemView[] _menuItems;
+
+    public MainMenuView(UiState state)
+    {
+        // Reset selected menu item to the default when menu is closed
+        state.WatchFor(x => x.ShowMenu, () => SelectItem("Info"));
+        SKInput.Current.KeyPressed += OnKeyPressed;
+    }
+
+    private void OnKeyPressed(object sender, KeyboardActionEventArgs e)
+    {
+        if (e.Key == VirtualKeys.Escape && e.Modifiers == KeyModifier.None)
+        {
+            Close();
+        }
+    }
+
     protected override object Build()
     {
         this.Styles(
@@ -16,6 +34,37 @@ public class MainMenuView : ComponentBase
                 .Setter(TemplatedControl.BackgroundProperty, StaticResources.Brushes.AccentBrush)
         );
 
+        _menuItems = new[] {
+            new MainMenuItemView()
+                .Header("Back")
+                .Icon("")
+                .OnClicked(_ => Close()),
+            new MainMenuItemView()
+                .Header("Info")
+                .Icon("\xEADF")
+                .OnClicked(OnItemClick)
+                .TabViewType(typeof(InfoView)),
+            new MainMenuItemView()
+                .Header("New")
+                .Icon("\xE7C3")
+                .OnClicked(OnItemClick)
+                .TabViewType(typeof(NewDocumentView)),
+            new MainMenuItemView()
+                .Header("Open")
+                .Icon("\xED41")
+                .OnClicked(OnItemClick)
+                .TabViewType(typeof(OpenDocumentView)),
+            new MainMenuItemView()
+                .Header("Save")
+                .Icon("\xE74E")
+                .OnClicked(_ => Save()),
+            new MainMenuItemView()
+                .Header("Save as")
+                .Icon("\xE792")
+                .OnClicked(OnItemClick)
+                .TabViewType(typeof(SaveDocumentView))
+        };
+
         return new Border()
             .Background(Brushes.DarkGray)
             .Child(
@@ -23,46 +72,7 @@ public class MainMenuView : ComponentBase
                     .Background(StaticResources.Brushes.SelectedItemBrush)
                     .Children(
                         new ItemsControl()
-                            //.ItemTemplate(_menuItemTemplate)
-                            .Items(
-                                new MainMenuItemView()
-                                    .Header("Back")
-                                    .Icon("")
-                                    .OnClicked(_ => Commands.View.HideMainMenuCommand.Execute()),
-                                new MainMenuItemView()
-                                    .Header("New")
-                                    .Icon("\xE7C3")
-                                    .OnClicked(OnItemClick)
-                                    .TabViewType(typeof(NewDocumentView)),
-
-                                new MainMenuItemView()
-                                    .Header("Open")
-                                    .Icon("\xED41")
-                                    .OnClicked(OnItemClick)
-                                    .TabViewType(typeof(OpenDocumentView)),
-
-                                new MainMenuItemView()
-                                    .Header("Save")
-                                    .Icon("\xE74E")
-                                    .OnClicked(OnItemClick),
-
-                                new MainMenuItemView()
-                                    .Header("Save as")
-                                    .Icon("\xE792")
-                                    .OnClicked(OnItemClick)
-                                    .TabViewType(typeof(SaveDocumentView)),
-
-                                //new MainMenuItemView()
-                                //    .Header("License")
-                                //    .Icon("0xE719")
-                                //    .OnClicked(OnItemClick),
-
-                                new MainMenuItemView()
-                                    .Header("Community\nand support")
-                                    .Icon("\xE8F2")
-                                    .OnClicked(OnItemClick)
-                                    .TabViewType(typeof(SupportView))
-                            ),
+                            .Items(_menuItems),
                         new Border().Col(1)
                             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                             .Child(
@@ -77,7 +87,31 @@ public class MainMenuView : ComponentBase
 
     private void OnItemClick(MainMenuItemView obj)
     {
-        _tabContent.Content = obj.GetTabContent();
+        SelectItem(obj.Header);
     }
 
+    private void SelectItem(string header)
+    {
+        _tabContent.Content = null;
+        
+        foreach (var item in _menuItems)
+        {
+            item.IsSelected = item.Header == header;
+            if (item.IsSelected)
+            {
+                _tabContent.Content = item.GetTabContent();
+            }
+        }
+    }
+
+    private void Close()
+    {
+        Commands.View.HideMainMenuCommand.Execute();
+    }
+
+    private void Save()
+    {
+        Close();
+        Commands.File.Save.Execute();
+    }
 }

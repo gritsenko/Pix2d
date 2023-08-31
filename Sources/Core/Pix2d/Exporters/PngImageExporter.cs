@@ -20,6 +20,8 @@ public class PngImageExporter : IStreamExporter, IFilePickerExporter
         return ExportToFileAsync(nodes, scale);
     }
 
+    public string[] SupportedExtensions => new[] {".png"};
+
     public async Task<Stream> ExportToStreamAsync(IEnumerable<SKNode> nodesToExport, double scale = 1)
     {
         try

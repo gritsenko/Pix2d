@@ -79,6 +79,8 @@ namespace Pix2d.Services
             throw new NotImplementedException();
         }
 
+        public bool HasKeyboard => false;
+
         public static double GetScreenDiagonal()
         {
             //try

@@ -77,8 +77,20 @@ public class PlatformStuffService : IPlatformStuffService
 
     public string KeyToString(VirtualKeys key)
     {
-        var str = key.ToString();
-        return str;
+        switch (key)
+        {
+            case VirtualKeys.OEM4:
+                return "[";
+            case VirtualKeys.OEM6:
+                return "]";
+            case VirtualKeys.OEMPlus:
+                return "=";
+            case VirtualKeys.OEMMinus:
+                return "-";
+            case VirtualKeys.N0:
+                return "0";
+        }
+        return key.ToString();
     }
 
     public string GetAppVersion()
@@ -117,4 +129,6 @@ public class PlatformStuffService : IPlatformStuffService
             wnd.Topmost = !wnd.Topmost;
         }
     }
+
+    public bool HasKeyboard => true;
 }

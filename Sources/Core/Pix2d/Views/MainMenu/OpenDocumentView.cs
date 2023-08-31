@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls.Shapes;
 using Pix2d.Messages;
 using System.Collections.ObjectModel;
+using System.Linq;
 using Avalonia.Interactivity;
 using Pix2d.Abstract.Platform.FileSystem;
 
@@ -11,6 +12,7 @@ public class OpenDocumentView : ComponentBase
     private FuncDataTemplate<MruItem> RecentProjectTemplate = new((itemVm, ns) =>
         new Button()
             .HorizontalContentAlignment(HorizontalAlignment.Left)
+            .Height(26)
             .Content(itemVm.Title)
             .OnClick(_ => itemVm.OpenAsync())
     );
@@ -27,12 +29,13 @@ public class OpenDocumentView : ComponentBase
                             .Text("Open"),
 
                         new TextBlock()
+                            .FontSize(20)
                             .Margin(0, 8, 0, 8)
                             .Text("Open Pix2d project"),
 
                         new Button()
                             .HorizontalAlignment(HorizontalAlignment.Left)
-                            .Margin(0, 8, 0, 8)
+                            .Margin(0, 8, 0, 16)
                             .Padding(16)
                             .Background(Brushes.Gray)
                             .OnClick(OnOpenButtonClick)
@@ -55,11 +58,11 @@ public class OpenDocumentView : ComponentBase
                             ), // Open Button
                         
                         new TextBlock()
+                            .FontSize(20)
                             .Margin(0, 8, 0, 8)
                             .Text("Recent projects"),
 
                         new ItemsControl()
-                            .Margin(0, 8, 0, 8)
                             .ItemsSource(Bind(RecentProjects))
                             .ItemTemplate(RecentProjectTemplate)
 
@@ -81,7 +84,7 @@ public class OpenDocumentView : ComponentBase
     {
         var recentProjects = await ProjectService.GetRecentProjectsAsync();
         RecentProjects.Clear();
-        foreach (var fileContentSource in recentProjects)
+        foreach (var fileContentSource in recentProjects.Reverse())
             RecentProjects.Add(new MruItem(fileContentSource, ProjectService));
     }
 
