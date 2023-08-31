@@ -31,13 +31,13 @@ namespace Pix2d.Plugins.Drawing.Commands
             () => CoreServices.ToolService.ActivateTool(nameof(FillTool)));
 
         public Pix2dCommand ActivatePixelSelectTool => GetCommand(
-            "ActivatePixelSelectTool",
+            "Select tool",
             new CommandShortcut(VirtualKeys.M),
             EditContextType.Sprite,
             () => CoreServices.ToolService.ActivateTool(nameof(PixelSelectTool)));
 
         public Pix2dCommand ActivateEyedropperTool => GetCommand(
-            "ActivateEyedropperTool",
+            "Eyedroppper tool",
             new CommandShortcut(VirtualKeys.I),
             EditContextType.Sprite,
             () => CoreServices.ToolService.ActivateTool(nameof(EyedropperTool)));

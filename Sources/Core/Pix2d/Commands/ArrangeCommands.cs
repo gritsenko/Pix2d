@@ -10,13 +10,13 @@ namespace Pix2d.Command
         protected override string BaseName => "Edit.Arrange";
 
         public Pix2dCommand SendBackward
-            => GetCommand("Send Backward",
+            => GetCommand("Send layer backward",
                 new CommandShortcut(VirtualKeys.OEM4, KeyModifier.Ctrl),
                 EditContextType.General,
                 () => CoreServices.SelectionService.Selection.SendBackward());
         
         public Pix2dCommand BringForward
-            => GetCommand("Bring forward",
+            => GetCommand("Bring layer forward",
                 new CommandShortcut(VirtualKeys.OEM6, KeyModifier.Ctrl),
                 EditContextType.General,
                 () => CoreServices.SelectionService.Selection.BringForward());

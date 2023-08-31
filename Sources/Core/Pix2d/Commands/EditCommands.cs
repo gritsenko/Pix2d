@@ -41,57 +41,58 @@ public class EditCommands : CommandsListBase
             EditContextType.General,
             () => CoreServices.SelectionService.ClearSelection());
 
-    public Pix2dCommand DuplicateSelection
-        => GetCommand("Duplicate",
-            new CommandShortcut(VirtualKeys.D, KeyModifier.Ctrl),
-            EditContextType.General,
-            () => CoreServices.SelectionService.Selection?.Duplicate());
-
-    public Pix2dCommand MoveLeft =>
-        GetCommand("Move left",
-            new CommandShortcut(VirtualKeys.Left),
-            EditContextType.General,
-            () => CoreServices.SelectionService.Selection?.MoveBy(-1, 0));
-
-    public Pix2dCommand MoveRight =>
-        GetCommand("Move right",
-            new CommandShortcut(VirtualKeys.Right),
-            EditContextType.General,
-            () => CoreServices.SelectionService.Selection?.MoveBy(1, 0));
-
-    public Pix2dCommand MoveUp =>
-        GetCommand("Move up",
-            new CommandShortcut(VirtualKeys.Up),
-            EditContextType.General,
-            () => CoreServices.SelectionService.Selection?.MoveBy(0, -1));
-
-    public Pix2dCommand MoveDown
-        => GetCommand("Move down",
-            new CommandShortcut(VirtualKeys.Down),
-            EditContextType.General,
-            () => CoreServices.SelectionService.Selection?.MoveBy(0, 1));
-        
-    public Pix2dCommand Hide
-        => GetCommand("Hide selected items",
-            new CommandShortcut(VirtualKeys.H, KeyModifier.Ctrl),
-            EditContextType.General,
-            () => CoreServices.SelectionService.Selection?.Hide());
-
-    public Pix2dCommand Group
-        => GetCommand("Group selected items",
-            new CommandShortcut(VirtualKeys.G, KeyModifier.Ctrl),
-            EditContextType.General,
-            () => CoreServices.EditService.GroupNodes(CoreServices.SelectionService.Selection?.Nodes));
-    public Pix2dCommand Ungroup
-        => GetCommand("Ungroup selected group",
-            new CommandShortcut(VirtualKeys.U, KeyModifier.Ctrl),
-            EditContextType.General,
-            () => CoreServices.EditService.UngroupNodes(CoreServices.SelectionService.Selection?.Nodes[0] as GroupNode));
+    // TODO: Currently doesn't work
+    // public Pix2dCommand DuplicateSelection
+    //     => GetCommand("Duplicate",
+    //         new CommandShortcut(VirtualKeys.D, KeyModifier.Ctrl),
+    //         EditContextType.General,
+    //         () => CoreServices.SelectionService.Selection?.Duplicate());
+    //
+    // public Pix2dCommand MoveLeft =>
+    //     GetCommand("Move left",
+    //         new CommandShortcut(VirtualKeys.Left),
+    //         EditContextType.General,
+    //         () => CoreServices.SelectionService.Selection?.MoveBy(-1, 0));
+    //
+    // public Pix2dCommand MoveRight =>
+    //     GetCommand("Move right",
+    //         new CommandShortcut(VirtualKeys.Right),
+    //         EditContextType.General,
+    //         () => CoreServices.SelectionService.Selection?.MoveBy(1, 0));
+    //
+    // public Pix2dCommand MoveUp =>
+    //     GetCommand("Move up",
+    //         new CommandShortcut(VirtualKeys.Up),
+    //         EditContextType.General,
+    //         () => CoreServices.SelectionService.Selection?.MoveBy(0, -1));
+    //
+    // public Pix2dCommand MoveDown
+    //     => GetCommand("Move down",
+    //         new CommandShortcut(VirtualKeys.Down),
+    //         EditContextType.General,
+    //         () => CoreServices.SelectionService.Selection?.MoveBy(0, 1));
+    //     
+    // public Pix2dCommand Hide
+    //     => GetCommand("Hide selected items",
+    //         new CommandShortcut(VirtualKeys.H, KeyModifier.Ctrl),
+    //         EditContextType.General,
+    //         () => CoreServices.SelectionService.Selection?.Hide());
+    //
+    // public Pix2dCommand Group
+    //     => GetCommand("Group selected items",
+    //         new CommandShortcut(VirtualKeys.G, KeyModifier.Ctrl),
+    //         EditContextType.General,
+    //         () => CoreServices.EditService.GroupNodes(CoreServices.SelectionService.Selection?.Nodes));
+    // public Pix2dCommand Ungroup
+    //     => GetCommand("Ungroup selected group",
+    //         new CommandShortcut(VirtualKeys.U, KeyModifier.Ctrl),
+    //         EditContextType.General,
+    //         () => CoreServices.EditService.UngroupNodes(CoreServices.SelectionService.Selection?.Nodes[0] as GroupNode));
 
     public Pix2dCommand Import
         => GetCommand("Import image",
             new CommandShortcut(VirtualKeys.I, KeyModifier.Ctrl),
-            EditContextType.General,
+            EditContextType.All,
             () => CoreServices.ImportService.ImportToScene(), 
             behaviour: DisableOnAnimation.Instance);
 

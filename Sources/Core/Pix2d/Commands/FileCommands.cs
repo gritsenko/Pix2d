@@ -63,14 +63,15 @@ public class FileCommands : CommandsListBase
 
         });
 
-    public Pix2dCommand SaveToFolder => GetCommand("Save as Folder",
-        new CommandShortcut(VirtualKeys.S, KeyModifier.Ctrl | KeyModifier.Alt | KeyModifier.Shift),
-        EditContextType.General,
-        async () =>
-        {
-            Commands.View.HideMainMenuCommand.Execute();
-            await CoreServices.ProjectService.SaveCurrentProjectAsAsync(ExportImportProjectType.Pix2dFolder);
-        });
+    // TODO: Currently doesn't work.
+    // public Pix2dCommand SaveToFolder => GetCommand("Save as Folder",
+    //     new CommandShortcut(VirtualKeys.S, KeyModifier.Ctrl | KeyModifier.Alt | KeyModifier.Shift),
+    //     EditContextType.General,
+    //     async () =>
+    //     {
+    //         Commands.View.HideMainMenuCommand.Execute();
+    //         await CoreServices.ProjectService.SaveCurrentProjectAsAsync(ExportImportProjectType.Pix2dFolder);
+    //     });
 
     public Pix2dCommand Exit => GetCommand("Exit", new CommandShortcut(VirtualKeys.F4, KeyModifier.Alt),
         EditContextType.All,

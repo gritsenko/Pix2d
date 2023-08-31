@@ -89,6 +89,8 @@ public class PlatformStuffService : IPlatformStuffService
                 return "-";
             case VirtualKeys.N0:
                 return "0";
+            case VirtualKeys.OEMPeriod:
+                return ".";
         }
         return key.ToString();
     }
