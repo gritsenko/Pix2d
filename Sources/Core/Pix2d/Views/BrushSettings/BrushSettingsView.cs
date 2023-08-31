@@ -6,10 +6,14 @@ namespace Pix2d.Views.BrushSettings;
 
 public class BrushSettingsView : ComponentBase
 {
-
     [Inject] private AppState AppState { get; set; } = null!;
 
     private DrawingState DrawingState => AppState.DrawingState;
+
+    public BrushSettingsView()
+    {
+        DrawingState.WatchFor(x => x.CurrentBrushSettings, UpdateSliders);
+    }
 
     protected override object Build() =>
         new ScrollViewer()
@@ -85,9 +89,7 @@ public class BrushSettingsView : ComponentBase
             {
                 DrawingState.CurrentBrushSettings = value.Clone();
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(BrushScale));
-                OnPropertyChanged(nameof(BrushOpacity));
-                OnPropertyChanged(nameof(BrushSpacing));
+                UpdateSliders();
             }
         }
     }
@@ -133,5 +135,12 @@ public class BrushSettingsView : ComponentBase
             DrawingState.CurrentBrushSettings = brush;
             OnPropertyChanged();
         }
+    }
+
+    private void UpdateSliders()
+    {
+        OnPropertyChanged(nameof(BrushScale));
+        OnPropertyChanged(nameof(BrushOpacity));
+        OnPropertyChanged(nameof(BrushSpacing));
     }
 }

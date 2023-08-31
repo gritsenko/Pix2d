@@ -322,8 +322,10 @@ namespace Pix2d.Services
             var bscale = DrawingState.CurrentBrushSettings.Scale;
             bscale = Math.Min(Math.Max(1, bscale + delta), 512);
 
-            DrawingState.CurrentBrushSettings.Scale = bscale;
-            DrawingState.CurrentBrushSettings.InitBrush();
+            var brush = DrawingState.CurrentBrushSettings.Clone();
+            brush.Scale = bscale;
+            
+            DrawingState.CurrentBrushSettings = brush;
         }
 
         protected virtual void OnDrawn()
