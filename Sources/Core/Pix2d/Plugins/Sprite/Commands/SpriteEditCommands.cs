@@ -139,7 +139,8 @@ public class SpriteEditCommands : CommandsListBase
                 SpritePlugin.FillSelection(AppState.DrawingState.CurrentColor);
             });
 
-    public Pix2dCommand SelectObjectCommand =>
-        GetCommand("Extract object from image (Using online service)", new CommandShortcut(VirtualKeys.O, KeyModifier.Shift | KeyModifier.Ctrl), EditContextType.Sprite,
-            SpritePlugin.SelectObject);
+    // TODO: This can work, but need to use AiPlugin instead of HTTP service
+    // public Pix2dCommand SelectObjectCommand =>
+    //     GetCommand("Extract object from image", new CommandShortcut(VirtualKeys.O, KeyModifier.Shift | KeyModifier.Ctrl), EditContextType.Sprite,
+    //         SpritePlugin.SelectObject);
 }

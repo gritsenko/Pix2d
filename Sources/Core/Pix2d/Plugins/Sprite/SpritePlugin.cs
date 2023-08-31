@@ -67,8 +67,8 @@ public class SpritePlugin : IPix2dPlugin
             return;
         }
 
-        var selectiionLayer = CoreServices.DrawingService.DrawingLayer.GetSelectionLayer();
-        if (selectiionLayer is BitmapNode bmn)
+        var selectionLayer = CoreServices.DrawingService.DrawingLayer.GetSelectionLayer();
+        if (selectionLayer is BitmapNode bmn)
         {
             var bitmap = bmn.Bitmap;
 
