@@ -29,10 +29,12 @@ public class SpriteEditCommands : CommandsListBase
                 CoreServices.ClipboardService.TryCopyNodesAsBitmapAsync(nodes, backgroundColor);
             });
 
-    public Pix2dCommand CopyMerged => GetCommand("Copy active container node merged",
+    public Pix2dCommand CopyMerged => GetCommand("Copy multiple layers",
         new CommandShortcut(VirtualKeys.C, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite,
         () =>
         {
+            // TODO: This tool should not cancel current selection, but rather copy selected region from all layers.
+            CoreServices.DrawingService.CancelCurrentOperation();
             var container = CoreServices.SelectionService.GetActiveContainer();
             CoreServices.ClipboardService.TryCopyNodesAsBitmapAsync(container.Yield().OfType<SKNode>(), container.BackgroundColor);
         });

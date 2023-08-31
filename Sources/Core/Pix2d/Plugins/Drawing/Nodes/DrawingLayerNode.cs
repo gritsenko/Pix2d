@@ -1037,7 +1037,7 @@ namespace Pix2d.Drawing.Nodes
             OnSelectionStarted();
             ClearWorkingBitmap();
 
-            State = selectionBackground == null ? DrawingLayerState.Ready : DrawingLayerState.Paste;
+            State = selectionBackground == null ? DrawingLayerState.Paste : DrawingLayerState.Ready;
             _selectionLayer = selectionLayer;
             _selectionBackground = selectionBackground;
             
