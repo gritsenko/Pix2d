@@ -2,6 +2,7 @@
 using Pix2d.Command;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Primitives;
+using SkiaNodes.Interactive;
 
 namespace Pix2d
 {
@@ -19,9 +20,9 @@ namespace Pix2d
         public Pix2dCommand TogglePlay => GetCommand("Play/Pause animation", null, EditContextType.Sprite,
             () => { SpriteEditor?.TogglePlay(); });
 
-        public Pix2dCommand PrevFrame => GetCommand("Go to previous frame", null, EditContextType.Sprite,
+        public Pix2dCommand PrevFrame => GetCommand("Go to previous frame", new CommandShortcut(VirtualKeys.OEMComma, KeyModifier.Shift | KeyModifier.Ctrl), EditContextType.Sprite,
             () => { SpriteEditor?.PrevFrame(); });
-        public Pix2dCommand NextFrame => GetCommand("Go to next frame", null, EditContextType.Sprite,
+        public Pix2dCommand NextFrame => GetCommand("Go to next frame", new CommandShortcut(VirtualKeys.OEMPeriod, KeyModifier.Shift | KeyModifier.Ctrl), EditContextType.Sprite,
             () => { SpriteEditor?.NextFrame(); });
 
         public Pix2dCommand DeleteFrame => GetCommand("Delete selected frame", null, EditContextType.Sprite,

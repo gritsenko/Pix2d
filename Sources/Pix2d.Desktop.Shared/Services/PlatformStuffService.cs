@@ -91,6 +91,8 @@ public class PlatformStuffService : IPlatformStuffService
                 return "0";
             case VirtualKeys.OEMPeriod:
                 return ".";
+            case VirtualKeys.OEMComma:
+                return ",";
         }
         return key.ToString();
     }
