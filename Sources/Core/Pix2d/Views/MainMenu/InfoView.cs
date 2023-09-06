@@ -21,12 +21,12 @@ public class InfoView : ComponentBase
                     .Margin(new Thickness(0, 0, 0, 8))
                     .Text("To share your art, suggestions or complains, please join us in Discord:"),
                 new Button()
-                    .Content("https://discord.gg/WJTJzDSA")
+                    .Content("https://discord.gg/s4MpBVb")
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Margin(new Thickness(0, 0, 0, 24))
                     .OnClick(args =>
                     {
-                        PlatformStuffService.OpenUrlInBrowser("https://discord.gg/WJTJzDSA");
+                        PlatformStuffService.OpenUrlInBrowser("https://discord.gg/s4MpBVb");
                     }),
                 new KeyShortcutsView()
                     .IsVisible(PlatformStuffService.HasKeyboard)
