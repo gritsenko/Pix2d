@@ -79,11 +79,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    
-    <ProjectReference Include="..\..\..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative.SourceGenerator\Avalonia.Markup.Declarative.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-
-    <ProjectReference Include="..\..\..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative\Avalonia.Markup.Declarative.csproj" />
     <ProjectReference Include="..\Pix2d.Shared\Pix2d.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Avalonia.Markup.Declarative">
+      <HintPath>..\..\..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative\bin\Release\net7.0\Avalonia.Markup.Declarative.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+      <Analyzer Include="..\..\..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative.SourceGenerator\bin\Release\netstandard2.0\Avalonia.Markup.Declarative.SourceGenerator.dll"/>
+  </ItemGroup>
 </Project>

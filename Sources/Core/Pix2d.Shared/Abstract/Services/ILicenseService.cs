@@ -1,21 +1,20 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Pix2d.Abstract.Services
+namespace Pix2d.Abstract.Services;
+
+public interface ILicenseService
 {
-    public interface ILicenseService
-    {
-        event EventHandler LicenseChanged;
+    event EventHandler LicenseChanged;
 
-        string FormattedPrice { get; }
+    string FormattedPrice { get; }
 
-        bool AllowBuyPro { get; }
+    bool AllowBuyPro { get; }
 
-        bool IsPro { get; }
+    bool IsPro { get; }
 
-        Task<bool> BuyPro();
+    Task<bool> BuyPro();
 
-        void ToggleIsPro();
-        Task<bool> RateApp();
-    }
+    void ToggleIsPro();
+    Task<bool> RateApp();
 }

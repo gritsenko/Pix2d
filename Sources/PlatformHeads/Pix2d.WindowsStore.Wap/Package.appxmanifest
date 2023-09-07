@@ -7,13 +7,13 @@
   IgnorableNamespaces="uap rescap">
 
   <Identity
-    Name="3533a09e-4007-40f2-9a5c-a790cefa037f"
-    Publisher="CN=igor"
-    Version="1.0.0.0" />
+    Name="58815Gritsenko.PixelArtStudio"
+    Publisher="CN=CF42DCC7-9F66-4216-8511-6B75132F3EA1"
+    Version="3.0.219.0" />
 
   <Properties>
-    <DisplayName>Pix2d.WindowsStore.Wap</DisplayName>
-    <PublisherDisplayName>igor</PublisherDisplayName>
+    <DisplayName>PixelArtStudio</DisplayName>
+    <PublisherDisplayName>Gritsenko</PublisherDisplayName>
     <Logo>Images\StoreLogo.png</Logo>
   </Properties>
 
@@ -31,14 +31,31 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="Pix2d.WindowsStore.Wap"
-        Description="Pix2d.WindowsStore.Wap"
+        DisplayName="PixelArtStudio"
+        Description="Pix2d - graphics editor"
         BackgroundColor="transparent"
         Square150x150Logo="Images\Square150x150Logo.png"
         Square44x44Logo="Images\Square44x44Logo.png">
         <uap:DefaultTile Wide310x150Logo="Images\Wide310x150Logo.png" />
         <uap:SplashScreen Image="Images\SplashScreen.png" />
       </uap:VisualElements>
+      <Extensions>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="pix2d">
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="application/pix2d">.pix2d</uap:FileType>
+              <uap:FileType ContentType="image/jpeg">.jpg</uap:FileType>
+              <uap:FileType ContentType="image/png">.png</uap:FileType>
+              <uap:FileType ContentType="image/gif">.gif</uap:FileType>
+              <uap:FileType ContentType="application/pix2d">.pxm</uap:FileType>
+            </uap:SupportedFileTypes>
+            <uap:Logo>Images\pix2dFileLogo.png</uap:Logo>
+            <uap:DisplayName>Pix2d project</uap:DisplayName>
+            <uap:InfoTip>Pix2d project</uap:InfoTip>
+            <uap:EditFlags OpenIsSafe="true"/>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+      </Extensions>
     </Application>
   </Applications>
 

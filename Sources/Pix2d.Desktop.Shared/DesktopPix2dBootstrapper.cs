@@ -70,7 +70,12 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         container.RegisterSingleton<IPlatformStuffService, PlatformStuffService>();
         container.RegisterSingleton<IDialogService, AvaloniaDialogService>();
 
-#if WINFORMS 
+#if WINDOWS_UWP
+        var ls = new Pix2d.WindowsStore.Services.UwpLicenseService();
+        container.RegisterInstance<ILicenseService>(ls);
+#endif
+
+#if WINFORMS
         Debug.WriteLine("Register appcenter for winforms");
         AppCenter.Start("2c0dc23b-1bcd-42dc-b7c2-d6944fab2c58", typeof(Analytics), typeof(Crashes));
         Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());

@@ -1,28 +1,27 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Pix2d.Services
+namespace Pix2d.Services;
+
+public class FullLicenseService : ILicenseService
 {
-    public class FullLicenseService : ILicenseService
+    public event EventHandler LicenseChanged;
+    public string FormattedPrice { get; } = "$9.9";
+    public bool AllowBuyPro { get; } = false;
+    public bool IsPro { get; } = true;
+    public async Task<bool> BuyPro()
     {
-        public event EventHandler LicenseChanged;
-        public string FormattedPrice { get; } = "$9.9";
-        public bool AllowBuyPro { get; } = false;
-        public bool IsPro { get; } = true;
-        public async Task<bool> BuyPro()
-        {
-            return true;
-        }
+        return true;
+    }
 
-        public void ToggleIsPro()
-        {
-            
-        }
+    public void ToggleIsPro()
+    {
+        
+    }
 
-        public async Task<bool> RateApp()
-        {
-            //await Launcher.LaunchUriAsync(new Uri("https://gritsenko.itch.io/pix2d"));
-            return true;
-        }
+    public async Task<bool> RateApp()
+    {
+        //await Launcher.LaunchUriAsync(new Uri("https://gritsenko.itch.io/pix2d"));
+        return true;
     }
 }
