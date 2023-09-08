@@ -5,23 +5,19 @@
 		<ApplicationIcon>Assets\app1.ico</ApplicationIcon>
 		<StartupObject />
 		<AssemblyName>Pix2d</AssemblyName>
-		<UseWindowsForms>true</UseWindowsForms>
 		<Version>3.0.2</Version>
 		<PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
 	</PropertyGroup>
 	<PropertyGroup>
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
-		<DefineConstants>$(DefineConstants);WINFORMS</DefineConstants>
-		<PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-	  <DefineConstants>$(DefineConstants);WINFORMS;WINDOWS_UWP</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	  <DefineConstants>$(DefineConstants);WINFORMS;WINDOWS_UWP</DefineConstants>
-	</PropertyGroup>
-	<ItemGroup>
+
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);WINDOWS_UWP</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
 		<Compile Update="**\*.xaml.cs">
 			<DependentUpon>%(Filename)</DependentUpon>
 		</Compile>

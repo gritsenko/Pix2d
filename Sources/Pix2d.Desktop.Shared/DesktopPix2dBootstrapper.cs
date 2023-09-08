@@ -73,6 +73,11 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
 #if WINDOWS_UWP
         var ls = new Pix2d.WindowsStore.Services.UwpLicenseService();
         container.RegisterInstance<ILicenseService>(ls);
+
+        Debug.WriteLine("Register appcenter for UWP");
+        AppCenter.Start("2c0dc23b-1bcd-42dc-b7c2-d6944fab2c58", typeof(Analytics), typeof(Crashes));
+        Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
+
 #endif
 
 #if WINFORMS
