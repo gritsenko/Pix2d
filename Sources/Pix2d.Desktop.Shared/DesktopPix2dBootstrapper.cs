@@ -70,8 +70,12 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         container.RegisterSingleton<IPlatformStuffService, PlatformStuffService>();
         container.RegisterSingleton<IDialogService, AvaloniaDialogService>();
 
+        var isPro = false;
 #if WINDOWS_UWP
         var ls = new Pix2d.WindowsStore.Services.UwpLicenseService();
+
+        await ls.Init();
+        isPro = ls.IsPro;
         container.RegisterInstance<ILicenseService>(ls);
 
         Debug.WriteLine("Register appcenter for UWP");
@@ -99,6 +103,11 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         }
 
         await Pix2DApp.CreateInstanceAsync(Pix2dSettings);
+
+        if (Pix2DApp.Instance != null)
+        {
+            Pix2DApp.Instance.CurrentLicense = isPro ? "Pro" : "Free";
+        }
     }
     Type? GetTypeByName(string name) => AppDomain.CurrentDomain.GetAssemblies().Reverse().Select(assembly => assembly.GetType(name)).FirstOrDefault(tt => tt != null);
 

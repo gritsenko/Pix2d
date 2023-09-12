@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Store;
 using Windows.Storage;
@@ -14,6 +15,8 @@ public class UwpLicenseService : ILicenseService
 {
     public string FormattedPrice { get; set; } = "$4.99";
     private LicenseInformation _licenseInformation;
+    private StoreContext _context;
+
     public event EventHandler LicenseChanged;
 
     public bool AllowBuyPro { get; } = true;
@@ -24,17 +27,17 @@ public class UwpLicenseService : ILicenseService
 
     public UwpLicenseService()
     {
-        Init();
+        //Init();
     }
 
-    public async void Init()
+    public async Task Init()
     {
 
         try
         {
             //#if DEBUG
             Logger.Log("Checking Pro version and price");
-            await CheckIsPro();
+            IsPro = await CheckIsPro();
         }
         catch (Exception ex)
         {
@@ -46,11 +49,13 @@ public class UwpLicenseService : ILicenseService
     {
         try
         {
+            _context = StoreContext.GetDefault();
 
-            _licenseInformation = CurrentApp.LicenseInformation;
+            //old api
+            //_licenseInformation = CurrentApp.LicenseInformation;
 #if DEBUG
             //                // The next line is commented out for production/release.       
-            _licenseInformation = CurrentAppSimulator.LicenseInformation;
+            //_licenseInformation = CurrentAppSimulator.LicenseInformation;
 #endif
 
             var proSetting = ApplicationData.Current.LocalSettings.Values["IsProActivated"];
@@ -63,7 +68,7 @@ public class UwpLicenseService : ILicenseService
                 isPro = true;
             }
 
-            if (_licenseInformation.ProductLicenses["proVersion"].IsActive)
+            if (await CheckIsPaidAsync())
             {
                 Logger.Log("initialized Pro from license information");
                 isPro = true;
@@ -78,11 +83,44 @@ public class UwpLicenseService : ILicenseService
 
             if (!isPro)
             {
-                var listing = await CurrentApp.LoadListingInformationAsync();
-                ProductListing productInfo = null;
-                if (listing.ProductListings.TryGetValue("proVersion", out productInfo))
+                // Specify the kinds of add-ons to retrieve.
+                string[] productKinds = { "Durable" };
+                List<String> filterList = new List<string>(productKinds);
+
                 {
-                    FormattedPrice = productInfo?.FormattedPrice;
+                    StoreProductQueryResult queryResult = await _context.GetUserCollectionAsync(filterList);
+
+                    if (queryResult.ExtendedError != null)
+                    {
+                        // The user may be offline or there might be some other server failure.
+                        return isPro;
+                    }
+
+                    foreach (KeyValuePair<string, StoreProduct> item in queryResult.Products)
+                    {
+                        StoreProduct product = item.Value;
+                        if (product.InAppOfferToken == "proVersion")
+                        {
+                            ApplicationData.Current.LocalSettings.Values["IsProActivated"] = true;
+                            return true;
+                        }
+                        // Use members of the product object to access info for the product...
+                    }
+                }
+
+                //check available in-apps
+                {
+                    StoreProductQueryResult queryResult = await _context.GetAssociatedStoreProductsAsync(filterList);
+
+                    foreach (KeyValuePair<string, StoreProduct> item in queryResult.Products)
+                    {
+                        StoreProduct product = item.Value;
+                        if (product.InAppOfferToken == "proVersion")
+                        {
+                            FormattedPrice = product?.Price?.FormattedPrice ?? "$10";
+                        }
+                        // Use members of the product object to access info for the product...
+                    }
                 }
             }
 
@@ -96,25 +134,26 @@ public class UwpLicenseService : ILicenseService
             dlgService.Alert("Can't get license information from Windows Store. Error: " + e.Message + ". Please try to restart Pix2d. Contact to the developer, if this problem still persist.", "Getting license error");
             return false;
         }
-        finally
-        {
-            Pix2DApp.Instance.CurrentLicense = IsPro ? "pro" : "free";
-        }
     }
 
-    public async Task<bool> CheckIsPaid()
+    public async Task<bool> CheckIsPaidAsync()
     {
         try
         {
-            if (!_licenseInformation.IsActive)
+            var license = await _context.GetAppLicenseAsync();
+            
+            if (!license.IsActive)
                 return false;
 
-            var result = await CurrentApp.GetProductReceiptAsync("9NBLGGH1ZDFV");
+            var hasLicense = license.AddOnLicenses.Keys.Contains("9NBLGGH1ZDFV");
 
-            if (string.IsNullOrEmpty(result))
+            if (!hasLicense)
                 return false;
 
-            return true;
+            var result = license.AddOnLicenses.FirstOrDefault(x => x.Key == "9NBLGGH1ZDFV").Value;
+
+            //var result = await CurrentApp.GetProductReceiptAsync("9NBLGGH1ZDFV");
+            return result.IsActive;
         }
         catch (Exception ex)
         {
