@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using CommonServiceLocator;
 using Pix2d.Abstract.Tools;
 using SkiaNodes;
+using SkiaNodes.Extensions;
 using SkiaNodes.Interactive;
 using SkiaSharp;
 
@@ -18,6 +19,7 @@ public class SkiaCanvas : Control
     private RootNode? _rootNode;
 
     private bool _isInitialized;
+    private DateTime _initTime;
     private ICustomDrawOperation _drawingOp;
     private Cursor _cursor;
     private bool _isPointerPressed;
@@ -26,7 +28,7 @@ public class SkiaCanvas : Control
 
     //pinch gesture stuff
     bool _isPinching = false;
-    private readonly PinchGestureRecognizer _pinchRecognizer = new PinchGestureRecognizer();
+    private readonly ZoomPanGestureRecognizer _pinchRecognizer = new();
     private double _oldScale;
     private SKPoint _oldVpPos;
 
@@ -128,6 +130,15 @@ public class SkiaCanvas : Control
                 Math.Abs(finalRect.Size.Height - ViewPort.Size.Height) > 0)
             {
                 OnSizeChanged();
+
+                // This is a hack. On some platforms (for example, Android) application starts in the background with small
+                // viewport size, and is then resized to the normal size. I could not find any reliable way to detect
+                // real startup moment, so we consider rearrange of UI in less then 2 seconds after first init as being done
+                // by the system, and retry showing the whole canvas.
+                if (DateTime.Now - _initTime < TimeSpan.FromMilliseconds(2000))
+                {
+                    Pix2DApp.Instance.ShowAll();
+                }
             }
         }
     }
@@ -152,6 +163,7 @@ public class SkiaCanvas : Control
             return;
 
         _isInitialized = true;
+        _initTime = DateTime.Now;
         InitializeCanvas();
         InitializeViewport();
 
@@ -323,24 +335,20 @@ public class SkiaCanvas : Control
 
     private void OnPinch(object sender, PinchEventArgs e)
     {
-
-        //Input.SetPointerMoved(ToSKPoint(_pinchRecognizer.Offset), false, KeyModifier.None, true);
-
         if (!_isPinching)
         {
             _isPinching = true;
             _oldScale = e.Scale;
-            _oldVpPos = Input.Pointer.ViewportPosition;
+            _oldVpPos = e.ScaleOrigin.ToSKPoint();
             Input.PanMode = true;
         }
-        var deltaPan = _oldVpPos - Input.Pointer.ViewportPosition;
-        _oldVpPos = Input.Pointer.ViewportPosition;
 
-        ViewPort.ChangeZoom((float)(1.0f + e.Scale - _oldScale), Input.Pointer.ViewportPosition);
-        ViewPort.ChangePan(deltaPan.X, deltaPan.Y);
+        var deltaPan = _oldVpPos - e.ScaleOrigin.ToSKPoint();
+        ViewPort.ChangePan(deltaPan.X * ViewPort.ScaleFactor, deltaPan.Y * ViewPort.ScaleFactor);
+        ViewPort.ChangeZoom((float)(e.Scale / _oldScale), e.ScaleOrigin.ToSKPoint().Multiply(ViewPort.ScaleFactor));
 
+        _oldVpPos = e.ScaleOrigin.ToSKPoint();
         _oldScale = e.Scale;
-
         e.Handled = true;
     }
 
