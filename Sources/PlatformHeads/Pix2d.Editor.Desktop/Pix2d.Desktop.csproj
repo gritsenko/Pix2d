@@ -39,10 +39,5 @@
 	  <ProjectReference Include="..\..\Core\Pix2d\Pix2d.Core.csproj" />
 	  <ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
 	</ItemGroup>
-	<ItemGroup>
-	  <Reference Include="Avalonia.Markup.Declarative">
-	    <HintPath>..\..\..\..\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative\bin\Release\net7.0\Avalonia.Markup.Declarative.dll</HintPath>
-	  </Reference>
-	</ItemGroup>
 	<Import Project="..\..\Pix2d.Desktop.Shared\Pix2d.Desktop.Shared.projitems" Label="Shared" />
 </Project>
