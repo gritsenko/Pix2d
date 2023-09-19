@@ -11,6 +11,6 @@ public class SpriteNode : BitmapNode
 
     public SpriteNode(SKSize size)
     {
-        Bitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, SKColorType.Bgra8888));
+        Bitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, Pix2DAppSettings.ColorType));
     }
 }

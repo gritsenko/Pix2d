@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
+using Pix2d;
 using SkiaNodes.Extensions;
 using SkiaNodes.TreeObserver;
 using SkiaSharp;
@@ -654,7 +655,7 @@ namespace SkiaNodes
         {
             if (_renderCache == null)
             {
-                _renderCache = new SKBitmap(new SKImageInfo((int)Size.Width, (int)Size.Height, SKColorType.Bgra8888));
+                _renderCache = new SKBitmap(new SKImageInfo((int)Size.Width, (int)Size.Height, Pix2DAppSettings.ColorType));
 
                 _cacheViewPort = new ViewPort(_renderCache.Width, _renderCache.Height);
             }

@@ -141,7 +141,7 @@ namespace Pix2d.Drawing.Nodes
             }
 
             var size = DrawingTarget.GetSize();
-            var bitmap = new SKBitmap((int) size.Width, (int) size.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+            var bitmap = new SKBitmap((int) size.Width, (int) size.Height, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
             DrawingTarget.CopyBitmapTo(bitmap);
 
             return bitmap;
@@ -502,7 +502,7 @@ namespace Pix2d.Drawing.Nodes
             //if size changed, create new working bitmap
             if (Math.Abs(newSize.Width - Size.Width) > 0.01 || Math.Abs(newSize.Height - Size.Height) > 0.01)
             {
-                _backgroundBitmap = new SKBitmap((int) newSize.Width, (int) newSize.Height, SKColorType.Bgra8888,
+                _backgroundBitmap = new SKBitmap((int) newSize.Width, (int) newSize.Height, SKColorType.Rgba8888,
                     SKAlphaType.Premul);
                 _foregroundBitmap = _backgroundBitmap.Copy();
                 
@@ -1073,7 +1073,7 @@ namespace Pix2d.Drawing.Nodes
             if (SelectionMode == PixelSelectionMode.SameColor)
             {
                 var size = DrawingTarget.GetSize();
-                var bitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, SKColorType.Bgra8888));
+                var bitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, SKColorType.Rgba8888));
                 DrawingTarget.CopyBitmapTo(bitmap);
                 _pixelSelector = new SameColorSelector(bitmap);
             }
@@ -1184,7 +1184,7 @@ namespace Pix2d.Drawing.Nodes
             SwapWorkingBitmap();
 
             var size = DrawingTarget.GetSize();
-            var tmpBitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, SKColorType.Bgra8888));
+            var tmpBitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, SKColorType.Rgba8888));
             DrawingTarget.CopyBitmapTo(tmpBitmap);
             var selectionBitmap = selector.GetSelectionBitmap(tmpBitmap);
             

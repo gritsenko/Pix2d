@@ -12,7 +12,7 @@ public static class BitmapExtensions
             return null;
 
         var result = new Bitmap(
-            PixelFormat.Bgra8888,
+            PixelFormat.Rgba8888,
             AlphaFormat.Premul,
             bitmap.GetPixels(),
             new PixelSize(bitmap.Width, bitmap.Height),
@@ -24,7 +24,7 @@ public static class BitmapExtensions
 
     public static SKBitmap ToSKBitmap(this Bitmap bitmap)
     {
-        var info = new SKImageInfo(bitmap.PixelSize.Width, bitmap.PixelSize.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        var info = new SKImageInfo(bitmap.PixelSize.Width, bitmap.PixelSize.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
         var result = new SKBitmap(info);
         var dest = result.GetPixels(out var len);
         var stride = bitmap.PixelSize.Width * 4;

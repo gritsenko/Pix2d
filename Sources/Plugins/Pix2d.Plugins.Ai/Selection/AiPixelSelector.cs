@@ -107,7 +107,7 @@ public class AiPixelSelector : IPixelSelector
     }
     public unsafe SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap)
     {
-        var bitmap = new SKBitmap(_width, _height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        var bitmap = new SKBitmap(_width, _height, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
 
         //skip ai stuff if selection is too small
         if (_width < 3 && _height < 3)

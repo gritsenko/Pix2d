@@ -45,7 +45,7 @@ public class ProjectUnpacker
                 return null;
 
             var info = codec.Info;
-            info.ColorType = SKColorType.Bgra8888;
+            info.ColorType = Pix2DAppSettings.ColorType;
             info.AlphaType = SKAlphaType.Premul;
 
             var srcBm = SKBitmap.Decode(codec, info);

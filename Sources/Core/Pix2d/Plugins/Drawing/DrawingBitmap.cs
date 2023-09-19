@@ -10,7 +10,7 @@ namespace Pix2d.Drawing
         public DrawingBitmap_(int width, int height, SKColorType colorType) : base(width, height, colorType,
             SKAlphaType.Premul)
         {}
-        public DrawingBitmap_(int width, int height) : base(width, height, SKColorType.Bgra8888, SKAlphaType.Premul)
+        public DrawingBitmap_(int width, int height) : base(width, height, Pix2DAppSettings.ColorType, SKAlphaType.Premul)
         {}
 
         SKSurface GetSurface()

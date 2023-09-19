@@ -337,7 +337,8 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IUpdatableNode, IDr
 
     public SKBitmap GetFramePreview(int frameIndex, float scale = 1, bool useBackgroundColor = false)
     {
-        var bitmap = new SKBitmap(new SKImageInfo((int)(Size.Width * scale), (int)(Size.Height * scale), SKColorType.Bgra8888));
+        var bitmap = new SKBitmap(new SKImageInfo((int) (Size.Width * scale), (int) (Size.Height * scale),
+            Pix2DAppSettings.ColorType));
         RenderFramePreview(frameIndex, ref bitmap, scale, useBackgroundColor);
         return bitmap;
     }

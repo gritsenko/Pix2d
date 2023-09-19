@@ -26,7 +26,7 @@ public class SpritesheetImageExporter : SKNodeExporterBase, IFilePickerExporter
 
         var h = (int) (framesArr[0].Height * rows * scale);
 
-        using (var bitmap = new SKBitmap(w, h, SKColorType.Bgra8888, SKAlphaType.Premul))
+        using (var bitmap = new SKBitmap(w, h, Pix2DAppSettings.ColorType, SKAlphaType.Premul))
         {
             var vp = new ViewPort(w, h);
             vp.Settings.RenderAdorners = false;

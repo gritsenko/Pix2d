@@ -324,7 +324,7 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
         var sprite = _editor.CurrentSprite;
         //Debug.WriteLine("preview frame " + index);
         var pw = 48;
-        var bitmap = new SKBitmap(new SKImageInfo(pw, pw, SKColorType.Bgra8888));
+        var bitmap = new SKBitmap(new SKImageInfo(pw, pw, Pix2DAppSettings.ColorType));
         var scale = 1f;
         var w = sprite.Size.Width;
         var h = sprite.Size.Height;

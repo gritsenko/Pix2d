@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.IO;
+using Pix2d;
 using SkiaSharp;
 
 namespace SkiaNodes.Extensions;
@@ -19,12 +20,12 @@ public static class SKBitmapExtensions
             return null;
 
         var info = codec.Info;
-        info.ColorType = SKColorType.Bgra8888;
+        info.ColorType = Pix2DAppSettings.ColorType;
         info.AlphaType = SKAlphaType.Premul;
         var srcBm = SKBitmap.Decode(codec, info);
 
         //hack to load premultiplied alpha image without artifacts
-        //var bm = new SKBitmap(new SKImageInfo(info.Width, info.Height, SKColorType.Bgra8888, SKAlphaType.Premul));
+        //var bm = new SKBitmap(new SKImageInfo(info.Width, info.Height, SKColorType.Rgba8888, SKAlphaType.Premul));
         //bm.Erase(SKColor.Empty);
         //using (var surface = SKSurface.Create(bm.Info, bm.GetPixels(), bm.Width * 4))
         //using (surface.Canvas)
@@ -124,7 +125,7 @@ public static class SKBitmapExtensions
 
     private static SKBitmap ProcessBitmap(SKSizeI newSize, Action<SKCanvas> processAction)
     {
-        var newBm = new SKBitmap(new SKImageInfo(newSize.Width, newSize.Height, SKColorType.Bgra8888));
+        var newBm = new SKBitmap(new SKImageInfo(newSize.Width, newSize.Height, SKColorType.Rgba8888));
         newBm.Erase(SKColor.Empty);
         using (var canvas = newBm.GetSKSurface().Canvas)
         {

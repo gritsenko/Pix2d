@@ -23,7 +23,7 @@ namespace Pix2d.Drawing.Brushes
 
         private SKBitmap CreateBrushBitmap(int size, SKColor color)
         {
-            var wbm = new SKBitmap(size, size, SKColorType.Bgra8888, SKAlphaType.Premul);
+            var wbm = new SKBitmap(size, size, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
             wbm.Erase(color);
             return wbm;
         }

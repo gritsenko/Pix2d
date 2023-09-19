@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Pix2d;
 using SkiaNodes.Serialization;
 using SkiaSharp;
 
@@ -150,7 +151,7 @@ namespace SkiaNodes.Extensions
             var w = (int)(bounds.Width * scale);
             var h = (int)(bounds.Height * scale);
 
-            var bitmap = new SKBitmap(new SKImageInfo(w, h, SKColorType.Bgra8888, SKAlphaType.Premul));
+            var bitmap = new SKBitmap(new SKImageInfo(w, h, Pix2DAppSettings.ColorType, SKAlphaType.Premul));
             var vp = new ViewPort(w, h) {Settings = {RenderAdorners = false}};
             vp.ShowArea(bounds);
             var canvas = new SKCanvas(bitmap);

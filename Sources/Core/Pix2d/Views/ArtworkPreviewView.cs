@@ -120,7 +120,7 @@ public class ArtworkPreviewView : ComponentBase
 
             if (curBitmap == null || h != curBitmap.Height || w != curBitmap.Width)
             {
-                curBitmap = new SKBitmap(w, h, SKColorType.Bgra8888, SKAlphaType.Premul);
+                curBitmap = new SKBitmap(w, h, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
 
                 _viewPort = new ViewPort(curBitmap.Width, curBitmap.Height);
                 _viewPort.Settings.RenderAdorners = false;

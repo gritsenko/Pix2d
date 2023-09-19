@@ -1,4 +1,5 @@
 ﻿using System;
+using Pix2d;
 using SkiaSharp;
 
 namespace SkiaNodes.Extensions
@@ -12,7 +13,7 @@ namespace SkiaNodes.Extensions
             var info = new SKImageInfo(
                 srcBitmap.Width * 6,
                 srcBitmap.Height * 6,
-                SKColorType.Bgra8888);
+                Pix2DAppSettings.ColorType);
             var result = new SKBitmap(info);
             srcBitmap.Scale6x(result);
             return result;

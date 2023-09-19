@@ -132,7 +132,7 @@ namespace Pix2d.Drawing.Nodes
 
         public SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap)
         {
-            var bitmap = new SKBitmap(_width, _height, SKColorType.Bgra8888, SKAlphaType.Premul);
+            var bitmap = new SKBitmap(_width, _height, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
             bitmap.Erase(SKColor.Empty);
 
             var srcWidth = sourceBitmap.Width;

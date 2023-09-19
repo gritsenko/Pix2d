@@ -210,7 +210,7 @@ namespace Pix2d.ViewModels.Layers
 
             if (Preview.Bitmap == null)
             {
-                Preview.SetBitmap(new SKBitmap(100, 100, SKColorType.Bgra8888, SKAlphaType.Premul));
+                Preview.SetBitmap(new SKBitmap(100, 100, Pix2DAppSettings.ColorType, SKAlphaType.Premul));
             }
 
             src.RenderPreview(src.CurrentFrameIndex, Preview.Bitmap, 1);

@@ -24,7 +24,7 @@ namespace Pix2d.Importers
             using (var codec = SKCodec.Create(stream))
             {
                 var info = codec.Info;
-                info = new SKImageInfo(info.Width, info.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+                info = new SKImageInfo(info.Width, info.Height, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
                 var bitmap = new SKBitmap(info);
 
                 if (targetNode is SKNode node && node.Parent is IContainerNode artboard)

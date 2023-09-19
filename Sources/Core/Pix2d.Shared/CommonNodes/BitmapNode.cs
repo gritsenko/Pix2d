@@ -35,7 +35,7 @@ namespace Pix2d.CommonNodes
                     _bitmap = value;
 
 #if DEBUG
-                    if (_bitmap.ColorType != SKColorType.Bgra8888)
+                    if (_bitmap.ColorType != Pix2DAppSettings.ColorType)
                     {
                         Debugger.Break();
                     }
@@ -148,7 +148,7 @@ namespace Pix2d.CommonNodes
         {
             if (Bitmap == null)
             {
-                Bitmap = new SKBitmap((int) Size.Width, (int) Size.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+                Bitmap = new SKBitmap((int) Size.Width, (int) Size.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
                 Bitmap.Erase(SKColor.Empty);
             }
             Bitmap.NotifyPixelsChanged();
@@ -214,7 +214,7 @@ namespace Pix2d.CommonNodes
         //{
         //    var sprite = new BitmapNode()
         //    {
-        //        Bitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, SKColorType.Bgra8888))
+        //        Bitmap = new SKBitmap(new SKImageInfo((int) size.Width, (int) size.Height, SKColorType.Rgba8888))
         //    };
         //    sprite.Bitmap.Clear();
         //    return sprite;
@@ -253,7 +253,7 @@ namespace Pix2d.CommonNodes
         //{
         //    if (newSize != new SKSize(Bitmap.Width, Bitmap.Height))
         //    {
-        //        Bitmap = new SKBitmap(new SKImageInfo((int)newSize.Width, (int)newSize.Height, SKColorType.Bgra8888));
+        //        Bitmap = new SKBitmap(new SKImageInfo((int)newSize.Width, (int)newSize.Height, SKColorType.Rgba8888));
         //    }
         //    unsafe
         //    {
