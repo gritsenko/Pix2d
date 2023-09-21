@@ -12,7 +12,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)DesktopPix2dBootstrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logging\AppCenterLoggerTarget.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logging\AppStatLoggerTarget.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Logging\SentryLoggerTarget.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Program.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\AvaloniaClipboardService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\AvaloniaFontService.cs" />
