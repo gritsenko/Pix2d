@@ -1,5 +1,6 @@
 ﻿using Avalonia.Interactivity;
 using Avalonia.Reactive;
+using Avalonia.Styling;
 using Avalonia.Xaml.Interactions.Responsive;
 using CommonServiceLocator;
 using Pix2d.Messages;
@@ -54,7 +55,7 @@ public class MainView : ComponentBase
                 new TopBarView().Row(1).ColSpan(2)
                     .Margin(0, 0, 0, 1),
 
-                new Border().Col(0).Row(2)
+                new Border().Name("toolbar")
                     .BorderThickness(0, 0, 1, 0)
                     .Child(
                         new ScrollViewer()

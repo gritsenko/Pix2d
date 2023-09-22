@@ -56,7 +56,7 @@ public class EditorApp : Application
             //can't load system theme
             Console.WriteLine("CRAP! No styles! " + ex.Message);
         }
-        this.Styles.Add(new AppStyles());
+        this.Styles.Add(new Styles.AppStyles());
 
     }
 

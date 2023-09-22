@@ -10,39 +10,20 @@ namespace Pix2d.Views.ToolBar;
 
 public class ToolBarView : ComponentBase
 {
-    public ToolBarView()
+    protected override object Build()
     {
-        Selector WideButtonSelector(Selector s) => s.Class("wide").Descendant().OfType<Button>();
-        Selector SmallButtonSelector(Selector s) => s.Class("small").Descendant().OfType<Button>();
-
-        this.Styles.AddRange(new IStyle[]
+        var tools = new List<Control>()
         {
-            new Style<Button>(s => WideButtonSelector(s).Class("toolbar-button")).Width(51).Height(51),
-            new Style<Button>(s => WideButtonSelector(s).Class("color-button")).Width(40).Height(40),
-
-            new Style<Button>(s => SmallButtonSelector(s).Class("toolbar-button")).Width(40).Height(40),
-            new Style<Button>(s => SmallButtonSelector(s).Class("color-button")).Width(32).Height(32),
-            new Style<TextBlock>(
-                s => SmallButtonSelector(s).Class("color-button").OfType<TextBlock>().Class("ToolIcon")).FontSize(16)
-        });
-    }
-
-    protected override object Build() =>
-        new StackPanel()
-            .Background(StaticResources.Brushes.PanelsBackgroundBrush)
-            .Children(
-
                 new Button() //Color picker button
                     .Classes("color-button")
                     .IsVisible(IsSpriteEditMode)
-                    .Margin(0, 8)
                     .Command(Commands.View.ToggleColorEditorCommand)
                     .CornerRadius(25)
                     .BorderThickness(3)
                     .BorderBrush(Colors.White.ToBrush())
                     .With(ButtonStyle)
-                    .Background(AppState.DrawingState.CurrentColor, 
-                        bindingMode: BindingMode.OneWay, 
+                    .Background(AppState.DrawingState.CurrentColor,
+                        bindingMode: BindingMode.OneWay,
                         converter: StaticResources.Converters.SKColorToBrushConverter,
                         bindingSource: AppState.DrawingState),
 
@@ -50,19 +31,27 @@ public class ToolBarView : ComponentBase
                     .Classes("toolbar-button")
                     .Classes("brush-button")
                     .IsVisible(IsSpriteEditMode)
-                    .Margin(0, 8)
                     .Padding(0)
                     .Command(Commands.View.ToggleBrushSettingsCommand)
-                    .Content(AppState.DrawingState.CurrentBrushSettings, BindingMode.OneWay, bindingSource: AppState.DrawingState)
+                    .Content(AppState.DrawingState.CurrentBrushSettings, BindingMode.OneWay,
+                        bindingSource: AppState.DrawingState)
                     .With(ButtonStyle)
                     .VerticalContentAlignment(VerticalAlignment.Stretch)
                     .HorizontalContentAlignment(HorizontalAlignment.Stretch)
-                    .ContentTemplate(new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) => new BrushItemView().Preset(itemVm))),
+                    .ContentTemplate(
+                        new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) =>
+                            new BrushItemView().Preset(itemVm))),
+        };
 
-                new ItemsControl() //tools list
-                    .ItemsSource(AppState.UiState.Tools.Where(x=>x.Context == EditContextType.Sprite))
-                    .ItemTemplate(new FuncDataTemplate<ToolState>((item, ns) => new ToolItemView(item)))
-            );
+        foreach (var tool in AppState.UiState.Tools.Where(x => x.Context == EditContextType.Sprite))
+        {
+            tools.Add(new ToolItemView(tool));
+        }
+        
+        return new StackPanel()
+            .Background(StaticResources.Brushes.PanelsBackgroundBrush)
+            .Children(tools.ToArray());
+    }
 
 
     [Inject] private IToolService ToolService { get; set; }
