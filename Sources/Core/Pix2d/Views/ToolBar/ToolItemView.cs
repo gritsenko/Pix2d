@@ -29,13 +29,12 @@ public class ToolItemView : ComponentBase
     }
 
     protected override object Build() =>
-        new Grid()
+        new Grid().Classes("toolbar-button-container").Rows("auto").Cols("auto")
             // Add tooltip here and not to the button because using `DataTemplates` somehow breaks the
             // tooltip content.
             .ToolTip(_toolState?.ToolTip)
             .Children(
             new Border()
-                .BorderThickness(4, 0, 0, 0)
                 .BorderBrush(StaticResources.Brushes.SelectedHighlighterBrush)
                 .Background(StaticResources.Brushes.SelectedItemBrush)
                 .IsVisible(() => IsSelected),

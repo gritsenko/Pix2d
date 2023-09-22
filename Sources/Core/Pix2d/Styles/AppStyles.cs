@@ -3,9 +3,9 @@ using Avalonia.Styling;
 using Pix2d.Shared;
 using SkiaSharp;
 
-namespace Pix2d;
+namespace Pix2d.Styles;
 
-public class AppStyles : Styles
+public partial class AppStyles : Avalonia.Styling.Styles
 {
     public AppStyles()
     {
@@ -80,6 +80,8 @@ public class AppStyles : Styles
             }
         );
 
+        AddRange(AppStyles.AdaptiveLayout);
+        
         Resources["ThemeAccentColor"] = StaticResources.Colors.MyAccentColor;
         Resources["ThemeAccentBrush"] = StaticResources.Brushes.AccentBrush;
         Resources["ThemeAccentBrush2"] = StaticResources.Brushes.AccentBrush;
