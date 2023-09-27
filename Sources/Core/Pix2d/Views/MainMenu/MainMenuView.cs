@@ -5,12 +5,19 @@ namespace Pix2d.Views.MainMenu;
 
 public class MainMenuView : ComponentBase
 {
+    public const string MainMenuViewName = "main-menu";
+    public const string MainMenuButtonsName = "main-menu-buttons";
+    public const string MainMenuContentName = "main-menu-content";
+    public const string ItemSelectedClass = "item-selected";
+    public const string BackButtonName = "back-button";
+    private const string DefaultItem = "Info";
+    
     private MainMenuItemView[] _menuItems;
 
     public MainMenuView(UiState state)
     {
         // Reset selected menu item to the default when menu is closed
-        state.WatchFor(x => x.ShowMenu, () => SelectItem("Info"));
+        state.WatchFor(x => x.ShowMenu, () => SelectItem(null));
         SKInput.Current.KeyPressed += OnKeyPressed;
     }
 
@@ -42,18 +49,15 @@ public class MainMenuView : ComponentBase
             new MainMenuItemView()
                 .Header("Info")
                 .Icon("\xEADF")
-                .OnClicked(OnItemClick)
-                .TabViewType(typeof(InfoView)),
+                .OnClicked(OnItemClick),
             new MainMenuItemView()
                 .Header("New")
                 .Icon("\xE7C3")
-                .OnClicked(OnItemClick)
-                .TabViewType(typeof(NewDocumentView)),
+                .OnClicked(OnItemClick),
             new MainMenuItemView()
                 .Header("Open")
                 .Icon("\xED41")
-                .OnClicked(OnItemClick)
-                .TabViewType(typeof(OpenDocumentView)),
+                .OnClicked(OnItemClick),
             new MainMenuItemView()
                 .Header("Save")
                 .Icon("\xE74E")
@@ -62,28 +66,78 @@ public class MainMenuView : ComponentBase
                 .Header("Save as")
                 .Icon("\xE792")
                 .OnClicked(OnItemClick)
-                .TabViewType(typeof(SaveDocumentView))
         };
 
         return new Border()
             .Background(Brushes.DarkGray)
             .Child(
-                new Grid().Cols("200,*")
+                new Grid()
+                    .Cols("200,*")
                     .Background(StaticResources.Brushes.SelectedItemBrush)
+                    .Name(MainMenuViewName)
                     .Children(
                         new ItemsControl()
+                            .Name(MainMenuButtonsName)
                             .Items(_menuItems),
-                        new Border().Col(1)
-                            .Background(StaticResources.Brushes.PanelsBackgroundBrush)
-                            .Child(
-                                new ContentControl()
-                                    .Ref(out _tabContent)
+                        new Grid().Rows("auto,*")
+                            .Name(MainMenuContentName)
+                            .Children(
+                                new MainMenuItemView()
+                                    .Name(BackButtonName)
+                                    .Header("Back")
+                                    .Icon("")
+                                    .OnClicked(_ => Back()),
+                                new Border().Row(1)
+                                    .Background(StaticResources.Brushes.PanelsBackgroundBrush)
+                                    .Padding(new Thickness(0, 8))
+                                    .Child(
+                                        new StackPanel().Children(
+                                            new InfoView().IsVisible(() => SelectedItem == "Info"),
+                                            new NewDocumentView().IsVisible(() => SelectedItem == "New"),
+                                            new OpenDocumentView().IsVisible(() => SelectedItem == "Open"),
+                                            new SaveDocumentView().IsVisible(() => SelectedItem == "Save as")
+                                        )
+                                        // new ContentControl()
+                                        //     .Ref(out _tabContent)
+                                    )
                             )
                     )
             );
     }
 
-    ContentControl _tabContent;
+    private bool _isActivelySelected;
+    private string _selectedItem;
+
+    public string SelectedItem
+    {
+        get => _selectedItem;
+        set
+        {
+            _selectedItem = value;
+            StateHasChanged();
+        }
+    }
+
+    // True if the menu item was clicked by the user, in contrast to it being just some default menu item selected.
+    public bool IsActivelySelected
+    {
+        get => _isActivelySelected;
+        set
+        {
+            if (_isActivelySelected == value) return;
+            
+            _isActivelySelected = value;
+            OnPropertyChanged();
+            if (value)
+            {
+                Classes.Add(ItemSelectedClass);
+            }
+            else
+            {
+                Classes.Remove(ItemSelectedClass);
+            }
+        }
+    }
 
     private void OnItemClick(MainMenuItemView obj)
     {
@@ -92,14 +146,14 @@ public class MainMenuView : ComponentBase
 
     private void SelectItem(string header)
     {
-        _tabContent.Content = null;
-        
+        IsActivelySelected = header != null;
+
         foreach (var item in _menuItems)
         {
-            item.IsSelected = item.Header == header;
+            item.IsSelected = header == null ? item.Header == DefaultItem : item.Header == header;
             if (item.IsSelected)
             {
-                _tabContent.Content = item.GetTabContent();
+                SelectedItem = item.Header;
             }
         }
     }
@@ -107,6 +161,11 @@ public class MainMenuView : ComponentBase
     private void Close()
     {
         Commands.View.HideMainMenuCommand.Execute();
+    }
+
+    private void Back()
+    {
+        SelectItem(null);
     }
 
     private void Save()

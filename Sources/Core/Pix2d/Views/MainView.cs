@@ -23,7 +23,7 @@ public class MainView : ComponentBase
     protected override object Build() =>
         new Grid()
             .Cols("Auto, *, Auto")
-            .Rows("Auto, Auto, *, 32")
+            .Rows("Auto, Auto, *, Auto")
             .AddBehavior(
                 new AdaptiveBehavior()
                     .Setters(
@@ -36,7 +36,7 @@ public class MainView : ComponentBase
             {
 
                 new Border().Col(0).Row(0)
-                    .ColSpan(2).RowSpan(3)
+                    .ColSpan(2).RowSpan(4)
                     .With(self =>
                     {
                         self.AddHandler(PointerPressedEvent, (_, e) =>
@@ -66,9 +66,7 @@ public class MainView : ComponentBase
                             )
                     ),
 
-                new AdditionalTopBarView().Col(1).Row(2)
-                    .VerticalAlignment(VerticalAlignment.Top)
-                    .HorizontalAlignment(HorizontalAlignment.Right),
+                new AdditionalTopBarView().Col(1).Row(2),
 
                 new InfoPanelView().Col(0).Row(3).ColSpan(2),
 
@@ -95,8 +93,7 @@ public class MainView : ComponentBase
 
                 new LayersView().Col(1).Row(2)
                     .IsVisible(UiState.ShowLayers, bindingSource: UiState)
-                    .Margin(0, 33, 0, 0)
-                    .VerticalAlignment(VerticalAlignment.Top)
+                    .Margin(0, 33)
                     .HorizontalAlignment(HorizontalAlignment.Right),
 
                 new Canvas().Col(1).Row(2)
@@ -157,13 +154,14 @@ public class MainView : ComponentBase
                     .VerticalAlignment(VerticalAlignment.Top),
 
 
-                new PopupView()
-                    .Col(0).ColSpan(2)
-                    .Row(0).RowSpan(3)
-                    .Header("Export")
-                    .IsOpen(UiState.ShowExportDialog, bindingSource: UiState)
-                    .CloseButtonCommand(Commands.View.HideExportDialogCommand)
-                    .Content(new ExportView()),
+                new ExportView().ColSpan(2).RowSpan(4).IsVisible(UiState.ShowExportDialog, bindingSource: UiState),
+                // new PopupView()
+                //     .Col(0).ColSpan(2)
+                //     .Row(0).RowSpan(4)
+                //     .Header("Export artwork")
+                //     .IsOpen(UiState.ShowExportDialog, bindingSource: UiState)
+                //     .CloseButtonCommand(Commands.View.HideExportDialogCommand)
+                //     .Content(new ExportView()),
 
                 new Border() //MAIN MENU
                     .Col(0).ColSpan(2)

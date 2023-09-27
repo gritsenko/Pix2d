@@ -31,10 +31,6 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Center),
 
-                new Style<AppButton>(s => s.OfType<AppButton>().Class("TopBar"))
-                    .Width(52d)
-                    .Height(52d),
-
                 new Style<ToggleButton>(s => s.Is<ToggleButton>().Class(":checked").Template().Is<ContentPresenter>())
                     .Background(StaticResources.Brushes.SelectedItemBrush),
                 

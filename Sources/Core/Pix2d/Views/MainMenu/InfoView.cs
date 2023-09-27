@@ -19,6 +19,7 @@ public class InfoView : ComponentBase
                 new TextBlock()
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Margin(new Thickness(0, 0, 0, 8))
+                    .TextWrapping(TextWrapping.Wrap)
                     .Text("To share your art, suggestions or complains, please join us in Discord:"),
                 new Button()
                     .Content("https://discord.gg/s4MpBVb")

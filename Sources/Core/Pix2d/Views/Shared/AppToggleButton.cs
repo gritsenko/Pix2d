@@ -31,6 +31,7 @@ public class AppToggleButton : AppButton
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Children(
                                 new ContentControl()
+                                    .Name(IconControlName)
                                     .FontSize(16)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
                                     .VerticalAlignment(VerticalAlignment.Center)
@@ -40,6 +41,7 @@ public class AppToggleButton : AppButton
                                     .Content(ContentProperty),
 
                                 new TextBlock().Row(1)
+                                    .Name(LabelControlName)
                                     .Text(LabelProperty)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
                             )

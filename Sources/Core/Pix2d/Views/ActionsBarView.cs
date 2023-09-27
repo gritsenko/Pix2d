@@ -6,8 +6,7 @@ namespace Pix2d.Views;
 
 public class ActionsBarView : ComponentBase
 {
-    private double ButtonWidth = 58;
-    private double ButtonHeight = 58;
+    public const string ButtonClass = "actions-bar-button";
 
     void IconStyle(PathIcon icon) => icon
         .Width(16)
@@ -33,17 +32,14 @@ public class ActionsBarView : ComponentBase
             .Background(StaticResources.Brushes.ActionsBarBackground)
             .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden)
             .HorizontalAlignment(HorizontalAlignment.Center)
-            .Margin(0, 32, 0, 0)
-            .Height(ButtonHeight)
             .Content(
                 new StackPanel()
                     .Orientation(Orientation.Horizontal)
                     .Children(
 
                         new AppButton()
+                            .Classes(ButtonClass)
                             .Command(SpritePlugin.EditCommands.Rotate90)
-                            .Width(ButtonWidth)
-                            .Height(ButtonHeight)
                             .IsEnabled(!IsAnimationPlaying)
                             .Content(new PathIcon()
                                 .With(IconStyle)
@@ -52,8 +48,8 @@ public class ActionsBarView : ComponentBase
                             .Label("Rotate"),
 
                         new AppButton()
+                            .Classes(ButtonClass)
                             .Command(SpritePlugin.EditCommands.FlipHorizontal)
-                            .Width(ButtonWidth)
                             .IsEnabled(!IsAnimationPlaying)
                             .Content(new PathIcon()
                                 .With(IconStyle)
@@ -62,8 +58,8 @@ public class ActionsBarView : ComponentBase
                             .Label("Flip X"),
 
                         new AppButton()
+                            .Classes(ButtonClass)
                             .Command(SpritePlugin.EditCommands.FlipVertical)
-                            .Width(ButtonWidth)
                             .IsEnabled(!IsAnimationPlaying)
                             .Content(new PathIcon()
                                 .With(IconStyle)
@@ -73,8 +69,8 @@ public class ActionsBarView : ComponentBase
 
                         // MIRROR X
                         new AppToggleButton()
+                            .Classes(ButtonClass)
                             .IsChecked(MirrorX, BindingMode.TwoWay, bindingSource: this)
-                            .Width(ButtonWidth)
                             .Content(new PathIcon()
                                 .With(IconStyle)
                                 .Data(Geometry.Parse(
@@ -83,8 +79,8 @@ public class ActionsBarView : ComponentBase
 
                         // MIRROR Y
                         new AppToggleButton()
+                            .Classes(ButtonClass)
                             .IsChecked(MirrorY, BindingMode.TwoWay, bindingSource: this)
-                            .Width(ButtonWidth)
                             .Content(new PathIcon()
                                 .With(IconStyle)
                                 .Data(Geometry.Parse(
@@ -93,8 +89,8 @@ public class ActionsBarView : ComponentBase
 
                         //Grid settings
                         new AppButton()
+                            .Classes(ButtonClass)
                             .Ref(out var gridButton)
-                            .Width(ButtonWidth)
                             .Content(new PathIcon()
                                 .With(IconStyle)
                                 .Data(StaticResources.Icons.GridIcon)
@@ -110,8 +106,8 @@ public class ActionsBarView : ComponentBase
 
                         //Lock axis
                         new AppToggleButton()
+                            .Classes(ButtonClass)
                             .IsChecked(LockAxis, BindingMode.TwoWay, bindingSource: this)
-                            .Width(ButtonWidth)
                             .Content(new PathIcon()
                                 .With(IconStyle)
                                 .Data(Geometry.Parse(
@@ -120,8 +116,8 @@ public class ActionsBarView : ComponentBase
 
                         //Import
                         new AppButton()
+                            .Classes(ButtonClass)
                             .Command(Commands.Edit.Import)
-                            .Width(ButtonWidth)
                             .IsEnabled(!IsAnimationPlaying)
                             .Content(new PathIcon()
                                 .With(IconStyle)
@@ -131,8 +127,8 @@ public class ActionsBarView : ComponentBase
 
                         //Resize
                         new AppButton()
+                            .Classes(ButtonClass)
                             .Command(Commands.View.ToggleCanvasSizePanelCommand)
-                            .Width(ButtonWidth)
                             .IsEnabled(!IsAnimationPlaying)
                             .Content(new PathIcon()
                                 .With(IconStyle)

@@ -5,6 +5,8 @@ namespace Pix2d.Shared;
 
 public class AppButton : ViewBase
 {
+    public const string IconControlName = "app-button-icon";
+    public const string LabelControlName = "app-button-label";
     public event EventHandler Click;
 
     public static readonly DirectProperty<AppButton, string> LabelProperty
@@ -80,6 +82,7 @@ public class AppButton : ViewBase
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Children(
                                 new ContentControl()
+                                    .Name(IconControlName)
                                     .FontSize(16)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
                                     .VerticalAlignment(VerticalAlignment.Center)
@@ -89,6 +92,7 @@ public class AppButton : ViewBase
                                     .Content(ContentProperty),
 
                                 new TextBlock().Row(1)
+                                    .Name(LabelControlName)
                                     .Text(LabelProperty)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
                             )
