@@ -17,7 +17,7 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
     protected override object Build(SpriteAnimationTimelineViewModel vm) =>
         new Grid()
             .Rows("36,*")
-            .Cols("52,*,Auto")
+            .Cols("auto,*")
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(new Control[]
             {
@@ -50,7 +50,12 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                     }
                 },
 
-                new StackPanel().Col(2)
+                new ScrollViewer()
+                    .Col(1)
+                    .HorizontalAlignment(HorizontalAlignment.Right)
+                    .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden)
+                    .Content(
+                new StackPanel()
                     .Orientation(Orientation.Horizontal)
                     .Children(new Control [] {
                         new TextBlock()
@@ -91,9 +96,9 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                             .Margin(8,0)
                             .VerticalAlignment(VerticalAlignment.Center)
                             .SelectedItem(@vm.SelectedFramerate, BindingMode.TwoWay)
-                    }),
+                    })),
 
-                new ListBox().Row(1).ColSpan(3)
+                new ListBox().Row(1).ColSpan(2)
                     .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
                     .BorderThickness(0)
                     .ItemsPanel(new StackPanel().Orientation(Orientation.Horizontal))

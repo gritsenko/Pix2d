@@ -1,6 +1,7 @@
 using Avalonia.Styling;
 using Pix2d.Shared;
 using Pix2d.Views;
+using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
 using Pix2d.Views.ToolBar;
 
@@ -58,8 +59,8 @@ public partial class AppStyles
                 new Setter(Grid.ColumnProperty, 0),
                 new Setter(Grid.RowProperty, 3),
                 new Setter(Grid.ColumnSpanProperty, 3),
-                new Setter(Layoutable.HeightProperty, 44.0),
-                new Setter(Border.BackgroundProperty, StaticResources.Brushes.PanelsBackgroundBrush)
+                new Setter(Border.BackgroundProperty, StaticResources.Brushes.PanelsBackgroundBrush),
+                new Setter(Layoutable.MarginProperty, new Thickness(0, 1, 0, 0)),
             }
         },
         new(s => s.NarrowScreen().ToolbarContainer().Child().OfType<ScrollViewer>())
@@ -93,13 +94,16 @@ public partial class AppStyles
             .Width(40)
             .Height(40),
         
-        new(s => s.NarrowScreen().TopBarButton().Descendant().Name(AppButton.IconControlName))
+        new(s => s.NarrowScreen().TopBarButton().ButtonIcon())
         {
             Setters = {
                 new Setter(Grid.RowSpanProperty, 2),
             }
         },
-        new Style<TextBlock>(s => s.NarrowScreen().TopBarButton().Descendant().Name(AppButton.LabelControlName)).IsVisible(false),
+        new Style<TextBlock>(s => s.NarrowScreen().TopBarButton().ButtonLabel()).IsVisible(false),
+        
+        new Style<LayersView>(s => s.OfType<LayersView>()).VerticalAlignment(VerticalAlignment.Top),
+        new Style<LayersView>(s => s.NarrowScreen().Descendant().OfType<LayersView>()).VerticalAlignment(VerticalAlignment.Bottom),
         
         // MAIN MENU
         
@@ -132,6 +136,30 @@ public partial class AppStyles
         
         new Style<Button>(s => s.WideScreen().Descendant().MenuItem().Class(MainMenuItemView.SelectedClass).Child()).Background(StaticResources.Brushes.ButtonHoverBrush),
         new Style<Button>(s => s.NarrowScreen().MenuItemSelected().Descendant().MenuItem().Class(MainMenuItemView.SelectedClass).Child()).Background(StaticResources.Brushes.ButtonHoverBrush),
+        
+        // ADDITIONAL TOP BAR
+        
+        new Style<AdditionalTopBarView>(s => s.WideScreen().Descendant().OfType<AdditionalTopBarView>())
+            .VerticalAlignment(VerticalAlignment.Top)
+            .HorizontalAlignment(HorizontalAlignment.Right),
+        new Style<AdditionalTopBarView>(s => s.NarrowScreen().Descendant().OfType<AdditionalTopBarView>())
+            .VerticalAlignment(VerticalAlignment.Bottom)
+            .HorizontalAlignment(HorizontalAlignment.Right),
+        
+        // ACTIONS BAR
+        
+        new Style<ActionsBarView>(s => s.WideScreen().Descendant().OfType<ActionsBarView>())
+            .Margin(new Thickness(0, 33, 0, 0)),
+        new Style<ActionsBarView>(s => s.NarrowScreen().Descendant().OfType<ActionsBarView>())
+            .Margin(new Thickness(3, 0)),
+        new Style<Button>(s => s.WideScreen().ActionsBarButton())
+            .Width(58)
+            .Height(58),
+        new Style<Button>(s => s.NarrowScreen().ActionsBarButton())
+            .Width(48)
+            .Height(48),
+        new Style<TextBlock>(s => s.NarrowScreen().ActionsBarButton().ButtonLabel())
+            .FontSize(9),
     };
 
 }
@@ -145,8 +173,10 @@ public static class StyleSelectors
     public static Selector ToolbarContainer(this Selector s) => s.Descendant().Name("toolbar");
     public static Selector Toolbar(this Selector s) => s.Descendant().OfType<ToolBarView>();
     public static Selector InfoPanel(this Selector s) => s.Descendant().OfType<InfoPanelView>();
-    public static Selector ToolbarButton(this Selector s) => s.Descendant().OfType<Button>().Class("toolbar-button");
     public static Selector TopBarButton(this Selector s) => s.Descendant().Class("TopBar");
+    public static Selector ActionsBarButton(this Selector s) => s.Descendant().Class(ActionsBarView.ButtonClass);
+    public static Selector ButtonIcon(this Selector s) => s.Descendant().Name(AppButton.IconControlName);
+    public static Selector ButtonLabel(this Selector s) => s.Descendant().Name(AppButton.LabelControlName);
     
     // Main Menu
     public static Selector MainMenu(this Selector s) => s.Descendant().OfType<MainMenuView>();

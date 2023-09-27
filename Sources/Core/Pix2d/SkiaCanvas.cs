@@ -368,6 +368,11 @@ public class SkiaCanvas : Control
 
     public override void Render(DrawingContext context)
     {
+        if (ViewPort == null)
+        {
+            return;
+        }
+        
         // Sometimes, particularly on load, UI scale factor can change without triggering size change events. So wee need
         // to check that the size is not changed here to prevent broken UI on load.
         var size = GetViewPortSize();

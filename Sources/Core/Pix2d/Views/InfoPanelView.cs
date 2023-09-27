@@ -16,6 +16,7 @@ public class InfoPanelView : ComponentBase
             .Cols("28,70,24,*")
             .IsHitTestVisible(false)
             .Height(28)
+            .Background(StaticResources.Brushes.MainBackgroundBrush)
             .Children(
                 new TextBlock()
                     .Text("\xE902")
