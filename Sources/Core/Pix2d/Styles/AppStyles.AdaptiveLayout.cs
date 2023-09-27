@@ -1,4 +1,5 @@
 using Avalonia.Styling;
+using Pix2d.Shared;
 using Pix2d.Views;
 using Pix2d.Views.MainMenu;
 using Pix2d.Views.ToolBar;
@@ -8,6 +9,8 @@ namespace Pix2d.Styles;
 public partial class AppStyles
 {
     private static readonly Style[] AdaptiveLayout = {
+        
+        // Main layout
         new(s => s.WideScreen().ToolbarContainer())
         {
             Setters =
@@ -16,6 +19,8 @@ public partial class AppStyles
                 new Setter(Grid.RowProperty, 2),
             }
         },
+        
+        // Toolbar
         new Style<Button>(s => s.WideScreen().Toolbar().Descendant().OfType<Button>().Class("toolbar-button"))
             .Width(51).Height(51).Padding(new Thickness(0)),
         new Style<Button>(s => s.WideScreen().Toolbar().Descendant().OfType<Button>().Class("brush-button"))
@@ -79,6 +84,23 @@ public partial class AppStyles
             }
         },
         
+        // TOP BAR
+        
+        new Style<AppButton>(s => s.WideScreen().TopBarButton())
+            .Width(51)
+            .Height(51),
+        new Style<AppButton>(s => s.NarrowScreen().TopBarButton())
+            .Width(40)
+            .Height(40),
+        
+        new(s => s.NarrowScreen().TopBarButton().Descendant().Name(AppButton.IconControlName))
+        {
+            Setters = {
+                new Setter(Grid.RowSpanProperty, 2),
+            }
+        },
+        new Style<TextBlock>(s => s.NarrowScreen().TopBarButton().Descendant().Name(AppButton.LabelControlName)).IsVisible(false),
+        
         // MAIN MENU
         
         new(s => s.WideScreen().MainMenuContent())
@@ -124,6 +146,7 @@ public static class StyleSelectors
     public static Selector Toolbar(this Selector s) => s.Descendant().OfType<ToolBarView>();
     public static Selector InfoPanel(this Selector s) => s.Descendant().OfType<InfoPanelView>();
     public static Selector ToolbarButton(this Selector s) => s.Descendant().OfType<Button>().Class("toolbar-button");
+    public static Selector TopBarButton(this Selector s) => s.Descendant().Class("TopBar");
     
     // Main Menu
     public static Selector MainMenu(this Selector s) => s.Descendant().OfType<MainMenuView>();

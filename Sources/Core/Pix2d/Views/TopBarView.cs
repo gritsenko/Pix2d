@@ -13,7 +13,6 @@ public class TopBarView : ComponentBase
 {
     private void ButtonStyle(AppButton b) => b
         .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
-        .Width(68)
         .Classes("TopBar");
 
     protected override object Build() =>
@@ -30,7 +29,6 @@ public class TopBarView : ComponentBase
                             .With(ButtonStyle)
                             .Label("Menu")
                             .Content("\xF12B")
-                            .Width(51)
                             .Command(Commands.View.ToggleMainMenuCommand),
                         new PromoBlockView()
                     ),
