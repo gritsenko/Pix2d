@@ -1,5 +1,6 @@
 using Avalonia.Styling;
 using Pix2d.Views;
+using Pix2d.Views.MainMenu;
 using Pix2d.Views.ToolBar;
 
 namespace Pix2d.Styles;
@@ -76,7 +77,39 @@ public partial class AppStyles
             {
                 new Setter(Visual.IsVisibleProperty, false),
             }
-        }
+        },
+        
+        // MAIN MENU
+        
+        new(s => s.WideScreen().MainMenuContent())
+        {
+            Setters =
+            {
+                new Setter(Grid.ColumnProperty, 1),
+            }
+        },
+        new(s => s.NarrowScreen().MainMenuContent())
+        {
+            Setters =
+            {
+                new Setter(Grid.ColumnSpanProperty, 2),
+            }
+        },
+        new(s => s.NarrowScreen().MainMenuButtons())
+        {
+            Setters =
+            {
+                new Setter(Grid.ColumnSpanProperty, 2),
+            }
+        },
+        new Style<ItemsControl>(s => s.NarrowScreen().MenuItemSelected().MainMenuButtons()).IsVisible(false),
+        new Style<Border>(s => s.NarrowScreen().MenuItemNotSelected().MainMenuContent()).IsVisible(false),
+        
+        new Style<Button>(s => s.WideScreen().BackButton()).IsVisible(false),
+        new Style<Button>(s => s.NarrowScreen().BackButton()).IsVisible(true),
+        
+        new Style<Button>(s => s.WideScreen().Descendant().MenuItem().Class(MainMenuItemView.SelectedClass).Child()).Background(StaticResources.Brushes.ButtonHoverBrush),
+        new Style<Button>(s => s.NarrowScreen().MenuItemSelected().Descendant().MenuItem().Class(MainMenuItemView.SelectedClass).Child()).Background(StaticResources.Brushes.ButtonHoverBrush),
     };
 
 }
@@ -91,4 +124,13 @@ public static class StyleSelectors
     public static Selector Toolbar(this Selector s) => s.Descendant().OfType<ToolBarView>();
     public static Selector InfoPanel(this Selector s) => s.Descendant().OfType<InfoPanelView>();
     public static Selector ToolbarButton(this Selector s) => s.Descendant().OfType<Button>().Class("toolbar-button");
+    
+    // Main Menu
+    public static Selector MainMenu(this Selector s) => s.Descendant().OfType<MainMenuView>();
+    public static Selector MainMenuButtons(this Selector s) => s.Descendant().Name(MainMenuView.MainMenuButtonsName);
+    public static Selector MainMenuContent(this Selector s) => s.Descendant().Name(MainMenuView.MainMenuContentName);
+    public static Selector MenuItemSelected(this Selector s) => s.MainMenu().Class(MainMenuView.ItemSelectedClass);
+    public static Selector MenuItemNotSelected(this Selector s) => s.MainMenu().Not(ss => ss.Class(MainMenuView.ItemSelectedClass));
+    public static Selector BackButton(this Selector s) => s.MainMenu().Descendant().Name(MainMenuView.BackButtonName);
+    public static Selector MenuItem(this Selector s) => s.OfType<MainMenuItemView>();
 }

@@ -5,10 +5,9 @@ namespace Pix2d.Views.MainMenu;
 
 public class MainMenuItemView : ComponentBase
 {
+    public const string SelectedClass = "selected";
     protected override object Build() =>
         new Button()
-            .BindClass(IsSelected, "selected")
-            .Background(@Background)
             .FontSize(16)
             .Content(
                 new Grid().Cols("32,*")
@@ -40,11 +39,16 @@ public class MainMenuItemView : ComponentBase
         set
         {
             _isSelected = value;
-            OnPropertyChanged(nameof(Background));
+            if (value)
+            {
+                this.Classes.Add(SelectedClass);
+            }
+            else
+            {
+                this.Classes.Remove(SelectedClass);
+            }
         }
     }
-
-    public Brush Background => IsSelected ? StaticResources.Brushes.ButtonHoverBrush : Colors.Transparent.ToBrush();
 
     public string Header { get; set; } = "null!";
     public string Icon { get; set; } = "";
