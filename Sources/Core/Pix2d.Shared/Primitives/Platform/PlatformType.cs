@@ -2,12 +2,12 @@
 {
     public enum PlatformType
     {
-        UWP,
+        WindowsStore,
         Android,
         iOS,
         WASM,
-        WPF,
-        Avalonia,
+        WindowsDesktop,
+        CrossPlatformDesktop,
         MacOS
     }
 }

@@ -49,7 +49,7 @@ public class ResizeCanvasView : ComponentBase
                             .Margin(0, 16, 0, 0)
                             .Text("Horizontal anchor"),
 
-                        // The initial values are not displayed right away due to https://github.com/AvaloniaUI/Avalonia/issues/4610
+                        // The initial values are not displayed right away due to https://github.com/AvaloniaUI/CrossPlatformDesktop/issues/4610
                         new ComboBox()
                             .Margin(0, 8, 0, 0)
                             .SelectedIndex(Bind(HorizontalAnchor))

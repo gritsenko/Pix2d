@@ -177,7 +177,7 @@ namespace SkiaNodes.Interactive
             }
             else
             {
-                // The modifier key was released. Avalonia reports modifier to be still inactive but we need to set
+                // The modifier key was released. CrossPlatformDesktop reports modifier to be still inactive but we need to set
                 // is as currently active.
                 _keyModifiers |= activeKeyModifier;
             }
@@ -194,7 +194,7 @@ namespace SkiaNodes.Interactive
             }
             else
             {
-                // The modifier key was released. Avalonia reports modifier to be still active but we need to set
+                // The modifier key was released. CrossPlatformDesktop reports modifier to be still active but we need to set
                 // is as currently inactive.
                 _keyModifiers &= ~activeKeyModifier;
             }

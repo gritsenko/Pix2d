@@ -70,32 +70,12 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         container.RegisterSingleton<IPlatformStuffService, PlatformStuffService>();
         container.RegisterSingleton<IDialogService, AvaloniaDialogService>();
 
-        var isPro = false;
-#if WINDOWS_UWP
-        var ls = new Pix2d.WindowsStore.Services.UwpLicenseService();
 
-        await ls.Init();
-        isPro = ls.IsPro;
-        container.RegisterInstance<ILicenseService>(ls);
-
-        Debug.WriteLine("Register appcenter for UWP");
-        AppCenter.Start("2c0dc23b-1bcd-42dc-b7c2-d6944fab2c58", typeof(Analytics), typeof(Crashes));
-        Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
-
-#endif
-
-#if WINFORMS
-        Debug.WriteLine("Register appcenter for winforms");
-        AppCenter.Start("2c0dc23b-1bcd-42dc-b7c2-d6944fab2c58", typeof(Analytics), typeof(Crashes));
-        Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
-#elif !WINDOWS_UWP
-        Logger.RegisterLoggerTarget(new SentryLoggerTarget());
-#endif
-
-        //Logger.RegisterLoggerTarget(new GALoggerTarget("G-K2TCKSBBCX", "LOVC5ToFRJ2-b54hKgDiaQ"));
-
-        Pix2DApp.CurrentPlatform = PlatformType.Avalonia;
+        Pix2DApp.CurrentPlatform = GetPlatform();
         Pix2DApp.AppFolder = Path.Combine(AppDataFolder(), "Pix2d");
+
+        var licenseName = await InitLicense(container);
+        InitTelemetry(Pix2DApp.CurrentPlatform);
 
         if (!Directory.Exists(Pix2DApp.AppFolder))
         {
@@ -106,9 +86,68 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
 
         if (Pix2DApp.Instance != null)
         {
-            Pix2DApp.Instance.CurrentLicense = isPro ? "Pro" : "Free";
+            Pix2DApp.Instance.CurrentLicense = licenseName;
         }
     }
+
+    private async Task<string> InitLicense(SimpleContainer container)
+    {
+        var licenseName = "Free";
+
+        ILicenseService? licenseService = null;
+#if WINDOWS_UWP
+        var uwpLicenseService = new Pix2d.WindowsStore.Services.UwpLicenseService();
+        await uwpLicenseService.Init();
+        licenseService = uwpLicenseService;
+#endif
+
+        if (licenseService == null) return licenseName;
+
+        if (licenseService.IsPro)
+            licenseName = "Pro";
+
+        container.RegisterInstance<ILicenseService>(licenseService);
+
+        return licenseName;
+    }
+
+    private PlatformType GetPlatform()
+    {
+#if WINDOWS_UWP
+        return PlatformType.WindowsStore;
+#elif WINFORMS
+        return PlatformType.WindowsDesktop;
+#endif
+        return PlatformType.CrossPlatformDesktop;
+    }
+
+    private void InitTelemetry(PlatformType platform)
+    {
+#if DEBUG
+        return;
+#endif
+
+        if (platform == PlatformType.WindowsStore)
+        {
+            Debug.WriteLine("Register appcenter for UWP");
+            AppCenter.Start("3d4da0e3-1840-4181-858d-cbf6ecadac55", typeof(Analytics), typeof(Crashes));
+            Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
+        }
+        else if (platform == PlatformType.WindowsDesktop)
+        {
+            Debug.WriteLine("Register appcenter for winforms");
+            AppCenter.Start("2c0dc23b-1bcd-42dc-b7c2-d6944fab2c58", typeof(Analytics), typeof(Crashes));
+            Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
+        }
+        else
+        {
+#if !WINDOWS_UWP
+            Logger.RegisterLoggerTarget(new SentryLoggerTarget());
+#endif
+        }
+        //Logger.RegisterLoggerTarget(new GALoggerTarget("G-K2TCKSBBCX", "LOVC5ToFRJ2-b54hKgDiaQ"));
+    }
+
     Type? GetTypeByName(string name) => AppDomain.CurrentDomain.GetAssemblies().Reverse().Select(assembly => assembly.GetType(name)).FirstOrDefault(tt => tt != null);
 
     public static string AppDataFolder()

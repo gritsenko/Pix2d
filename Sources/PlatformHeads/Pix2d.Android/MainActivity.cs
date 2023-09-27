@@ -95,7 +95,7 @@ public class MainActivity : AvaloniaMainActivity<EditorApp>
 //        base.OnCreate(savedInstanceState);
 //        Xamarin.Essentials.Platform.Init(this, savedInstanceState);
 //        // Set our view from the "main" layout resource
-//        var app = (EditorApp)Avalonia.Application.Current;
+//        var app = (EditorApp)CrossPlatformDesktop.Application.Current;
 //        Content = (app)?.HostView;
 //        app.UpdateTopLevelFromHostView();
 //        AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
