@@ -27,15 +27,15 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Avalonia.Angle.Windows.Natives" Version="2.1.0.2023020321" />
-		<PackageReference Include="Avalonia.Desktop" Version="11.0.1" />
-		<PackageReference Include="Avalonia.Diagnostics" Version="11.0.1" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.0.4" />
+		<PackageReference Include="Avalonia.Diagnostics" Version="11.0.4" />
 		<PackageReference Include="Clowd.Clipboard" Version="1.0.1" />
 		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.0.1" />
 		<PackageReference Include="Dock.Avalonia.Themes.Default" Version="0.10.0" />
 		<PackageReference Include="Microsoft.AppCenter" Version="5.0.2" />
 		<PackageReference Include="Microsoft.AppCenter.Analytics" Version="5.0.2" />
 		<PackageReference Include="Microsoft.AppCenter.Crashes" Version="5.0.2" />
-		<PackageReference Include="Sentry" Version="3.34.0" />
+		<PackageReference Include="Sentry" Version="3.39.1" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
