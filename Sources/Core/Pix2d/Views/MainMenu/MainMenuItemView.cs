@@ -29,7 +29,6 @@ public class MainMenuItemView : ComponentBase
             .OnClick(_ => { OnClicked(this); })
             .CommandParameter(this);
 
-    private object? _tabContentInstance;
     private bool _isSelected;
     public event EventHandler<MainMenuItemView>? Clicked;
 
@@ -38,7 +37,8 @@ public class MainMenuItemView : ComponentBase
         get => _isSelected;
         set
         {
-            _isSelected = value;
+            if (_isSelected == value) return;
+            
             if (value)
             {
                 this.Classes.Add(SelectedClass);
@@ -47,24 +47,15 @@ public class MainMenuItemView : ComponentBase
             {
                 this.Classes.Remove(SelectedClass);
             }
+            _isSelected = value;
         }
     }
 
     public string Header { get; set; } = "null!";
     public string Icon { get; set; } = "";
-    public Type? TabViewType { get; set; }
 
     protected virtual void OnClicked(MainMenuItemView e)
     {
         Clicked?.Invoke(this, e);
-    }
-
-    public ComponentBase? GetTabContent()
-    {
-        if (TabViewType == null)
-            return null;
-
-        _tabContentInstance ??= Activator.CreateInstance(TabViewType);
-        return _tabContentInstance as ComponentBase;
     }
 }

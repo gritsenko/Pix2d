@@ -49,18 +49,15 @@ public class MainMenuView : ComponentBase
             new MainMenuItemView()
                 .Header("Info")
                 .Icon("\xEADF")
-                .OnClicked(OnItemClick)
-                .TabViewType(typeof(InfoView)),
+                .OnClicked(OnItemClick),
             new MainMenuItemView()
                 .Header("New")
                 .Icon("\xE7C3")
-                .OnClicked(OnItemClick)
-                .TabViewType(typeof(NewDocumentView)),
+                .OnClicked(OnItemClick),
             new MainMenuItemView()
                 .Header("Open")
                 .Icon("\xED41")
-                .OnClicked(OnItemClick)
-                .TabViewType(typeof(OpenDocumentView)),
+                .OnClicked(OnItemClick),
             new MainMenuItemView()
                 .Header("Save")
                 .Icon("\xE74E")
@@ -69,7 +66,6 @@ public class MainMenuView : ComponentBase
                 .Header("Save as")
                 .Icon("\xE792")
                 .OnClicked(OnItemClick)
-                .TabViewType(typeof(SaveDocumentView))
         };
 
         return new Border()
@@ -95,16 +91,32 @@ public class MainMenuView : ComponentBase
                                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                                     .Padding(new Thickness(0, 8))
                                     .Child(
-                                        new ContentControl()
-                                            .Ref(out _tabContent)
+                                        new StackPanel().Children(
+                                            new InfoView().IsVisible(() => SelectedItem == "Info"),
+                                            new NewDocumentView().IsVisible(() => SelectedItem == "New"),
+                                            new OpenDocumentView().IsVisible(() => SelectedItem == "Open"),
+                                            new SaveDocumentView().IsVisible(() => SelectedItem == "Save as")
+                                        )
+                                        // new ContentControl()
+                                        //     .Ref(out _tabContent)
                                     )
                             )
                     )
             );
     }
 
-    ContentControl _tabContent;
     private bool _isActivelySelected;
+    private string _selectedItem;
+
+    public string SelectedItem
+    {
+        get => _selectedItem;
+        set
+        {
+            _selectedItem = value;
+            StateHasChanged();
+        }
+    }
 
     // True if the menu item was clicked by the user, in contrast to it being just some default menu item selected.
     public bool IsActivelySelected
@@ -112,7 +124,10 @@ public class MainMenuView : ComponentBase
         get => _isActivelySelected;
         set
         {
+            if (_isActivelySelected == value) return;
+            
             _isActivelySelected = value;
+            OnPropertyChanged();
             if (value)
             {
                 Classes.Add(ItemSelectedClass);
@@ -131,15 +146,14 @@ public class MainMenuView : ComponentBase
 
     private void SelectItem(string header)
     {
-        _tabContent.Content = null;
         IsActivelySelected = header != null;
-        
+
         foreach (var item in _menuItems)
         {
             item.IsSelected = header == null ? item.Header == DefaultItem : item.Header == header;
             if (item.IsSelected)
             {
-                _tabContent.Content = item.GetTabContent();
+                SelectedItem = item.Header;
             }
         }
     }
