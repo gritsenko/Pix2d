@@ -1,4 +1,5 @@
-﻿using Pix2d.Exporters;
+﻿using System.Globalization;
+using Pix2d.Exporters;
 
 namespace Pix2d.Views.Export;
 
@@ -14,6 +15,8 @@ public class SpritesheetExportSettingsView : ComponentBase, IExportSettingsViewB
                 new NumericUpDown()
                     .Watermark("Columns count")
                     .Minimum(1)
+                    .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
+                    .Increment(1)
                     .Value(Bind(MaxColumns, BindingMode.TwoWay))
             ); // exporter options
 

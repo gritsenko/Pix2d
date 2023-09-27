@@ -1,6 +1,7 @@
 using Avalonia.Styling;
 using Pix2d.Shared;
 using Pix2d.Views;
+using Pix2d.Views.Export;
 using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
 using Pix2d.Views.ToolBar;
@@ -160,6 +161,48 @@ public partial class AppStyles
             .Height(48),
         new Style<TextBlock>(s => s.NarrowScreen().ActionsBarButton().ButtonLabel())
             .FontSize(9),
+        
+        
+        // EXPORT
+        
+        new(s => s.WideScreen().Descendant().Name(ExportView.PreviewName))
+        {
+            Setters = {
+                new Setter(Grid.ColumnProperty, 0),
+                new Setter(Grid.ColumnSpanProperty, 1),
+                new Setter(Grid.RowProperty, 0),
+                new Setter(Grid.RowSpanProperty, 2),
+            }
+        },
+        new(s => s.WideScreen().Descendant().Name(ExportView.SettingsName))
+        {
+            Setters = {
+                new Setter(Grid.ColumnProperty, 1),
+                new Setter(Grid.ColumnSpanProperty, 1),
+                new Setter(Grid.RowProperty, 0),
+                new Setter(Grid.RowSpanProperty, 2),
+                new Setter(Layoutable.MarginProperty, new Thickness(16, 0))
+            }
+        },
+        new(s => s.NarrowScreen().Descendant().Name(ExportView.PreviewName))
+        {
+            Setters = {
+                new Setter(Grid.ColumnProperty, 0),
+                new Setter(Grid.ColumnSpanProperty, 2),
+                new Setter(Grid.RowProperty, 0),
+                new Setter(Grid.RowSpanProperty, 1),
+            }
+        },
+        new(s => s.NarrowScreen().Descendant().Name(ExportView.SettingsName))
+        {
+            Setters = {
+                new Setter(Grid.ColumnProperty, 0),
+                new Setter(Grid.ColumnSpanProperty, 2),
+                new Setter(Grid.RowProperty, 1),
+                new Setter(Grid.RowSpanProperty, 1),
+                new Setter(Layoutable.MarginProperty, new Thickness(0, 16))
+            }
+        },
     };
 
 }

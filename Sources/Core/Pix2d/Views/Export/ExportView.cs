@@ -17,22 +17,32 @@ namespace Pix2d.Views.Export;
 
 public class ExportView : ComponentBase
 {
+    public const string PreviewName = "export-preview";
+    public const string SettingsName = "export-settings";
+    
     private readonly IDataTemplate _itemTemplate =
         new FuncDataTemplate<IExporter>((itemVm, ns)
             => new TextBlock().Text(itemVm?.Title ?? ""));
 
     protected override object Build() =>
-        new Border()
+        new Grid().Rows("auto,*").Cols("*,auto")
+            .Background(StaticResources.Brushes.MainBackgroundBrush)
+            .Children(
+                new TextBlock().FontSize(24).VerticalAlignment(VerticalAlignment.Center).Margin(16, 0).Text("Export artwork"),
+                new Button().Col(1).Content("X").Height(40).Width(40).Command(Commands.View.HideExportDialogCommand),
+        new Border().Row(1).ColSpan(2)
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Padding(16)
             .Child(
                 new Grid()
+                    .Rows("*,*")
                     .Cols("*,*")
                     .MinWidth(200)
                     .MinHeight(200)
                     .Children(
                         new ScrollViewer()
                             .Background(StaticResources.Brushes.MainBackgroundBrush)
+                            .Name(PreviewName)
                             .HorizontalScrollBarVisibility(ScrollBarVisibility.Auto)
                             .Content(
                                 new SKImageView()
@@ -42,12 +52,13 @@ public class ExportView : ComponentBase
                                     .VerticalAlignment(VerticalAlignment.Center)
                             ),
 
-                        new ScrollViewer().Col(1) //Properties panel
-                            .Margin(16)
+                        new ScrollViewer()
+                            .Name(SettingsName)
                             .Content(
                                 new StackPanel()
+                                    .Spacing(8)
                                     .Children(
-                                        new TextBlock().Text("Exporter"),
+                                        new TextBlock().Text("Export type"),
                                         new ComboBox()
                                             .ItemTemplate(_itemTemplate)
                                             .ItemsSource(Exporters)
@@ -63,7 +74,7 @@ public class ExportView : ComponentBase
                                         .Value(Scale, BindingMode.TwoWay, bindingSource: this)
                                     )
                             ),
-                        new Grid().Col(1)
+                        new Grid().ColSpan(2).Row(1)
                             .Cols("*,Auto,Auto")
                             .VerticalAlignment(VerticalAlignment.Bottom)
                             .Children(
@@ -80,7 +91,7 @@ public class ExportView : ComponentBase
                                     .Command(Commands.View.HideExportDialogCommand)
                             )
                     )
-            );
+            ));
 
     [Inject] IExportService ExportService { get; set; }
 

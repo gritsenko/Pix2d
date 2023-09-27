@@ -154,13 +154,14 @@ public class MainView : ComponentBase
                     .VerticalAlignment(VerticalAlignment.Top),
 
 
-                new PopupView()
-                    .Col(0).ColSpan(2)
-                    .Row(0).RowSpan(3)
-                    .Header("Export")
-                    .IsOpen(UiState.ShowExportDialog, bindingSource: UiState)
-                    .CloseButtonCommand(Commands.View.HideExportDialogCommand)
-                    .Content(new ExportView()),
+                new ExportView().ColSpan(2).RowSpan(4).IsVisible(UiState.ShowExportDialog, bindingSource: UiState),
+                // new PopupView()
+                //     .Col(0).ColSpan(2)
+                //     .Row(0).RowSpan(4)
+                //     .Header("Export artwork")
+                //     .IsOpen(UiState.ShowExportDialog, bindingSource: UiState)
+                //     .CloseButtonCommand(Commands.View.HideExportDialogCommand)
+                //     .Content(new ExportView()),
 
                 new Border() //MAIN MENU
                     .Col(0).ColSpan(2)
