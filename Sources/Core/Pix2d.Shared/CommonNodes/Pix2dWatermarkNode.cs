@@ -10,19 +10,11 @@ namespace Pix2d.CommonNodes
         private SKBitmap _bitmap;
         private SKImageFilter _shadowFilter;
 
-        public Pix2dWatermarkNode()
+        public Pix2dWatermarkNode(SKBitmap watermarkBitmap)
         {
             Text = "Pix2d Free";
-            LoadImage();
+            _bitmap = watermarkBitmap;
             _shadowFilter = SKImageFilter.CreateDropShadow(0, 0, 3, 3, SKColors.White.WithAlpha((byte) (0.3f * 255)));
-        }
-
-        private void LoadImage()
-        {
-            var resourceID = "Pix2d.Assets.Watermark.png";
-            var assembly = GetType().GetTypeInfo().Assembly;
-            using (var stream = assembly.GetManifestResourceStream(resourceID)) _bitmap = SKBitmap.Decode(stream);
-
         }
 
         public override void OnDraw(SKCanvas canvas, ViewPort vp)

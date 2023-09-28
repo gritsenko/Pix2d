@@ -12,6 +12,7 @@ using Mvvm;
 using Pix2d.Abstract.Export;
 using Pix2d.Exporters;
 using SkiaNodes.Extensions;
+using Pix2d.CommonNodes;
 
 namespace Pix2d.Views.Export;
 
@@ -94,6 +95,7 @@ public class ExportView : ComponentBase
             ));
 
     [Inject] IExportService ExportService { get; set; }
+    [Inject] ILicenseService LicenseService { get; set; }
 
     [Inject] IBusyController BusyController { get; set; }
     [Inject] AppState AppState { get; set; }
@@ -103,6 +105,8 @@ public class ExportView : ComponentBase
 
     private double _scale = 1;
     private ContentControl _exporterSettingsControl;
+    private Pix2dWatermarkNode _watermarkNode;
+    public bool EnableWatermark => LicenseService is { IsPro: false, AllowBuyPro: true };
 
     public double Scale
     {
@@ -186,7 +190,41 @@ public class ExportView : ComponentBase
             yield break;
 
         yield return CoreServices.EditService.CurrentEditedNode;
+
+        if (CoreServices.EditService.CurrentEditedNode.Size.Width * Scale < 64)
+        {
+            yield break;
+        }
+
+        if (EnableWatermark) yield return GetWatermarkNode(CoreServices.EditService.CurrentEditedNode);
     }
+
+    private SKNode GetWatermarkNode(SKNode exportedNode)
+    {
+        _watermarkNode = new Pix2dWatermarkNode(StaticResources.WatermarkBitmap);
+
+        var exportedNodeSize = exportedNode.Size;
+
+        var w = exportedNodeSize.Width * Scale;
+        var h = exportedNodeSize.Height * Scale;
+        if (w >= 200 && h >= 200)
+        {
+            _watermarkNode.Size = new SKSize((float)(64f / Scale), (float)(64f / Scale));
+
+            var offset = 8f / Scale;
+            _watermarkNode.Position = new SKPoint((float)(exportedNodeSize.Width - _watermarkNode.Size.Width - offset), (float)(exportedNodeSize.Height - _watermarkNode.Size.Height - offset));
+        }
+        else
+        {
+            _watermarkNode.FontSize = (float)(14f / (Scale == 0 ? 1 : Scale));
+            _watermarkNode.Size = new SKSize(exportedNodeSize.Width, _watermarkNode.FontSize + 2f);
+            _watermarkNode.Position = new SKPoint(exportedNode.Position.X, exportedNode.Position.Y + exportedNodeSize.Height);
+            _watermarkNode.Effects = null;
+        }
+
+        return _watermarkNode;
+    }
+
 
     private void UpdatePreview()
     {

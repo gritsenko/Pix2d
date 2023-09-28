@@ -84,7 +84,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Assets\Burger.png" />
-    <EmbeddedResource Include="Assets\Watermark.png" />
+    <AvaloniaResource Include="Assets\Watermark.png" />
   </ItemGroup>
 
   <ItemGroup>

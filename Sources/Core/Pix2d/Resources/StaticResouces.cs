@@ -89,16 +89,19 @@ public static class StaticResources
     }
 
     public static Bitmap AppIcon { get; set; } =
-        new Bitmap(GetAsset(GetEmbeddedResourceURI("/Assets/app1.png")));
+        new(GetAsset(GetEmbeddedResourceURI("/Assets/app1.png")));
     
     public static Bitmap UltimateImage { get; set; } =
-        new Bitmap(GetAsset(GetEmbeddedResourceURI("/Assets/ULTIMATE.png")));
+        new(GetAsset(GetEmbeddedResourceURI("/Assets/ULTIMATE.png")));
 
     public static Bitmap ColorThumb { get; set; } =
-        new Bitmap(GetAsset(GetEmbeddedResourceURI("/Assets/ColorThumb.png")));
+        new(GetAsset(GetEmbeddedResourceURI("/Assets/ColorThumb.png")));
 
     public static Bitmap CheckerTilesBitmap { get; set; } =
         new(GetAsset(GetEmbeddedResourceURI("/Assets/BackgroundTile100.png")));
+    
+    public static SKBitmap WatermarkBitmap { get; set; } =
+        SKBitmap.Decode(GetAsset(GetEmbeddedResourceURI("/Assets/Watermark.png")));
 
     private static Stream GetAsset(Uri uri) => AssetLoader.Open(uri);
     private static Uri GetEmbeddedResourceURI(string path) => new($"avares://Pix2d.Core/{path.TrimStart('/')}");
