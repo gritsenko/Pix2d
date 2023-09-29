@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Pix2d.Abstract.Platform.FileSystem;
+using Pix2d.Project;
 using SkiaSharp;
 
 namespace Pix2d.Abstract.Services
@@ -30,9 +31,11 @@ namespace Pix2d.Abstract.Services
         Task<bool> OpenFilesAsync();
         Task<bool> OpenFilesAsync(IFileContentSource[] file, bool isLoadingFromLocalSession = false);
 
-        Task CreateNewProjectAsync(SKSize newProjectSize);
+        Task CreateNewProjectAsync(SKSize newProjectSize, string name = null);
         Task<IFileContentSource[]> GetRecentProjectsAsync();
         string GetDefaultFileName();
         string CurrentProjectName { get; }
+
+        Task<ProjectsCollection> GetProjectsListAsync();
     }
 }

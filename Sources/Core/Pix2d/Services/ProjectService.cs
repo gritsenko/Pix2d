@@ -18,6 +18,7 @@ namespace Pix2d.Services;
 
 public class ProjectService : IProjectService
 {
+    private const string ProjectsFolder = "projects";
     private AppState AppState { get; }
 
     private ProjectState ProjectState => AppState.CurrentProject as ProjectState;
@@ -28,6 +29,19 @@ public class ProjectService : IProjectService
     private IFileService FileService => ServiceLocator.Current.GetInstance<IFileService>();
 
     public string CurrentProjectName => ProjectState.FileName;
+    public async Task<ProjectsCollection> GetProjectsListAsync()
+    {
+        var mrus = await GetRecentProjectsAsync();
+        var ownProjects = await GetLocalProjectsAsync();
+
+        return new ProjectsCollection(mrus, ownProjects);
+    }
+
+    private async Task<IEnumerable<IFileContentSource>> GetLocalProjectsAsync()
+    {
+        var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
+        return await folder.GetFilesAsync();
+    }
 
     public bool HasUnsavedChanges
     {
@@ -237,7 +251,7 @@ public class ProjectService : IProjectService
         return true;
     }
 
-    public async Task CreateNewProjectAsync(SKSize newProjectSize)
+    public async Task CreateNewProjectAsync(SKSize newProjectSize, string name = null)
     {
         OpLog(newProjectSize.Width + "x" + newProjectSize.Height);
         if (HasUnsavedChanges && !await AskSaveCurrentProject())
@@ -249,7 +263,31 @@ public class ProjectService : IProjectService
         {
             var scene = GetNewScene(newProjectSize);
             OnProjectLoaded(scene, false);
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                var file = await GetNewProjectFile(name);
+                await SaveCurrentProjectToFileAsync(file);
+            }
         });
+    }
+
+    private async Task<IFileContentSource> GetNewProjectFile(string projectName)
+    {
+        var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
+        var index = 0;
+        var adjProjectName = projectName;
+        while (true)
+        {
+            var file = await folder.GetFileSourceAsync(adjProjectName, "pix2d");
+            if (!file.Exists)
+            {
+                return file;
+            }
+
+            adjProjectName = $"{projectName}({index})";
+            index++;
+        }
     }
 
     private SKNode GetNewScene(SKSize newProjectSize)

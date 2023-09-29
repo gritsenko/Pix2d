@@ -72,12 +72,6 @@ public class SKImageView : ViewBase
         }
 
         _imageControl.Source = newBitmap?.ToBitmap();
-
-        if(newBitmap != null)
-        {
-            _imageControl.Width = newBitmap.Width;
-            _imageControl.Height = newBitmap.Height;
-        }
     }
 
     private void BitmapOnBitmapChanged(object sender, EventArgs e)

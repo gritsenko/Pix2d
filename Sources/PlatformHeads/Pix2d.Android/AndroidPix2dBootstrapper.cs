@@ -23,7 +23,8 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
             typeof(SpritePlugin),
             typeof(DrawingPlugin),
             //typeof(AiPlugin)
-        }
+        },
+        AutoSaveNewProject = true,
     };
 
     public async Task InitializeAsync()

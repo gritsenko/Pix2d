@@ -87,19 +87,17 @@ public class MainMenuView : ComponentBase
                                     .Header("Back")
                                     .Icon("")
                                     .OnClicked(_ => Back()),
-                                new Border().Row(1)
+                                new ScrollViewer().Row(1)
                                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
-                                    .Padding(new Thickness(0, 8))
-                                    .Child(
-                                        new StackPanel().Children(
-                                            new InfoView().IsVisible(() => SelectedItem == "Info"),
-                                            new NewDocumentView().IsVisible(() => SelectedItem == "New"),
-                                            new OpenDocumentView().IsVisible(() => SelectedItem == "Open"),
-                                            new SaveDocumentView().IsVisible(() => SelectedItem == "Save as")
-                                        )
-                                        // new ContentControl()
-                                        //     .Ref(out _tabContent)
-                                    )
+                                    .Content(
+                                        new StackPanel()
+                                            .Margin(new Thickness(0, 8))
+                                            .Children(
+                                                new InfoView().IsVisible(() => SelectedItem == "Info"),
+                                                new NewDocumentView().IsVisible(() => SelectedItem == "New"),
+                                                new OpenDocumentView().IsVisible(() => SelectedItem == "Open"),
+                                                new SaveDocumentView().IsVisible(() => SelectedItem == "Save as")
+                                        ))
                             )
                     )
             );

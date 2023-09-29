@@ -19,7 +19,6 @@ public class ProjectUnpacker
 
     public static async Task<SKNode> LoadProjectScene(IFileContentSource file)
     {
-
         if (!file.Exists)
             return null;
 
@@ -94,4 +93,40 @@ public class ProjectUnpacker
         return entryFile;
     }
 
+    public static async Task<SKBitmap> LoadPreview(IFileContentSource file)
+    {
+        if (!file.Exists)
+            return null;
+
+        using var fileStream = await file.OpenRead();
+        if (!fileStream.CanRead || fileStream.Length < 1 || fileStream.Position < 0) 
+            return null;
+
+        using var zip = new ZipArchive(fileStream, ZipArchiveMode.Read, true, ZipEncoding);
+
+        // Use pngx extension to differentiate from sprite images. Probably need to fix this later.
+        var previewEntry = zip.Entries.FirstOrDefault(x => x.Name == "preview.pngx");
+        if (previewEntry == null)
+        {
+            return null;
+        }
+
+        using var imageEntryStream = previewEntry.Open();
+        using var ms = new MemoryStream();
+        //если читаем напрямую из zip entry то картинка не догружается
+        await imageEntryStream.CopyToAsync(ms);
+        ms.Seek(0, SeekOrigin.Begin);
+
+        using var codec = SKCodec.Create(ms);
+        if (codec == null)
+            return null;
+
+        var info = codec.Info;
+        info.ColorType = Pix2DAppSettings.ColorType;
+        info.AlphaType = SKAlphaType.Premul;
+
+        var srcBm = SKBitmap.Decode(codec, info);
+
+        return srcBm;
+    }
 }

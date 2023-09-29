@@ -9,6 +9,16 @@ namespace Pix2d.Views.MainMenu;
 
 public class NewDocumentView : ComponentBase
 {
+    public string ProjectName
+    {
+        get => _projectName;
+        set
+        {
+            _projectName = value;
+            OnPropertyChanged();
+        }
+    }
+
     protected override object Build() =>
         new Border()
             .Padding(32, 0, 0, 0)
@@ -23,6 +33,10 @@ public class NewDocumentView : ComponentBase
                         new TextBlock()
                             .Margin(0, 8, 0, 8)
                             .Text("Create new sprite"),
+                        
+                        new TextBox().Watermark("Name of the project")
+                            // .IsVisible(Pix2DApp.Instance.AppState.Settings.AutoSaveNewProject)
+                            .Text(@ProjectName, BindingMode.TwoWay),
 
                         new TextBlock()
                             .Margin(0, 8, 0, 8)
@@ -68,6 +82,7 @@ public class NewDocumentView : ComponentBase
     private SizePreset? _selectedPreset = null!;
     private int _artworkWidth;
     private int _artworkHeight;
+    private string _projectName = "";
 
 
     private static IDataTemplate GetTextTemplate<T>(Func<T, string> func) =>
@@ -122,7 +137,7 @@ public class NewDocumentView : ComponentBase
     private void OnCreateClicked(RoutedEventArgs obj)
     {
         Commands.View.HideMainMenuCommand.Execute();
-        ProjectService.CreateNewProjectAsync(new SKSize(ArtworkWidth, ArtworkHeight));
+        ProjectService.CreateNewProjectAsync(new SKSize(ArtworkWidth, ArtworkHeight), ProjectName);
     }
 
     protected void Load()
