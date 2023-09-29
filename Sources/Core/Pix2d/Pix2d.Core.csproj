@@ -58,6 +58,7 @@
     <None Remove="Assets\ULTIMATE.png" />
     <None Remove="Assets\untitled.png" />
     <None Remove="Assets\Watermark.png" />
+    <None Remove="Assets\no_preview.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -80,6 +81,7 @@
     <AvaloniaResource Include="Assets\StoreLogo.png" />
     <AvaloniaResource Include="Assets\ULTIMATE.png" />
     <AvaloniaResource Include="Assets\untitled.png" />
+    <AvaloniaResource Include="Assets\no_preview.png" />
   </ItemGroup>
 
   <ItemGroup>

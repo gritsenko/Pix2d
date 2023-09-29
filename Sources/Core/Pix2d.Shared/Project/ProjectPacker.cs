@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Pix2d.Abstract.Platform.FileSystem;
+using Pix2d.CommonNodes;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaNodes.Serialization;
@@ -18,7 +19,6 @@ public class ProjectPacker
 
     public static async Task WriteProjectAsync(IFileContentSource file, SKNode scene)
     {
-
         const CompressionLevel compressionLevel = CompressionLevel.Fastest;
 
         using var serializer = new NodeSerializer();
@@ -35,8 +35,29 @@ public class ProjectPacker
         foreach (var (key, bitmap) in serializer.GetDataEntries().Select(x => (key: x.Key, bitmap: x.Value)))
             using (var entryStream = zip.CreateEntry(key, compressionLevel).Open())
                 bitmap.Encode(entryStream, SKEncodedImageFormat.Png, 100);
+        
+        if (scene.Nodes.FirstOrDefault() is Pix2dSprite sprite)
+        {
+            var preview = GetPreview(sprite);
+            await using var previewStream = zip.CreateEntry("preview.pngx", compressionLevel).Open();
+            preview.Encode(previewStream, SKEncodedImageFormat.Png, 100);
+        }
 
         await outputFileStream.FlushAsync();
+    }
+
+    private static SKBitmap GetPreview(Pix2dSprite sprite)
+    {
+        var size = sprite.Size;
+        const float previewSize = 128;
+        var aspect = size.GetAspect();
+        var scale = aspect > 1 ? previewSize / size.Width : previewSize / size.Height;
+        var bitmapSize = new SKSize(size.Width * scale, size.Height * scale);
+        var bitmap = new SKBitmap((int)bitmapSize.Width, (int)bitmapSize.Height, Pix2DAppSettings.ColorType,
+            SKAlphaType.Premul);
+        sprite.RenderFramePreview(sprite.CurrentFrameIndex, ref bitmap, scale);
+
+        return bitmap;
     }
 
     public static async Task WriteProjectAsync(IWriteDestinationFolder folder, SKNode scene)

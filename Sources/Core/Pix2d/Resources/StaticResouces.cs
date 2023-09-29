@@ -103,6 +103,8 @@ public static class StaticResources
     public static SKBitmap WatermarkBitmap { get; set; } =
         SKBitmap.Decode(GetAsset(GetEmbeddedResourceURI("/Assets/Watermark.png")));
 
+    public static Bitmap NoPreview { get; set; } = new(GetAsset(GetEmbeddedResourceURI("/Assets/no_preview.png")));
+
     private static Stream GetAsset(Uri uri) => AssetLoader.Open(uri);
     private static Uri GetEmbeddedResourceURI(string path) => new($"avares://Pix2d.Core/{path.TrimStart('/')}");
 }

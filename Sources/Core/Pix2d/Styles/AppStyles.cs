@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls.Presenters;
 using Avalonia.Styling;
 using Pix2d.Shared;
+using Pix2d.Views.MainMenu;
 using SkiaSharp;
 
 namespace Pix2d.Styles;
@@ -73,6 +74,13 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .Background(SKColor.Empty.ToBrush()),
                 new Style<ToggleSwitch>(s => s.OfType<ToggleSwitch>().Class(":checked").Template().Is<ContentPresenter>())
                     .Background(SKColor.Empty.ToBrush()),
+                
+                new Style<Button>(s => s.OfType<ProjectItem>().Child())
+                    .BorderThickness(new Thickness(2))
+                    .BorderBrush(Brushes.Transparent),
+                new Style<Button>(s => s.OfType<ProjectItem>().Child().Class(":pointerover"))
+                    .BorderThickness(new Thickness(2))
+                    .BorderBrush(StaticResources.Brushes.ButtonActiveBrush),
             }
         );
 

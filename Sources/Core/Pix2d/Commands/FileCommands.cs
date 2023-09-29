@@ -15,7 +15,8 @@ public class FileCommands : CommandsListBase
         async () =>
         {
             Commands.View.HideMainMenuCommand.Execute();
-            await CoreServices.ProjectService.CreateNewProjectAsync(new SkiaSharp.SKSize(64, 64));
+            var projectName = AppState.Settings.AutoSaveNewProject ? "New project" : null;
+            await CoreServices.ProjectService.CreateNewProjectAsync(new SkiaSharp.SKSize(64, 64), projectName);
         });
 
     public Pix2dCommand Open => GetCommand("Open...", new CommandShortcut(VirtualKeys.O, KeyModifier.Ctrl),

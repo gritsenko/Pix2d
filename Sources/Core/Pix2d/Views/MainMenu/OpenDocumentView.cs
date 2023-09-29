@@ -1,22 +1,16 @@
 ﻿using Avalonia.Controls.Shapes;
 using Pix2d.Messages;
 using System.Collections.ObjectModel;
-using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Interactivity;
-using Pix2d.Abstract.Platform.FileSystem;
+using Avalonia.Threading;
+using Pix2d.Project;
+using Pix2d.Shared;
 
 namespace Pix2d.Views.MainMenu;
 
 public class OpenDocumentView : ComponentBase
 {
-    private FuncDataTemplate<MruItem> RecentProjectTemplate = new((itemVm, ns) =>
-        new Button()
-            .HorizontalContentAlignment(HorizontalAlignment.Left)
-            .Height(26)
-            .Content(itemVm.Title)
-            .OnClick(_ => itemVm.OpenAsync())
-    );
-
     protected override object Build() =>
         new Border()
             .Padding(32, 0, 0, 0)
@@ -61,10 +55,11 @@ public class OpenDocumentView : ComponentBase
                             .FontSize(20)
                             .Margin(0, 8, 0, 8)
                             .Text("Recent projects"),
-
+                        
                         new ItemsControl()
                             .ItemsSource(Bind(RecentProjects))
-                            .ItemTemplate(RecentProjectTemplate)
+                            .ItemsPanel(new WrapPanel())
+                            .ItemTemplate(new FuncDataTemplate<PreloadedProject>((vm, _) => new ProjectItem(vm)))
 
                     ) //StackPanel.Children
             );
@@ -72,7 +67,7 @@ public class OpenDocumentView : ComponentBase
     [Inject] private IProjectService ProjectService { get; } = null!;
     [Inject] private IMessenger Messenger { get; set; } = null!;
 
-    public ObservableCollection<MruItem> RecentProjects { get; set; } = new();
+    public ObservableCollection<PreloadedProject> RecentProjects { get; set; } = new();
 
     protected override void OnAfterInitialized()
     {
@@ -82,10 +77,10 @@ public class OpenDocumentView : ComponentBase
 
     public async void UpdateMruData()
     {
-        var recentProjects = await ProjectService.GetRecentProjectsAsync();
+        var projects = await ProjectService.GetProjectsListAsync();
         RecentProjects.Clear();
-        foreach (var fileContentSource in recentProjects.Reverse())
-            RecentProjects.Add(new MruItem(fileContentSource, ProjectService));
+        foreach (var project in projects.AllProjects) 
+            RecentProjects.Add(project);
     }
 
 
@@ -94,27 +89,74 @@ public class OpenDocumentView : ComponentBase
         Commands.View.HideMainMenuCommand.Execute();
         await ProjectService.OpenFilesAsync();
     }
+}
 
-    public sealed class MruItem
+public class ProjectItem : ComponentBase
+{
+    private PreloadedProject _project;
+    public readonly SKBitmapObservable Preview = new()
     {
-        public IFileContentSource File { get; set; }
+        Bitmap = StaticResources.NoPreview.ToSKBitmap()
+    };
 
-        public IProjectService ProjectService { get; }
+    public string ProjectName => string.IsNullOrWhiteSpace(_project?.Name) ? "Loading..." : _project.Name;
 
-        public string Path => File.Path;
+    public ProjectItem(PreloadedProject project)
+    {
+        _project = project;
+        LoadPreview();
+        StateHasChanged();
+    }
 
-        public string Title => File.Title;
+    protected override object Build()
+    {
+        return new Button()
+            .BorderThickness(4)
+            .Padding(0)
+            .Height(128)
+            .Width(128)
+            .Margin(new Thickness(0, 0, 8, 8))
+            .Background(StaticResources.Brushes.MainBackgroundBrush)
+            .OnClick(LoadProject)
+            .Content(new Grid().Rows("*").Cols("*").Children(
+                new SKImageView()
+                    .Width(120)
+                    .Height(120)
+                    .Source(Preview),
+                new Border()
+                    .Background(StaticResources.Brushes.MainBackgroundBrush)
+                    .CornerRadius(4)
+                    .VerticalAlignment(VerticalAlignment.Bottom)
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .Padding(4)
+                    .Margin(4)
+                    .Child(
+                        new TextBlock()
+                            .Text(@ProjectName))
+            ));
+    }
 
-        public MruItem(IFileContentSource fileContentSource, IProjectService projectService)
+    private void LoadPreview()
+    {
+        Task.Run(async () => 
+        // Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            File = fileContentSource;
-            ProjectService = projectService;
-        }
+            var preview = await _project.LoadPreviewAsync();
+            if (preview != null)
+            {
+                Preview.SetBitmap(preview);
+                OnPropertyChanged(nameof(Preview));
+                StateHasChanged();
+            }
+        });
+    }
 
-        internal async void OpenAsync()
+    private void LoadProject(RoutedEventArgs _)
+    {
+        Dispatcher.UIThread.InvokeAsync(async () =>
         {
             Commands.View.HideMainMenuCommand.Execute();
-            await ProjectService.OpenFilesAsync(new[] { File });
-        }
+            await CoreServices.ProjectService.OpenFilesAsync(new[] { _project.File });
+        });
     }
 }
