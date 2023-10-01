@@ -27,7 +27,7 @@ public class BackgroundSelectorView : ViewBaseSingletonVm<LayersListViewModel>
                                     .Rows("Auto, Auto, Auto")
                                     .Children(
                                         new TextBlock().Text("Background"),
-                                        new ColorPicker().Row(1)
+                                        new Pix2dColorPicker().Row(1)
                                             .Margin(10)
                                             .Color(@vm.SelectedBackgroundColor, BindingMode.TwoWay)
                                             .Margin(0, 8)

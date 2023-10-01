@@ -1,10 +1,10 @@
-﻿using Avalonia.Interactivity;
-using Avalonia.Reactive;
-using Avalonia.Styling;
+﻿using System.Diagnostics;
+using Avalonia.Interactivity;
 using Avalonia.Xaml.Interactions.Responsive;
 using CommonServiceLocator;
 using Pix2d.Messages;
 using Pix2d.Shared;
+using Pix2d.UI;
 using Pix2d.Views.Animation;
 using Pix2d.Views.BrushSettings;
 using Pix2d.Views.Export;
@@ -143,6 +143,7 @@ public class MainView : ComponentBase
                             .Top(40)
                             .Right(100)
                             .Content(new LayerOptionsView())
+
                     }),
 
                 new ToolSettingsContainerView().Col(1).Row(2)
@@ -186,4 +187,10 @@ public class MainView : ComponentBase
                     .Col(0).ColSpan(2)
                     .Row(0).RowSpan(3)
             });
+
+    protected override void OnBeforeReload()
+    {
+        Debug.WriteLine(" Reloading main view...");
+        base.OnBeforeReload();
+    }
 }

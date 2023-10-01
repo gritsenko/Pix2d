@@ -22,7 +22,7 @@ public class ColorPickerView : ComponentBase
             .Rows("140, Auto, *")
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(
-                new ColorPicker()
+                new Pix2dColorPicker()
                     .Margin(10)
                     .Color(@vm.SelectedColor, BindingMode.TwoWay),
 

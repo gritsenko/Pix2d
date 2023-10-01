@@ -22,7 +22,7 @@ public class ColorPickerButton : ViewBase
             .Flyout(
                 new Flyout()
                     .Content(
-                        new ColorPicker().Row(1)
+                        new Pix2dColorPicker().Row(1)
                             .Margin(10)
                             .Color(Color, BindingMode.TwoWay, bindingSource: this)
                             .Margin(0, 8)

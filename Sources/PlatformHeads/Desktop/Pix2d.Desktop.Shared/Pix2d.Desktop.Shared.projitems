@@ -17,4 +17,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Services\AvaloniaFontService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\PlatformStuffService.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Assets\app.ico" />
+    <None Include="$(MSBuildThisFileDirectory)Assets\app1.ico" />
+  </ItemGroup>
 </Project>

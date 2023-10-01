@@ -5,10 +5,10 @@ using Avalonia.Controls.Shapes;
 
 namespace Pix2d.Shared;
 
-public class ColorPicker : ViewBase
+public class Pix2dColorPicker : ViewBase
 {
-    public static readonly DirectProperty<ColorPicker, SKColor> ColorProperty
-        = AvaloniaProperty.RegisterDirect<ColorPicker, SKColor>(nameof(Color), o => o.Color, (o, v) => o.Color = v);
+    public static readonly DirectProperty<Pix2dColorPicker, SKColor> ColorProperty
+        = AvaloniaProperty.RegisterDirect<Pix2dColorPicker, SKColor>(nameof(Color), o => o.Color, (o, v) => o.Color = v);
     private SKColor _color = default;
     public SKColor Color
     {
@@ -26,8 +26,8 @@ public class ColorPicker : ViewBase
         }
     }
 
-    public static readonly DirectProperty<ColorPicker, Color> ColorHueProperty
-        = AvaloniaProperty.RegisterDirect<ColorPicker, Color>(nameof(ColorHue), o => o.ColorHue, (o, v) => o.ColorHue = v);
+    public static readonly DirectProperty<Pix2dColorPicker, Color> ColorHueProperty
+        = AvaloniaProperty.RegisterDirect<Pix2dColorPicker, Color>(nameof(ColorHue), o => o.ColorHue, (o, v) => o.ColorHue = v);
     private Color _colorHue = default;
     public Color ColorHue
     {

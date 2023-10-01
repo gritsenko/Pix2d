@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <Nullable>enable</Nullable>
-    <AvaloniaVersion>11.0.0-preview5</AvaloniaVersion>
+    <AvaloniaVersion>11.0.4</AvaloniaVersion>
+    <Pix2dVersion>3.0.2</Pix2dVersion>
   </PropertyGroup>
 </Project>

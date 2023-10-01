@@ -56,7 +56,6 @@
     <DefaultLanguage>en-US</DefaultLanguage>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <NoWarn>$(NoWarn);NU1702</NoWarn>
-    <EntryPointProjectUniqueName>..\Pix2d.Editor.WindowsStore\Pix2d.WindowsStore.csproj</EntryPointProjectUniqueName>
     <GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
     <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
     <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
@@ -64,6 +63,7 @@
     <AppxBundlePlatforms>x86|x64|arm64</AppxBundlePlatforms>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+    <EntryPointProjectUniqueName>..\Pix2d.Desktop.WindowsStore\Pix2d.Desktop.WindowsStore.csproj</EntryPointProjectUniqueName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <AppxBundle>Always</AppxBundle>
@@ -112,8 +112,8 @@
     <Content Include="Images\Wide310x150Logo.scale-200.png" />
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
-  <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />
   <ItemGroup>
-    <ProjectReference Include="..\Pix2d.Editor.WindowsStore\Pix2d.WindowsStore.csproj" />
+    <ProjectReference Include="..\Pix2d.Desktop.WindowsStore\Pix2d.Desktop.WindowsStore.csproj" />
   </ItemGroup>
+  <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />
 </Project>

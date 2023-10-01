@@ -1,20 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<OutputType>WinExe</OutputType>
-		<TargetFramework>net7.0-windows10.0.19041.0</TargetFramework>
-		<ApplicationIcon>Assets\app1.ico</ApplicationIcon>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+		<ApplicationIcon>app.ico</ApplicationIcon>
 		<StartupObject />
 		<AssemblyName>Pix2d</AssemblyName>
-		<Version>3.0.2</Version>
+		<Version>$(Pix2dVersion)</Version>
 		<PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
 	</PropertyGroup>
-	<PropertyGroup>
-		<EnableWindowsTargeting>true</EnableWindowsTargeting>
-	</PropertyGroup>
 
-  <PropertyGroup>
-    <DefineConstants>$(DefineConstants);WINDOWS_UWP</DefineConstants>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <PlatformTarget>x86</PlatformTarget>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <PlatformTarget>ARM64</PlatformTarget>
+    <RuntimeIdentifier>win-arm64</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,9 +47,10 @@
 		<PackageReference Include="Sentry" Version="3.39.1" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
-	  <ProjectReference Include="..\..\Core\Pix2d\Pix2d.Core.csproj" />
-	  <ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
+	  <ProjectReference Include="..\..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+	  <ProjectReference Include="..\..\..\Core\Pix2d.UI\Pix2d.UI.csproj" />
+	  <ProjectReference Include="..\..\..\Core\Pix2d\Pix2d.Core.csproj" />
+	  <ProjectReference Include="..\..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
 	</ItemGroup>
-	<Import Project="..\..\Pix2d.Desktop.Shared\Pix2d.Desktop.Shared.projitems" Label="Shared" />
+	<Import Project="..\Pix2d.Desktop.Shared\Pix2d.Desktop.Shared.projitems" Label="Shared" />
 </Project>

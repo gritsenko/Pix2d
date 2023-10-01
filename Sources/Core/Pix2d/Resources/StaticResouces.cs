@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Pix2d.Common.Converters;

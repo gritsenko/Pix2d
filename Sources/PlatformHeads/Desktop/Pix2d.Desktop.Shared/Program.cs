@@ -4,10 +4,10 @@ using Avalonia;
 using Avalonia.Markup.Declarative;
 using Pix2d.Abstract.Services;
 using Sentry;
-using Sentry.Protocol;
+
+[assembly: System.Reflection.Metadata.MetadataUpdateHandler(typeof(Avalonia.Markup.Declarative.HotReloadManager))]
 
 namespace Pix2d.Desktop;
-
 class Program
 {
     // Initialization code. Don't use any CrossPlatformDesktop, third-party APIs or any
