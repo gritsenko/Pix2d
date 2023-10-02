@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Pix2d;
 using SkiaSharp;
 
 namespace PixelMixel.Modules.PixelCanvas.Tools
@@ -161,10 +162,23 @@ namespace PixelMixel.Modules.PixelCanvas.Tools
             var di = 0;
             for (var i = 0; i < pixels.Length; i++, di = i * 4)
             {
-                bytes[di] = pixels[i].Blue;
-                bytes[di+1] = pixels[i].Green;
-                bytes[di+2] = pixels[i].Red;
-                bytes[di+3] = pixels[i].Alpha;
+                switch (Pix2DAppSettings.ColorType)
+                {
+                    case SKColorType.Bgra8888:
+                        bytes[di] = pixels[i].Blue;
+                        bytes[di+1] = pixels[i].Green;
+                        bytes[di+2] = pixels[i].Red;
+                        bytes[di+3] = pixels[i].Alpha;
+                        break;
+                    case SKColorType.Rgba8888:
+                        bytes[di] = pixels[i].Red;
+                        bytes[di+1] = pixels[i].Green;
+                        bytes[di+2] = pixels[i].Blue;
+                        bytes[di+3] = pixels[i].Alpha;
+                        break;
+                    default:
+                        throw new Exception("Sorry, I don't support this color type");
+                }
             }
             return bytes;
         }
