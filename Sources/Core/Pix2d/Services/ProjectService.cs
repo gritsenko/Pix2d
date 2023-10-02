@@ -40,7 +40,7 @@ public class ProjectService : IProjectService
     private async Task<IEnumerable<IFileContentSource>> GetLocalProjectsAsync()
     {
         var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
-        return await folder.GetFilesAsync();
+        return (await folder.GetFilesAsync()).OrderByDescending(o => o.LastModified);
     }
 
     public bool HasUnsavedChanges
@@ -303,6 +303,7 @@ public class ProjectService : IProjectService
     public async Task<IFileContentSource[]> GetRecentProjectsAsync()
     {
         var result = await FileService.GetMruFilesAsync();
+        result.Sort((a, b) => b.LastModified.CompareTo(a.LastModified));
         return result.ToArray();
     }
 

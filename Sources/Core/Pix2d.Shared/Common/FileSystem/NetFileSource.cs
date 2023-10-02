@@ -10,6 +10,7 @@ public class NetFileSource : IFileContentSource
     public string Path { get; }
 
     public bool Exists => File.Exists(Path);
+    public DateTime LastModified => File.GetLastWriteTime(Path);
 
     public string Extension => System.IO.Path.GetExtension(Path);
     public string Title { get; set; }
