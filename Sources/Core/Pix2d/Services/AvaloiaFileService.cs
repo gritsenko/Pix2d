@@ -168,6 +168,11 @@ public class AvaloiaFileService : IFileService {
         return new List<IFileContentSource>();
     }
 
+    public void DeleteFile(string path)
+    {
+        
+    }
+
     public Task<bool> IsFileExistsAsync(IFileContentSource fileSource) {
         return Task.FromResult(fileSource != null && File.Exists(fileSource.Path));
     }
