@@ -1,9 +1,12 @@
-﻿using Avalonia.Controls.Shapes;
+﻿using System;
+using Avalonia.Controls.Shapes;
 using Pix2d.Messages;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using CommonServiceLocator;
+using Pix2d.Abstract.Platform;
 using Pix2d.Project;
 using Pix2d.Shared;
 
@@ -98,6 +101,9 @@ public class ProjectItem : ComponentBase
     {
         Bitmap = StaticResources.NoPreview.ToSKBitmap()
     };
+    
+    [Inject] private IMessenger Messenger { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
 
     public string ProjectName => string.IsNullOrWhiteSpace(_project?.Name) ? "Loading..." : _project.Name;
 
@@ -132,14 +138,48 @@ public class ProjectItem : ComponentBase
                     .Margin(4)
                     .Child(
                         new TextBlock()
-                            .Text(@ProjectName))
+                            .Text(@ProjectName)),
+                new Button()
+                    .VerticalAlignment(VerticalAlignment.Top)
+                    .HorizontalAlignment(HorizontalAlignment.Right)
+                    .CornerRadius(12)
+                    .Height(24)
+                    .Width(24)
+                    .Background(StaticResources.Brushes.MainBackgroundBrush)
+                    .OnClick(OnDeleteClick)
+                    .Content(
+                        new TextBlock()
+                            .Classes("FontIcon")
+                            .FontSize(12)
+                            .Text("\xe107")
+                        )
+                
             ));
+    }
+
+    private async void OnDeleteClick(RoutedEventArgs ev)
+    {
+        ev.Handled = true;
+        
+        if (await DialogService.ShowYesNoDialog($"Do you want to delete project \"{_project.Name}\" from disc?", "Delete project", "Yes"))
+        {
+            try
+            {
+                _project.File.Delete();
+                Messenger.Send(new MruChangedMessage());
+            }
+            catch (Exception e)
+            {
+                Logger.LogException(e);
+                await DialogService.ShowAlert("Error while trying to delete project", "Error");
+            }
+            
+        }
     }
 
     private void LoadPreview()
     {
         Task.Run(async () => 
-        // Dispatcher.UIThread.InvokeAsync(async () =>
         {
             var preview = await _project.LoadPreviewAsync();
             if (preview != null)

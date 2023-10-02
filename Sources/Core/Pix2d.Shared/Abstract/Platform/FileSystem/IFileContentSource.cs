@@ -8,6 +8,7 @@ namespace Pix2d.Abstract.Platform.FileSystem
     {
         string Path { get; }
         bool Exists { get; }
+        DateTime LastModified { get; }
 
         /// <summary>
         /// file extension in .xxx format (include lead dot)

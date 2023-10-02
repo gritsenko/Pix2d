@@ -17,7 +17,13 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e) => this.PointerReleased(e);
 
-    protected override void PointerCaptureLost(IPointer pointer) => this.RemoveContact(pointer);
+    protected override void PointerCaptureLost(IPointer pointer) => this.RemoveAllContacts();
+
+    private void RemoveAllContacts()
+    {
+        this._firstContact = null;
+        this._secondContact = null;
+    }
 
     protected override void PointerMoved(PointerEventArgs e)
     {
@@ -64,7 +70,9 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
         else
         {
             if (this._secondContact != null || this._firstContact == e.Pointer)
+            {
                 return;
+            }
             
             this._secondContact = e.Pointer;
             this._secondPoint = e.GetPosition(target);
@@ -84,10 +92,14 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
     private void RemoveContact(IPointer pointer)
     {
         if (this._firstContact != pointer && this._secondContact != pointer)
+        {
             return;
-        
+        }
+
         if (this._secondContact == pointer)
+        {
             this._secondContact = (IPointer) null;
+        }
         if (this._firstContact == pointer)
         {
             this._firstContact = this._secondContact;

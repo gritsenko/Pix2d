@@ -17,5 +17,6 @@ namespace Pix2d.Abstract.Platform
 
         void AddToMru(IFileContentSource fileSource);
         Task<List<IFileContentSource>> GetMruFilesAsync();
+        void DeleteFile(string path);
     }
 }

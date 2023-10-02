@@ -6,6 +6,7 @@ using Android.Database;
 using Android.Provider;
 using Java.IO;
 using Pix2d.Abstract.Platform.FileSystem;
+using File = System.IO.File;
 using Uri = Android.Net.Uri;
 
 namespace Pix2d.Android.Services;
@@ -15,6 +16,7 @@ public class AndroidFileContentSource : IFileContentSource
     private readonly Uri _contentUri;
     public string Path { get; }
     public bool Exists { get; }
+    public DateTime LastModified => File.GetLastWriteTime(Path);
     public string Extension { get; }
     public string Title { get; set; }
 
