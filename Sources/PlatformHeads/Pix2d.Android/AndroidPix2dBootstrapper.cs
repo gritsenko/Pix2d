@@ -25,6 +25,7 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
             //typeof(AiPlugin)
         },
         AutoSaveNewProject = true,
+        AutoSaveInterval = TimeSpan.FromSeconds(10),
     };
 
     public async Task InitializeAsync()

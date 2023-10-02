@@ -52,7 +52,7 @@ public class SessionService : ISessionService
     public void StartAutoSave()
     {
         Debug.WriteLine("Resetting session timer");
-        var period = TimeSpan.FromMinutes(3);
+        var period = AppState.Settings.AutoSaveInterval;
         if (_sessionTimer == null)
             _sessionTimer = new Timer(OnSessionTimerTick, this, period, period);
         else
@@ -83,7 +83,6 @@ public class SessionService : ISessionService
             return;
         }
 
-        OpLog();
         try
         {
             var hasChanges = ProjectState.HasUnsavedChanges;
@@ -95,6 +94,7 @@ public class SessionService : ISessionService
                 return;
             }
 
+            OpLog();
             _isSavingSession = true;
 
             var sessionInfo = new SessionInfo
