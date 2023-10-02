@@ -1,0 +1,12 @@
+{
+  "username": "",
+  "useremail": "",
+  "sources": [
+    {
+      "name": "dev.gritsenko.biz",
+      "type": "local",
+      "path": ".\\local_feed",
+      "baseURI": "https://dev.gritsenko.biz/nugets"
+    }
+  ]
+}
