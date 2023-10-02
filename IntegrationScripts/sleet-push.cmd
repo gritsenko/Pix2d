@@ -1,0 +1,2 @@
+# instructions here: https://github.com/emgarten/Sleet/blob/main/doc/feed-type-local.md
+sleet push -s dev.gritsenko.biz "C:\Projects\Avalonia\Avalonia.Markup.Declarative\src\Avalonia.Markup.Declarative\bin\Release"
