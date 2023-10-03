@@ -2,8 +2,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:ui="clr-namespace:Pix2d.UI"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Pix2d.UI.TestXamlView">
-  <ui:InfoPanelViewEx/>
+  <Grid>
+    <Button Foreground="White" Background="DeepSkyBlue"
+            HorizontalAlignment="Stretch"
+                     VerticalAlignment="Top">
+      <TextBlock Text="To disable Pix2d watermark, please accrue PRO version"
+                 TextWrapping="Wrap"
+                 FontSize="22"></TextBlock>
+    </Button>
+  </Grid>
 </UserControl>

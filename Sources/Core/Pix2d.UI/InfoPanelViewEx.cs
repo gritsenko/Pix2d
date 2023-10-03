@@ -16,7 +16,7 @@ public class InfoPanelViewEx : ComponentBase
             .Children(
 
                 new TextBlock().ColSpan(3)
-                    .Text("Hello world 111")
+                    .Text("Hello world")
                     .Padding(8, 0, 0, 0)
                     .With(LabelStyle)
             );
