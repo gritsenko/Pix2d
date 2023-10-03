@@ -14,7 +14,6 @@ public class InfoPanelViewEx : ComponentBase
             .IsHitTestVisible(false)
             .Height(28)
             .Children(
-
                 new TextBlock().ColSpan(3)
                     .Text("Hello world")
                     .Padding(8, 0, 0, 0)
