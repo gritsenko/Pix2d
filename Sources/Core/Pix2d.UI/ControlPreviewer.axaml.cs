@@ -4,9 +4,9 @@ using Avalonia.Markup.Xaml;
 
 namespace Pix2d.UI;
 
-public partial class TestXamlView : UserControl
+public partial class ControlPreviewer : UserControl
 {
-    public TestXamlView()
+    public ControlPreviewer()
     {
         InitializeComponent();
     }

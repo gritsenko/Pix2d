@@ -43,10 +43,4 @@
     <ProjectReference Include="..\Pix2d.Shared\Pix2d.Shared.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="TestXamlView.axaml.cs">
-      <DependentUpon>TestXamlView.axaml</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
 </Project>

@@ -14,6 +14,7 @@ using Pix2d.Exporters;
 using SkiaNodes.Extensions;
 using Pix2d.CommonNodes;
 using Pix2d.UI;
+using Pix2d.UI.Export;
 
 namespace Pix2d.Views.Export;
 
@@ -92,7 +93,7 @@ public class ExportView : ComponentBase
                                     .Background(StaticResources.Brushes.SelectedItemBrush)
                                     .Command(Commands.View.HideExportDialogCommand)
                             ),
-                        new TestXamlView()
+                        new ExportProWarningView()
                     )
             ));
 
