@@ -2,7 +2,8 @@
 using System.IO;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Pix2d.Common.Converters;
+using Pix2d.Common;
+using Pix2d.UI.Common.Converters;
 using SkiaSharp;
 
 namespace Pix2d.Resources;

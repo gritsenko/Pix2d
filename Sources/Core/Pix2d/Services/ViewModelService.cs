@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Mvvm;
+using Pix2d.Infrastructure.Mvvm;
 using Pix2d.Mvvm;
 
 namespace Pix2d.Services;
@@ -8,7 +8,7 @@ namespace Pix2d.Services;
 public class ViewModelService : IViewModelService
 {
 
-    private readonly HashSet<Type> SingletonVms = new HashSet<Type>();
+    private readonly HashSet<Type> SingletonVms = new();
 
     public TViewModel GetViewModel<TViewModel>(bool singleton = true)
         where TViewModel : class

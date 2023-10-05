@@ -1,5 +1,4 @@
-﻿using Avalonia.Styling;
-using Pix2d.Messages.ViewPort;
+﻿using Pix2d.Messages.ViewPort;
 
 namespace Pix2d.Views;
 

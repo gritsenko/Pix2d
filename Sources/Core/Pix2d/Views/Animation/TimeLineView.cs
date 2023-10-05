@@ -1,12 +1,9 @@
 ﻿using Avalonia.Xaml.Interactions.DragAndDrop;
-using Pix2d.Common.Behaviors;
-using Pix2d.Plugins.Sprite.ViewModels;
 using Pix2d.ViewModels.Animations;
-using SkiaSharp;
 using Avalonia.Controls.Shapes;
-using Avalonia.Interactivity;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.ViewModels.Animation;
+using Pix2d.UI.Common.Behaviors;
 
 namespace Pix2d.Views.Animation;
 

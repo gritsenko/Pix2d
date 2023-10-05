@@ -7,6 +7,7 @@ using Pix2d.Abstract.Tools;
 using Pix2d.Abstract.UI;
 using Pix2d.CommonNodes;
 using Pix2d.Drawing.Nodes;
+using Pix2d.Infrastructure.Mvvm;
 using Pix2d.Messages;
 using Pix2d.Mvvm;
 using Pix2d.Operations;

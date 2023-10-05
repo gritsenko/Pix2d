@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.UI;
 
 namespace Pix2d.Common;

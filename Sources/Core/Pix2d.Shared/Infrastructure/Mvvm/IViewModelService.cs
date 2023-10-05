@@ -1,7 +1,6 @@
 ﻿using System;
-using Mvvm;
 
-namespace Pix2d.Mvvm;
+namespace Pix2d.Infrastructure.Mvvm;
 
 public interface IViewModelService
 {

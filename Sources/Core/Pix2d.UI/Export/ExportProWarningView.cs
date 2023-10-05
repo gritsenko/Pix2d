@@ -1,6 +1,4 @@
-﻿using Avalonia.Media;
-
-namespace Pix2d.UI.Export;
+﻿namespace Pix2d.UI.Export;
 
 public class ExportProWarningView : ComponentBase
 {

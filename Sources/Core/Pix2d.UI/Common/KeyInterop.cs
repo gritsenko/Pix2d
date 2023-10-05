@@ -1,9 +1,8 @@
-﻿using System.Collections.Generic;
-using Avalonia.Input;
+﻿using Avalonia.Input;
 
 namespace Pix2d.Common;
 
-static class KeyInterop
+public static class KeyInterop
 {
     private static readonly Dictionary<Key, int> s_virtualKeyFromKey = new Dictionary<Key, int>
     {

@@ -1,5 +1,4 @@
-﻿using Avalonia.Media.Imaging;
-using Avalonia.Platform;
+﻿using Avalonia.Platform;
 using SkiaSharp;
 
 namespace Pix2d.Common;

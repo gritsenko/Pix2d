@@ -1,4 +1,4 @@
-﻿using System;
+﻿using Pix2d.Common;
 using Avalonia.Controls.Shapes;
 
 namespace Pix2d.Resources;

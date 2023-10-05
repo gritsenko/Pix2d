@@ -1,8 +1,8 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
+using Pix2d.Common;
 using SkiaSharp;
 
-namespace Pix2d.Common.Converters;
+namespace Pix2d.UI.Common.Converters;
 
 public class SKBitmapToBrushConverter : IValueConverter
 {

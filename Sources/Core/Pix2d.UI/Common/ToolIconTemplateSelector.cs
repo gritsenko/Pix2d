@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Avalonia.Controls.Shapes;
-using Avalonia.Metadata;
+﻿using Avalonia.Metadata;
 
 namespace Pix2d.Common;
 

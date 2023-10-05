@@ -5,7 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Xaml.Interactions.DragAndDrop;
 using Avalonia.Xaml.Interactivity;
 
-namespace Pix2d.Common.Behaviors;
+namespace Pix2d.UI.Common.Behaviors;
 
 public class ItemsListContextDragBehavior : Behavior<Control>
 {
