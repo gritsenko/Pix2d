@@ -145,6 +145,7 @@ public class BrushTool : BaseTool, IDrawingTool
             //drawing shapes
             _currentBuilder.Reset();
             _currentBuilder.BeginDrawing();
+            DrawingService.DrawingLayer.UseSwapBitmap = true;
             _currentBuilder.AddPoint(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
         }
 
