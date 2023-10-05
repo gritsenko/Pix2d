@@ -13,3 +13,10 @@ global using Avalonia.Controls.Templates;
 global using Avalonia.Data;
 global using Avalonia.Data.Converters;
 global using Avalonia.Markup.Declarative;
+
+global using Mvvm.Messaging;
+global using Pix2d.Abstract;
+global using Pix2d.Abstract.Services;
+global using Pix2d.Abstract.State;
+global using Pix2d.Resources;
+global using Pix2d.State;
