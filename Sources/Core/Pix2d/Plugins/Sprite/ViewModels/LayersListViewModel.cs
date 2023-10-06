@@ -346,6 +346,16 @@ public class LayersListViewModel : Pix2dViewModelBase
             _reorderingNodeOldIndex = -1;
         }
 
+        if (e.Action == NotifyCollectionChangedAction.Move)
+        {
+            var reversedOldIndex = Layers.Count - e.OldStartingIndex - 1;
+            var reversedNewIndex = Layers.Count - e.NewStartingIndex - 1;
+            
+            var editor = EditService.GetCurrentEditor() as SpriteEditor;
+            editor?.ReorderLayers(reversedOldIndex, reversedNewIndex);
+            _reorderingNodeOldIndex = -1;
+        }
+
         _layersReordering = false;
         //Debug.WriteLine(e.Action);
     }
