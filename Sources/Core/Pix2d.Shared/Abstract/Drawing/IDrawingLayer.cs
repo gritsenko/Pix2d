@@ -23,6 +23,7 @@ public interface IDrawingLayer
     event EventHandler LayerModified;
 
     bool IsPixelPerfectMode{ get; set; }
+    bool UseSwapBitmap { get; set; }
         
     void SetTarget(IDrawingTarget target);
 
@@ -35,7 +36,7 @@ public interface IDrawingLayer
     SKColor DrawingColor { get; set; }
     IPixelBrush Brush { get; set; }
 
-    void FillRegion(SKPoint origin, SKColor fillColor, float tolerance = 0);
+    void FillRegion(SKPoint origin, SKColor fillColor, float tolerance = 0, SKBlendMode blendMode = SKBlendMode.SrcOver);
 
     void SetDrawingLayerMode(BrushDrawingMode drawingMode);
 
@@ -52,7 +53,7 @@ public interface IDrawingLayer
 
     SKNode GetSelectionLayer();
 
-    void BeginDrawing(bool hideTarget = true);
+    void BeginDrawing();
 
     /// <summary>
     /// Finalizes current drawing operation and sets the drawing layer as ready to be drawn to the UI.
@@ -60,10 +61,10 @@ public interface IDrawingLayer
     void FinishCurrentDrawing();
     
     /// <summary>
-    /// Applies pixels from working bitmat to target layer, then clears working bitmap
+    /// Applies pixels from working bitmap to target layer, then clears working bitmap
     /// </summary>
     /// <param name="cancel">If true, just clears working bitmap without aplying pixels</param>
-    void FinishDrawing(bool cancel = false, SKBlendMode blendMode = SKBlendMode.SrcOver);
+    void FinishDrawing(bool cancel = false);
 
     void ApplyDrawing();
 

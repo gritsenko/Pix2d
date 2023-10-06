@@ -22,7 +22,7 @@ public class SelectionOperation : EditOperationBase
         _selectionData = new SelectionData
         {
             SelectionLayer = (SpriteSelectionNode)drawingLayer.GetSelectionLayer(),
-            SelectionBackground = drawingLayer.GetSelectionBackground(),
+            BackgroundBitmap = drawingLayer.GetSelectionBackground(),
             DrawingTarget = drawingLayer.DrawingTarget,
             DrawingTargetData = drawingLayer.DrawingTarget.GetData(),
         };
@@ -46,14 +46,14 @@ public class SelectionOperation : EditOperationBase
     {
         _finalState.ApplyTo(_selectionData.SelectionLayer);
         _selectionData.DrawingTarget.SetData(_selectionData.DrawingTargetData);
-        _drawingLayer.SetSelection(_selectionData.SelectionLayer, _selectionData.SelectionBackground);
+        _drawingLayer.SetSelection(_selectionData.SelectionLayer, _selectionData.BackgroundBitmap);
     }
 
     public override void OnPerformUndo()
     {
         _initialState.ApplyTo(_selectionData.SelectionLayer);
         _selectionData.DrawingTarget.SetData(_selectionData.DrawingTargetData);
-        _drawingLayer.SetSelection(_selectionData.SelectionLayer, _selectionData.SelectionBackground);
+        _drawingLayer.SetSelection(_selectionData.SelectionLayer, _selectionData.BackgroundBitmap);
     }
 
     public override IEnumerable<SKNode> GetEditedNodes()
@@ -64,7 +64,7 @@ public class SelectionOperation : EditOperationBase
     private class SelectionData
     {
         public SpriteSelectionNode SelectionLayer { get; set; }
-        public SKBitmap SelectionBackground { get; set; }
+        public SKBitmap BackgroundBitmap { get; set; }
         public IDrawingTarget DrawingTarget { get; set; }
         public byte[] DrawingTargetData { get; set; }
     }

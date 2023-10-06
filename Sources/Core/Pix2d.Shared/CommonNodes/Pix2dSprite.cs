@@ -119,12 +119,12 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IUpdatableNode, IDr
 
     public void HideTargetBitmap()
     {
-        this.SelectedLayer.IsVisible = false;
+        this.SelectedLayer.HideFrame(CurrentFrameIndex);
     }
 
     public void ShowTargetBitmap()
     {
-        this.SelectedLayer.IsVisible = true;
+        this.SelectedLayer.ShowFrame(CurrentFrameIndex);
     }
 
     public void SetTargetBitmapSubstitute(Func<SKBitmap> substitute)
@@ -365,7 +365,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IUpdatableNode, IDr
             foreach (var layer in Layers)
             {
                 if (layer.IsVisible)
-                    layer.RenderFrame(frameIndex, canvas, vp);
+                    layer.RenderFrame(frameIndex, canvas, vp, renderHidden: true);
             }
             canvas.Flush();
         }

@@ -114,11 +114,7 @@ namespace Pix2d.Drawing.Brushes
             var destRect = GetRect(pos - CenterPoint, new SKSize(bm.Width, bm.Height));
             var composMode = SKBlendMode.SrcOver;
 
-            if (layer.LockTransparentPixels)
-            {
-                composMode = SKBlendMode.SrcATop;
-            }
-            layer.DrawWithBitmap(bm, destRect, composMode, (float) (_opacity));
+            layer.DrawWithBitmap(bm, destRect, composMode, _opacity);
         }
 
         private SKRect GetRect(SKPointI pos, SKSize size)

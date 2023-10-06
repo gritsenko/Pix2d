@@ -101,7 +101,10 @@ namespace Pix2d.CommonNodes
 
             public override void OnDraw(SKCanvas canvas, ViewPort vp)
             {
-                GetActiveFrameSprite()?.OnDraw(canvas, vp);
+                if (!HiddenFrames.Contains(CurrentFrameIndex))
+                {
+                    GetActiveFrameSprite()?.OnDraw(canvas, vp);
+                }
             }
 
             protected override void OnChildrenAdded(IEnumerable<SKNode> newNodes)
@@ -246,17 +249,18 @@ namespace Pix2d.CommonNodes
                 vp.ShowArea(GetBoundingBox());
                 // }
 
-                using (var canvas = targetBitmap.GetSKSurface().Canvas)
-                {
-                    canvas.Clear(SKColor.Empty);
+                using var canvas = targetBitmap.GetSKSurface().Canvas;
+                canvas.Clear(SKColor.Empty);
 
-                    RenderFrame(frameIndex, canvas, vp);
-                    canvas.Flush();
-                }
+                RenderFrame(frameIndex, canvas, vp, renderHidden: true);
+                canvas.Flush();
             }
 
-            public void RenderFrame(int frameIndex, SKCanvas canvas, ViewPort vp, float opacity = 1f)
+            public void RenderFrame(int frameIndex, SKCanvas canvas, ViewPort vp, float opacity = 1f, bool renderHidden = false)
             {
+                if (!renderHidden && HiddenFrames.Contains(frameIndex))
+                    return;
+                
                 if (FrameCount > frameIndex)
                 {
                     //to show layer effects on previews we need apply them before render frames
@@ -399,6 +403,18 @@ namespace Pix2d.CommonNodes
                 EnsureFrameHasUniqueSprite(frame);
                 GetSpriteByFrame(frame).RotateSourceBitmap(resize);
             }
+
+            public void HideFrame(int frameIndex)
+            {
+                HiddenFrames.Add(frameIndex);
+            }
+            
+            public void ShowFrame(int frameIndex)
+            {
+                HiddenFrames.Remove(frameIndex);
+            }
+
+            private HashSet<int> HiddenFrames = new HashSet<int>();
         }
     }
 }
