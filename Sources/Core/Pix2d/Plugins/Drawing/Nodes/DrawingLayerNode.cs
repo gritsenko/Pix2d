@@ -272,10 +272,9 @@ namespace Pix2d.Drawing.Nodes
                 }
                 else
                 {
-                    if(IsPixelPerfectMode)
+                    if (IsPixelPerfectMode)
                     {
                         var ppf = PixelPerfect(_strokePoints);
-                        _swapBitmap.Clear();
                         DrawStroke(ppf);
                         SwapWorkingBitmap();
                     }
@@ -423,6 +422,7 @@ namespace Pix2d.Drawing.Nodes
                 _strokePoints.Add(intpos);
 
             DrawStroke(PixelPerfect(_strokePoints));
+            SwapWorkingBitmap();
         }
 
         IEnumerable<SKPointI> PixelPerfect(List<SKPointI> path)
@@ -513,7 +513,7 @@ namespace Pix2d.Drawing.Nodes
             DrawingTarget.HideTargetBitmap();
             Opacity = DrawingTarget.GetOpacity();
             DrawingTarget.CopyBitmapTo(_backgroundBitmap);
-            UseSwapBitmap = false;
+            UseSwapBitmap = IsPixelPerfectMode;
 
             State = DrawingLayerState.Drawing;
         }
@@ -529,7 +529,9 @@ namespace Pix2d.Drawing.Nodes
             {
                 drawingTargetCanvas.Clear();
                 drawingTargetCanvas.DrawBitmap(_backgroundBitmap, 0, 0);
-                drawingTargetCanvas.DrawBitmap(_workingBitmap, 0, 0);
+                var paint = new SKPaint()
+                    {BlendMode = LockTransparentPixels && State == DrawingLayerState.Drawing ? SKBlendMode.SrcATop : SKBlendMode.SrcOver};
+                drawingTargetCanvas.DrawBitmap(_workingBitmap, 0, 0, paint);
             });
         }
 
@@ -612,8 +614,19 @@ namespace Pix2d.Drawing.Nodes
                 return;
             }
 
-            canvas.DrawBitmap(_backgroundBitmap, 0, 0);
-            canvas.DrawBitmap(_workingBitmap, 0, 0);
+            if (State == DrawingLayerState.Drawing && LockTransparentPixels)
+            {
+                using var tmpBitmap = _backgroundBitmap.Copy();
+                using var tmpCanvas = new SKCanvas(tmpBitmap);
+                tmpCanvas.DrawBitmap(_workingBitmap, 0, 0, new SKPaint() { BlendMode = SKBlendMode.SrcATop });
+                tmpCanvas.Flush();
+                canvas.DrawBitmap(tmpBitmap, 0, 0);
+            }
+            else
+            {
+                canvas.DrawBitmap(_backgroundBitmap, 0, 0);
+                canvas.DrawBitmap(_workingBitmap, 0, 0);
+            }
         }
 
         private void RenderBrushPreview(SKCanvas canvas)
