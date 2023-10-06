@@ -40,6 +40,8 @@ namespace Pix2d.Services
         public event EventHandler MirrorModeChanged;
         public event EventHandler Drawn;
         public event EventHandler DrawingTargetChanged;
+        
+        private IMessenger Messenger { get; }
 
         public List<IPixelBrush> Brushes { get; set; } = new()
         {
@@ -67,6 +69,7 @@ namespace Pix2d.Services
             ToolService = toolService;
             ViewPortService = viewPortService;
             AppState = appState;
+            Messenger = messenger;
 
             SetNewDrawingLayer(new DrawingLayerNode() { AspectSnapper = snappingService });
 
@@ -174,6 +177,10 @@ namespace Pix2d.Services
                     var operation = new BulkEditOperation(_currentDrawingOperations.ToArray<IEditOperation>());
                     operation.PushToHistory();
                 }
+            }
+            else
+            {
+                Messenger.Send(new SelectedLayerChangedMessage());
             }
 
             _currentDrawingOperation = null;

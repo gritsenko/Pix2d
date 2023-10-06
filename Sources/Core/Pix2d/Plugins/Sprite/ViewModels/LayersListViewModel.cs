@@ -147,7 +147,8 @@ public class LayersListViewModel : Pix2dViewModelBase
 
         Messenger.Register<NodeEditorChangedMessage>(this, OnNodeEditorChanged);
         Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
-        Messenger.Register<CanvasSizeChanged>(this, msg => Reload());
+        Messenger.Register<CanvasSizeChanged>(this, _ => Reload());
+        Messenger.Register<SelectedLayerChangedMessage>(this, _ => UpdatePreview());
             
         AvailableEffects.AddRange(EffectsService.GetAvailableEffects().Select(x => new EffectViewModel(Activator.CreateInstance(x.Value) as ISKNodeEffect)));
         OnEditorChanged();
@@ -237,15 +238,17 @@ public class LayersListViewModel : Pix2dViewModelBase
             SelectedLayer.SelectedEffect = null;
         }
 
-        DeferredAction.Run(100, () =>
-        {
-            SelectedLayer?.UpdatePreview();
+        DeferredAction.Run(100, UpdatePreview);
+    }
 
-            if (OnPreviewChanged != null && SelectedLayer != null)
-            {
-                OnPreviewChanged(Layers.IndexOf(SelectedLayer));
-            }
-        });
+    private void UpdatePreview()
+    {
+        SelectedLayer?.UpdatePreview();
+
+        if (OnPreviewChanged != null && SelectedLayer != null)
+        {
+            OnPreviewChanged(Layers.IndexOf(SelectedLayer));
+        }
     }
 
     private void OnEditorChanged()
