@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Pix2d.Common;
 
-public class ReviewService
+public class ReviewService : IReviewService
 {
     private ISettingsService SettingsService { get; }
     private IMessenger Messenger { get; }

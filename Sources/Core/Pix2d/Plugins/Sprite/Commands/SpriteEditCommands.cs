@@ -13,7 +13,7 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Sprite.Commands;
 
-public class SpriteEditCommands : CommandsListBase
+public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 {
     protected override string BaseName => "Sprite.Edit";
 

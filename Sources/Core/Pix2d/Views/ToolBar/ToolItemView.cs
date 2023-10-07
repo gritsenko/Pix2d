@@ -2,7 +2,6 @@
 using Avalonia.Interactivity;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
-using Pix2d.Shared;
 
 namespace Pix2d.Views.ToolBar;
 

@@ -12,9 +12,10 @@ namespace Pix2d.Abstract.Services
         Pix2dCommand RegisterSyncCommand(string key, Action action, string description, CommandShortcut? shortcut, EditContextType? editContextType = null, ICommandBehaviour behaviour = null);
         Task ExecuteCommandAsync(string name);
         bool TryGetCommand(string name, out Pix2dCommand command);
-        void RegisterCommandList(ICommandList commands);
+        void RegisterCommandList(ICommandList commandList);
         IEnumerable<Pix2dCommand> GetCommands();
 
         void Initialize();
+        TCommandList? GetCommandList<TCommandList>() where TCommandList : ICommandList;
     }
 }

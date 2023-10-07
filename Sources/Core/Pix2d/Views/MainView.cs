@@ -4,13 +4,11 @@ using Avalonia.Xaml.Interactions.Responsive;
 using CommonServiceLocator;
 using Pix2d.Messages;
 using Pix2d.Shared;
-using Pix2d.UI;
 using Pix2d.Views.Animation;
 using Pix2d.Views.BrushSettings;
 using Pix2d.Views.Export;
 using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
-using Pix2d.Views.Text;
 using Pix2d.Views.ToolBar;
 
 namespace Pix2d.Views;
@@ -80,10 +78,15 @@ public class MainView : ComponentBase
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Top),
 
-                new TextBarView().Col(1).Row(2)
-                    .IsVisible(UiState.ShowTextBar, bindingSource: UiState)
+                new TopToolUiContainer().Col(1).Row(2)
+                    //.IsVisible(() => UiState.TopToolUi != null)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Top),
+
+                //new TextBarView().Col(1).Row(2)
+                //    .IsVisible(UiState.ShowTextBar, bindingSource: UiState)
+                //    .HorizontalAlignment(HorizontalAlignment.Center)
+                //    .VerticalAlignment(VerticalAlignment.Top),
 
                 //new RatePromptView().Col(1).Row(2),
 

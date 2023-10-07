@@ -21,6 +21,7 @@ using Pix2d.Mvvm;
 using Pix2d.Plugins.Ai;
 using Pix2d.Plugins.Drawing;
 using Pix2d.Plugins.HttpHost;
+using Pix2d.Plugins.PixelText;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Services;
 
@@ -35,6 +36,7 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         {
             typeof(SpritePlugin),
             typeof(DrawingPlugin),
+            typeof(PixelTextPlugin),
             typeof(HttpHostPlugin),
             //typeof(SpinePlugin),
             typeof(AiPlugin),

@@ -51,6 +51,7 @@
 	  <ProjectReference Include="..\..\..\Core\Pix2d.UI\Pix2d.UI.csproj" />
 	  <ProjectReference Include="..\..\..\Core\Pix2d\Pix2d.Core.csproj" />
 	  <ProjectReference Include="..\..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
+	  <ProjectReference Include="..\..\..\Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj" />
 	</ItemGroup>
 	<Import Project="..\Pix2d.Desktop.Shared\Pix2d.Desktop.Shared.projitems" Label="Shared" />
 </Project>

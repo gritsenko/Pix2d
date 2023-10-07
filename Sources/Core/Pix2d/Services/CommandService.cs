@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Pix2d.Abstract.Commands;
 using Pix2d.Abstract.UI;
@@ -14,8 +15,8 @@ public class CommandService : ICommandService
     private readonly IPlatformStuffService _platformStuffService;
     private readonly AppState _appState;
     private readonly IBusyController _busyController;
-    private readonly Dictionary<string, Pix2dCommand> _commands = new Dictionary<string, Pix2dCommand>();
-
+    private readonly Dictionary<string, Pix2dCommand> _commands = new();
+    private readonly List<ICommandList> _commandLists = new();
     public CommandService(IPlatformStuffService platformStuffService, AppState appState, IBusyController busyController)
     {
         _platformStuffService = platformStuffService;
@@ -41,6 +42,11 @@ public class CommandService : ICommandService
         //    new CommandShortcut(VirtualKeys.F11, KeyModifier.Ctrl));
 #endif
 
+    }
+
+    public TCommandList? GetCommandList<TCommandList>() where TCommandList : ICommandList
+    {
+        return _commandLists.OfType<TCommandList>().FirstOrDefault();
     }
 
     public void RegisterCommandList<TCommandList>() where TCommandList : new()
@@ -146,9 +152,11 @@ public class CommandService : ICommandService
         return false;
     }
 
-    public void RegisterCommandList(ICommandList commands)
+    public void RegisterCommandList(ICommandList commandList)
     {
-        foreach (var command in commands.GetCommands())
+        _commandLists.Add(commandList);
+
+        foreach (var command in commandList.GetCommands())
         {
             RegisterCommand(command);
         }

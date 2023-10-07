@@ -35,7 +35,6 @@ namespace Pix2d.Plugins.Drawing
             RegisterTool<EraserTool>();
             RegisterTool<FillTool>();
             RegisterTool<PixelSelectTool>();
-            RegisterTool<PixelTextTool>();
             RegisterTool<EyedropperTool>();
 
         }

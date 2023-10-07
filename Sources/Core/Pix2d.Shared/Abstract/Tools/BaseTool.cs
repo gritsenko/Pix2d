@@ -97,4 +97,5 @@ public class ToolSettings
     public string DisplayName { get; set; }
     public string HotKey { get; set; }
     public string IconData { get; set; }
+    public Func<object>? TopBarUI { get; set; }
 }
