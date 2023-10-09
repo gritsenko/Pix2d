@@ -4,7 +4,6 @@ using Avalonia.Xaml.Interactions.Responsive;
 using CommonServiceLocator;
 using Pix2d.Messages;
 using Pix2d.Shared;
-using Pix2d.UI;
 using Pix2d.Views.Animation;
 using Pix2d.Views.BrushSettings;
 using Pix2d.Views.Export;
