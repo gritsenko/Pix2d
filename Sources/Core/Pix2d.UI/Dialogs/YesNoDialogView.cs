@@ -1,11 +1,43 @@
-﻿using System;
 using Avalonia.Styling;
 using Pix2d.Abstract.UI;
 
 namespace Pix2d.Views.Dialogs;
 
-public class UnsavedChangesDialogView : ViewBase, IDialogView
+public class YesNoDialogView : ViewBase, IDialogView
 {
+    public static readonly DirectProperty<YesNoDialogView, string> MessageProperty
+        = AvaloniaProperty.RegisterDirect<YesNoDialogView, string>(nameof(Message), o => o.Message, (o, v) => o.Message = v);
+
+    private string _message;
+
+    public string Message
+    {
+        get => _message;
+        set => SetAndRaise(MessageProperty, ref _message, value);
+    }
+
+    public static readonly DirectProperty<YesNoDialogView, string> OkLabelProperty
+        = AvaloniaProperty.RegisterDirect<YesNoDialogView, string>(nameof(OkLabel), o => o.OkLabel, (o, v) => o.OkLabel = v);
+
+    private string _okLabel;
+
+    public string OkLabel
+    {
+        get => _okLabel;
+        set => SetAndRaise(OkLabelProperty, ref _okLabel, value);
+    }
+    
+    public static readonly DirectProperty<YesNoDialogView, string> CancelLabelProperty
+        = AvaloniaProperty.RegisterDirect<YesNoDialogView, string>(nameof(CancelLabel), o => o.CancelLabel, (o, v) => o.CancelLabel = v);
+
+    private string _cancelLabel;
+
+    public string CancelLabel
+    {
+        get => _cancelLabel;
+        set => SetAndRaise(CancelLabelProperty, ref _cancelLabel, value);
+    }
+    
     protected override object Build() =>
         new Grid()
             .Rows("*,48")
@@ -14,7 +46,8 @@ public class UnsavedChangesDialogView : ViewBase, IDialogView
                 new TextBlock()
                     .VerticalAlignment(VerticalAlignment.Center)
                     .HorizontalAlignment(HorizontalAlignment.Center)
-                    .Text("You have unsaved changes"),
+                    .Margin(new Thickness(8, 0))
+                    .Text(Message, BindingMode.OneWay, bindingSource: this),
 
                 new StackPanel().Row(1)
                     .Orientation(Orientation.Horizontal)
@@ -26,40 +59,30 @@ public class UnsavedChangesDialogView : ViewBase, IDialogView
                             Setters =
                             {
                                 new Setter(Button.MarginProperty, new Thickness(8,0)),
-                                new Setter(Button.BackgroundProperty, StaticResources.Brushes.ButtonSolidBrush),
                                 new Setter(Button.WidthProperty, 100d)
                             }
                         }) //styles
 
                     .Children(
                         new Button()
-                            .Content("Save")
+                            .Content(OkLabel, BindingMode.OneWay, bindingSource: this)
                             .Background(StaticResources.Brushes.AccentBrush)
                             .OnClick(_ =>
                             {
-                                DialogResult = UnsavedChangesDialogResult.Yes;
+                                DialogResult = true;
                                 OnDialogClosed?.Invoke(true);
                             }),
                         new Button()
-                            .Content("Discard")
+                            .Content(CancelLabel, BindingMode.OneWay, bindingSource: this)
                             .OnClick(_ =>
                             {
-                                DialogResult = UnsavedChangesDialogResult.No;
+                                DialogResult = false;
                                 OnDialogClosed?.Invoke(false);
-                            }),
-                        new Button()
-                            .Content("Cancel")
-                            .OnClick(_ =>
-                            {
-                                DialogResult = UnsavedChangesDialogResult.Cancel;
-                                OnDialogClosed?.Invoke(null);
                             })
-
-
                     ) //stack panel children
             );
 
     public string Title { get; set; }
     public Action<bool?> OnDialogClosed { get; set; }
-    public UnsavedChangesDialogResult DialogResult { get; set; }
+    public bool DialogResult { get; private set; }
 }

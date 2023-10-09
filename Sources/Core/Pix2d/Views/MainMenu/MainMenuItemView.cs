@@ -1,5 +1,4 @@
 ﻿using System;
-using static Avalonia.Media.Brushes;
 
 namespace Pix2d.Views.MainMenu;
 

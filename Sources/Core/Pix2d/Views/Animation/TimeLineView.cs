@@ -1,15 +1,18 @@
 ﻿using Avalonia.Xaml.Interactions.DragAndDrop;
 using Pix2d.ViewModels.Animations;
 using Avalonia.Controls.Shapes;
-using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.ViewModels.Animation;
 using Pix2d.UI.Common.Behaviors;
+using Pix2d.Abstract.Commands;
 
 namespace Pix2d.Views.Animation;
 
 public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel>
 {
     private bool IsPlaying { get; set; }
+
+    public ICommandService CommandService => CommonServiceLocator.ServiceLocator.Current.GetInstance<ICommandService>();
+    private ISpriteAnimationCommands SpriteAnimationCommands => CommandService.GetCommandList<ISpriteAnimationCommands>();
 
     protected override object Build(SpriteAnimationTimelineViewModel vm) =>
         new Grid()
@@ -23,17 +26,17 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                     Orientation = Orientation.Horizontal,
                     Children = {
                         new Button()
-                            .Command(SpritePlugin.AnimationCommands.Stop)
+                            .Command(SpriteAnimationCommands.Stop)
                             .Content("\xe907")
                             .With(ButtonStyle),
                         new Button()
-                            .Command(SpritePlugin.AnimationCommands.PrevFrame)
+                            .Command(SpriteAnimationCommands.PrevFrame)
                             .Content("\xe91f")
                             .With(ButtonStyle),
                         new ToggleButton()
                             .IsChecked(vm.IsPlaying, BindingMode.OneWay, bindingSource: vm)
                             .Content(vm.IsPlaying, BindingMode.OneWay, bindingSource: vm)
-                            .OnClick(_ => SpritePlugin.AnimationCommands.TogglePlay.Execute())
+                            .OnClick(_ => SpriteAnimationCommands.TogglePlay.Execute())
                             .ContentTemplate(new FuncDataTemplate<bool>((v, _) => 
                                 new TextBlock()
                                     .FontSize(14)
@@ -41,7 +44,7 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                                     .Text(v ? "\xE92b" : "\xe91e")))
                             .With(ButtonStyle),
                         new Button()
-                            .Command(SpritePlugin.AnimationCommands.PrevFrame)
+                            .Command(SpriteAnimationCommands.PrevFrame)
                             .Content("\xe91a")
                             .With(ButtonStyle)
                     }
@@ -60,12 +63,12 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                             .VerticalAlignment(VerticalAlignment.Center),
 
                         new Button()
-                            .Command(SpritePlugin.AnimationCommands.AddFrame)
+                            .Command(SpriteAnimationCommands.AddFrame)
                             .Content("\xE905")
                             .ToolTip("Add frame")
                             .With(ButtonStyle),
                         new Button()
-                            .Command(SpritePlugin.AnimationCommands.DuplicateFrame)
+                            .Command(SpriteAnimationCommands.DuplicateFrame)
                             .Content("\xE90D")
                             .ToolTip("Duplicate frame")
                             .With(ButtonStyle),
