@@ -4,15 +4,11 @@ using SkiaNodes.Interactive;
 using System;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
 using AndroidX.Core.Content;
 using Pix2d.Abstract.Export;
 using Pix2d.Android;
-using Pix2d.Common;
-using Pix2d.Resources;
-using SkiaSharp;
 using File = Java.IO.File;
 
 namespace Pix2d.Services
@@ -36,11 +32,11 @@ namespace Pix2d.Services
 
         }
 
-        public async void OpenUrlInBrowser(string url)
+        public void OpenUrlInBrowser(string url)
         {
-            var uri = new Uri(url);
-
-            //var success = await Windows.System.Launcher.LaunchUriAsync(uri);
+            var uri = global::Android.Net.Uri.Parse(url);
+            var intent = new Intent(Intent.ActionView, uri);
+            MainActivity.Instance.StartActivity(intent);
         }
 
         public DeviceFormFactorType GetDeviceFormFactorType()
@@ -77,11 +73,6 @@ namespace Pix2d.Services
 
             //return _appVersion ?? (_appVersion = GetAppVer());
             return "Alpha";
-        }
-
-        public Task<bool> ShareImage(Stream bitmapImageStream)
-        {
-            throw new NotImplementedException();
         }
 
         public void ToggleTopmostWindow()

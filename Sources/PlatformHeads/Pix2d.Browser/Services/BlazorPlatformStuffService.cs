@@ -31,11 +31,6 @@ namespace Pix2d.Browser.Services
             return _appVersion ??= GetAppVer();
         }
 
-        public async Task<bool> ShareImage(Stream bitmapImageStream)
-        {
-            return false;
-        }
-
         public void ToggleTopmostWindow()
         {
             

@@ -122,11 +122,6 @@ public class PlatformStuffService : IPlatformStuffService
         return "unknown desktop";
     }
 
-    public Task<bool> ShareImage(Stream bitmapImageStream)
-    {
-        throw new NotImplementedException();
-    }
-
     public void ToggleTopmostWindow()
     {
         if (EditorApp.TopLevel is MainWindow wnd)
