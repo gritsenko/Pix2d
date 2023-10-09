@@ -549,7 +549,8 @@ namespace Pix2d.Drawing.Nodes
 
         public void FinishDrawing(bool cancel = false)
         {
-            if (!cancel) ApplyWorkingBitmap();
+            var wbIsEmpty = WorkingBitmap.Pixels.All(x => x.Alpha == 0);
+            if (!cancel && !wbIsEmpty) ApplyWorkingBitmap();
 
             if (State == DrawingLayerState.Drawing)
                 DrawingTarget.ShowTargetBitmap();
@@ -559,7 +560,7 @@ namespace Pix2d.Drawing.Nodes
             Opacity = 1;
             UseSwapBitmap = false;
 
-            OnDrawingApplied(!cancel);
+            OnDrawingApplied(!cancel && !wbIsEmpty);
         }
 
         public void CancelDrawing() => FinishDrawing(true);
