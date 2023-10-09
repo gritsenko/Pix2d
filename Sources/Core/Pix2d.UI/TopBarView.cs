@@ -1,8 +1,5 @@
-﻿using System;
-using Avalonia.Controls.Presenters;
-using Avalonia.Input;
-using Avalonia.Interactivity;
-using Avalonia.Utilities;
+﻿using Pix2d.Abstract.Commands;
+using Pix2d.Common;
 using Pix2d.Messages;
 using Pix2d.Shared;
 
