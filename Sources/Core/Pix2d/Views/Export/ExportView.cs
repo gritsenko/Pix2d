@@ -233,5 +233,6 @@ public class ExportView : ComponentBase
         }
         
         CoreServices.PlatformStuffService.Share(exporter, Scale);
+        Commands.View.HideExportDialogCommand.Execute();
     }
 }
