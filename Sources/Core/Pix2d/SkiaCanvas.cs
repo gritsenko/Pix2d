@@ -126,6 +126,11 @@ public class SkiaCanvas : Control
         {
             InitCore();
 
+            if (ViewPort == null)
+            {
+                return;
+            }
+        
             if (Math.Abs(finalRect.Size.Width - ViewPort.Size.Width) > 0 ||
                 Math.Abs(finalRect.Size.Height - ViewPort.Size.Height) > 0)
             {

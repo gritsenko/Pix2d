@@ -23,7 +23,7 @@ public class MainView : ComponentBase
     protected override object Build() =>
         new Grid()
             .Cols("Auto, *, Auto")
-            .Rows("Auto, Auto, *, Auto")
+            .Rows("Auto, Auto, *, Auto, Auto")
             .AddBehavior(
                 new AdaptiveBehavior()
                     .Setters(
@@ -36,7 +36,7 @@ public class MainView : ComponentBase
             {
 
                 new Border().Col(0).Row(0)
-                    .ColSpan(2).RowSpan(4)
+                    .ColSpan(2).RowSpan(5)
                     .With(self =>
                     {
                         self.AddHandler(PointerPressedEvent, (_, e) =>
@@ -68,7 +68,7 @@ public class MainView : ComponentBase
 
                 new AdditionalTopBarView().Col(1).Row(2),
 
-                new InfoPanelView().Col(0).Row(3).ColSpan(2),
+                new InfoPanelView().Col(0).Row(4).ColSpan(2),
 
                 new ActionsBarView().Col(1).Row(2)
                     .IsVisible(UiState.ShowExtraTools, bindingSource: UiState)
@@ -87,7 +87,7 @@ public class MainView : ComponentBase
 
                 //new RatePromptView().Col(1).Row(2),
 
-                new TimeLineView().Col(1).Row(2)
+                new TimeLineView().Col(1).Row(3)
                     .VerticalAlignment(VerticalAlignment.Bottom)
                     .IsVisible(UiState.ShowTimeline, bindingSource: UiState),
 
@@ -155,7 +155,7 @@ public class MainView : ComponentBase
                     .VerticalAlignment(VerticalAlignment.Top),
 
 
-                new ExportView().ColSpan(2).RowSpan(4).IsVisible(UiState.ShowExportDialog, bindingSource: UiState),
+                new ExportView().ColSpan(2).RowSpan(5).IsVisible(UiState.ShowExportDialog, bindingSource: UiState),
                 // new PopupView()
                 //     .Col(0).ColSpan(2)
                 //     .Row(0).RowSpan(4)
@@ -166,14 +166,14 @@ public class MainView : ComponentBase
 
                 new Border() //MAIN MENU
                     .Col(0).ColSpan(2)
-                    .Row(0).RowSpan(4)
+                    .Row(0).RowSpan(5)
                     .IsVisible(UiState.ShowMenu, bindingSource: UiState)
                     .Child(
                         new MainMenuView(UiState)),
 
                 new Border()
                     .Col(0).ColSpan(2)
-                    .Row(0).RowSpan(3)
+                    .Row(0).RowSpan(4)
                     .IsVisible(AppState.IsBusy, bindingSource: AppState)
                     .Background(StaticResources.Brushes.ModalOverlayBrush)
                     .Child(
@@ -185,7 +185,7 @@ public class MainView : ComponentBase
 
                 new DialogContainer()
                     .Col(0).ColSpan(2)
-                    .Row(0).RowSpan(3)
+                    .Row(0).RowSpan(4)
             });
 
     protected override void OnBeforeReload()

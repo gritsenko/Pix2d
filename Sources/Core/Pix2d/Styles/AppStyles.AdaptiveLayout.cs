@@ -19,6 +19,7 @@ public partial class AppStyles
             {
                 new Setter(Grid.ColumnProperty, 0),
                 new Setter(Grid.RowProperty, 2),
+                new Setter(Grid.RowSpanProperty, 2),
             }
         },
         
@@ -58,7 +59,8 @@ public partial class AppStyles
             Setters =
             {
                 new Setter(Grid.ColumnProperty, 0),
-                new Setter(Grid.RowProperty, 3),
+                new Setter(Grid.RowProperty, 4),
+                new Setter(Grid.RowSpanProperty, 1),
                 new Setter(Grid.ColumnSpanProperty, 3),
                 new Setter(Border.BackgroundProperty, StaticResources.Brushes.PanelsBackgroundBrush),
                 new Setter(Layoutable.MarginProperty, new Thickness(0, 1, 0, 0)),
