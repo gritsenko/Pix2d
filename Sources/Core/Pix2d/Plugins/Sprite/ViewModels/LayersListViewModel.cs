@@ -147,7 +147,8 @@ public class LayersListViewModel : Pix2dViewModelBase
 
         Messenger.Register<NodeEditorChangedMessage>(this, OnNodeEditorChanged);
         Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
-        Messenger.Register<CanvasSizeChanged>(this, msg => Reload());
+        Messenger.Register<CanvasSizeChanged>(this, _ => Reload());
+        Messenger.Register<SelectedLayerChangedMessage>(this, _ => UpdatePreview());
             
         AvailableEffects.AddRange(EffectsService.GetAvailableEffects().Select(x => new EffectViewModel(Activator.CreateInstance(x.Value) as ISKNodeEffect)));
         OnEditorChanged();
@@ -237,15 +238,17 @@ public class LayersListViewModel : Pix2dViewModelBase
             SelectedLayer.SelectedEffect = null;
         }
 
-        DeferredAction.Run(100, () =>
-        {
-            SelectedLayer?.UpdatePreview();
+        DeferredAction.Run(100, UpdatePreview);
+    }
 
-            if (OnPreviewChanged != null && SelectedLayer != null)
-            {
-                OnPreviewChanged(Layers.IndexOf(SelectedLayer));
-            }
-        });
+    private void UpdatePreview()
+    {
+        SelectedLayer?.UpdatePreview();
+
+        if (OnPreviewChanged != null && SelectedLayer != null)
+        {
+            OnPreviewChanged(Layers.IndexOf(SelectedLayer));
+        }
     }
 
     private void OnEditorChanged()
@@ -340,6 +343,16 @@ public class LayersListViewModel : Pix2dViewModelBase
             var reversedNewIndex = Layers.Count - newIndex - 1;
 
             editor.ReorderLayers(reversedOldIndex, reversedNewIndex);
+            _reorderingNodeOldIndex = -1;
+        }
+
+        if (e.Action == NotifyCollectionChangedAction.Move)
+        {
+            var reversedOldIndex = Layers.Count - e.OldStartingIndex - 1;
+            var reversedNewIndex = Layers.Count - e.NewStartingIndex - 1;
+            
+            var editor = EditService.GetCurrentEditor() as SpriteEditor;
+            editor?.ReorderLayers(reversedOldIndex, reversedNewIndex);
             _reorderingNodeOldIndex = -1;
         }
 

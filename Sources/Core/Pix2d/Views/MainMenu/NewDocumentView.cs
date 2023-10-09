@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Interactivity;
+using Pix2d.Messages;
 using Pix2d.Shared;
 using SkiaSharp;
 
@@ -17,6 +18,11 @@ public class NewDocumentView : ComponentBase
             _projectName = value;
             OnPropertyChanged();
         }
+    }
+
+    public NewDocumentView()
+    {
+        Messenger.Default.Register<StateChangedMessage>(this, msg => msg.OnPropertyChanged<UiState>(state => state.ShowMenu, () => Reset()));
     }
 
     protected override object Build() =>
@@ -181,6 +187,11 @@ public class NewDocumentView : ComponentBase
         }
     }
 
+    private void Reset()
+    {
+        ProjectName = "";
+    }
+
     public class SizePreset
     {
         public SizePreset(int width, int height)
@@ -200,5 +211,4 @@ public class NewDocumentView : ComponentBase
         public int Width { get; set; }
         public int Height { get; set; }
     }
-
 }

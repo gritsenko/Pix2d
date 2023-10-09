@@ -2,18 +2,16 @@
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Shared;
-using SkiaNodes;
 using SkiaSharp;
 using System.Collections.Generic;
 using System.Windows.Input;
 using System;
 using System.Linq;
+using Avalonia.Interactivity;
 using Mvvm;
 using Pix2d.Abstract.Export;
 using Pix2d.Exporters;
 using SkiaNodes.Extensions;
-using Pix2d.CommonNodes;
-using Pix2d.UI;
 using Pix2d.UI.Export;
 
 namespace Pix2d.Views.Export;
@@ -78,16 +76,30 @@ public class ExportView : ComponentBase
                                     )
                             ),
                         new Grid().ColSpan(2).Row(1)
+                            .Rows("Auto,Auto")
                             .Cols("*,Auto,Auto")
                             .VerticalAlignment(VerticalAlignment.Bottom)
                             .Children(
-                                new Button().Col(1)
+                                new Button().Row(0).Col(1).ColSpan(2).HorizontalAlignment(HorizontalAlignment.Center)
+                                    .Width(110)
+                                    .Background(StaticResources.Brushes.SelectedItemBrush)
+                                    .Margin(new Thickness(0, 10))
+                                    .IsVisible(CoreServices.PlatformStuffService.CanShare)
+                                    .Content(new StackPanel().Orientation(Orientation.Horizontal).Children(
+                                        new TextBlock()
+                                            .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                                            .Margin(new Thickness(0, 0, 8, 0))
+                                            .Text("\xE72D"),
+                                        new TextBlock().Text("Share"))
+                                    )
+                                    .OnClick(Share),
+                                new Button().Row(1).Col(1)
                                     .Content("Save")
                                     .Width(110)
                                     .Margin(0, 0, 20, 0)
                                     .Background(StaticResources.Brushes.SelectedItemBrush)
                                     .Command(ExportCommand),
-                                new Button().Col(2)
+                                new Button().Row(1).Col(2)
                                     .Content("Cancel")
                                     .Width(110)
                                     .Background(StaticResources.Brushes.SelectedItemBrush)
@@ -108,8 +120,6 @@ public class ExportView : ComponentBase
 
     private double _scale = 1;
     private ContentControl _exporterSettingsControl;
-    private Pix2dWatermarkNode _watermarkNode;
-    public bool EnableWatermark => LicenseService is { IsPro: false, AllowBuyPro: true };
 
     public double Scale
     {
@@ -174,7 +184,7 @@ public class ExportView : ComponentBase
             {
                 Logger.LogEventWithParams("Exporting image", new Dictionary<string, string> { { "Exporter", SelectedExporter.Title } });
 
-                var nodesToExport = GetNodesToExport();
+                var nodesToExport = ExportService.GetNodesToExport(Scale);
                 await ExportService.ExportNodesAsync(nodesToExport, 1, SelectedExporter);
                 //await SelectedExporter.Export(nodesToExport, new );
 
@@ -187,48 +197,6 @@ public class ExportView : ComponentBase
         });
     }
 
-    private IEnumerable<SKNode> GetNodesToExport()
-    {
-        if (CoreServices.EditService.CurrentEditedNode == null)
-            yield break;
-
-        yield return CoreServices.EditService.CurrentEditedNode;
-
-        if (CoreServices.EditService.CurrentEditedNode.Size.Width * Scale < 64)
-        {
-            yield break;
-        }
-
-        if (EnableWatermark) yield return GetWatermarkNode(CoreServices.EditService.CurrentEditedNode);
-    }
-
-    private SKNode GetWatermarkNode(SKNode exportedNode)
-    {
-        _watermarkNode = new Pix2dWatermarkNode(StaticResources.WatermarkBitmap);
-
-        var exportedNodeSize = exportedNode.Size;
-
-        var w = exportedNodeSize.Width * Scale;
-        var h = exportedNodeSize.Height * Scale;
-        if (w >= 200 && h >= 200)
-        {
-            _watermarkNode.Size = new SKSize((float)(64f / Scale), (float)(64f / Scale));
-
-            var offset = 8f / Scale;
-            _watermarkNode.Position = new SKPoint((float)(exportedNodeSize.Width - _watermarkNode.Size.Width - offset), (float)(exportedNodeSize.Height - _watermarkNode.Size.Height - offset));
-        }
-        else
-        {
-            _watermarkNode.FontSize = (float)(14f / (Scale == 0 ? 1 : Scale));
-            _watermarkNode.Size = new SKSize(exportedNodeSize.Width, _watermarkNode.FontSize + 2f);
-            _watermarkNode.Position = new SKPoint(exportedNode.Position.X, exportedNode.Position.Y + exportedNodeSize.Height);
-            _watermarkNode.Effects = null;
-        }
-
-        return _watermarkNode;
-    }
-
-
     private void UpdatePreview()
     {
         var editorService = CoreServices.EditService;
@@ -236,7 +204,7 @@ public class ExportView : ComponentBase
         if (!(editorService.GetCurrentEditor() is SpriteEditor spriteEditor))
             return;
 
-        var nodesToExport = GetNodesToExport();
+        var nodesToExport = ExportService.GetNodesToExport(Scale);
         var preview = nodesToExport.ToArray()
             .RenderToBitmap(
                 spriteEditor.CurrentSprite.UseBackgroundColor ? spriteEditor.CurrentSprite.BackgroundColor : SKColor.Empty, Scale);
@@ -253,5 +221,17 @@ public class ExportView : ComponentBase
         {
             SelectedExporter = selected;
         }
+    }
+
+    private void Share(RoutedEventArgs _)
+    {
+        var exporter = SelectedExporter as IStreamExporter ?? Exporters.OfType<IStreamExporter>().FirstOrDefault();
+        if (exporter == null)
+        {
+            Logger.Log("Could not find suitable exporter.");
+            return;
+        }
+        
+        CoreServices.PlatformStuffService.Share(exporter, Scale);
     }
 }

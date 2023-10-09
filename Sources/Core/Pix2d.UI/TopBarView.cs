@@ -1,5 +1,8 @@
-﻿using Pix2d.Abstract.Commands;
-using Pix2d.Common;
+﻿using System;
+using Avalonia.Controls.Presenters;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Utilities;
 using Pix2d.Messages;
 using Pix2d.Shared;
 
@@ -64,7 +67,7 @@ public class TopBarView : ComponentBase
                                 .With(ButtonStyle)
                                 .Label("Export")
                                 .Command(Commands.View.ShowExportDialogCommand)
-                                .Content("\xE72D")
+                                .Content("\xEE71")
                         )
                 ),
                 

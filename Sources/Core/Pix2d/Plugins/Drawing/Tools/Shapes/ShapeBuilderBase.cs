@@ -30,7 +30,7 @@ namespace Pix2d.Drawing.Tools
 
         public void BeginDrawing()
         {
-            DrawingLayer.BeginDrawing(false);
+            DrawingLayer.BeginDrawing();
         }
 
         public void Finish()

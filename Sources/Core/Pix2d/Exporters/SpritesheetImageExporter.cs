@@ -65,6 +65,8 @@ public class SpritesheetImageExporter : SKNodeExporterBase, IFilePickerExporter
 
     }
 
+    public override string MimeType => "image/png";
+
     public override Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {
         return ExportToFileAsync(nodes, scale);

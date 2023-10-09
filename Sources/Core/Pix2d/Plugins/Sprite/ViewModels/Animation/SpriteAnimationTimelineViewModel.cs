@@ -117,6 +117,7 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
         AppState = appState;
 
         messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
+        messenger.Register<SelectedLayerChangedMessage>(this, _ => UpdatePreview());
         messenger.Register<NodeEditorChangedMessage>(this, OnEditorChanged);
         Messenger.Register<CanvasSizeChanged>(this, msg => OnLoad());
 
@@ -129,11 +130,13 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
 
     private void OnOperationInvoked(OperationInvokedMessage obj)
     {
-        if (CurrentFrame != null)
-        {
-            CurrentFrame.UpdatePreview();
-            CurrentFrame.UpdateProperties();
-        }
+        UpdatePreview();
+        CurrentFrame?.UpdateProperties();
+    }
+
+    private void UpdatePreview()
+    {
+        CurrentFrame?.UpdatePreview();
     }
 
     private void OnEditorChanged(NodeEditorChangedMessage obj)

@@ -21,6 +21,7 @@ public class SvgImageExporter : IFilePickerExporter
     }
 
     public string[] SupportedExtensions => new[] {".svg"};
+    public string MimeType => "image/svg+xml";
 
     public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {

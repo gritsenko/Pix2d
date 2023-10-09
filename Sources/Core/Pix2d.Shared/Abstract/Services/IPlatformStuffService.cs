@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
+using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using SkiaNodes.Interactive;
 
@@ -22,11 +23,12 @@ namespace Pix2d.Abstract.Services
 
         string GetAppVersion();
 
-        Task<bool> ShareImage(Stream bitmapImageStream);
-
         public void ToggleTopmostWindow();
 
         public bool HasKeyboard { get; }
+
+        public bool CanShare { get; }
+        public void Share(IStreamExporter exporter, double scale = 1);
     }
 
     public enum DeviceFormFactorType

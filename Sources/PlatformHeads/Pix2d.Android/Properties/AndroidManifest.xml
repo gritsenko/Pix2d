@@ -1,6 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
 	<uses-permission android:name="android.permission.INTERNET" />
-	<application android:label="Pix2d" android:icon="@mipmap/ic_launcher" />
-	<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="33" />
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+	<application android:label="Pix2d" android:icon="@mipmap/ic_launcher">
+		<provider
+				android:name="androidx.core.content.FileProvider"
+				android:authorities="${applicationId}.fileprovider"
+				android:grantUriPermissions="true"
+				android:exported="false">
+			<meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+		</provider>
+	</application>
+	<uses-sdk android:minSdkVersion="24" android:targetSdkVersion="33" />
 </manifest>

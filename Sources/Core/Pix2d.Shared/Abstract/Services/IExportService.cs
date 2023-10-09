@@ -12,4 +12,5 @@ public interface IExportService
     Task ExportNodesAsync(IEnumerable<SKNode> nodesToRender, double scale, IExporter exporter);
 
     Task ExportNodesToFileAsync(IFileContentSource fileContentSource, IEnumerable<SKNode> nodesToRender, double scale);
+    IEnumerable<SKNode> GetNodesToExport(double scale);
 }
