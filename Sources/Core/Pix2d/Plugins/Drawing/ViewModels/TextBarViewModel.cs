@@ -79,6 +79,7 @@ public class TextBarViewModel : Pix2dViewModelBase
 
     private async Task LoadFonts()
     {
+        Fonts.Clear();
         var fonts = await FontService.GetAvailableFontNamesAsync();
         foreach (string font in fonts)
         {
