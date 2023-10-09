@@ -45,7 +45,7 @@ public class GifImageExporter : SKNodeExporterBase, IFilePickerExporter
         var file = await fs.GetFileToSaveWithDialogAsync(new[] { ".gif" }, "export");
         if (file != null)
         {
-            await using var stream = await ExportToStreamAsync(nodes);
+            await using var stream = await ExportToStreamAsync(nodes, scale);
             await file.SaveAsync(stream);
         }
         else

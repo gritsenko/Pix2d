@@ -185,7 +185,7 @@ public class ExportView : ComponentBase
                 Logger.LogEventWithParams("Exporting image", new Dictionary<string, string> { { "Exporter", SelectedExporter.Title } });
 
                 var nodesToExport = ExportService.GetNodesToExport(Scale);
-                await ExportService.ExportNodesAsync(nodesToExport, 1, SelectedExporter);
+                await ExportService.ExportNodesAsync(nodesToExport, Scale, SelectedExporter);
                 //await SelectedExporter.Export(nodesToExport, new );
 
                 Commands.View.HideExportDialogCommand.Execute();

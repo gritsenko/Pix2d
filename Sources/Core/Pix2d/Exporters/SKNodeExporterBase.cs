@@ -42,7 +42,7 @@ namespace Pix2d.Exporters
                     for (int index = 0; index < framesCount; index++)
                     {
                         sprite.SetFrameIndex(index);
-                        var frame = nodesToExport.RenderToBitmap(SKColor.Empty);
+                        var frame = nodesToExport.RenderToBitmap(SKColor.Empty, scale);
                         frames.Add(frame);
                     }
 
