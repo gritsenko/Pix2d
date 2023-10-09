@@ -16,6 +16,7 @@ using Pix2d.State;
 namespace Pix2d.Views.Text;
 
 public class TextBarView : ComponentBase {
+
     protected override object Build() =>
         new StackPanel()
             .Orientation(Orientation.Horizontal)
@@ -33,7 +34,7 @@ public class TextBarView : ComponentBase {
                             .Children(
                             new TextBox()
                                 .Watermark("Enter text")
-                                .Text(Text, BindingMode.TwoWay)
+                                .Text(Bind(Text))
                                 .VerticalAlignment(VerticalAlignment.Center)
                                 .AcceptsReturn(false)
                                 .MinWidth(150)
@@ -60,7 +61,7 @@ public class TextBarView : ComponentBase {
                                             .Width(180)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .ItemsSource(Fonts)
-                                            .SelectedItem(SelectedFont, BindingMode.TwoWay)
+                                            .SelectedItem(Bind(SelectedFont, BindingMode.TwoWay))
                                             .ItemTemplate(
                                                 (FontItemViewModel item) => new TextBlock().Width(150).Text(item?.Name ?? "")),
 
@@ -129,16 +130,53 @@ public class TextBarView : ComponentBase {
     [Inject] public AppState AppState { get; set; } = null!;
     [Inject] public IToolService ToolService { get; set; } = null!;
 
-    public string Text { get; set; }
+    private PixelTextTool? _pixelTextTool = null!;
+    public string Text
+    {
+        get => _pixelTextTool?.Text ?? "";
+        set
+        {
+            _pixelTextTool.Text = value;
+            OnPropertyChanged();
+            StateHasChanged();
+        }
+    }
 
-    public bool IsBold { get; set; }
+    public bool IsBold
+    {
+        get => _pixelTextTool?.IsBold ?? false;
+        set => _pixelTextTool.IsBold = value;
+    }
 
-    public bool IsItalic { get; set; }
 
-    public bool IsAliased { get; set; }
-    public FontItemViewModel SelectedFont { get; set; }
+    public bool IsItalic
+    {
+        get => _pixelTextTool?.IsItalic ?? false;
+        set => _pixelTextTool.IsItalic = value;
+    }
 
-    public int FontSize { get; set; } = 14;
+
+    public bool IsAliased
+    {
+        get => _pixelTextTool?.IsAliased ?? false;
+        set => _pixelTextTool.IsAliased = value;
+    }
+
+    public FontItemViewModel? SelectedFont
+    {
+        get => Fonts.FirstOrDefault(x => x.Name.Equals(_pixelTextTool?.SelectedFont, StringComparison.InvariantCultureIgnoreCase));
+        set
+        {
+            _pixelTextTool.SelectedFont = value?.Name ?? "";
+            OnPropertyChanged();
+        }
+    }
+
+    public int FontSize
+    {
+        get => (int)(_pixelTextTool?.FontSize ?? 14);
+        set => _pixelTextTool.FontSize = value;
+    }
 
     private void OnApplyButtonClicked()
     {
@@ -157,6 +195,11 @@ public class TextBarView : ComponentBase {
 
     protected override async void OnAfterInitialized()
     {
+        if(ToolService.GetToolByKey(nameof(PixelTextTool)) is PixelTextTool pixelTextTool)
+        {
+            _pixelTextTool = pixelTextTool;
+        }
+
         await LoadFonts();
     }
 
@@ -172,14 +215,16 @@ public class TextBarView : ComponentBase {
         SelectedFont =
             Fonts.FirstOrDefault(x => x.Name.Equals("Arial", StringComparison.InvariantCultureIgnoreCase)) ??
             Fonts.FirstOrDefault();
+
+        StateHasChanged();
     }
 
     protected virtual void OnTextApplied()
     {
         var toolKey = AppState.UiState.CurrentToolKey;
-        if (toolKey == "PixelTextTool" && ToolService.GetToolByKey(toolKey) is PixelTextTool pixelTextTool)
+        if (toolKey == _pixelTextTool.Key)
         {
-            pixelTextTool.ApplyText(Text);
+            _pixelTextTool.ApplyText(Text);
         }
     }
 

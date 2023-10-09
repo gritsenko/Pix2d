@@ -18,6 +18,7 @@ namespace Pix2d.Drawing.Tools
 {
     public class PixelTextTool : BaseTool, IDrawingTool
     {
+
         public static ToolSettings ToolSettings { get; } = new()
         {
             DisplayName = "Pixels text tool",
@@ -25,26 +26,85 @@ namespace Pix2d.Drawing.Tools
             TopBarUI = () => new TextBarView()
         };
 
-        public string Text { get; set; }
-        public string SelectedFont { get; set; }
-        public float FontSize { get; set; }
-        public bool IsBold { get; set; }
-        public bool IsItalic { get; set; }
-        public bool IsAliased { get; set; }
+        private TextNode _textNode = new TextNode();
+        private SKPoint _selectionPosition;
+        private string _text;
+        private string _selectedFont;
+        private float _fontSize = 14;
+        private bool _isBold;
+        private bool _isItalic;
+        private bool _isAliased;
+        private DrawingOperation _pixelSelectDrawingOperation;
+
+        public string Text
+        {
+            get => _text;
+            set
+            {
+                _text = value; 
+                UpdateText();
+            }
+        }
+
+        public string SelectedFont
+        {
+            get => _selectedFont;
+            set
+            {
+                _selectedFont = value;
+                UpdateText();
+            }
+        }
+
+        public float FontSize
+        {
+            get => _fontSize;
+            set
+            {
+                _fontSize = value;
+                UpdateText();
+            }
+        }
+
+        public bool IsBold
+        {
+            get => _isBold;
+            set
+            {
+                _isBold = value;
+                UpdateText();
+            }
+        }
+
+        public bool IsItalic
+        {
+            get => _isItalic;
+            set
+            {
+                _isItalic = value;
+                UpdateText();
+            }
+        }
+
+        public bool IsAliased
+        {
+            get => _isAliased;
+            set
+            {
+                _isAliased = value;
+                UpdateText();
+            }
+        }
 
 
         public IDrawingService DrawingService { get; }
         public IMessenger Messenger { get; }
         public AppState AppState { get; }
-        private DrawingOperation _pixelSelectDrawingOperation;
         public override string DisplayName => ToolSettings.DisplayName;
 
         private IDrawingLayer DrawingLayer => DrawingService.DrawingLayer;
 
         public override EditContextType EditContextType => EditContextType.Sprite;
-
-        private TextNode _textNode = new TextNode();
-        private SKPoint _selectionPosition;
 
         public PixelTextTool(IDrawingService drawingService, IMessenger messenger, AppState appState)
         {
@@ -73,7 +133,7 @@ namespace Pix2d.Drawing.Tools
 
         private void DrawingLayer_SelectionRemoved(object sender, EventArgs e)
         {
-            Text = "";
+            _text = "";
         }
 
 
@@ -86,7 +146,7 @@ namespace Pix2d.Drawing.Tools
             else
             {
                 DrawingLayer.ApplySelection(true);
-                Text = "";
+                _text = "";
             }
         }
 
@@ -101,7 +161,7 @@ namespace Pix2d.Drawing.Tools
 
             AppState.UiState.ShowTextBar = false;
 
-            Text = "";
+            _text = "";
 
             DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;
             DrawingLayer.SelectionRemoved -= DrawingLayer_SelectionRemoved;
@@ -147,7 +207,7 @@ namespace Pix2d.Drawing.Tools
             
             _textNode.Text = Text;
 
-            _textNode.FontSize = FontSize;
+            _textNode.FontSize = FontSize > 0 ? FontSize : 1;
             if (!string.IsNullOrWhiteSpace(SelectedFont))
                 _textNode.FontFamily = SelectedFont;
             _textNode.Color = color;

@@ -4,10 +4,15 @@ namespace Pix2d.Views;
 
 public class TopToolUiContainer : ComponentBase
 {
+    #region Markup
+
     protected override object Build() =>
         new ContentControl()
             .IsVisible(() => ToolUiContent != null)
             .Content(() => ToolUiContent);
+
+
+    #endregion
 
     [Inject] public AppState AppState { get; set; } = null!;
 
@@ -20,7 +25,8 @@ public class TopToolUiContainer : ComponentBase
 
     private void OnStatePropertyChanged()
     {
-        var toolUiProvider = AppState.UiState.Tools.FirstOrDefault(x => x.Name == AppState.UiState.CurrentToolKey)?.TopBarUI;
+        var toolUiProvider = AppState.UiState.Tools.FirstOrDefault(x => x.Name == AppState.UiState.CurrentToolKey)
+            ?.TopBarUI;
 
         ToolUiContent = toolUiProvider?.Invoke() as Control;
 
