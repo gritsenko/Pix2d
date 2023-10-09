@@ -1,7 +1,5 @@
 ﻿using Pix2d.Shared;
 using Pix2d.ViewModels.Layers;
-using Avalonia.Controls.Shapes;
-using SkiaSharp;
 
 namespace Pix2d.Views.Layers;
 

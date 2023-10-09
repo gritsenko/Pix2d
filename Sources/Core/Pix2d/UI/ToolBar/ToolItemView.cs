@@ -3,7 +3,7 @@ using Avalonia.Interactivity;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
 
-namespace Pix2d.Views.ToolBar;
+namespace Pix2d.UI.ToolBar;
 
 public class ToolItemView : ComponentBase
 {

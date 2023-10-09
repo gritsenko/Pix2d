@@ -1,6 +1,4 @@
-﻿using Pix2d.Abstract.Export;
-
-namespace Pix2d.Views.Export;
+﻿namespace Pix2d.Abstract.Export;
 
 public interface IExportSettingsViewBase<TExporter>
     where TExporter : IExporter

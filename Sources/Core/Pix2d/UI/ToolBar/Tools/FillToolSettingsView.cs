@@ -1,7 +1,7 @@
 ﻿using Pix2d.Plugins.Drawing.Tools;
 using SkiaSharp;
 
-namespace Pix2d.Views.ToolBar.Tools;
+namespace Pix2d.UI.ToolBar.Tools;
 
 public class FillToolSettingsView : ViewBase<FillTool>
 {
@@ -11,7 +11,7 @@ public class FillToolSettingsView : ViewBase<FillTool>
             .Children(
                 new ToggleSwitch()
                     .Content("Erase mode")
-                    .IsChecked(vm.EraseMode , BindingMode.TwoWay, bindingSource: vm)
+                    .IsChecked(vm.EraseMode, BindingMode.TwoWay, bindingSource: vm)
             );
 
     public FillToolSettingsView(FillTool viewModel) : base(viewModel)

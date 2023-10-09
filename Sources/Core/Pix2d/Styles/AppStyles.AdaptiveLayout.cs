@@ -1,10 +1,10 @@
 using Avalonia.Styling;
 using Pix2d.Shared;
+using Pix2d.UI.ToolBar;
 using Pix2d.Views;
 using Pix2d.Views.Export;
 using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
-using Pix2d.Views.ToolBar;
 
 namespace Pix2d.Styles;
 

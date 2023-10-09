@@ -2,6 +2,7 @@
 using Avalonia.Controls.Shapes;
 using Avalonia.Styling;
 using Pix2d.Messages;
+using Pix2d.UI;
 
 namespace Pix2d.Views;
 

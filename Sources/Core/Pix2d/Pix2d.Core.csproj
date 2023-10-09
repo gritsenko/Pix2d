@@ -36,7 +36,7 @@
     <Compile Remove="Common\BarPlotter.cs" />
     <Compile Remove="Common\Label.cs" />
     <Compile Remove="PinchGestureRecognizer.cs" />
-    <Compile Remove="Views\MarkupExtensions.cs" />
+    <Compile Remove="UI\MarkupExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>

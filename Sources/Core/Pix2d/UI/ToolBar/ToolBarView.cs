@@ -1,12 +1,11 @@
-﻿using Avalonia.Styling;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
-using Pix2d.Views.BrushSettings;
-using System.Collections.Generic;
-using System.Linq;
 using Pix2d.Primitives;
+using Pix2d.Views.BrushSettings;
 
-namespace Pix2d.Views.ToolBar;
+namespace Pix2d.UI.ToolBar;
 
 public class ToolBarView : ComponentBase
 {

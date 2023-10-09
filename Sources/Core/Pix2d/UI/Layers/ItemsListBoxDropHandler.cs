@@ -1,9 +1,6 @@
 ﻿using Avalonia.Input;
-using Avalonia.Rendering;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Xaml.Interactions.DragAndDrop;
-using Pix2d.CommonNodes;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.ViewModels.Layers;
 

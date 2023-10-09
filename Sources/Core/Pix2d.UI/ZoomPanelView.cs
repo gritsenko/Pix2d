@@ -1,6 +1,6 @@
 ﻿using Pix2d.Messages.ViewPort;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class ZoomPanelView : ComponentBase
 {

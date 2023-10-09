@@ -4,14 +4,16 @@ using Avalonia.Xaml.Interactions.Responsive;
 using CommonServiceLocator;
 using Pix2d.Messages;
 using Pix2d.Shared;
+using Pix2d.UI.ToolBar;
+using Pix2d.Views;
 using Pix2d.Views.Animation;
 using Pix2d.Views.BrushSettings;
 using Pix2d.Views.Export;
 using Pix2d.Views.Layers;
 using Pix2d.Views.MainMenu;
-using Pix2d.Views.ToolBar;
+using VisualExtensions = Avalonia.Markup.Declarative.VisualExtensions;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class MainView : ComponentBase
 {
@@ -59,8 +61,7 @@ public class MainView : ComponentBase
                         new ScrollViewer()
                             .VerticalScrollBarVisibility(ScrollBarVisibility.Hidden)
                             .Content(
-                                new ToolBarView()
-                                    .HorizontalAlignment(HorizontalAlignment.Left)
+                                LayoutableExtensions.HorizontalAlignment(new ToolBarView(), HorizontalAlignment.Left)
                             )
                     ),
 
@@ -149,13 +150,7 @@ public class MainView : ComponentBase
 
                     }),
 
-                new ToolSettingsContainerView().Col(1).Row(2)
-                    .IsVisible(UiState.ShowToolProperties, bindingSource: UiState)
-                    .Margin(8, 120, 0, 0)
-                    .MinWidth(40)
-                    .MinHeight(40)
-                    .HorizontalAlignment(HorizontalAlignment.Left)
-                    .VerticalAlignment(VerticalAlignment.Top),
+                LayoutableExtensions.VerticalAlignment(LayoutableExtensions.HorizontalAlignment(LayoutableExtensions.MinHeight(LayoutableExtensions.MinWidth(LayoutableExtensions.Margin(VisualExtensions.IsVisible(ControlPropertyExtensions.Row(ControlPropertyExtensions.Col(new ToolSettingsContainerView(), 1), 2), UiState.ShowToolProperties, bindingSource: UiState), 8, 120, 0, 0), 40), 40), HorizontalAlignment.Left), VerticalAlignment.Top),
 
 
                 new ExportView().ColSpan(2).RowSpan(5).IsVisible(UiState.ShowExportDialog, bindingSource: UiState),

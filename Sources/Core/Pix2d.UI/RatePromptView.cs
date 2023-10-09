@@ -1,6 +1,6 @@
 ﻿using Pix2d.Common;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public partial class RatePromptView : ComponentBase
 {

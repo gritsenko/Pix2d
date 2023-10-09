@@ -1,8 +1,5 @@
 ﻿using Pix2d.Primitives.Drawing;
 using Avalonia.Controls.Shapes;
-using System.Collections.ObjectModel;
-using System;
-using System.Linq;
 using Mvvm;
 using System.Windows.Input;
 using Pix2d.Plugins.Drawing.Tools;

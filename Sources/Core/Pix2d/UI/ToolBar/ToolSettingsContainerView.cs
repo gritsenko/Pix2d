@@ -1,9 +1,10 @@
 ﻿using Pix2d.Drawing.Tools;
 using Pix2d.Messages;
 using Pix2d.Plugins.Drawing.Tools;
+using Pix2d.UI.ToolBar.Tools;
 using Pix2d.Views.ToolBar.Tools;
 
-namespace Pix2d.Views.ToolBar;
+namespace Pix2d.UI.ToolBar;
 
 public class ToolSettingsContainerView : ComponentBase
 {
