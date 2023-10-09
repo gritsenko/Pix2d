@@ -977,6 +977,7 @@ namespace Pix2d.Drawing.Nodes
             _selectionLayer = selectionLayer;
             if (backgroundBitmap == null)
             {
+                DrawingTarget.CopyBitmapTo(_backgroundBitmap);
                 State = DrawingLayerState.Paste;
             }
             else
