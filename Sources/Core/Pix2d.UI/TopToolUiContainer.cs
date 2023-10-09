@@ -1,15 +1,17 @@
-﻿namespace Pix2d.Views;
+﻿using System.Linq;
+
+namespace Pix2d.Views;
 
 public class TopToolUiContainer : ComponentBase
 {
     protected override object Build() =>
-        new Button()
-            .Content(() => $"Top tool UI Container {ToolKey}");
-
+        new ContentControl()
+            .IsVisible(() => ToolUiContent != null)
+            .Content(() => ToolUiContent);
 
     [Inject] public AppState AppState { get; set; } = null!;
 
-    public string ToolKey => AppState.UiState.CurrentToolKey;
+    public Control? ToolUiContent { get; set; }
 
     protected override void OnInitialized()
     {
@@ -18,6 +20,10 @@ public class TopToolUiContainer : ComponentBase
 
     private void OnStatePropertyChanged()
     {
+        var toolUiProvider = AppState.UiState.Tools.FirstOrDefault(x => x.Name == AppState.UiState.CurrentToolKey)?.TopBarUI;
+
+        ToolUiContent = toolUiProvider?.Invoke() as Control;
+
         StateHasChanged();
     }
 }

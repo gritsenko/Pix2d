@@ -1,5 +1,6 @@
 ﻿using Pix2d.Abstract.State;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Pix2d.State;
 
@@ -129,5 +130,4 @@ public class UiState : StateBase
         get => Get<string>();
         set => Set(value);
     }
-    public object? TopToolUi { get; set; }
 }
