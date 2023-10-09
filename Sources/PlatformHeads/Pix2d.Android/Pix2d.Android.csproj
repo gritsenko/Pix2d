@@ -17,6 +17,7 @@
     <AndroidResource Include="Icon.png">
       <Link>Resources\drawable\Icon.png</Link>
     </AndroidResource>
+    <AndroidResource Include="res/xml/file_paths.xml" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using Mvvm.Messaging;
+using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.Messages;
@@ -41,6 +42,11 @@ namespace Pix2d.Browser.Services
         }
 
         public bool HasKeyboard => true;
+        public bool CanShare => false;
+        public void Share(IStreamExporter exporter, double scale = 1)
+        {
+            throw new NotSupportedException();
+        }
 
         public BlazorPlatformStuffService(IMessenger messenger)
         {

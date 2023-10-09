@@ -4,25 +4,32 @@ using System.Threading.Tasks;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
+using Pix2d.CommonNodes;
 using Pix2d.Exporters;
 using SkiaNodes;
+using SkiaSharp;
 
 namespace Pix2d.Services;
 
 public class ExportService : IExportService
 {
     public ISelectionService SelectionService { get; }
+    public ILicenseService LicenseService { get; }
     public IFileService FileService { get; }
     public AppState AppState { get; }
 
     public IWriteDestinationFolder CurrentBuildFolder { get; set; }
+    
+    public bool EnableWatermark => LicenseService is { IsPro: false, AllowBuyPro: true };
 
-    public ExportService(ISelectionService selectionService, IFileService fileService, AppState appState)
+    public ExportService(ISelectionService selectionService, IFileService fileService, AppState appState, ILicenseService licenseService)
     {
         SelectionService = selectionService;
         FileService = fileService;
         AppState = appState;
+        LicenseService = licenseService;
     }
+
 
     public IReadOnlyList<IExporter> Exporters { get; } = new List<IExporter>()
     {
@@ -83,6 +90,47 @@ public class ExportService : IExportService
     private async Task<IFileContentSource> GetFileToExport(string filetype, string defaultName = null)
     {
         return await FileService.GetFileToSaveWithDialogAsync(new []{filetype}, "export", defaultName);
+    }
+    
+    public IEnumerable<SKNode> GetNodesToExport(double scale)
+    {
+        if (CoreServices.EditService.CurrentEditedNode == null)
+            yield break;
+
+        yield return CoreServices.EditService.CurrentEditedNode;
+
+        if (CoreServices.EditService.CurrentEditedNode.Size.Width * scale < 64)
+        {
+            yield break;
+        }
+
+        if (EnableWatermark) yield return GetWatermarkNode(CoreServices.EditService.CurrentEditedNode, scale);
+    }
+
+    private SKNode GetWatermarkNode(SKNode exportedNode, double scale)
+    {
+        var watermarkNode = new Pix2dWatermarkNode(StaticResources.WatermarkBitmap);
+
+        var exportedNodeSize = exportedNode.Size;
+
+        var w = exportedNodeSize.Width * scale;
+        var h = exportedNodeSize.Height * scale;
+        if (w >= 200 && h >= 200)
+        {
+            watermarkNode.Size = new SKSize((float)(64f / scale), (float)(64f / scale));
+
+            var offset = 8f / scale;
+            watermarkNode.Position = new SKPoint((float)(exportedNodeSize.Width - watermarkNode.Size.Width - offset), (float)(exportedNodeSize.Height - watermarkNode.Size.Height - offset));
+        }
+        else
+        {
+            watermarkNode.FontSize = (float)(14f / (scale == 0 ? 1 : scale));
+            watermarkNode.Size = new SKSize(exportedNodeSize.Width, watermarkNode.FontSize + 2f);
+            watermarkNode.Position = new SKPoint(exportedNode.Position.X, exportedNode.Position.Y + exportedNodeSize.Height);
+            watermarkNode.Effects = null;
+        }
+
+        return watermarkNode;
     }
 
     //public async void BuildProject()

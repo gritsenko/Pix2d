@@ -21,6 +21,7 @@ public class PngImageExporter : IStreamExporter, IFilePickerExporter
     }
 
     public string[] SupportedExtensions => new[] {".png"};
+    public string MimeType => "image/png";
 
     public async Task<Stream> ExportToStreamAsync(IEnumerable<SKNode> nodesToExport, double scale = 1)
     {

@@ -3,7 +3,17 @@ using Pix2d.Abstract.Services;
 using SkiaNodes.Interactive;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using Android.App;
+using Android.Content;
+using AndroidX.Core.Content;
+using Pix2d.Abstract.Export;
+using Pix2d.Android;
+using Pix2d.Common;
+using Pix2d.Resources;
+using SkiaSharp;
+using File = Java.IO.File;
 
 namespace Pix2d.Services
 {
@@ -80,6 +90,7 @@ namespace Pix2d.Services
         }
 
         public bool HasKeyboard => false;
+        public bool CanShare => true;
 
         public static double GetScreenDiagonal()
         {
@@ -109,5 +120,32 @@ namespace Pix2d.Services
             return -1;
         }
 
+        public async void Share(IStreamExporter exporter, double scale)
+        {
+            var tempFilename = "pix2d_share" + exporter.SupportedExtensions.First();
+            var sdCardPath = Path.Combine(Application.Context.ExternalCacheDir.AbsolutePath, "tmp");
+            if (!Directory.Exists(sdCardPath))
+            {
+                Directory.CreateDirectory(sdCardPath);
+            }
+            
+            var filePath = Path.Combine(sdCardPath, tempFilename);
+            using (var os = new FileStream(filePath, FileMode.Create))
+            {
+                var nodes = CoreServices.ExportService.GetNodesToExport(scale);
+                var source = await exporter.ExportToStreamAsync(nodes, scale);
+                await source.CopyToAsync(os);
+                os.Close();
+            }
+
+            var imageUri = FileProvider.GetUriForFile(Application.Context, Application.Context.PackageName + ".fileprovider",
+                new File(filePath));
+            var sharingIntent = new Intent ();
+            sharingIntent.SetAction (Intent.ActionSend);
+            sharingIntent.SetType(exporter.MimeType);
+            sharingIntent.PutExtra (Intent.ExtraStream, imageUri);
+            sharingIntent.AddFlags (ActivityFlags.GrantReadUriPermission);
+            MainActivity.Instance.StartActivity (Intent.CreateChooser (sharingIntent, "Pix2d project"));
+        }
     }
 }

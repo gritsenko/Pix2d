@@ -77,5 +77,4 @@ public class FileCommands : CommandsListBase
     public Pix2dCommand Exit => GetCommand("Exit", new CommandShortcut(VirtualKeys.F4, KeyModifier.Alt),
         EditContextType.All,
         () => Environment.Exit(0));
-
 }

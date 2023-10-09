@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using SkiaNodes.Interactive;
@@ -135,4 +136,9 @@ public class PlatformStuffService : IPlatformStuffService
     }
 
     public bool HasKeyboard => true;
+    public bool CanShare => false;
+    public void Share(IStreamExporter exporter, double scale = 1)
+    {
+        throw new NotSupportedException();
+    }
 }

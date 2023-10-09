@@ -11,6 +11,7 @@ public interface IExporter
     Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1);
     
     string[] SupportedExtensions { get; }
+    string MimeType { get; }
 }
 
 public interface IStreamExporter : IExporter

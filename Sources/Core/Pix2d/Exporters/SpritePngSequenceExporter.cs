@@ -71,6 +71,7 @@ public class SpritePngSequenceExporter : IFolderPickerExporter
     }
 
     public string[] SupportedExtensions => new[] {".png"};
+    public string MimeType => "image/png";
 
     public async Task ExportToFolderAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {
