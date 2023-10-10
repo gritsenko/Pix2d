@@ -117,6 +117,8 @@ namespace Pix2d.Drawing.Nodes
 
         public AxisLockMode AxisLockMode { get; set; }
 
+        private bool IsInitialized => DrawingTarget != null && _backgroundBitmap != null && _workingBitmap != null;
+
         public SKBitmap GetSelectionBackground()
         {
             return _backgroundBitmap?.Copy();
@@ -203,6 +205,8 @@ namespace Pix2d.Drawing.Nodes
 
         public override void OnPointerPressed(PointerActionEventArgs eventArgs, int clickCount)
         {
+            if (!IsInitialized) return;
+            
             if (_drawingMode == BrushDrawingMode.MoveSelection)
                 return;
 
@@ -239,6 +243,8 @@ namespace Pix2d.Drawing.Nodes
 
         public override void OnPointerReleased(PointerActionEventArgs eventArgs)
         {
+            if (!IsInitialized) return;
+            
             ReleasePointerCapture();
 
             try
@@ -313,6 +319,8 @@ namespace Pix2d.Drawing.Nodes
 
         public override void OnPointerMoved(PointerActionEventArgs eventArgs)
         {
+            if (!IsInitialized) return;
+            
             var prevPointerPosition = _previewPos;
             var currPointerPosition = eventArgs.Pointer.GetPosition(this).ToSkPointI();
             

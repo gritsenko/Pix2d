@@ -1,14 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using CommonServiceLocator;
-using Microsoft.AppCenter.Crashes;
-using Pix2d.Abstract.Services;
-using Pix2d.Common;
 using Sentry;
 
-namespace Pix2d.Desktop.Logging;
+namespace Pix2d.Logging;
 
 public class SentryLoggerTarget : ILoggerTarget
 {

@@ -6,6 +6,7 @@ using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.Android.Services;
+using Pix2d.Logging;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Drawing;
 using Pix2d.Plugins.Sprite;
@@ -48,9 +49,18 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
         container.RegisterInstance<IMessenger>(Messenger.Default);
         container.RegisterSingleton<IDialogService, AvaloniaDialogService>();
 
+        InitiTelemetry();
+
         Pix2DApp.CurrentPlatform = PlatformType.Android;
         Pix2DApp.AppFolder = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
 
         await Pix2DApp.CreateInstanceAsync(Pix2dSettings);
+    }
+
+    private void InitiTelemetry()
+    {
+#if !DEBUG
+        Logger.RegisterLoggerTarget(new SentryLoggerTarget());
+#endif
     }
 }
