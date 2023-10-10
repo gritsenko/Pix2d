@@ -1,7 +1,9 @@
 ﻿using System;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Commands;
+using Pix2d.Messages;
 using Pix2d.Primitives;
+using Pix2d.Views;
 using SkiaNodes.Interactive;
 
 namespace Pix2d.Command;
@@ -60,7 +62,13 @@ public class ViewCommands : CommandsListBase
     public Pix2dCommand ToggleBrushSettingsCommand => GetCommand("Brush settings", 
         null,
         EditContextType.All,
-        () => AppState.UiState.ShowBrushSettings = !AppState.UiState.ShowBrushSettings);
+        () =>
+        {
+            var uiState = AppState.UiState;
+            var isOpen = uiState.ShowBrushSettings;
+            Messenger.Default.Send(new CloseUnpinnedPopups());
+            uiState.ShowBrushSettings = !isOpen;
+        });
 
 
     public Pix2dCommand ShowLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = true);
@@ -74,7 +82,9 @@ public class ViewCommands : CommandsListBase
     public Pix2dCommand ToggleColorEditorCommand => GetCommand("Select color", null, EditContextType.All, () =>
     {
         var uiState = AppState.UiState;
-        uiState.ShowColorEditor = !uiState.ShowColorEditor;
+        var isOpen = uiState.ShowColorEditor;
+        Messenger.Default.Send(new CloseUnpinnedPopups());
+        uiState.ShowColorEditor = !isOpen;
     });
 
     public SnappingCommands Snapping { get; } = new();

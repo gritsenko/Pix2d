@@ -43,11 +43,13 @@ public class PopupView : ViewBase
             
             SetAndRaise(IsOpenProperty, ref _isOpen, value);
             IsVisible = value;
+            var messenger = ServiceLocator.Current.GetInstance<IMessenger>();
             if (value)
             {
                 if (ShowPinButton)
                 {
-                    ServiceLocator.Current.GetInstance<IMessenger>().Register<WindowClickedMessage>(this, OnWindowClicked);
+                    messenger.Register<WindowClickedMessage>(this, OnWindowClicked);
+                    messenger.Register<CloseUnpinnedPopups>(this, CloseUnpinned);
                 }
                 _onShowAction?.Invoke();
             }
@@ -55,7 +57,8 @@ public class PopupView : ViewBase
             {
                 if (ShowPinButton)
                 {
-                    ServiceLocator.Current.GetInstance<IMessenger>().Unregister<WindowClickedMessage>(this, OnWindowClicked);
+                    messenger.Unregister<WindowClickedMessage>(this, OnWindowClicked);
+                    messenger.Unregister<CloseUnpinnedPopups>(this, CloseUnpinned);
                 }
             }
         }
@@ -229,5 +232,13 @@ public class PopupView : ViewBase
     private bool IsInside(StyledElement element)
     {
         return ReferenceEquals(element, this) || element.Parent != null && IsInside(element.Parent);
+    }
+
+    public void CloseUnpinned(CloseUnpinnedPopups closeUnpinnedPopups)
+    {
+        if (!IsPinned)
+        {
+            IsOpen = false;
+        }
     }
 }
