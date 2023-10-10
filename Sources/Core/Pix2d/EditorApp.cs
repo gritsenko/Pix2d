@@ -108,8 +108,6 @@ public class EditorApp : Application
             await EditorApp.Pix2dBootstrapper.InitializeAsync();
 
             var mainLayoutView = new MainView();
-            mainLayoutView.ViewInitialized += () => UpdateCanvas(mainLayoutView);
-
             hostView.Child = mainLayoutView;
 
             UpdateCanvas(mainLayoutView);
