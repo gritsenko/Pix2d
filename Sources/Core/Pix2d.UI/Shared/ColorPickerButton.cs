@@ -1,7 +1,6 @@
-﻿using Pix2d.Common;
-using SkiaSharp;
+﻿using SkiaSharp;
 
-namespace Pix2d.Shared;
+namespace Pix2d.UI.Shared;
 
 public class ColorPickerButton : ViewBase
 {

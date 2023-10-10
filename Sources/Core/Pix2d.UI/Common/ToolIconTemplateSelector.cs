@@ -1,6 +1,6 @@
 ﻿using Avalonia.Metadata;
 
-namespace Pix2d.Common;
+namespace Pix2d.UI.Common;
 
 public class ToolIconTemplateSelector : IDataTemplate
 {

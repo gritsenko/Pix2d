@@ -1,7 +1,6 @@
-﻿using Avalonia.Media;
-using SkiaSharp;
+﻿using SkiaSharp;
 
-namespace Pix2d.Common;
+namespace Pix2d.UI.Common.Extensions;
 
 public static class ColorExtensions
 {

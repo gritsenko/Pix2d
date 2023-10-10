@@ -1,7 +1,8 @@
 ﻿using Avalonia.Styling;
+using Pix2d.UI.Resources;
 using SkiaNodes.Interactive;
 
-namespace Pix2d.Views.MainMenu;
+namespace Pix2d.UI.MainMenu;
 
 public class MainMenuView : ComponentBase
 {

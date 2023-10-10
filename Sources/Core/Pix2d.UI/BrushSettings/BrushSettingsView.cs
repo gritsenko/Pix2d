@@ -1,8 +1,9 @@
-﻿using Pix2d.Shared;
-using static Pix2d.Resources.StaticResources;
+﻿using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
+using static Pix2d.UI.Resources.StaticResources;
 using Colors = Avalonia.Media.Colors;
 
-namespace Pix2d.Views.BrushSettings;
+namespace Pix2d.UI.BrushSettings;
 
 public class BrushSettingsView : ComponentBase
 {

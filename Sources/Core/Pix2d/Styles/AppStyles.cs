@@ -1,7 +1,8 @@
 ﻿using Avalonia.Controls.Presenters;
 using Avalonia.Styling;
-using Pix2d.Shared;
-using Pix2d.Views.MainMenu;
+using Pix2d.UI.Common.Extensions;
+using Pix2d.UI.MainMenu;
+using Pix2d.UI.Resources;
 using SkiaSharp;
 
 namespace Pix2d.Styles;

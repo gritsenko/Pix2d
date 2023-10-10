@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Input;
 using Mvvm;
 
-namespace Pix2d.Views.MainMenu.ViewModels;
+namespace Pix2d.UI.MainMenu.ViewModels;
 
 public class LicenseViewModel : ViewModelBase
 {

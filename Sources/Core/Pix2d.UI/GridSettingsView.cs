@@ -1,6 +1,7 @@
-﻿using SkiaSharp;
+﻿using Pix2d.UI.Resources;
+using SkiaSharp;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class GridSettingsView : ComponentBase
 {

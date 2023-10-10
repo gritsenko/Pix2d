@@ -1,7 +1,7 @@
 ﻿using CommonServiceLocator;
 using Pix2d.Infrastructure.Mvvm;
 
-namespace Pix2d.Common;
+namespace Pix2d.UI.Common;
 
 public abstract class ViewBaseSingletonVm<TViewModel> : ViewBase<TViewModel>
     where TViewModel : class

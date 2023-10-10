@@ -1,12 +1,10 @@
-﻿using System;
-using System.IO;
-using Avalonia.Media.Imaging;
+﻿using System.IO;
 using Avalonia.Platform;
-using Pix2d.Common;
 using Pix2d.UI.Common.Converters;
+using Pix2d.UI.Common.Extensions;
 using SkiaSharp;
 
-namespace Pix2d.Resources;
+namespace Pix2d.UI.Resources;
 
 public static class StaticResources
 {

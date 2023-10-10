@@ -2,8 +2,9 @@
 using CommonServiceLocator;
 using Mvvm;
 using Pix2d.Abstract.UI;
+using Pix2d.UI.Resources;
 
-namespace Pix2d.Shared;
+namespace Pix2d.UI.Shared;
 
 public class DialogContainer : ViewBase, IDialogContainer
 {

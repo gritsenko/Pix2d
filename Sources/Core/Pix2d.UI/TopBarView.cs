@@ -1,9 +1,11 @@
 ﻿using Pix2d.Abstract.Commands;
 using Pix2d.Common;
 using Pix2d.Messages;
-using Pix2d.Shared;
+using Pix2d.UI.Common.Extensions;
+using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class TopBarView : ComponentBase
 {

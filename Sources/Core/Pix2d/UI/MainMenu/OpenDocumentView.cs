@@ -1,16 +1,17 @@
 ﻿using System;
-using Avalonia.Controls.Shapes;
-using Pix2d.Messages;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
-using CommonServiceLocator;
-using Pix2d.Abstract.Platform;
+using Pix2d.Messages;
 using Pix2d.Project;
-using Pix2d.Shared;
+using Pix2d.UI.Common;
+using Pix2d.UI.Common.Extensions;
+using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
 
-namespace Pix2d.Views.MainMenu;
+namespace Pix2d.UI.MainMenu;
 
 public class OpenDocumentView : ComponentBase
 {

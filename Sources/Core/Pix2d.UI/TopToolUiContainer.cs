@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class TopToolUiContainer : ComponentBase
 {

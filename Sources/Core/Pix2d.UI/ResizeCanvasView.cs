@@ -1,9 +1,10 @@
 ﻿using System.Globalization;
 using Mvvm;
 using Pix2d.Messages;
+using Pix2d.UI.Resources;
 using SkiaSharp;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class ResizeCanvasView : ComponentBase
 {

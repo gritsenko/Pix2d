@@ -1,6 +1,6 @@
 ﻿using Avalonia.Controls.Shapes;
 
-namespace Pix2d.Views.MainMenu;
+namespace Pix2d.UI.MainMenu;
 
 public class SaveDocumentView : ComponentBase
 {

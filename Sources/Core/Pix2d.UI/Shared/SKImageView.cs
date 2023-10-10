@@ -1,8 +1,9 @@
-﻿using System;
-using Pix2d.Common;
+﻿using Pix2d.UI.Common;
+using Pix2d.UI.Common.Extensions;
+using Pix2d.UI.Resources;
 using SkiaSharp;
 
-namespace Pix2d.Shared;
+namespace Pix2d.UI.Shared;
 
 public class SKImageView : ViewBase
 {

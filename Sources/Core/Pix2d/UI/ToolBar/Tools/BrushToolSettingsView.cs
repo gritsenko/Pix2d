@@ -1,10 +1,11 @@
-﻿using Pix2d.Primitives.Drawing;
+﻿using System.Windows.Input;
 using Avalonia.Controls.Shapes;
 using Mvvm;
-using System.Windows.Input;
 using Pix2d.Plugins.Drawing.Tools;
+using Pix2d.Primitives.Drawing;
+using Pix2d.UI.Resources;
 
-namespace Pix2d.Views.ToolBar.Tools;
+namespace Pix2d.UI.ToolBar.Tools;
 
 public class BrushToolSettingsView : ComponentBase
 {

@@ -1,6 +1,7 @@
 ﻿using Avalonia.Styling;
+using Pix2d.UI.Resources;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class PromoBlockView : ComponentBase
 {

@@ -4,7 +4,7 @@ using Avalonia.Xaml.Interactions.DragAndDrop;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.ViewModels.Layers;
 
-namespace Pix2d.Views.Layers;
+namespace Pix2d.UI.Layers;
 
 public class ItemsListBoxDropHandler : DropHandlerBase
 {

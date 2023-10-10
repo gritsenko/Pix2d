@@ -1,6 +1,6 @@
 ﻿using Avalonia.Input;
 
-namespace Pix2d.Common;
+namespace Pix2d.UI.Common;
 
 public static class KeyInterop
 {

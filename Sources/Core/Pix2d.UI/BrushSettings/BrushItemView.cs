@@ -1,8 +1,8 @@
 ﻿using Avalonia.Controls.Shapes;
-using Pix2d.Common;
+using Pix2d.UI.Common.Extensions;
 using SkiaSharp;
 
-namespace Pix2d.Views.BrushSettings;
+namespace Pix2d.UI.BrushSettings;
 
 public class BrushItemView : ComponentBase
 {

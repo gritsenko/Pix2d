@@ -1,4 +1,4 @@
-﻿namespace Pix2d.Shared;
+﻿namespace Pix2d.UI.Shared;
 
 public class AppToggleButton : AppButton
 {

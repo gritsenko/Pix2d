@@ -2,7 +2,7 @@
 using Pix2d.Abstract.Export;
 using Pix2d.Exporters;
 
-namespace Pix2d.Views.Export;
+namespace Pix2d.UI.Export;
 
 public class SpritesheetExportSettingsView : ComponentBase, IExportSettingsViewBase<SpritesheetImageExporter>
 {

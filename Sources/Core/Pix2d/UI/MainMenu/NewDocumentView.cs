@@ -3,10 +3,11 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Interactivity;
 using Pix2d.Messages;
-using Pix2d.Shared;
+using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
 using SkiaSharp;
 
-namespace Pix2d.Views.MainMenu;
+namespace Pix2d.UI.MainMenu;
 
 public class NewDocumentView : ComponentBase
 {

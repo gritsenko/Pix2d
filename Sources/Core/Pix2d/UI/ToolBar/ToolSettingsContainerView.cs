@@ -1,8 +1,8 @@
 ﻿using Pix2d.Drawing.Tools;
 using Pix2d.Messages;
 using Pix2d.Plugins.Drawing.Tools;
+using Pix2d.UI.Resources;
 using Pix2d.UI.ToolBar.Tools;
-using Pix2d.Views.ToolBar.Tools;
 
 namespace Pix2d.UI.ToolBar;
 

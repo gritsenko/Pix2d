@@ -1,9 +1,10 @@
-﻿using Pix2d.Primitives.Drawing;
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using Mvvm;
 using Pix2d.Drawing.Tools;
+using Pix2d.Primitives.Drawing;
+using Pix2d.UI.Resources;
 
-namespace Pix2d.Views.ToolBar.Tools;
+namespace Pix2d.UI.ToolBar.Tools;
 
 public class SelectionToolSettingsView : ComponentBase
 {

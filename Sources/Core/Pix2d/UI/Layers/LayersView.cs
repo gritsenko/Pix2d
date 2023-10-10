@@ -1,8 +1,11 @@
 ﻿using Avalonia.Xaml.Interactions.DragAndDrop;
+using Pix2d.UI.Common;
 using Pix2d.UI.Common.Behaviors;
+using Pix2d.UI.Common.Extensions;
+using Pix2d.UI.Resources;
 using Pix2d.ViewModels.Layers;
 
-namespace Pix2d.Views.Layers;
+namespace Pix2d.UI.Layers;
 
 public class LayersView : ViewBaseSingletonVm<LayersListViewModel>
 {

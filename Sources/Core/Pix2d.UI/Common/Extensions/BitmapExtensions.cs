@@ -1,7 +1,7 @@
 ﻿using Avalonia.Platform;
 using SkiaSharp;
 
-namespace Pix2d.Common;
+namespace Pix2d.UI.Common.Extensions;
 
 public static class BitmapExtensions
 {

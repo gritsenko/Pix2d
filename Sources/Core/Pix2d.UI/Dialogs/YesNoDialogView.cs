@@ -1,7 +1,8 @@
 using Avalonia.Styling;
 using Pix2d.Abstract.UI;
+using Pix2d.UI.Resources;
 
-namespace Pix2d.Views.Dialogs;
+namespace Pix2d.UI.Dialogs;
 
 public class YesNoDialogView : ViewBase, IDialogView
 {

@@ -2,8 +2,9 @@
 using Avalonia.Controls.Shapes;
 using CommonServiceLocator;
 using Pix2d.Messages;
+using Pix2d.UI.Resources;
 
-namespace Pix2d.Shared;
+namespace Pix2d.UI.Shared;
 
 public class PopupView : ViewBase
 {

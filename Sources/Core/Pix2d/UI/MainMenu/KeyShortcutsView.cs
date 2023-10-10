@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Pix2d.Views.MainMenu;
+namespace Pix2d.UI.MainMenu;
 
 public class KeyShortcutsView : ComponentBase
 {

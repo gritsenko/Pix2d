@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace Pix2d.Shared;
+namespace Pix2d.UI.Shared;
 
 public class SliderEx : ViewBase
 {

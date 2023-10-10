@@ -1,6 +1,7 @@
 ﻿using System;
+using Pix2d.UI.Resources;
 
-namespace Pix2d.Views.MainMenu;
+namespace Pix2d.UI.MainMenu;
 
 public class MainMenuItemView : ComponentBase
 {

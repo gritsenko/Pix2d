@@ -2,9 +2,9 @@
 using Avalonia.Controls.Shapes;
 using Avalonia.Styling;
 using Pix2d.Messages;
-using Pix2d.UI;
+using Pix2d.UI.Resources;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class AdditionalTopBarView : ComponentBase
 {

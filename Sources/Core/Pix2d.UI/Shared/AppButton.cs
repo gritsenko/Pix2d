@@ -1,7 +1,6 @@
-﻿using System;
-using System.Windows.Input;
+﻿using System.Windows.Input;
 
-namespace Pix2d.Shared;
+namespace Pix2d.UI.Shared;
 
 public class AppButton : ViewBase
 {

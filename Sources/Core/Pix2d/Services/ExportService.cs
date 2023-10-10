@@ -6,6 +6,7 @@ using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.CommonNodes;
 using Pix2d.Exporters;
+using Pix2d.UI.Resources;
 using SkiaNodes;
 using SkiaSharp;
 

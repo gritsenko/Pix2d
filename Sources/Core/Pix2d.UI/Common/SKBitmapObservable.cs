@@ -1,9 +1,8 @@
-﻿using System;
-using Mvvm;
+﻿using Mvvm;
 using Pix2d.Abstract.UI;
 using SkiaSharp;
 
-namespace Pix2d.Common;
+namespace Pix2d.UI.Common;
 
 public class SKBitmapObservable : ObservableObject, ISKBitmapObservable
 {

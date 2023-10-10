@@ -14,6 +14,8 @@ using Pix2d.Operations;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Plugins.Sprite.Operations.Effects;
 using Pix2d.Primitives.SpriteEditor;
+using Pix2d.UI.Common.Extensions;
+using Pix2d.UI.Resources;
 using SkiaNodes;
 using SkiaNodes.Common;
 using SkiaSharp;

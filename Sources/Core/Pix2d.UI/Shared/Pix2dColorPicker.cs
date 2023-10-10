@@ -1,10 +1,8 @@
-﻿using System;
-using Avalonia.Media.Imaging;
+﻿using Avalonia.Controls.Shapes;
+using Pix2d.UI.Resources;
 using SkiaSharp;
-using Avalonia.Controls.Shapes;
-using Pix2d.Common;
 
-namespace Pix2d.Shared;
+namespace Pix2d.UI.Shared;
 
 public class Pix2dColorPicker : ViewBase
 {

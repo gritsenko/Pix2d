@@ -1,4 +1,6 @@
-﻿namespace Pix2d.Views.MainMenu;
+﻿using Pix2d.UI.Resources;
+
+namespace Pix2d.UI.MainMenu;
 
 public class InfoView : ComponentBase
 {

@@ -1,9 +1,10 @@
 ﻿using Pix2d.Common;
-using Pix2d.Messages.Edit;
 using Pix2d.Messages;
+using Pix2d.Messages.Edit;
+using Pix2d.UI.Resources;
 using SkiaNodes.Interactive;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class InfoPanelView : ComponentBase
 {

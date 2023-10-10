@@ -1,8 +1,10 @@
 ﻿using Avalonia.Controls.Presenters;
-using Pix2d.Shared;
+using Pix2d.UI.Common.Extensions;
+using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
 using Pix2d.ViewModels.Layers;
 
-namespace Pix2d.Views.Layers;
+namespace Pix2d.UI.Layers;
 
 public class LayerItemView : ViewBase<LayerViewModel>
 {

@@ -1,7 +1,9 @@
-﻿using Pix2d.Shared;
+﻿using Pix2d.UI.Common;
+using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
 using Pix2d.ViewModels.Layers;
 
-namespace Pix2d.Views.Layers;
+namespace Pix2d.UI.Layers;
 
 public class BackgroundSelectorView : ViewBaseSingletonVm<LayersListViewModel>
 {

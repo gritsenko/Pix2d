@@ -4,8 +4,9 @@ using System.Windows.Input;
 using Avalonia.Styling;
 using Mvvm;
 using Pix2d.Primitives;
+using Pix2d.UI.Resources;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class AppMenuView : ComponentBase
 {

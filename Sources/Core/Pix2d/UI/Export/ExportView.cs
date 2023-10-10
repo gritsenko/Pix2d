@@ -1,20 +1,21 @@
-﻿using Pix2d.Abstract.UI;
-using Pix2d.Messages;
-using Pix2d.Plugins.Sprite.Editors;
-using Pix2d.Shared;
-using SkiaSharp;
+﻿using System;
 using System.Collections.Generic;
-using System.Windows.Input;
-using System;
 using System.Linq;
+using System.Windows.Input;
 using Avalonia.Interactivity;
 using Mvvm;
 using Pix2d.Abstract.Export;
+using Pix2d.Abstract.UI;
 using Pix2d.Exporters;
+using Pix2d.Messages;
+using Pix2d.Plugins.Sprite.Editors;
+using Pix2d.UI.Common;
+using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
 using SkiaNodes.Extensions;
-using Pix2d.UI.Export;
+using SkiaSharp;
 
-namespace Pix2d.Views.Export;
+namespace Pix2d.UI.Export;
 
 public class ExportView : ComponentBase
 {

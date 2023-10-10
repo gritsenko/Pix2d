@@ -1,11 +1,14 @@
-﻿using Avalonia.Xaml.Interactions.DragAndDrop;
-using Pix2d.ViewModels.Animations;
-using Avalonia.Controls.Shapes;
-using Pix2d.Plugins.Sprite.ViewModels.Animation;
-using Pix2d.UI.Common.Behaviors;
+﻿using Avalonia.Controls.Shapes;
+using Avalonia.Xaml.Interactions.DragAndDrop;
 using Pix2d.Abstract.Commands;
+using Pix2d.Plugins.Sprite.ViewModels.Animation;
+using Pix2d.UI.Common;
+using Pix2d.UI.Common.Behaviors;
+using Pix2d.UI.Common.Extensions;
+using Pix2d.UI.Resources;
+using Pix2d.ViewModels.Animations;
 
-namespace Pix2d.Views.Animation;
+namespace Pix2d.UI.Animation;
 
 public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel>
 {

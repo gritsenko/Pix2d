@@ -4,7 +4,7 @@ using Avalonia.Xaml.Interactions.DragAndDrop;
 using Pix2d.Plugins.Sprite.ViewModels.Animation;
 using Pix2d.ViewModels.Animations;
 
-namespace Pix2d.Views.Animation;
+namespace Pix2d.UI.Animation;
 
 public class FrameItemsListBoxDropHandler : DropHandlerBase
 {

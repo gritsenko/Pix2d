@@ -1,7 +1,7 @@
 ﻿using Avalonia.Xaml.Interactions.Responsive;
 using Avalonia.Xaml.Interactivity;
 
-namespace Pix2d.Common;
+namespace Pix2d.UI.Common.Extensions;
 
 public static class ControlBehaviorExtensions
 {

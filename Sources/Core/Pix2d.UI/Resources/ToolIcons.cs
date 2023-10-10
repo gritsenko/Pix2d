@@ -1,7 +1,7 @@
-﻿using Pix2d.Common;
-using Avalonia.Controls.Shapes;
+﻿using Avalonia.Controls.Shapes;
+using Pix2d.UI.Common;
 
-namespace Pix2d.Resources;
+namespace Pix2d.UI.Resources;
 
 public static class ToolIcons
 {

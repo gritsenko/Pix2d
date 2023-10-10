@@ -1,12 +1,11 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Avalonia.Interactivity;
-using Pix2d.Common;
+using Pix2d.UI.Resources;
 using SkiaSharp;
 
-namespace Pix2d.Shared;
+namespace Pix2d.UI.Shared;
 
 public class ColorPalette : ViewBase
 {

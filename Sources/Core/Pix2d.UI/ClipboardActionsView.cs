@@ -1,7 +1,8 @@
 ﻿using Pix2d.Abstract.Commands;
 using Pix2d.Primitives;
+using Pix2d.UI.Resources;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class ClipboardActionsView : ComponentBase
 {

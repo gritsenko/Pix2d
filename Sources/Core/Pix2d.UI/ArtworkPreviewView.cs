@@ -1,14 +1,15 @@
-﻿using Pix2d.Messages.Edit;
-using Pix2d.Messages;
-using Pix2d.Shared;
-using SkiaNodes;
-using SkiaSharp;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Globalization;
 using Pix2d.Abstract.Edit;
-using Pix2d.Common;
+using Pix2d.Messages;
+using Pix2d.Messages.Edit;
+using Pix2d.UI.Common;
+using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
+using SkiaNodes;
+using SkiaSharp;
 
-namespace Pix2d.Views;
+namespace Pix2d.UI;
 
 public class ArtworkPreviewView : ComponentBase
 {

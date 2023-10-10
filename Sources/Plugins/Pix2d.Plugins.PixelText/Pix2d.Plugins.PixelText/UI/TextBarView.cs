@@ -10,8 +10,8 @@ using Avalonia.Markup.Declarative;
 using Pix2d.Abstract.Tools;
 using Pix2d.Drawing.Tools;
 using Pix2d.Primitives;
-using Pix2d.Resources;
 using Pix2d.State;
+using Pix2d.UI.Resources;
 
 namespace Pix2d.Views.Text;
 

@@ -1,4 +1,4 @@
-﻿namespace Pix2d.Views.MainMenu;
+﻿namespace Pix2d.UI.MainMenu;
 
 public class AppSettingsView : ComponentBase
 {
