@@ -21,12 +21,7 @@ namespace Pix2d.CommonNodes
         {
             get
             {
-                if (_substitute == null)
-                {
                     return _bitmap;
-                }
-
-                return _substitute();
             }
             set
             {
@@ -160,15 +155,16 @@ namespace Pix2d.CommonNodes
 
         public override void OnDraw(SKCanvas canvas, ViewPort vp)
         {
-            if (Bitmap != null)
+            var bitmap = _substitute == null ? Bitmap : _substitute();
+            if (bitmap != null)
             {
-                if (Math.Abs(Size.Width - Bitmap.Width) < 0.1 && Math.Abs(Size.Height - Bitmap.Height) < 0.1)
+                if (Math.Abs(Size.Width - bitmap.Width) < 0.1 && Math.Abs(Size.Height - bitmap.Height) < 0.1)
                 {
-                    canvas.DrawBitmap(Bitmap, 0, 0);
+                    canvas.DrawBitmap(bitmap, 0, 0);
                 }
                 else
                 {
-                    canvas.DrawBitmap(Bitmap, _bitmapRect, _nodeRect, new SKPaint(){FilterQuality = SKFilterQuality.None});
+                    canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect, new SKPaint(){FilterQuality = SKFilterQuality.None});
                 }
             }
 //            using (var paint = canvas.GetSimpleStrokePaint(1, SKColors.Red))
