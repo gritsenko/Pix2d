@@ -6,9 +6,7 @@ using Pix2d.Abstract.Tools;
 using Pix2d.Drawing.Tools;
 using Pix2d.Primitives.Drawing;
 using SkiaNodes;
-using SkiaNodes.Extensions;
 using SkiaNodes.Interactive;
-using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Tools;
 

@@ -1,5 +1,4 @@
 ﻿using Pix2d.Plugins.Drawing.Tools;
-using SkiaSharp;
 
 namespace Pix2d.UI.ToolBar.Tools;
 

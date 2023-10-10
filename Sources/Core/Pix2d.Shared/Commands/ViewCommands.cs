@@ -1,9 +1,9 @@
 ﻿using System;
+using Mvvm.Messaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Commands;
 using Pix2d.Messages;
 using Pix2d.Primitives;
-using Pix2d.Views;
 using SkiaNodes.Interactive;
 
 namespace Pix2d.Command;

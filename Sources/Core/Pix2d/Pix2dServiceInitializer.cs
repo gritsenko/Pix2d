@@ -2,7 +2,6 @@
 using Pix2d.Abstract.Tools;
 using Pix2d.Abstract.UI;
 using Pix2d.Infrastructure.Mvvm;
-using Pix2d.Mvvm;
 using Pix2d.Services;
 
 namespace Pix2d

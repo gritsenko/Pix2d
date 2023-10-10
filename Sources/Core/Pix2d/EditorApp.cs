@@ -9,7 +9,6 @@ using Avalonia.VisualTree;
 using CommonServiceLocator;
 using Pix2d.UI;
 using Pix2d.UI.Resources;
-using Pix2d.Views;
 
 namespace Pix2d;
 

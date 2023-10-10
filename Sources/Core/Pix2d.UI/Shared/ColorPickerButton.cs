@@ -1,4 +1,5 @@
-﻿using SkiaSharp;
+﻿using Pix2d.UI.Common.Extensions;
+using SkiaSharp;
 
 namespace Pix2d.UI.Shared;
 

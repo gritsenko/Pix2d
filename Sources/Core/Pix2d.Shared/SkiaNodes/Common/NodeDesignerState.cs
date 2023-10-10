@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SkiaNodes
+﻿namespace SkiaNodes
 {
     public class NodeDesignerState
     {

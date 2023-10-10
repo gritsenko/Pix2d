@@ -1,5 +1,4 @@
-﻿using Pix2d.Common;
-using Pix2d.UI.Common.Extensions;
+﻿using Pix2d.UI.Common.Extensions;
 using Pix2d.UI.Resources;
 
 namespace Pix2d.UI;

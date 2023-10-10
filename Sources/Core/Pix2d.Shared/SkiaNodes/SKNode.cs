@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.Http.Headers;
 using Newtonsoft.Json;
 using Pix2d;
 using SkiaNodes.Extensions;

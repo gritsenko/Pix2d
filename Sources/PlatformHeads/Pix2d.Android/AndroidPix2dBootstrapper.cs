@@ -6,7 +6,6 @@ using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.Android.Services;
-using Pix2d.Logging;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Drawing;
 using Pix2d.Plugins.Sprite;

@@ -1,5 +1,4 @@
 ﻿using System;
-using SkiaNodes.Extensions;
 using SkiaSharp;
 
 namespace SkiaNodes.Serialization

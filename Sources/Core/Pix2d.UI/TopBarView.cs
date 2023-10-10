@@ -1,5 +1,4 @@
 ﻿using Pix2d.Abstract.Commands;
-using Pix2d.Common;
 using Pix2d.Messages;
 using Pix2d.UI.Common.Extensions;
 using Pix2d.UI.Resources;

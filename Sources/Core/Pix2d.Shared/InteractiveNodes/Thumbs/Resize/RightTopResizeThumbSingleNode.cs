@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Pix2d.Abstract.Selection;
+﻿using Pix2d.Abstract.Selection;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 

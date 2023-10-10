@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Avalonia.Interactivity;
+using Pix2d.UI.Common.Extensions;
 using Pix2d.UI.Resources;
 using SkiaSharp;
 

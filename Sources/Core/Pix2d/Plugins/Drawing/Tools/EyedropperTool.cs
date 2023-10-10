@@ -1,9 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Tools;
-using Pix2d.Tools;
 using SkiaNodes.Interactive;
-using SkiaSharp;
 
 namespace Pix2d.Drawing.Tools
 {

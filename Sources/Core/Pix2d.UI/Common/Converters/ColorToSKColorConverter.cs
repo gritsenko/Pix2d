@@ -1,8 +1,5 @@
 ﻿#nullable enable
-using System;
 using System.Globalization;
-using Avalonia.Media;
-using Pix2d.Common;
 using Pix2d.UI.Common.Extensions;
 using SkiaSharp;
 

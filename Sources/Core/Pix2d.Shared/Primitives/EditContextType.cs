@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Pix2d.Abstract
+﻿namespace Pix2d.Abstract
 {
     public enum EditContextType
     {

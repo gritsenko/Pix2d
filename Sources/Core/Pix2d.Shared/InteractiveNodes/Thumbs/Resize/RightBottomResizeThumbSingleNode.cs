@@ -1,5 +1,4 @@
-﻿using System;
-using Pix2d.Abstract.Selection;
+﻿using Pix2d.Abstract.Selection;
 using SkiaSharp;
 using SkiaNodes.Extensions;
 namespace Pix2d.CommonNodes.Controls.Thumbs.Resize

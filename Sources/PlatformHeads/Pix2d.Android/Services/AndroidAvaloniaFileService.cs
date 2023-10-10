@@ -1,7 +1,6 @@
 ﻿using System.IO;
 using Avalonia.Platform.Storage;
 using Mvvm.Messaging;
-using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Abstract.Services;
 using Uri = Android.Net.Uri;

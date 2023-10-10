@@ -3,6 +3,7 @@ using System.Windows.Input;
 using Avalonia.Input;
 using Mvvm;
 using Pix2d.Messages;
+using Pix2d.UI.Common.Extensions;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using SkiaSharp;

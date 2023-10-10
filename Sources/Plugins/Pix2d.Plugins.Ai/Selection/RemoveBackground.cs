@@ -1,9 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using SkiaSharp;
-using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace Pix2d.Plugins.Ai.Selection;
 

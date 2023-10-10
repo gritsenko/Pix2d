@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Linq;
 using Pix2d.Abstract.Operations;
-using Pix2d.Common;
 using Pix2d.Messages;
 using Pix2d.Operations;
 using Pix2d.Primitives.Operations;

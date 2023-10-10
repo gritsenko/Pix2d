@@ -12,7 +12,6 @@ using Pix2d.UI.MainMenu;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using Pix2d.UI.ToolBar;
-using Pix2d.Views;
 using VisualExtensions = Avalonia.Markup.Declarative.VisualExtensions;
 
 namespace Pix2d.UI;
