@@ -8,8 +8,11 @@ using Pix2d.Abstract.Services;
 using Pix2d.Android.Services;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Drawing;
+using Pix2d.Plugins.HttpHost;
+using Pix2d.Plugins.PixelText;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Services;
+using Pix2d.UI;
 
 namespace Pix2d.Android;
 
@@ -22,8 +25,10 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
         {
             typeof(SpritePlugin),
             typeof(DrawingPlugin),
-            //typeof(AiPlugin)
+            typeof(PixelTextPlugin),
+            typeof(HttpHostPlugin),
         },
+        MainViewType = typeof(MainView),
         AutoSaveNewProject = true,
         AutoSaveInterval = TimeSpan.FromSeconds(10),
     };
