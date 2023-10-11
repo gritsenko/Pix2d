@@ -244,10 +244,13 @@ namespace Pix2d.CommonNodes
                 var vp = new ViewPort((int)(targetBitmap.Width), (int)(targetBitmap.Height));
                 vp.Settings.RenderAdorners = false;
 
-                // if (Math.Abs(scale - 1f) > 0.1)
-                //{
-                vp.ShowArea(GetBoundingBox());
-                // }
+                var bbox = GetBoundingBox();
+                bbox.Left = 1;
+                bbox.Top = 1;
+                bbox.Right -= 1;
+                bbox.Bottom -= 1;
+                
+                vp.ShowArea(bbox);
 
                 using var canvas = targetBitmap.GetSKSurface().Canvas;
                 canvas.Clear(SKColor.Empty);
