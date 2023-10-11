@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using Pix2d.UI.Common.Extensions;
 using SkiaSharp;
 

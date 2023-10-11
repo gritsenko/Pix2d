@@ -1,5 +1,4 @@
-﻿using System;
-using Pix2d.UI.Resources;
+﻿using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.MainMenu;
 

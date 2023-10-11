@@ -100,6 +100,5 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pix2d.Shared\Pix2d.Shared.csproj" />
-    <ProjectReference Include="..\Pix2d.UI\Pix2d.UI.csproj" />
   </ItemGroup>
 </Project>

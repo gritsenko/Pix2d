@@ -1,8 +1,15 @@
 ﻿using System.Diagnostics;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Interactivity;
+using Avalonia.Markup.Declarative;
 using Avalonia.Xaml.Interactions.Responsive;
 using CommonServiceLocator;
+using Mvvm.Messaging;
 using Pix2d.Messages;
+using Pix2d.State;
 using Pix2d.UI.Animation;
 using Pix2d.UI.BrushSettings;
 using Pix2d.UI.Common.Extensions;

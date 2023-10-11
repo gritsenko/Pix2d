@@ -1,4 +1,5 @@
-﻿using Avalonia.Metadata;
+﻿using System.Collections.Generic;
+using Avalonia.Metadata;
 
 namespace Pix2d.UI.Common;
 

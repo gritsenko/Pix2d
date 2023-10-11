@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Mvvm;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.UI;
+using Pix2d.Common;
 using Pix2d.Exporters;
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Markup.Declarative;
 using Pix2d.Abstract.Services;
+using Pix2d.UI;
 using Sentry;
 
 [assembly: System.Reflection.Metadata.MetadataUpdateHandler(typeof(Avalonia.Markup.Declarative.HotReloadManager))]
@@ -21,7 +22,7 @@ class Program
         EditorApp.Pix2dBootstrapper = new DesktopPix2dBootstrapper();
         EditorApp.OnAppStarted = OnAppStarted;
         EditorApp.OnAppClosing = OnAppClosing;
-
+        EditorApp.UiModule = new UiModule();
         try
         {
             var isActive = SentrySdk.IsEnabled;

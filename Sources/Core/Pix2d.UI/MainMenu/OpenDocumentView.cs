@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Pix2d.Common;
 using Pix2d.Messages;
 using Pix2d.Project;
 using Pix2d.UI.Common;
