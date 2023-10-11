@@ -108,12 +108,7 @@ public class EditorApp : Application
 
             await EditorApp.Pix2dBootstrapper.InitializeAsync();
 
-            var mainLayoutView = new MainView();
-            mainLayoutView.ViewInitialized += () => UpdateCanvas(mainLayoutView);
-
-            hostView.Child = mainLayoutView;
-
-            UpdateCanvas(mainLayoutView);
+            hostView.LoadMainView();
         }
         catch (Exception ex)
         {
@@ -121,15 +116,6 @@ public class EditorApp : Application
             Debug.WriteLine(ex.StackTrace);
             throw;
         }
-    }
-
-    private void UpdateCanvas(MainView mainView)
-    {
-        var container = mainView.Child
-            .GetLogicalChildren()
-            .OfType<Border>()
-            .FirstOrDefault(x => x.Name == "Pix2dCanvasContainer");
-        container.Child = new SkiaCanvas();
     }
 
     /// <summary>

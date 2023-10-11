@@ -1,4 +1,9 @@
-﻿namespace Pix2d.UI;
+﻿using System;
+using System.Linq;
+using Avalonia.LogicalTree;
+using CommonServiceLocator;
+
+namespace Pix2d.UI;
 
 public class HostView : ViewBase
 {
@@ -53,4 +58,24 @@ public class HostView : ViewBase
         };
 #endif
     }
+    public void LoadMainView()
+    {
+        var mainViewType = ServiceLocator.Current.GetInstance<AppState>().Settings.MainViewType;
+        var mainLayoutView = IoC.Get<SimpleContainer>().BuildInstance(mainViewType) as ViewBase;
+        mainLayoutView.ViewInitialized += () => UpdateCanvas(mainLayoutView);
+
+        Child = mainLayoutView;
+
+        UpdateCanvas(mainLayoutView);
+    }
+
+    private void UpdateCanvas(ViewBase mainView)
+    {
+        var container = mainView.Child
+            .GetLogicalChildren()
+            .OfType<Border>()
+            .FirstOrDefault(x => x.Name == "Pix2dCanvasContainer");
+        container.Child = new SkiaCanvas();
+    }
+
 }

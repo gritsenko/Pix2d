@@ -24,6 +24,7 @@ using Pix2d.Plugins.HttpHost;
 using Pix2d.Plugins.PixelText;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Services;
+using Pix2d.UI;
 
 namespace Pix2d.Desktop;
 
@@ -40,7 +41,8 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
             typeof(HttpHostPlugin),
             //typeof(SpinePlugin),
             typeof(AiPlugin),
-        }
+        },
+        MainViewType = typeof(MainView)
     };
 
     public async Task InitializeAsync()
