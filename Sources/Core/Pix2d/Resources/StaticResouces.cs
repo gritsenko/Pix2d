@@ -39,7 +39,7 @@ public static class StaticResources
         public static Brush ButtonSolidBrush { get; set; } = Colors.MainBackgroundColor.ToBrush();
         public static Brush LinkHighlightBrush { get; } = Colors.MyLinkHighlightColor.ToBrush();
         public static Brush CheckerTilesBrush { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap);
-        public static Brush CheckerTilesBrushNoScale { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap) { Stretch = Stretch.None };
+        public static Brush CheckerTilesBrushNoScale { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap) { TileMode = TileMode.FlipXY, DestinationRect = new RelativeRect(0, 0, 100, 100, RelativeUnit.Absolute)};
         public static Brush ActionsBarBackground { get; set; } = "#444E59".ToColor().ToBrush();
         public static Brush ModalOverlayBrush { get; set; } = Colors.ModalOverlayColor.ToBrush();
         public static Brush SecondaryButtonBrush { get; set; } = Colors.SelectedItemColor.ToBrush();

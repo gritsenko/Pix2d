@@ -518,9 +518,9 @@ namespace Pix2d.Drawing.Nodes
             _strokePoints.Clear();
             DrawingStarted?.Invoke(this, EventArgs.Empty);
 
-            DrawingTarget.HideTargetBitmap();
             Opacity = DrawingTarget.GetOpacity();
             DrawingTarget.CopyBitmapTo(_backgroundBitmap);
+            DrawingTarget.SetTargetBitmapSubstitute(() => _backgroundBitmap);
             UseSwapBitmap = IsPixelPerfectMode;
 
             State = DrawingLayerState.Drawing;
@@ -557,11 +557,14 @@ namespace Pix2d.Drawing.Nodes
 
         public void FinishDrawing(bool cancel = false)
         {
-            var wbIsEmpty = WorkingBitmap.Pixels.All(x => x.Alpha == 0);
+            var wbIsEmpty = _drawingMode != BrushDrawingMode.Erase && WorkingBitmap.Pixels.All(x => x.Alpha == 0);
             if (!cancel && !wbIsEmpty) ApplyWorkingBitmap();
 
             if (State == DrawingLayerState.Drawing)
+            {
                 DrawingTarget.ShowTargetBitmap();
+                DrawingTarget.SetTargetBitmapSubstitute(null);
+            }
 
             State = DrawingLayerState.Ready;
             ClearWorkingBitmap();
@@ -627,13 +630,12 @@ namespace Pix2d.Drawing.Nodes
             {
                 using var tmpBitmap = _backgroundBitmap.Copy();
                 using var tmpCanvas = new SKCanvas(tmpBitmap);
-                tmpCanvas.DrawBitmap(_workingBitmap, 0, 0, new SKPaint() { BlendMode = SKBlendMode.SrcATop });
+                tmpCanvas.DrawBitmap(_workingBitmap, 0, 0, new SKPaint() { BlendMode = SKBlendMode.SrcIn });
                 tmpCanvas.Flush();
                 canvas.DrawBitmap(tmpBitmap, 0, 0);
             }
             else
             {
-                canvas.DrawBitmap(_backgroundBitmap, 0, 0);
                 canvas.DrawBitmap(_workingBitmap, 0, 0);
             }
         }
@@ -1167,8 +1169,7 @@ namespace Pix2d.Drawing.Nodes
 
             if (_backgroundBitmap != null)
             {
-                // DrawingTarget.SetTargetBitmapSubstitute(() => _backgroundBitmap);
-                DrawingTarget.HideTargetBitmap();
+                DrawingTarget.SetTargetBitmapSubstitute(() => _backgroundBitmap);
             }
         }
 
