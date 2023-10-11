@@ -7,7 +7,6 @@ using Mvvm;
 using Pix2d.CommonNodes;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Sprite.Editors;
-using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 

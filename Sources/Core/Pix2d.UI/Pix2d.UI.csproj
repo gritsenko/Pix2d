@@ -41,6 +41,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pix2d.Shared\Pix2d.Shared.csproj" />
+    <ProjectReference Include="..\Pix2d\Pix2d.Core.csproj" />
   </ItemGroup>
 
 </Project>

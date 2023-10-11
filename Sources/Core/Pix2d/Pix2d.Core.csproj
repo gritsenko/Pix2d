@@ -36,7 +36,7 @@
     <Compile Remove="Common\BarPlotter.cs" />
     <Compile Remove="Common\Label.cs" />
     <Compile Remove="PinchGestureRecognizer.cs" />
-    <Compile Remove="Views\MarkupExtensions.cs" />
+    <Compile Remove="UI\MarkupExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -95,11 +95,10 @@
     <PackageReference Include="Avalonia.Skia" Version="11.0.4" />
     <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.4" />
     <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.0.2" />
-    <PackageReference Include="Sentry" Version="3.39.1" />
+    <PackageReference Include="Sentry" Version="3.40.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Pix2d.Shared\Pix2d.Shared.csproj" />
-    <ProjectReference Include="..\Pix2d.UI\Pix2d.UI.csproj" />
   </ItemGroup>
 </Project>

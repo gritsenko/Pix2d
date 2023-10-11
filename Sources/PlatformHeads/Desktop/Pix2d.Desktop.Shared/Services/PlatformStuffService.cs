@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Avalonia.Threading;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;

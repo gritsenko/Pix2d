@@ -5,7 +5,6 @@ using Pix2d.Abstract.Services;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
-using Pix2d.Operations;
 using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Primitives.Drawing;
 using Pix2d.State;

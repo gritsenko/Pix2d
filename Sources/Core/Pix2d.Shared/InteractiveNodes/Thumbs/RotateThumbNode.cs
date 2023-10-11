@@ -4,7 +4,6 @@ using System.Linq;
 using Pix2d.Abstract.Selection;
 using SkiaNodes;
 using SkiaNodes.Extensions;
-using SkiaNodes.Interactive;
 using SkiaSharp;
 
 namespace Pix2d.CommonNodes.Controls.Thumbs

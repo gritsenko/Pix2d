@@ -12,7 +12,6 @@ using Pix2d.Abstract.Tools;
 using SkiaNodes;
 using SkiaSharp;
 using SkiaNodes.Extensions;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Pix2d.Services;
 

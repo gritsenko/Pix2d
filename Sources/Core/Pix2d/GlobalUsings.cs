@@ -1,5 +1,7 @@
 // Global using directives
 
+global using System;
+
 global using Avalonia;
 global using Avalonia.Controls;
 global using Avalonia.Media;
@@ -16,5 +18,4 @@ global using Mvvm.Messaging;
 global using Pix2d.Abstract;
 global using Pix2d.Abstract.Services;
 global using Pix2d.Abstract.State;
-global using Pix2d.Resources;
 global using Pix2d.State;

@@ -6,6 +6,7 @@ using Avalonia.Skia;
 using Avalonia.Threading;
 using CommonServiceLocator;
 using Pix2d.Abstract.Tools;
+using Pix2d.UI.Common;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaNodes.Interactive;

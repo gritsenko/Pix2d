@@ -4,6 +4,7 @@ using System.Linq;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
 using Pix2d.Tools;
+using Pix2d.UI.Resources;
 
 namespace Pix2d.Services;
 

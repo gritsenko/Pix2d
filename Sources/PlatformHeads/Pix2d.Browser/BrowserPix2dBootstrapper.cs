@@ -12,8 +12,10 @@ using Pix2d.Abstract.Services;
 using Pix2d.Browser.Services;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Drawing;
+using Pix2d.Plugins.PixelText;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Services;
+using Pix2d.UI;
 
 namespace Pix2d.Browser
 {
@@ -26,7 +28,9 @@ namespace Pix2d.Browser
             {
                 typeof(SpritePlugin),
                 typeof(DrawingPlugin),
-            }
+                typeof(PixelTextPlugin),
+            },
+            MainViewType = typeof(MainView)
         };
 
         public async Task InitializeAsync()

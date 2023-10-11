@@ -17,13 +17,14 @@ using Pix2d.Common;
 using Pix2d.Desktop.Logging;
 using Pix2d.Desktop.Services;
 using Pix2d.Editor.Desktop.Services;
-using Pix2d.Logging;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Ai;
 using Pix2d.Plugins.Drawing;
 using Pix2d.Plugins.HttpHost;
+using Pix2d.Plugins.PixelText;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Services;
+using Pix2d.UI;
 
 namespace Pix2d.Desktop;
 
@@ -36,10 +37,12 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         {
             typeof(SpritePlugin),
             typeof(DrawingPlugin),
+            typeof(PixelTextPlugin),
             typeof(HttpHostPlugin),
             //typeof(SpinePlugin),
             typeof(AiPlugin),
-        }
+        },
+        MainViewType = typeof(MainView)
     };
 
     public async Task InitializeAsync()
@@ -143,7 +146,7 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         else if(platform == PlatformType.CrossPlatformDesktop)
         {
 #if !WINDOWS_UWP && !WINFORMS
-            Logger.RegisterLoggerTarget(new SentryLoggerTarget());
+            Logger.RegisterLoggerTarget(new Pix2d.Logging.SentryLoggerTarget());
 #endif
         }
         //Logger.RegisterLoggerTarget(new GALoggerTarget("G-K2TCKSBBCX", "LOVC5ToFRJ2-b54hKgDiaQ"));

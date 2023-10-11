@@ -1,9 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
-using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.UI;
-using Pix2d.Views.Dialogs;
+using Pix2d.UI.Dialogs;
 
 //using MahApps.Metro.Controls;
 

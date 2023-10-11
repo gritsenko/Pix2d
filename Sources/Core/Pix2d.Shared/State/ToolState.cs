@@ -23,8 +23,11 @@ public class ToolState
         {
             ToolTip = settings.HotKey != null ? $"{settings.DisplayName} ({settings.HotKey})" : settings.DisplayName;
             IconKey = settings.IconData;
+            TopBarUI = settings.TopBarUI;
         }
     }
+
+    public Func<object>? TopBarUI { get; set; }
 
     public bool EnabledDuringAnimation { get; set; }
 

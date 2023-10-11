@@ -1,13 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.LogicalTree;
 using Avalonia.Styling;
 using Avalonia.Themes.Simple;
 using Avalonia.VisualTree;
 using CommonServiceLocator;
-using Pix2d.Views;
+using Pix2d.UI;
 
 namespace Pix2d;
 
@@ -19,6 +18,7 @@ public class EditorApp : Application
     public static Action<object> OnAppStarted { get; set; }
     public static Func<bool> OnAppClosing { get; set; }
     public static TopLevel TopLevel { get; private set; }
+    public static IUiModule UiModule { get; set; }
 
     public override void Initialize()
     {
@@ -34,11 +34,11 @@ public class EditorApp : Application
     private void InitResources()
     {
 
-        Resources.Add("ColorPickerThumb",
-            new ImageBrush()
-            {
-                Source = StaticResources.ColorThumb 
-            });
+        //Resources.Add("ColorPickerThumb",
+        //    new ImageBrush()
+        //    {
+        //        Source = StaticResources.ColorThumb 
+        //    });
     }
     //FluentTheme GetFluentTheme() =>
     //    new(new Uri($"avares://{System.Reflection.Assembly.GetExecutingAssembly().GetName()}"))
@@ -50,13 +50,17 @@ public class EditorApp : Application
         {
             //this.Styles.Add(GetFluentTheme());
             this.Styles.Add(new SimpleTheme());
+
+            foreach (var externalStyle in UiModule.GetStyles() as Styles)
+            {
+                this.Styles.Add(externalStyle);
+            }
         }
         catch (Exception ex)
         {
             //can't load system theme
             Console.WriteLine("CRAP! No styles! " + ex.Message);
         }
-        this.Styles.Add(new Styles.AppStyles());
 
     }
 
@@ -107,10 +111,7 @@ public class EditorApp : Application
 
             await EditorApp.Pix2dBootstrapper.InitializeAsync();
 
-            var mainLayoutView = new MainView();
-            hostView.Child = mainLayoutView;
-
-            UpdateCanvas(mainLayoutView);
+            hostView.LoadMainView();
         }
         catch (Exception ex)
         {
@@ -118,15 +119,6 @@ public class EditorApp : Application
             Debug.WriteLine(ex.StackTrace);
             throw;
         }
-    }
-
-    private void UpdateCanvas(MainView mainView)
-    {
-        var container = mainView.Child
-            .GetLogicalChildren()
-            .OfType<Border>()
-            .FirstOrDefault(x => x.Name == "Pix2dCanvasContainer");
-        container.Child = new SkiaCanvas();
     }
 
     /// <summary>

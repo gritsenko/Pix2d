@@ -7,6 +7,7 @@ using Android.OS;
 using Avalonia;
 using Avalonia.Android;
 using Avalonia.Markup.Declarative;
+using Pix2d.UI;
 
 namespace Pix2d.Android;
 
@@ -32,6 +33,7 @@ public class MainActivity : AvaloniaMainActivity<EditorApp>
     {
         Instance = this;
         EditorApp.Pix2dBootstrapper ??= new AndroidPix2dBootstrapper();
+        EditorApp.UiModule ??= new UiModule();
 
         base.OnCreate(savedInstanceState);
         Xamarin.Essentials.Platform.Init(this, savedInstanceState);

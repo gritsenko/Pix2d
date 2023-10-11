@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Markup.Declarative" Version="11.0.4-preview1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+    <ProjectReference Include="..\..\..\Core\Pix2d.UI\Pix2d.UI.csproj" />
+  </ItemGroup>
+
+</Project>
