@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -32,9 +32,7 @@ public class ProjectService : IProjectService
     public async Task<ProjectsCollection> GetProjectsListAsync()
     {
         var mrus = await GetRecentProjectsAsync();
-        var ownProjects = await GetLocalProjectsAsync();
-
-        return new ProjectsCollection(mrus, ownProjects);
+        return new ProjectsCollection(mrus);
     }
 
     private async Task<IEnumerable<IFileContentSource>> GetLocalProjectsAsync()
@@ -121,7 +119,16 @@ public class ProjectService : IProjectService
         => await FileService.GetFileToSaveWithDialogAsync(new[] { filetype }, "project", defaultName ?? GetDefaultFileName());
 
     public string GetDefaultFileName()
-        => !string.IsNullOrEmpty(CurrentProjectName) && !ProjectState.IsNewProject ? System.IO.Path.GetFileNameWithoutExtension(CurrentProjectName) : "new_project";
+    {
+        const string defaultName = "new_project";
+        var projectName = string.IsNullOrEmpty(CurrentProjectName) ? defaultName :  Path.GetFileNameWithoutExtension(CurrentProjectName);
+        if (string.IsNullOrWhiteSpace(projectName))
+        {
+            projectName = defaultName;
+        }
+
+        return projectName;
+    }
 
     public async Task<bool> SaveCurrentProjectToFileAsync(IFileContentSource targetFile, bool isSessionMode = false)
     {
@@ -251,7 +258,7 @@ public class ProjectService : IProjectService
         return true;
     }
 
-    public async Task CreateNewProjectAsync(SKSize newProjectSize, string name = null)
+    public async Task CreateNewProjectAsync(SKSize newProjectSize)
     {
         OpLog(newProjectSize.Width + "x" + newProjectSize.Height);
         if (HasUnsavedChanges && !await AskSaveCurrentProject())
@@ -259,16 +266,11 @@ public class ProjectService : IProjectService
 
         CloseCurrentProject();
 
-        await BusyController.RunLongTaskAsync(async () =>
+        await BusyController.RunLongTaskAsync(() =>
         {
             var scene = GetNewScene(newProjectSize);
             OnProjectLoaded(scene, false);
-
-            if (!string.IsNullOrEmpty(name))
-            {
-                var file = await GetNewProjectFile(name);
-                await SaveCurrentProjectToFileAsync(file);
-            }
+            return Task.CompletedTask;
         });
     }
 

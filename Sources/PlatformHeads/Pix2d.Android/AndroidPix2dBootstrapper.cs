@@ -29,7 +29,6 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
             typeof(HttpHostPlugin),
         },
         MainViewType = typeof(MainView),
-        AutoSaveNewProject = true,
         AutoSaveInterval = TimeSpan.FromSeconds(10),
     };
 
