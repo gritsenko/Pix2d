@@ -35,6 +35,58 @@ public class ProjectService : IProjectService
         return new ProjectsCollection(mrus);
     }
 
+    public async Task RenameCurrentProjectAsync()
+    {
+        var dialogService = ServiceLocator.Current.GetInstance<IDialogService>();
+        var currentName = GetDefaultFileName();
+        var result = await dialogService.ShowInputDialogAsync("Rename current project", "Rename project", currentName);
+
+        if (string.IsNullOrWhiteSpace(result))
+        {
+            return;
+        }
+
+        var currentFile = ProjectState.File;
+        if (currentFile == null)
+        {
+            if (AppState.Settings.UseInternalFolder)
+            {
+                var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
+                var file = GetUniqueProjectFile(folder, result);
+                await BusyController.RunLongTaskAsync(async () => await SaveCurrentProjectToFileAsync(file));
+            }
+            else
+            {
+                var file = await GetFileToExport(".pix2d", result);
+                if (file == null)
+                    return;
+
+                await BusyController.RunLongTaskAsync(async () => await SaveCurrentProjectToFileAsync(file));
+            }
+        }
+        else
+        {
+            var sourcePath = currentFile.Path;
+            var targetPath = Path.Join(Path.GetDirectoryName(sourcePath), result + Path.GetExtension(sourcePath));
+            try
+            {
+                File.Move(sourcePath, targetPath);
+
+                FileService.RemoveFromMru(sourcePath);
+                var newFile = await FileService.GetFileContentSourceAsync(targetPath);
+                FileService.AddToMru(newFile);
+
+                ProjectState.File = newFile;
+
+                Messenger.Send(new ProjectSavedMessage());
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
+    }
+
     private async Task<IEnumerable<IFileContentSource>> GetLocalProjectsAsync()
     {
         var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
@@ -83,12 +135,39 @@ public class ProjectService : IProjectService
     {
         var file = ProjectState.File;
         if (file == null || !file.Exists || file.Extension != ".pix2d")
+        {
+            if (AppState.Settings.UseInternalFolder)
+            {
+                var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
+                file = GetUniqueProjectFile(folder);
+                return await BusyController.RunLongTaskAsync(async () => await SaveCurrentProjectToFileAsync(file));
+            }
+
             return await SaveCurrentProjectAsAsync(ExportImportProjectType.Pix2d);
+        }
 
         OpLog();
         Logger.Log("Saving project");
 
         return await BusyController.RunLongTaskAsync(async () => await SaveCurrentProjectToFileAsync(file));
+    }
+
+    private IFileContentSource GetUniqueProjectFile(IWriteDestinationFolder folder, string defaultName = null)
+    {
+        if (string.IsNullOrWhiteSpace(defaultName))
+        {
+            defaultName = GetDefaultFileName();
+        }
+        
+        var i = 0;
+        var name = defaultName;
+        while (folder.GetFileSource(name, ".pix2d").Exists)
+        {
+            name = $"{defaultName}({i})";
+            i++;
+        }
+
+        return folder.GetFileSource(name, ".pix2d");
     }
 
     public async Task<bool> SaveCurrentProjectAsAsync(ExportImportProjectType saveAsType)
@@ -182,8 +261,19 @@ public class ProjectService : IProjectService
                     }
                     else
                     {
+                        var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
+                        if (AppState.Settings.UseInternalFolder && !file.Path.StartsWith(folder.Path))
+                        {
+                            var projectName = Path.GetFileNameWithoutExtension(file.Path);
+                            file = GetUniqueProjectFile(folder, projectName);
+                            HasUnsavedChanges = true;
+                        }
+                        else
+                        {
+                            HasUnsavedChanges = false;
+                        }
+                        
                         FileService.AddToMru(file);
-                        HasUnsavedChanges = false;
                         ProjectState.File = file;
                     }
 

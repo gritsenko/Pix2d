@@ -37,5 +37,6 @@ namespace Pix2d.Abstract.Services
         string CurrentProjectName { get; }
 
         Task<ProjectsCollection> GetProjectsListAsync();
+        Task RenameCurrentProjectAsync();
     }
 }

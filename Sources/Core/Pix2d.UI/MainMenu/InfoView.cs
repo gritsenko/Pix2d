@@ -1,9 +1,56 @@
-﻿using Pix2d.UI.Resources;
+﻿using Avalonia.Interactivity;
+using Pix2d.Messages;
+using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
 
 namespace Pix2d.UI.MainMenu;
 
 public class InfoView : ComponentBase
 {
+    private string _projectName;
+    [Inject] public IMessenger Messenger { get; set; }
+    [Inject] public AppState AppState { get; set; }
+
+    protected override void OnLoaded(RoutedEventArgs e)
+    {
+        base.OnLoaded(e);
+        ProjectName = AppState.CurrentProject.Title;
+        Messenger.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
+        Messenger.Register<ProjectSavedMessage>(this, OnProjectSaved);
+    }
+
+    protected override void OnUnloaded(RoutedEventArgs e)
+    {
+        base.OnUnloaded(e);
+        Messenger.Unregister<ProjectLoadedMessage>(this, OnProjectLoaded);
+        Messenger.Unregister<ProjectSavedMessage>(this, OnProjectSaved);
+    }
+
+    private void OnProjectSaved(ProjectSavedMessage _)
+    {
+        UpdateProjectName();
+    }
+
+    private void OnProjectLoaded(ProjectLoadedMessage _)
+    {
+        UpdateProjectName();
+    }
+
+    private void UpdateProjectName()
+    {
+        ProjectName = AppState.CurrentProject.Title;
+    }
+
+    public string ProjectName
+    {
+        get => _projectName;
+        set
+        {
+            _projectName = value;
+            OnPropertyChanged();
+        }
+    }
+
     protected override object Build() =>
         new ScrollViewer().Content(
             new StackPanel().Margin(16).HorizontalAlignment(HorizontalAlignment.Center).Children(
@@ -12,9 +59,17 @@ public class InfoView : ComponentBase
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .FontSize(32)
                     .Text($"Pix2d v{CoreServices.PlatformStuffService.GetAppVersion()}"),
-                new Grid().Rows("24,24").Cols("*,Auto").Width(256).Margin(new Thickness(0, 16)).Children(
-                    new TextBlock().Text("Current project"),
-                    new TextBlock().Col(1).Text(Pix2DApp.Instance.AppState.CurrentProject.Title),
+                new Grid().Rows("32,32").Cols("*,Auto").Width(256).Margin(new Thickness(0, 16)).Children(
+                    new TextBlock().Text("Current project").VerticalAlignment(VerticalAlignment.Center),
+                    new StackPanel().Col(1).Orientation(Orientation.Horizontal).Children(
+                        new TextBlock().Col(1).Text(@ProjectName).VerticalAlignment(VerticalAlignment.Center),
+                        new AppButton()
+                            .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .Margin(new Thickness(8, 0, 0, 0))
+                            .Width(24).Height(24).Content("\xE70F")
+                            .Command(Commands.File.Rename)
+                        ),
                     new TextBlock().Row(1).Text("License"),
                     new TextBlock().Row(1).Col(1).Text(Pix2DApp.Instance.CurrentLicense)
                 ),

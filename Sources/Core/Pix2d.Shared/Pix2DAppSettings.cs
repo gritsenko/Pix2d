@@ -13,4 +13,5 @@ public class Pix2DAppSettings
     public TimeSpan AutoSaveInterval { get; set; } = TimeSpan.FromMinutes(3);
 
     public Type MainViewType { get; set; }
+    public bool UseInternalFolder { get; set; }
 }

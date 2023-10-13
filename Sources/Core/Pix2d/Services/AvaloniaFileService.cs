@@ -172,6 +172,20 @@ public class AvaloniaFileService : IFileService {
         
     }
 
+    public void RemoveFromMru(string sourcePath)
+    {
+        try {
+            var mruList = SettingsService.Get<HashSet<MruRecord>>("mru")?.ToHashSet() ?? new HashSet<MruRecord>();
+            mruList.RemoveWhere(x => x.Path == sourcePath);
+            SettingsService.Set("mru", mruList);
+
+            Messenger.Send(new MruChangedMessage());
+        }
+        catch (Exception ex) {
+            Logger.LogException(ex);
+        }
+    }
+
     public Task<bool> IsFileExistsAsync(IFileContentSource fileSource) {
         return Task.FromResult(fileSource != null && File.Exists(fileSource.Path));
     }

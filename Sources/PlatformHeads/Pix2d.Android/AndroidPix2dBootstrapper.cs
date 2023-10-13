@@ -30,6 +30,7 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
         },
         MainViewType = typeof(MainView),
         AutoSaveInterval = TimeSpan.FromSeconds(10),
+        UseInternalFolder = true,
     };
 
     public async Task InitializeAsync()

@@ -72,6 +72,7 @@ public class DialogContainer : ViewBase, IDialogContainer
             {
                 _cts.SetResult(b);
                 SetVisible(false);
+                _contentControl.Content = null;
             };
 
             return _cts.Task;

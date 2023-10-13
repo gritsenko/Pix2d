@@ -63,6 +63,11 @@ public class FileCommands : CommandsListBase
 
         });
 
+    public Pix2dCommand Rename => GetCommand("Rename project", null, EditContextType.All, async () =>
+    {
+        await CoreServices.ProjectService.RenameCurrentProjectAsync();
+    });
+
     // TODO: Currently doesn't work.
     // public Pix2dCommand SaveToFolder => GetCommand("Save as Folder",
     //     new CommandShortcut(VirtualKeys.S, KeyModifier.Ctrl | KeyModifier.Alt | KeyModifier.Shift),

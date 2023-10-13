@@ -191,7 +191,7 @@ public class MainView : ComponentBase
 
                 new DialogContainer()
                     .Col(0).ColSpan(2)
-                    .Row(0).RowSpan(4)
+                    .Row(0).RowSpan(5)
             });
 
     protected override void OnBeforeReload()
