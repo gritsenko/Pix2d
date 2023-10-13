@@ -65,7 +65,7 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         var container = IoC.Get<SimpleContainer>();
 
         container.RegisterSingleton<ISettingsService, SettingsService>();
-        container.RegisterSingleton<IFileService, AvaloiaFileService>();
+        container.RegisterSingleton<IFileService, AvaloniaFileService>();
         container.RegisterSingleton<IClipboardService, AvaloniaClipboardService>();
         container.RegisterSingleton<IFontService, AvaloniaFontService>();
 

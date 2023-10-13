@@ -54,25 +54,12 @@ namespace Pix2d.Services
             //}
         }
 
-        public Task<string> ShowInputDialogAsync(string message, string title, string defaultValue = "")
+        public async Task<string> ShowInputDialogAsync(string message, string title, string defaultValue = "")
         {
-            return Task.FromResult("");
-            //if (Window == null)
-            //{
-            //    //todo: �����������
-            //    return null;
-            //}
-            //else
-            //{
-            //var settings = new MetroDialogSettings
-            //{
-            //    DefaultText = defaultValue,
-            //    AffirmativeButtonText = "Ok",
-            //    NegativeButtonText = "Cancel"
-            //};
-            //var result = await Window.ShowInputAsync(title, message, settings);
-            //return result;
-            //}
+            if (_dialogContainer == null) return null;
+            var dialog = new InputDialogView() { Title = title, Message = message, Value = defaultValue };
+            await _dialogContainer.ShowDialogAsync(dialog);
+            return dialog.Value;
         }
 
         async Task<bool> IDialogService.ShowYesNoDialog(string message, string title, string okLabel, string cancelLabel)

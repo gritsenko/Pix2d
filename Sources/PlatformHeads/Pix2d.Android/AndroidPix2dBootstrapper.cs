@@ -14,6 +14,10 @@ using Pix2d.Plugins.Sprite;
 using Pix2d.Services;
 using Pix2d.UI;
 
+#if !DEBUG
+using Pix2d.Logging;
+#endif
+
 namespace Pix2d.Android;
 
 public class AndroidPix2dBootstrapper : IPix2dBootstrapper
@@ -29,8 +33,8 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
             typeof(HttpHostPlugin),
         },
         MainViewType = typeof(MainView),
-        AutoSaveNewProject = true,
         AutoSaveInterval = TimeSpan.FromSeconds(10),
+        UseInternalFolder = true,
     };
 
     public async Task InitializeAsync()

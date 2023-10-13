@@ -251,8 +251,7 @@ public class Pix2DApp : IViewPortService, AppStateService<AppState>
         {
             if (!await GetService<ISessionService>().TryLoadSessionAsync())
             {
-                var projectName = AppState.Settings.AutoSaveNewProject ? "New project" : null;
-                await ps.CreateNewProjectAsync(new SKSize(64, 64), projectName);
+                await ps.CreateNewProjectAsync(new SKSize(64, 64));
             }
         }
         else

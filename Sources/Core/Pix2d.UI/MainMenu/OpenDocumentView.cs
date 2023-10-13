@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
@@ -7,7 +6,6 @@ using Avalonia.Threading;
 using Pix2d.Common;
 using Pix2d.Messages;
 using Pix2d.Project;
-using Pix2d.UI.Common;
 using Pix2d.UI.Common.Extensions;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
@@ -84,7 +82,7 @@ public class OpenDocumentView : ComponentBase
     {
         var projects = await ProjectService.GetProjectsListAsync();
         RecentProjects.Clear();
-        foreach (var project in projects.AllProjects) 
+        foreach (var project in projects.RecentProjects) 
             RecentProjects.Add(project);
     }
 

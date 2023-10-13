@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 
@@ -54,15 +53,17 @@ public class SettingsService : ISettingsService {
     }
 
     public bool TryGet<T>(string key, out T? value) {
-        value = default;
-        try {
-            value = Get<T>(key);
-        }
-        catch {
-            return false;
+        if (Settings.TryGetValue(key, out var storedValue))
+        {
+            if (storedValue is T tValue)
+            {
+                value = tValue;
+                return true;
+            }
         }
 
-        return true;
+        value = default;
+        return false;
     }
 
     public void Set<T>(string key, T value)

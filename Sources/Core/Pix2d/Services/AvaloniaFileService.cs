@@ -13,7 +13,7 @@ using SkiaNodes.Serialization;
 
 namespace Pix2d.Services;
 
-public class AvaloiaFileService : IFileService {
+public class AvaloniaFileService : IFileService {
     public IMessenger Messenger { get; }
 
 
@@ -25,7 +25,7 @@ public class AvaloiaFileService : IFileService {
     private bool _isDialogOpened;
     private readonly Dictionary<string, IDataStorage> _storages = new Dictionary<string, IDataStorage>();
 
-    public AvaloiaFileService(IDialogService dialogService, IMessenger messenger)
+    public AvaloniaFileService(IDialogService dialogService, IMessenger messenger)
     {
         Messenger = messenger;
         DialogService = dialogService as AvaloniaDialogService;
@@ -170,6 +170,20 @@ public class AvaloiaFileService : IFileService {
     public void DeleteFile(string path)
     {
         
+    }
+
+    public void RemoveFromMru(string sourcePath)
+    {
+        try {
+            var mruList = SettingsService.Get<HashSet<MruRecord>>("mru")?.ToHashSet() ?? new HashSet<MruRecord>();
+            mruList.RemoveWhere(x => x.Path == sourcePath);
+            SettingsService.Set("mru", mruList);
+
+            Messenger.Send(new MruChangedMessage());
+        }
+        catch (Exception ex) {
+            Logger.LogException(ex);
+        }
     }
 
     public Task<bool> IsFileExistsAsync(IFileContentSource fileSource) {

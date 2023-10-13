@@ -31,11 +31,12 @@ namespace Pix2d.Abstract.Services
         Task<bool> OpenFilesAsync();
         Task<bool> OpenFilesAsync(IFileContentSource[] file, bool isLoadingFromLocalSession = false);
 
-        Task CreateNewProjectAsync(SKSize newProjectSize, string name = null);
+        Task CreateNewProjectAsync(SKSize newProjectSize);
         Task<IFileContentSource[]> GetRecentProjectsAsync();
         string GetDefaultFileName();
         string CurrentProjectName { get; }
 
         Task<ProjectsCollection> GetProjectsListAsync();
+        Task RenameCurrentProjectAsync();
     }
 }

@@ -15,7 +15,7 @@ namespace Pix2d.State;
 
 public class ProjectState : StateBase
 {
-    public string Title => string.IsNullOrWhiteSpace(FileName) ? "New project" : FileName;
+    public string Title => string.IsNullOrWhiteSpace(FileName) ? "New project" : FileName.Replace(".pix2d", "");
     public string FileName => File?.Title;
     public bool HasUnsavedChanges { get; set; }
     public bool IsNewProject => File == null;

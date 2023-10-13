@@ -10,19 +10,12 @@ namespace Pix2d.Project;
 
 public class ProjectsCollection
 {
-    public ProjectsCollection(IEnumerable<IFileContentSource> mrus, IEnumerable<IFileContentSource> ownProjects)
+    public ProjectsCollection(IEnumerable<IFileContentSource> mrus)
     {
         RecentProjects = mrus.Where(x => x.Exists).Select(x => new PreloadedProject(x)).ToArray();
-        OwnProjects = ownProjects.Select(x => new PreloadedProject(x)).ToArray();
     }
     
     public PreloadedProject[] RecentProjects { get; }
-    public PreloadedProject[] OwnProjects { get; }
-
-    public IEnumerable<PreloadedProject> FilteredOwnProjects =>
-        OwnProjects.Where(x => RecentProjects.All(p => p.Path != x.Path));
-
-    public IEnumerable<PreloadedProject> AllProjects => FilteredOwnProjects.Concat(RecentProjects);
 }
 
 public class PreloadedProject

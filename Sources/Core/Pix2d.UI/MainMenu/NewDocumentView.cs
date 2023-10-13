@@ -11,16 +11,6 @@ namespace Pix2d.UI.MainMenu;
 
 public class NewDocumentView : ComponentBase
 {
-    public string ProjectName
-    {
-        get => _projectName;
-        set
-        {
-            _projectName = value;
-            OnPropertyChanged();
-        }
-    }
-
     public NewDocumentView()
     {
         Messenger.Default.Register<StateChangedMessage>(this, msg => msg.OnPropertyChanged<UiState>(state => state.ShowMenu, () => Reset()));
@@ -40,10 +30,6 @@ public class NewDocumentView : ComponentBase
                         new TextBlock()
                             .Margin(0, 8, 0, 8)
                             .Text("Create new sprite"),
-                        
-                        new TextBox().Watermark("Name of the project")
-                            // .IsVisible(Pix2DApp.Instance.AppState.Settings.AutoSaveNewProject)
-                            .Text(@ProjectName, BindingMode.TwoWay),
 
                         new TextBlock()
                             .Margin(0, 8, 0, 8)
@@ -144,7 +130,7 @@ public class NewDocumentView : ComponentBase
     private void OnCreateClicked(RoutedEventArgs obj)
     {
         Commands.View.HideMainMenuCommand.Execute();
-        ProjectService.CreateNewProjectAsync(new SKSize(ArtworkWidth, ArtworkHeight), ProjectName);
+        ProjectService.CreateNewProjectAsync(new SKSize(ArtworkWidth, ArtworkHeight));
     }
 
     protected void Load()
@@ -190,7 +176,7 @@ public class NewDocumentView : ComponentBase
 
     private void Reset()
     {
-        ProjectName = "";
+        // reset presets here
     }
 
     public class SizePreset
