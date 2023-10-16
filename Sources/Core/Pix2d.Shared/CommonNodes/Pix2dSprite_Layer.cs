@@ -310,6 +310,11 @@ namespace Pix2d.CommonNodes
             {
                 var i = InsertEmptyFrame(index);
                 EnsureFrameHasUniqueSprite(i);
+                if (bitmap.Info.Size != Size)
+                {
+                    throw new InvalidOperationException($"Source bitmap size {bitmap.Info.Size} is not equal to the target bitmap size {Size}");
+                }
+                
                 SetData(i, bitmap.GetPixelSpan().ToArray());
                 return i;
             }

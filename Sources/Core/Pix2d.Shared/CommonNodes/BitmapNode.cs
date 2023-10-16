@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
 using SkiaNodes;
@@ -62,6 +61,12 @@ namespace Pix2d.CommonNodes
 
         public void SetData(byte[] data)
         {
+            if (data.Length != Bitmap.ByteCount)
+            {
+                throw new InvalidOperationException(
+                    $"Size of input data {data.Length} is not equal to the size of the bitmap {Bitmap.ByteCount}");
+            }
+            
             unsafe
             {
                 fixed (byte* pSource = data)

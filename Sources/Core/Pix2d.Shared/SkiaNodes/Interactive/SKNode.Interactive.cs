@@ -21,8 +21,6 @@ namespace SkiaNodes
 
         private int _distanceMoved = 0;
 
-        public string CursorKey { get; set; }
-
         public virtual void OnPointerPressed(PointerActionEventArgs eventArgs, int clickCount)
         {
             StartPos = eventArgs.Pointer.WorldPosition;

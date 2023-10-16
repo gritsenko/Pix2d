@@ -33,4 +33,12 @@
     <ProjectReference Include="..\..\Core\Pix2d\Pix2d.Core.csproj" />
     <ProjectReference Include="..\..\Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj" />
   </ItemGroup>
+  
+  <Target Name="ConfigureTrimming" BeforeTargets="PrepareForILLink">
+    <ItemGroup>
+      <ManagedAssemblyToLink Condition="'%(Filename)' == 'System.Private.CoreLib'">
+        <IsTrimmable>false</IsTrimmable>
+      </ManagedAssemblyToLink>
+    </ItemGroup>
+  </Target>
 </Project>

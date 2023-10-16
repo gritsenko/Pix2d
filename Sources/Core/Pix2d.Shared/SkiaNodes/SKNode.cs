@@ -153,11 +153,14 @@ namespace SkiaNodes
 
         public NodeCollection Nodes
         {
-            get => _nodes ?? (_nodes = new NodeCollection(this));
+            get
+            {
+                _nodes ??= new NodeCollection(this);
+                return _nodes;
+            }
             set
             {
-                if (_nodes == null)
-                    _nodes = new NodeCollection(this);
+                _nodes ??= new NodeCollection(this);
 
                 _nodes.Clear();
                 _nodes.AddRange(value);
@@ -174,8 +177,6 @@ namespace SkiaNodes
         public bool IsVisible { get; set; } = true;
 
         public NodeDesignerState DesignerState { get; set; } = new NodeDesignerState();
-
-        public AttachedComponentsCollection AttachedComponents { get; set; }
 
         public virtual bool IsAdorner => this is AdornerLayer || CheckIsOnAdornerLayer();
         public int Index => Parent?.Nodes.IndexOf(this) ?? -1;

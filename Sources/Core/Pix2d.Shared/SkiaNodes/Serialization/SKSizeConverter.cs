@@ -1,5 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SkiaSharp;
 
 namespace SkiaNodes.Serialization;
@@ -13,30 +14,31 @@ public partial class SKSizeConverter : JsonConverter
         {
             return new SKSize(val, val);
         }
-        else if (reader.TokenType == JsonToken.StartObject)
+
+        if (reader.TokenType == JsonToken.StartObject)
         {
-            existingValue = existingValue ?? serializer.ContractResolver.ResolveContract(objectType).DefaultCreator();
-            serializer.Populate(reader, existingValue);
-            return existingValue;
+            var jobject = serializer.Deserialize<JObject>(reader);
+            var size = (SKSize) (existingValue ?? serializer.ContractResolver.ResolveContract(objectType).DefaultCreator());
+            
+            if (jobject.TryGetValue("height", StringComparison.InvariantCultureIgnoreCase, out var height) && (height.Type == JTokenType.Float || height.Type == JTokenType.Integer))
+            {
+                size.Height = (float)height.Value<double>();
+            }
+            
+            if (jobject.TryGetValue("width", StringComparison.InvariantCultureIgnoreCase, out var width) && (width.Type == JTokenType.Float || width.Type == JTokenType.Integer))
+            {
+                size.Width = (float)width.Value<double>();
+            }
+            
+            return size;
         }
-        else if (reader.TokenType == JsonToken.Null)
+
+        if (reader.TokenType == JsonToken.Null)
         {
             return null;
         }
-        else
-        {
-            throw new JsonSerializationException();
-        }
 
-        //reader.Read();
-        //var value = reader.ReadAsString();
-        //reader.Read();
-
-        //var val = float.TryParse(value, out var f);
-        //{
-        //    return new SKSize(f, f);
-        //}
-        //return new SKSize(8, 8);
+        throw new JsonSerializationException();
     }
 
     public override bool CanConvert(Type objectType)

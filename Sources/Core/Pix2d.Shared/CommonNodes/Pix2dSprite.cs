@@ -41,6 +41,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IUpdatableNode, IDr
 
     public bool LockTransparentPixels => SelectedLayer?.LockTransparentPixels ?? false;
 
+    [JsonIgnore]
     public bool EditMode { get; set; }
 
     public float FrameRate { get; set; } = 15;
@@ -98,6 +99,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IUpdatableNode, IDr
         SetFrameIndex(newFrameIndex);
     }
 
+    [JsonIgnore]
     public Action FlushRequestedAction { private get; set; }
 
     public void InvalidateBitmap()
