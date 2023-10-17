@@ -194,6 +194,10 @@ namespace Pix2d.CommonNodes
 
                     sprite.DesignerState.IsLocked = true;
                     sprite.Position = SKPoint.Empty;
+
+                    var existingSprite = GetSpriteByFrame(frame);
+                    sprite.TakeBitmapSubstitute(existingSprite);
+                    
                     SetSpriteToFrame(frame, sprite);
                 }
                 catch (Exception e)

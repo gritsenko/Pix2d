@@ -243,6 +243,12 @@ namespace Pix2d.CommonNodes
             this._bitmap = null;
             base.OnUnload();
         }
+
+        public void TakeBitmapSubstitute(BitmapNode from)
+        {
+            _substitute = from._substitute;
+            from._substitute = null;
+        }
         //public void SetData(byte[] data, SKSize newSize)
         //{
         //    if (newSize != new SKSize(Bitmap.Width, Bitmap.Height))
