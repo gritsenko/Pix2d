@@ -187,16 +187,15 @@ namespace Pix2d.CommonNodes
 
                     if (!frame.IsEmpty) //copy data from old sprite if the the frame wasn't empty
                     {
-                        var srcData = GetSpriteByFrame(frame)?.GetData();
+                        var srcSprite = GetSpriteByFrame(frame);
+                        var srcData = srcSprite?.GetData();
                         if (srcData != null)
                             sprite.SetData(srcData);
+                        sprite.TakeBitmapSubstitute(srcSprite);
                     }
 
                     sprite.DesignerState.IsLocked = true;
                     sprite.Position = SKPoint.Empty;
-
-                    var existingSprite = GetSpriteByFrame(frame);
-                    sprite.TakeBitmapSubstitute(existingSprite);
                     
                     SetSpriteToFrame(frame, sprite);
                 }
