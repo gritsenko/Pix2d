@@ -17,6 +17,8 @@ namespace Pix2d.Plugins.Sprite.Operations
 
         public override bool AffectsNodeStructure => true;
 
+        public int FrameIndex => _newFrameIndex;
+
         public AddAnimationFrameOperation(Pix2dSprite sprite, int previousIndex)
         {
             _sprite = sprite;

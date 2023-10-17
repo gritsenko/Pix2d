@@ -60,13 +60,30 @@ public class SpriteEditor : ISpriteEditor
 
     private void OnOperationInvoked(OperationInvokedMessage e)
     {
-        if (
-            (e.Operation is DuplicateAnimationFrameOperation
-             || e.Operation is AddAnimationFrameOperation
-             || e.Operation is DeleteAnimationFrameOperation)
-            && e.OperationType != OperationEventType.Perform)
+        if (e.OperationType != OperationEventType.Perform)
         {
-            OnFramesChanged(FramesChangedType.Reset, null);
+            if (e.Operation is AddAnimationFrameOperation add)
+            {
+                var changeType = e.OperationType == OperationEventType.Undo
+                    ? FramesChangedType.Delete
+                    : FramesChangedType.Add;
+                OnFramesChanged(changeType, new[] {add.FrameIndex});
+            }
+            else if (e.Operation is DeleteAnimationFrameOperation del)
+            {
+                var changeType = e.OperationType == OperationEventType.Undo
+                    ? FramesChangedType.Add
+                    : FramesChangedType.Delete;
+                OnFramesChanged(changeType, new[] {del.FrameIndex});
+            }
+            else if (e.Operation is DuplicateAnimationFrameOperation per)
+            {
+                var changeType = e.OperationType == OperationEventType.Undo
+                    ? FramesChangedType.Delete
+                    : FramesChangedType.Add;
+                OnFramesChanged(changeType, new[] {per.FrameIndex});
+                OnFramesChanged(FramesChangedType.Reset, null);
+            }
         }
 
         if (e.Operation.AffectsNodeStructure || e.Operation is ResizeSpriteOperationBase)

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
@@ -11,6 +10,7 @@ using Pix2d.Messages.Edit;
 using Pix2d.Modules.Sprite.Editors;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Sprite.Editors;
+using Pix2d.Primitives;
 using Pix2d.Primitives.SpriteEditor;
 using Pix2d.ViewModels.Animations;
 using SkiaSharp;
@@ -26,7 +26,7 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
     public IMessenger Messenger { get; }
     public AppState AppState { get; }
 
-    public ObservableCollection<AnimationFrameViewModel> Frames { get; set; } = new();
+    public BulkAddObservableCollection<AnimationFrameViewModel> Frames { get; set; } = new();
 
     public AnimationFrameViewModel CurrentFrame
     {
@@ -159,7 +159,6 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
         if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted)
         {
             _reorderInfo.NewIndex = e.NewStartingIndex;
-            OnFramesReordered(_reorderInfo);
             _reorderingStarted = false;
             _reorderInfo = null;
         }
@@ -248,7 +247,18 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
         }
         else if (e.ChangeType == FramesChangedType.Delete)
         {
-            OnLoad();
+            if (e.AffectedIndexes.Count() > 1)
+            {
+                // This should never happen, but just in case it does, just rebuild the whole list not to worry
+                // about removing correct indices.
+                OnLoad();
+            }
+            else if (e.AffectedIndexes.Count() == 1)
+            {
+                Frames.RemoveAt(e.AffectedIndexes[0]);
+                CurrentFrame = Frames[_editor.CurrentFrameIndex];
+                OnPropertyChanged(nameof(FrameCount));
+            }
         }
     }
 
@@ -264,11 +274,14 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
 
         if (max > 0)
         {
+            var frames = new List<AnimationFrameViewModel>();
 
             for (var i = 0; i < max; i++)
             {
-                AddFrameVm(i);
+                frames.Add(CreateFrameVm());
             }
+            
+            Frames.InsertRange(frames);
 
             CurrentFrame = Frames[_editor.CurrentFrameIndex];
 
@@ -290,6 +303,19 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
         {
             Frames.Insert(index, frameVm);
         }
+
+        frameVm.UpdateProperties();
+
+        return frameVm;
+    }
+
+    private AnimationFrameViewModel CreateFrameVm()
+    {
+        var frameVm = new AnimationFrameViewModel
+        {
+            PreviewProvider = PreviewProvider,
+            UpdatePropertiesAction = UpdateFrameProperties
+        };
 
         frameVm.UpdateProperties();
 

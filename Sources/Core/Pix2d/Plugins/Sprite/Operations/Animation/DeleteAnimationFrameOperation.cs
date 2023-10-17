@@ -17,6 +17,8 @@ namespace Pix2d.Plugins.Sprite.Operations
 
         public override bool AffectsNodeStructure => true;
 
+        public int FrameIndex => _deletedFrameIndex;
+
         public DeleteAnimationFrameOperation(Pix2dSprite sprite, int frameIndex)
         {
             _sprite = sprite;

@@ -15,6 +15,8 @@ namespace Pix2d.Plugins.Sprite.Operations
 
         public override bool AffectsNodeStructure => false;
 
+        public int FrameIndex => _newFrameIndex;
+
         public DuplicateAnimationFrameOperation(Pix2dSprite sprite, int previousIndex)
         {
             _sprite = sprite;
