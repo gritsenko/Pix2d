@@ -9,7 +9,7 @@ namespace Pix2d.CommonNodes.Controls.Thumbs
     public class ThumbNode : SKNode
     {
         protected bool IsPointerOver;
-        public const double MinDragLengh = 0;
+        public const double MinDragLength = 0;
 
         public event EventHandler<DragCompletedEventArgs> DragComplete;
         public event EventHandler<DragDeltaEventArgs> DragDelta;
@@ -34,7 +34,7 @@ namespace Pix2d.CommonNodes.Controls.Thumbs
             {
                 var dragDelta = ProcessDirection(EndPos - StartPos);
 
-                if (dragDelta.GetVectorLength() > MinDragLengh)
+                if (dragDelta.GetVectorLength() > MinDragLength)
                 {
                     DragDelta?.Invoke(this, new DragDeltaEventArgs(dragDelta.X, dragDelta.Y));
                 }
@@ -75,7 +75,7 @@ namespace Pix2d.CommonNodes.Controls.Thumbs
             base.OnPointerReleased(eventArgs);
             var dragDelta = EndPos - StartPos;
 
-            if (dragDelta.GetVectorLength() > MinDragLengh && SKInput.Current.CapturedPointerBy == this)
+            if (dragDelta.GetVectorLength() > MinDragLength && SKInput.Current.CapturedPointerBy == this)
             {
                 DragComplete?.Invoke(this, new DragCompletedEventArgs(dragDelta.X, dragDelta.Y, false));
                 eventArgs.Handled = true;

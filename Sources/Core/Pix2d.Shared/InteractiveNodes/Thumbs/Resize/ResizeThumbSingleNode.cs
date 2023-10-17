@@ -129,12 +129,12 @@ namespace Pix2d.CommonNodes.Controls.Thumbs.Resize
 
             var transform = vp.ResultTransformMatrix;
             canvas.SetMatrix(transform);
-            canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(12), paint);
+            canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(12) * vp.ScaleFactor, paint);
             paint.IsStroke = true;
             paint.IsAntialias = true;
             paint.StrokeWidth = vp.PixelsToWorld(2);
             paint.Color = StrokeColor;
-            canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(12), paint);
+            canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(12) * vp.ScaleFactor, paint);
 
             canvas.Restore();
             //DrawBoundingBox(canvas, vp, 2, StrokeColor);

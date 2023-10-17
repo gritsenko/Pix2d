@@ -105,8 +105,8 @@ namespace Pix2d.CommonNodes.Controls.Thumbs
 
 
                 canvas.DrawLine(hz.MidX, hz.MidY, _borderMidPoint.X, _borderMidPoint.Y, strokePaint);
-                canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(12), fillPaint);
-                canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(12), strokePaint);
+                canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(12) * vp.ScaleFactor, fillPaint);
+                canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(12) * vp.ScaleFactor, strokePaint);
             }
             canvas.Restore();
 
