@@ -29,7 +29,7 @@ namespace Pix2d.Drawing.Tools
             await base.Activate();
         }
 
-        protected override void OnPointerPressed(object sender, PointerActionEventArgs e)
+        protected override void OnPointerReleased(object sender, PointerActionEventArgs e)
         {
             e.Handled = true;
             DrawingService.PickColorByPoint(e.Pointer.WorldPosition);
