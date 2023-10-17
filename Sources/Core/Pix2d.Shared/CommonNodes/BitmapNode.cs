@@ -28,13 +28,6 @@ namespace Pix2d.CommonNodes
                 {
                     _bitmap = value;
 
-#if DEBUG
-                    if (_bitmap.ColorType != Pix2DAppSettings.ColorType)
-                    {
-                        Debugger.Break();
-                    }
-
-#endif
                     UpdateSize(value);
                     OnBitmapChanged(_bitmap);
                 }
