@@ -12,7 +12,11 @@ public class SliderEx : ViewBase
     public double Value
     {
         get => _value;
-        set => SetAndRaise(ValueProperty, ref _value, value);
+        set
+        {
+            var rounded = Math.Round(value);
+            SetAndRaise(ValueProperty, ref _value, rounded);
+        }
     }
 
     public static readonly DirectProperty<SliderEx, string> HeaderProperty
@@ -90,4 +94,8 @@ public class SliderEx : ViewBase
                     .LargeChange(10)
                     .Value(ValueProperty, BindingMode.TwoWay)
             );
+
+    private void SliderStyle(Slider obj)
+    {
+    }
 }

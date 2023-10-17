@@ -85,7 +85,7 @@ public partial class AppStyles : Avalonia.Styling.Styles
             }
         );
 
-        AddRange(AppStyles.AdaptiveLayout);
+        AddRange(AdaptiveLayout);
         
         Resources["ThemeAccentColor"] = StaticResources.Colors.MyAccentColor;
         Resources["ThemeAccentBrush"] = StaticResources.Brushes.AccentBrush;

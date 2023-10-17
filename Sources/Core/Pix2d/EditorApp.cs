@@ -51,9 +51,15 @@ public class EditorApp : Application
             //this.Styles.Add(GetFluentTheme());
             this.Styles.Add(new SimpleTheme());
 
-            foreach (var externalStyle in UiModule.GetStyles() as Styles)
+            var styles = UiModule.GetStyles() as Styles;
+            foreach (var externalStyle in styles)
             {
                 this.Styles.Add(externalStyle);
+            }
+
+            foreach (var resource in styles.Resources)
+            {
+                this.Resources.Add(resource);
             }
         }
         catch (Exception ex)
