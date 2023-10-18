@@ -337,6 +337,27 @@ namespace Pix2d.CommonNodes
                 SetSpriteToFrame(frame, sprite);
                 return frame;
             }
+            
+            public void InsertFrameFromNodeId(int index, Guid nodeId)
+            {
+                if (nodeId == default)
+                {
+                    InsertEmptyFrame(index);
+                }
+                else
+                {
+                    var nodeIndex = Nodes.FindIndex(x => x.Id == nodeId);
+                    if (nodeIndex >= 0)
+                    {
+                        var frame = new LayerFrameMeta() {NodeId = nodeId, NodeIndex = nodeIndex};
+                        Frames.Insert(index, frame);
+                    }
+                    else
+                    {
+                        InsertEmptyFrame(index);
+                    }
+                }
+            }
 
             private void SetSpriteToFrame(LayerFrameMeta frame, SpriteNode sprite)
             {
@@ -357,7 +378,7 @@ namespace Pix2d.CommonNodes
                 frame.NodeId = sprite?.Id ?? default;
             }
 
-            public void DeleteFrame(int index, Action<SpriteNode> onSpriteDeletedAction = default)
+            public void DeleteFrame(int index, Action<SpriteNode> onSpriteDeletedAction = default, Action<Guid> onEmptyFrameDeletedAction = default)
             {
                 var frame = Frames[index];
                 if (HasFrameUniqueSprite(frame))
@@ -366,6 +387,11 @@ namespace Pix2d.CommonNodes
                     onSpriteDeletedAction?.Invoke(sprite);
                     sprite.RemoveFromParent();
                 }
+                else
+                {
+                    onEmptyFrameDeletedAction?.Invoke(frame.NodeId);
+                }
+                
                 Frames.Remove(frame);
             }
 
@@ -426,6 +452,7 @@ namespace Pix2d.CommonNodes
             }
 
             private HashSet<int> HiddenFrames = new HashSet<int>();
+
         }
     }
 }

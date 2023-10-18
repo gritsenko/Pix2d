@@ -136,6 +136,14 @@ namespace SkiaNodes
                 }
             }
 
+            public int FindIndex(Predicate<SKNode> filter)
+            {
+                lock (_nodes)
+                {
+                    return _nodes.FindIndex(filter);
+                }
+            }
+
             public void Insert(int index, SKNode node)
             {
                 if (index == -1 || index >= _nodes.Count)

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
@@ -14,6 +13,7 @@ namespace Pix2d.Plugins.Sprite.Operations
         private readonly Dictionary<int, BitmapNode> _deletedNodes = new Dictionary<int, BitmapNode>();
         private readonly int _deletedFrameIndex;
         private readonly int _newFrameIndex;
+        private Guid _deletedFrameNodeId;
 
         public override bool AffectsNodeStructure => true;
 
@@ -37,7 +37,7 @@ namespace Pix2d.Plugins.Sprite.Operations
                 var layer = layers[i];
 
                 var i1 = i;//resharper idea 
-                layer.DeleteFrame(_deletedFrameIndex, s => _deletedNodes[i1] = s);
+                layer.DeleteFrame(_deletedFrameIndex, s => _deletedNodes[i1] = s, f => _deletedFrameNodeId = f);
             }
 
             _sprite.SetFrameIndex(_newFrameIndex);
@@ -54,7 +54,7 @@ namespace Pix2d.Plugins.Sprite.Operations
                 if (_deletedNodes.TryGetValue(i, out var spriteNode))
                     layer.InsertFrameFromBitmapNode(_deletedFrameIndex, spriteNode);
                 else
-                    layer.InsertEmptyFrame(_deletedFrameIndex);
+                    layer.InsertFrameFromNodeId(_deletedFrameIndex, _deletedFrameNodeId);
             }
 
             _sprite.SetFrameIndex(_deletedFrameIndex);
