@@ -9,7 +9,7 @@
   <Identity
     Name="58815Gritsenko.PixelArtStudio"
     Publisher="CN=CF42DCC7-9F66-4216-8511-6B75132F3EA1"
-    Version="3.1.256.0" />
+    Version="3.1.258.0" />
 
   <Properties>
     <DisplayName>PixelArtStudio</DisplayName>

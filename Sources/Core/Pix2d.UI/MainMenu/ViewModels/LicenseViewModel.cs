@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
 using Mvvm;
@@ -128,7 +129,7 @@ public class LicenseViewModel : ViewModelBase
             var match = Regex.Match(price, @"\d+(,\d+)*(\.\d+)");
 
             double val = 0;
-            if (match.Success && double.TryParse(match.Value, out val))
+            if (match.Success && double.TryParse(match.Value, CultureInfo.InvariantCulture, out val))
             {
                 var pattern = price.Replace(match.Value, "%price");
                 OldPrice = price;
@@ -147,7 +148,7 @@ public class LicenseViewModel : ViewModelBase
         }
     }
 
-    protected void OnLoad()
+    public void OnLoad()
     {
         Logger.Log("$License view opened");
         var isPro = LicenseService.IsPro;

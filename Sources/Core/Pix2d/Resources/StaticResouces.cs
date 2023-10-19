@@ -91,6 +91,12 @@ public static class StaticResources
     public static Bitmap UltimateImage { get; set; } =
         new(ResourceManager.GetAsset("/Assets/ULTIMATE.png"));
 
+    public static Bitmap EssentialsImage { get; set; } =
+        new(ResourceManager.GetAsset("/Assets/essentials.png"));
+
+    public static Bitmap ProImage { get; set; } =
+        new(ResourceManager.GetAsset("/Assets/PRO.png"));
+
     public static Bitmap ColorThumb { get; set; } =
         new(ResourceManager.GetAsset("/Assets/ColorThumb.png"));
 

@@ -66,7 +66,11 @@ public class MainMenuView : ComponentBase
             new MainMenuItemView()
                 .Header("Save as")
                 .Icon("\xE792")
-                .OnClicked(OnItemClick)
+                .OnClicked(OnItemClick),
+            new MainMenuItemView()
+            .Header("License")
+            .Icon("\xE719")
+            .OnClicked(OnItemClick)
         };
 
         return new Border()
@@ -97,7 +101,8 @@ public class MainMenuView : ComponentBase
                                                 new InfoView().IsVisible(() => SelectedItem == "Info"),
                                                 new NewDocumentView().IsVisible(() => SelectedItem == "New"),
                                                 new OpenDocumentView().IsVisible(() => SelectedItem == "Open"),
-                                                new SaveDocumentView().IsVisible(() => SelectedItem == "Save as")
+                                                new SaveDocumentView().IsVisible(() => SelectedItem == "Save as"),
+                                                new LicenseView().IsVisible(() => SelectedItem == "License")
                                         ))
                             )
                     )
