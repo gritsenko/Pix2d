@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Core;
 using Windows.ApplicationModel.Store;
 using Windows.Storage;
 using Windows.UI.Popups;
 using CommonServiceLocator;
 using Pix2d.Abstract.Services;
 using Windows.Services.Store;
+using Windows.UI.Core;
+using Avalonia.Controls;
 
 namespace Pix2d.WindowsStore.Services;
 
@@ -16,6 +19,7 @@ public class UwpLicenseService : ILicenseService
     public string FormattedPrice { get; set; } = "$4.99";
     private LicenseInformation _licenseInformation;
     private StoreContext _context;
+    private IntPtr? _hwnd;
 
     public event EventHandler LicenseChanged;
 
@@ -167,10 +171,49 @@ public class UwpLicenseService : ILicenseService
         Logger.LogEventWithParams("$ Buy Pro", new Dictionary<string, string>() { { "Price", FormattedPrice } });
         try
         {
+            if (_hwnd == null)
+            {
+                _hwnd = EditorApp.TopLevel.TryGetPlatformHandle()?.Handle;
+
+                if (_hwnd != null)
+                {
+                    // Initialize the dialog using wrapper funcion for IInitializeWithWindow
+                    WinRT.Interop.InitializeWithWindow.Initialize(_context, _hwnd.Value);
+                }
+
+            }
+
+            
+            //await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+            //{
+            //    var _result = await CurrentApp.RequestProductPurchaseAsync("proVersion");
+            //});
             //var result = await CurrentApp.RequestAppPurchaseAsync(false);
-            var result = await CurrentApp.RequestProductPurchaseAsync("proVersion");
-            if (result.Status == ProductPurchaseStatus.Succeeded ||
-                result.Status == ProductPurchaseStatus.AlreadyPurchased)
+            //var result = await CurrentApp.RequestProductPurchaseAsync("proVersion");
+
+            string[] productKinds = { "Durable" };
+            List<String> filterList = new List<string>(productKinds);
+            StoreProductQueryResult queryResult = await _context.GetAssociatedStoreProductsAsync(filterList);
+            StoreProduct? product = null;
+
+            foreach (KeyValuePair<string, StoreProduct> item in queryResult.Products)
+            {
+                product = item.Value;
+                if (product.InAppOfferToken == "proVersion")
+                {
+                    FormattedPrice = product?.Price?.FormattedPrice ?? "$10";
+                }
+                // Use members of the product object to access info for the product...
+            }
+
+            if (product == null)
+                return false;
+
+            var result = await product.RequestPurchaseAsync();
+            
+            //var result = await _context.GetStoreProductsAsync("proVersion");
+            if (result.Status == StorePurchaseStatus.Succeeded ||
+                result.Status == StorePurchaseStatus.AlreadyPurchased)
             {
                 IsPro = true;
                 ApplicationData.Current.LocalSettings.Values["IsProActivated"] = true;

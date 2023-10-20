@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
+using Avalonia.Threading;
 using Mvvm;
 
 namespace Pix2d.UI.MainMenu.ViewModels;
@@ -56,57 +57,63 @@ public class LicenseViewModel : ViewModelBase
         
     private async void BuyProCommandExecute()
     {
-        try
+        await Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            Logger.Log("$Pressed buy/restore PRO on Main Menu");
-            if (await LicenseService.BuyPro())
+            try
             {
-                DialogService.Alert("Thank you! Now you are PRO user!", "Success!");
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Log("$Error on buy PRO on Main Menu: " + ex.Message);
-            Logger.LogException(ex);
-        }
-        finally
-        {
-            Commands.View.HideMainMenuCommand.Execute();
-        }
-
-    }
-    private async void BuyUltimateCommandExecute()
-    {
-        try
-        {
-            Logger.Log("$Pressed pre-order ULTIMATE on Main Menu");
-            var result = await DialogService.ShowYesNoDialog(
-                "With buying PRO version, you will get ULTIMATE edition for free, on it's release. Do you want to proceed with PRO purchase?",
-                "Pre-order Pix2D ULTIMATE", "Yes", "No");
-
-            if (result)
-            {
-                Logger.Log("$Pressed to buy PRO to ULTIMATE on Main Menu");
+                Logger.Log("$Pressed buy/restore PRO on Main Menu");
                 if (await LicenseService.BuyPro())
                 {
-                    DialogService.Alert("Thank you! Now you are PRO/ULTIMATE user!", "Success!");
+                    DialogService.Alert("Thank you! Now you are PRO user!", "Success!");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                Logger.Log("$Pressed No in pre-order message box PRO on Main Menu");
+                Logger.Log("$Error on buy PRO on Main Menu: " + ex.Message);
+                Logger.LogException(ex);
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.Log("$Error on buy PRO(pre-order ULTIMATE) on Main Menu: " + ex.Message);
-            Logger.LogException(ex);
-        }
-        finally
-        {
-            Commands.View.HideMainMenuCommand.Execute();
-        }
+            finally
+            {
+                Commands.View.HideMainMenuCommand.Execute();
+            }
 
+        });
+    }
+
+    private async void BuyUltimateCommandExecute()
+    {
+        await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            try
+            {
+                Logger.Log("$Pressed pre-order ULTIMATE on Main Menu");
+                var result = await DialogService.ShowYesNoDialog(
+                    "With buying PRO version, you will get ULTIMATE edition for free, on it's release. Do you want to proceed with PRO purchase?",
+                    "Pre-order Pix2D ULTIMATE", "Yes", "No");
+
+                if (result)
+                {
+                    Logger.Log("$Pressed to buy PRO to ULTIMATE on Main Menu");
+                    if (await LicenseService.BuyPro())
+                    {
+                        DialogService.Alert("Thank you! Now you are PRO/ULTIMATE user!", "Success!");
+                    }
+                }
+                else
+                {
+                    Logger.Log("$Pressed No in pre-order message box PRO on Main Menu");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("$Error on buy PRO(pre-order ULTIMATE) on Main Menu: " + ex.Message);
+                Logger.LogException(ex);
+            }
+            finally
+            {
+                Commands.View.HideMainMenuCommand.Execute();
+            }
+        });
     }
 
     public LicenseViewModel(ILicenseService licenseService, IDialogService dialogService)
