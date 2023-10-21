@@ -103,6 +103,9 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         var uwpLicenseService = new Pix2d.WindowsStore.Services.UwpLicenseService();
         await uwpLicenseService.Init();
         licenseService = uwpLicenseService;
+
+#else
+        licenseService = new GumroadLicenseService();
 #endif
 
         if (licenseService == null) return licenseName;

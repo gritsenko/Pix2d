@@ -2,15 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Windows.ApplicationModel.Core;
 using Windows.ApplicationModel.Store;
 using Windows.Storage;
 using Windows.UI.Popups;
 using CommonServiceLocator;
 using Pix2d.Abstract.Services;
 using Windows.Services.Store;
-using Windows.UI.Core;
-using Avalonia.Controls;
 
 namespace Pix2d.WindowsStore.Services;
 
