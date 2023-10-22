@@ -7,10 +7,8 @@ using Plugin.InAppBilling;
 
 namespace Pix2d.Services
 {
-    public class AndroidLicenseService : ILicenseService, IInAppBillingVerifyPurchase
+    public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurchase
     {
-        public IDialogService DialogService { get; }
-
         public ISettingsService SettingsService => CoreServices.SettingsService;
 
         public event EventHandler LicenseChanged;
@@ -19,14 +17,11 @@ namespace Pix2d.Services
         public bool AllowBuyPro { get; } = true;
         public bool IsPro { get; set; } = false;
 
-        public AndroidLicenseService(IDialogService dialogService)
+        public PlayMarketLicenseService()
         {
-            DialogService = dialogService;
-
-            Init();
         }
 
-        public async void Init()
+        public async Task Init()
         {
 
             try
@@ -110,7 +105,6 @@ namespace Pix2d.Services
             }
             finally
             {
-                Pix2DApp.Instance.CurrentLicense = IsPro ? "pro" : "free";
                 await billing.DisconnectAsync();
             }
 
@@ -141,10 +135,11 @@ namespace Pix2d.Services
                 if (!connected)
                 {
                     //Couldn't connect to billing, could be offline, alert user
-                    DialogService.Alert("Can't connect to google play services.", "Network problem");
+                    var dlgService = ServiceLocator.Current.GetInstance<IDialogService>();
+                    dlgService.Alert("Can't connect to google play services.", "Network problem");
                     return false;
                 }
-
+                
                 //try to purchase item
                 var purchase = await CrossInAppBilling.Current.PurchaseAsync(productId, ItemType.InAppPurchase);
                 if (purchase == null)

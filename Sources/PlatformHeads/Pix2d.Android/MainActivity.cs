@@ -7,6 +7,7 @@ using Android.OS;
 using Avalonia;
 using Avalonia.Android;
 using Avalonia.Markup.Declarative;
+using Microsoft.Maui.ApplicationModel;
 using Pix2d.UI;
 
 namespace Pix2d.Android;
@@ -36,7 +37,7 @@ public class MainActivity : AvaloniaMainActivity<EditorApp>
         EditorApp.UiModule ??= new UiModule();
 
         base.OnCreate(savedInstanceState);
-        Xamarin.Essentials.Platform.Init(this, savedInstanceState);
+        Platform.Init(this, savedInstanceState);
         
         // Set our view from the "main" layout resource
         var app = (EditorApp)Avalonia.Application.Current;
@@ -50,7 +51,7 @@ public class MainActivity : AvaloniaMainActivity<EditorApp>
 
     public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
     {
-        Xamarin.Essentials.Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults);
+        Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults);
         base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 

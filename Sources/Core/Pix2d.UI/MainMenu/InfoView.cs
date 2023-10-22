@@ -71,7 +71,7 @@ public class InfoView : ComponentBase
                             .Command(Commands.File.Rename)
                         ),
                     new TextBlock().Row(1).Text("License"),
-                    new TextBlock().Row(1).Col(1).Text(Pix2DApp.Instance.CurrentLicense)
+                    new TextBlock().Row(1).Col(1).Text(()=>Pix2DApp.Instance.CurrentLicense)
                 ),
                 new TextBlock()
                     .HorizontalAlignment(HorizontalAlignment.Center)
