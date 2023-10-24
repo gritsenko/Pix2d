@@ -3,6 +3,7 @@ using Pix2d.UI.Common;
 using Pix2d.UI.Common.Behaviors;
 using Pix2d.UI.Common.Extensions;
 using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
 using Pix2d.ViewModels.Layers;
 
 namespace Pix2d.UI.Layers;
@@ -18,10 +19,12 @@ public class LayersView : ViewBaseSingletonVm<LayersListViewModel>
                     .Rows("36,*,62")
                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                     .Children(
-                        new Button()
-                            .Command(vm.AddLayerCommand)
-                            .Content("\xE710")
-                            .FontFamily(StaticResources.Fonts.IconFontSegoe),
+                        new LockedFunctionView().Content(
+                            new Button()
+                                .Command(vm.AddLayerCommand)
+                                .Content("\xE710")
+                                .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                            ),
                         new ListBox()
                             .Row(1).Margin(0).Padding(0)
                             .Background(Brushes.Transparent)
