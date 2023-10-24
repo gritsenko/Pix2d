@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Windows.Input;
 using Avalonia.Interactivity;
 using Mvvm;
@@ -10,7 +8,6 @@ using Pix2d.Common;
 using Pix2d.Exporters;
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;
-using Pix2d.UI.Common;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using SkiaNodes.Extensions;
@@ -107,7 +104,7 @@ public class ExportView : ComponentBase
                                     .Background(StaticResources.Brushes.SelectedItemBrush)
                                     .Command(Commands.View.HideExportDialogCommand)
                             ),
-                        new ExportProWarningView()
+                        new ExportProWarningView().ColSpan(1)
                     )
             ));
 
