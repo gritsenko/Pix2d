@@ -28,7 +28,15 @@ public class LockedFunctionView : ViewBase
         get => _isLocked;
         set => SetAndRaise(IsLockedProperty, ref _isLocked, value);
     }
-
+    
+    public static readonly DirectProperty<LockedFunctionView, string> TooltipProperty
+        = AvaloniaProperty.RegisterDirect<LockedFunctionView, string>(nameof(Tooltip), o => o.Tooltip, (o, v) => o.Tooltip = v);
+    private string _tooltip = "";
+    public string Tooltip
+    {
+        get => _tooltip;
+        set => SetAndRaise(TooltipProperty, ref _tooltip, value);
+    }
 
     protected override object Build() =>
         new Grid()
@@ -43,14 +51,17 @@ public class LockedFunctionView : ViewBase
                     .VerticalContentAlignment(VerticalAlignment.Stretch),
 
                 new Button()
+                    .IsVisible(IsLockedProperty)
                     .Background("#10ffffff".ToColor().ToBrush())
+                    .ToolTip(new Binding(nameof(Tooltip), BindingMode.OneWay) { Source = this })
                     .OnClick(e =>
                     {
-                        IsLocked = !IsLocked;
+                        Commands.View.ShowLicensePurchaseCommand.Execute();
                     }),
 
                 new Border()
                     .IsVisible(IsLockedProperty)
+                    .ToolTip(new Binding(nameof(Tooltip), BindingMode.OneWay) { Source = this })
                     .Background("#50000000".ToColor().ToBrush())
                     .HorizontalAlignment(HorizontalAlignment.Right)
                     .VerticalAlignment(VerticalAlignment.Bottom)

@@ -1,4 +1,5 @@
 ﻿using Avalonia.Styling;
+using Pix2d.Messages;
 using Pix2d.UI.Resources;
 using SkiaNodes.Interactive;
 
@@ -14,12 +15,26 @@ public class MainMenuView : ComponentBase
     private const string DefaultItem = "Info";
     
     private MainMenuItemView[] _menuItems;
+    private readonly UiState _uiState;
 
     public MainMenuView(UiState state)
     {
+        _uiState = state;
         // Reset selected menu item to the default when menu is closed
         state.WatchFor(x => x.ShowMenu, () => SelectItem(null));
+        Messenger.Default.Register<ShowMenuItemMessage>(this, OnShowMenuItem);
         SKInput.Current.KeyPressed += OnKeyPressed;
+    }
+
+    private void OnShowMenuItem(ShowMenuItemMessage message)
+    {
+        _uiState.ShowMenu = true;
+        switch (message.ItemToShow)
+        {
+            case ShowMenuItemMessage.MenuItem.Licence:
+                SelectItem("License");
+                break;
+        }
     }
 
     private void OnKeyPressed(object sender, KeyboardActionEventArgs e)

@@ -87,5 +87,10 @@ public class ViewCommands : CommandsListBase
         uiState.ShowColorEditor = !isOpen;
     });
 
+    public Pix2dCommand ShowLicensePurchaseCommand => GetCommand(() =>
+    {
+        Messenger.Default.Send(new ShowMenuItemMessage {ItemToShow = ShowMenuItemMessage.MenuItem.Licence});
+    });
+
     public SnappingCommands Snapping { get; } = new();
 }

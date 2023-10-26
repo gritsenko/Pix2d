@@ -26,6 +26,7 @@ namespace Pix2d.ViewModels.Layers;
 
 public class LayersListViewModel : Pix2dViewModelBase
 {
+    private const int FreeLayersCount = 3;
     public IEditService EditService { get; }
     public IEffectsService EffectsService { get; } 
     public IMessenger Messenger { get; }
@@ -75,6 +76,8 @@ public class LayersListViewModel : Pix2dViewModelBase
             }
         }
     }
+
+    public bool ProhibitAddLayers => !CoreServices.LicenseService.IsPro && Layers.Count >= FreeLayersCount;
 
     [NotifiesOn(nameof(SelectedBackgroundColor))]
     [NotifiesOn(nameof(UseBackgroundColor))]
@@ -153,9 +156,16 @@ public class LayersListViewModel : Pix2dViewModelBase
         Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
         Messenger.Register<CanvasSizeChanged>(this, _ => Reload());
         Messenger.Register<SelectedLayerChangedMessage>(this, _ => UpdatePreview());
+
+        CoreServices.LicenseService.LicenseChanged += OnLicenseChanged;
             
         AvailableEffects.AddRange(EffectsService.GetAvailableEffects().Select(x => new EffectViewModel(Activator.CreateInstance(x.Value) as ISKNodeEffect)));
         OnEditorChanged();
+    }
+
+    private void OnLicenseChanged(object sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(ProhibitAddLayers));
     }
 
     private void OnNodeEditorChanged(NodeEditorChangedMessage obj)
@@ -362,6 +372,8 @@ public class LayersListViewModel : Pix2dViewModelBase
 
         _layersReordering = false;
         //Debug.WriteLine(e.Action);
+        
+        OnPropertyChanged(nameof(ProhibitAddLayers));
     }
 
     public void ResetPropertyChangedOperation()

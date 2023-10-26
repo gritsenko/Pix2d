@@ -19,12 +19,15 @@ public class LayersView : ViewBaseSingletonVm<LayersListViewModel>
                     .Rows("36,*,62")
                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                     .Children(
-                        new LockedFunctionView().Content(
-                            new Button()
-                                .Command(vm.AddLayerCommand)
-                                .Content("\xE710")
-                                .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                            ),
+                        new LockedFunctionView()
+                            .Tooltip("Number of layers is limited by 3. Upgrade to PRO to get unlimited layers.")
+                            .IsLocked(vm.ProhibitAddLayers, BindingMode.OneWay, bindingSource: vm)
+                            .Content(
+                                new Button()
+                                    .Command(vm.AddLayerCommand)
+                                    .Content("\xE710")
+                                    .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                                ),
                         new ListBox()
                             .Row(1).Margin(0).Padding(0)
                             .Background(Brushes.Transparent)
