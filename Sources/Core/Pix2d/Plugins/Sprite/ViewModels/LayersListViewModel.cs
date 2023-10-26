@@ -337,6 +337,8 @@ public class LayersListViewModel : Pix2dViewModelBase
 
     private void Layers_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
     {
+        UpdateProLock();
+        
         if (_internalLayersUpdate)
             return;
 
@@ -372,7 +374,10 @@ public class LayersListViewModel : Pix2dViewModelBase
 
         _layersReordering = false;
         //Debug.WriteLine(e.Action);
-        
+    }
+
+    private void UpdateProLock()
+    {
         OnPropertyChanged(nameof(ProhibitAddLayers));
     }
 

@@ -89,7 +89,7 @@ public class LicenseView : ViewBaseSingletonVm<LicenseViewModel>
                                         .Foreground(Brushes.White)
                                         .Items(
                                             new TextBlock().Text("✅ Unlimited layers"),
-                                            new TextBlock().Text("✅ 30 undo steps"),
+                                            new TextBlock().Text("✅ 100 undo steps"),
                                             new TextBlock().Text("✅ Advanced tools"),
                                             new TextBlock().Text("✅ Export to GIF"),
                                             new TextBlock().Text("   PNG Sprite sheets"),

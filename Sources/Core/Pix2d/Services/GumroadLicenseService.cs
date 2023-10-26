@@ -1,13 +1,16 @@
 ﻿using System.Threading.Tasks;
+using Pix2d.Primitives;
 
 namespace Pix2d.Services;
 
 public class GumroadLicenseService : ILicenseService
 {
     public event EventHandler LicenseChanged;
+    
+    public LicenseType License { get; private set; }
+    public bool IsPro => License == LicenseType.Pro || License == LicenseType.Ultimate;
     public string FormattedPrice { get; } = "$9.9";
     public bool AllowBuyPro { get; } = false;
-    public bool IsPro { get; private set; } = true;
     public async Task<bool> BuyPro()
     {
         return true;
@@ -15,7 +18,8 @@ public class GumroadLicenseService : ILicenseService
 
     public void ToggleIsPro()
     {
-        IsPro = !IsPro;
+        License = IsPro ? LicenseType.Essentials : LicenseType.Pro;
+
         LicenseChanged?.Invoke(this, EventArgs.Empty);
     }
 

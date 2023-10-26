@@ -8,11 +8,14 @@ using Windows.UI.Popups;
 using CommonServiceLocator;
 using Pix2d.Abstract.Services;
 using Windows.Services.Store;
+using Pix2d.Primitives;
 
 namespace Pix2d.WindowsStore.Services;
 
 public class UwpLicenseService : ILicenseService
 {
+    public LicenseType License { get; private set; }
+    public bool IsPro => License == LicenseType.Pro || License == LicenseType.Ultimate;
     public string FormattedPrice { get; set; } = "$4.99";
     private LicenseInformation _licenseInformation;
     private StoreContext _context;
@@ -21,10 +24,6 @@ public class UwpLicenseService : ILicenseService
     public event EventHandler LicenseChanged;
 
     public bool AllowBuyPro { get; } = true;
-    public bool IsPro { get; private set; }
-    //#if DEBUG
-    //            = false;
-    //#endif
 
     public UwpLicenseService()
     {
@@ -38,7 +37,7 @@ public class UwpLicenseService : ILicenseService
         {
             //#if DEBUG
             Logger.Log("Checking Pro version and price");
-            IsPro = await CheckIsPro();
+            License = await CheckIsPro() ? LicenseType.Pro : LicenseType.Essentials;
         }
         catch (Exception ex)
         {
@@ -78,7 +77,7 @@ public class UwpLicenseService : ILicenseService
             if (isPro)
             {
                 ApplicationData.Current.LocalSettings.Values["IsProActivated"] = true;
-                IsPro = true;
+                License = LicenseType.Pro;
                 OnLicenseChanged();
             }
 
@@ -212,7 +211,7 @@ public class UwpLicenseService : ILicenseService
             if (result.Status == StorePurchaseStatus.Succeeded ||
                 result.Status == StorePurchaseStatus.AlreadyPurchased)
             {
-                IsPro = true;
+                License = LicenseType.Pro;
                 ApplicationData.Current.LocalSettings.Values["IsProActivated"] = true;
                 Logger.LogEvent($"$ Pro version bought: {result.Status}");
                 OnLicenseChanged();
@@ -252,7 +251,7 @@ public class UwpLicenseService : ILicenseService
 
     public void ToggleIsPro()
     {
-        IsPro = !IsPro;
+        License = IsPro ? LicenseType.Essentials : LicenseType.Pro;
 
         Logger.Log("$On license changed to " + (IsPro ? "PRO" : "ESS"));
         OnLicenseChanged();

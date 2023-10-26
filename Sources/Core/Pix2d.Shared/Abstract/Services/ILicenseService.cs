@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Pix2d.Primitives;
 
 namespace Pix2d.Abstract.Services;
 
 public interface ILicenseService
 {
     event EventHandler LicenseChanged;
+    
+    LicenseType License { get; }
 
     string FormattedPrice { get; }
 

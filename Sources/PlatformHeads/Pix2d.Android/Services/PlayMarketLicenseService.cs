@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommonServiceLocator;
 using Pix2d.Abstract.Services;
+using Pix2d.Primitives;
 using Plugin.InAppBilling;
 
 namespace Pix2d.Services
@@ -12,10 +13,11 @@ namespace Pix2d.Services
         public ISettingsService SettingsService => CoreServices.SettingsService;
 
         public event EventHandler LicenseChanged;
+        public LicenseType License { get; private set; }
+        public bool IsPro => License == LicenseType.Pro || License == LicenseType.Ultimate;
         public string FormattedPrice { get; set; } = $"9.99";
 
         public bool AllowBuyPro { get; } = true;
-        public bool IsPro { get; set; } = false;
 
         public PlayMarketLicenseService()
         {
@@ -82,7 +84,7 @@ namespace Pix2d.Services
 
                     //save to app settings
                     SettingsService.Set("IsProActivated", true);
-                    IsPro = true;
+                    License = LicenseType.Pro;
                     OnLicenseChanged();
                 }
 
@@ -164,7 +166,7 @@ namespace Pix2d.Services
                         || state == PurchaseState.Restored
                         || state == PurchaseState.Purchasing)
                     {
-                        IsPro = true;
+                        License = LicenseType.Pro;
                         SettingsService.Set("IsProActivated", true);
                         Logger.LogEvent($"$ Pro version bought: {state}");
 
@@ -221,7 +223,7 @@ namespace Pix2d.Services
         //}
         public void ToggleIsPro()
         {
-            IsPro = !IsPro;
+            License = IsPro ? LicenseType.Essentials : LicenseType.Pro;
 
             Logger.Log("$On license changed to " + (IsPro ? "PRO" : "ESS"));
             OnLicenseChanged();

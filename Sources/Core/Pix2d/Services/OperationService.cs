@@ -1,18 +1,21 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Linq;
 using Pix2d.Abstract.Operations;
 using Pix2d.Messages;
 using Pix2d.Operations;
+using Pix2d.Primitives;
 using Pix2d.Primitives.Operations;
 
 namespace Pix2d.Services
 {
     public class OperationService : IOperationService
     {
-        private readonly LimitedSizeStack<IEditOperation> _redoOperations = new LimitedSizeStack<IEditOperation>(30);
+        public const int FreeUndoSteps = 30;
+        public const int ProUndoSteps = 100;
+        
+        private readonly LimitedSizeStack<IEditOperation> _redoOperations = new(FreeUndoSteps);
 
-        private readonly LimitedSizeStack<IEditOperation> _undoOperations = new LimitedSizeStack<IEditOperation>(30) { OnRemoveItem = OnRemoveItemFromHistory };
+        private readonly LimitedSizeStack<IEditOperation> _undoOperations = new(ProUndoSteps) { OnRemoveItem = OnRemoveItemFromHistory };
 
         private IEditOperation _currentOperation;
 
@@ -25,6 +28,36 @@ namespace Pix2d.Services
         public OperationService()
         {
             Messenger.Default.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
+            CoreServices.LicenseService.LicenseChanged += OnLicenseChange;
+            UpdateMaxUndoLength();
+        }
+
+        private void OnLicenseChange(object sender, EventArgs e)
+        {
+            UpdateMaxUndoLength();
+        }
+
+        private void UpdateMaxUndoLength()
+        {
+            var maxLength = GetMaxUndoLength();
+            if (_undoOperations.MaxSize != maxLength)
+            {
+                _undoOperations.ChangeMaxSize(maxLength);
+                _redoOperations.ChangeMaxSize(maxLength);
+            }
+        }
+
+        private int GetMaxUndoLength()
+        {
+            switch (CoreServices.LicenseService.License)
+            {
+                case LicenseType.Pro:
+                case LicenseType.Ultimate:
+                    return ProUndoSteps;
+                default:
+                    return FreeUndoSteps;
+            }
+                
         }
 
         private void OnProjectLoaded(ProjectLoadedMessage message)

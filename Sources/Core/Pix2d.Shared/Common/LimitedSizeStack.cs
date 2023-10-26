@@ -5,8 +5,10 @@ namespace Pix2d.Common
 {
     public class LimitedSizeStack<T> : LinkedList<T>
     {
-        private readonly int _maxSize;
+        private int _maxSize;
         public Action<T> OnRemoveItem { get; set; }
+
+        public int MaxSize => _maxSize;
         
         public LimitedSizeStack(int maxSize)
         {
@@ -29,6 +31,16 @@ namespace Pix2d.Common
             var item = First.Value;
             RemoveFirst();
             return item;
+        }
+
+        public void ChangeMaxSize(int newMaxSize)
+        {
+            while (Count > newMaxSize)
+            {
+                RemoveFirst();
+            }
+
+            _maxSize = newMaxSize;
         }
     }
 }
