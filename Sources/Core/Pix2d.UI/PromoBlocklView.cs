@@ -27,7 +27,7 @@ public class PromoBlockView : ComponentBase
                 if (LicenseService == null)
                     return;
 
-                Commands.View.ShowMainMenuCommand.Execute();
+                Commands.View.ShowLicensePurchaseCommand.Execute();
             })
             .Background(StaticResources.Brushes.SelectedItemBrush)
             .Content(
@@ -44,7 +44,7 @@ public class PromoBlockView : ComponentBase
             .HorizontalAlignment(HorizontalAlignment.Center)
             .VerticalAlignment(VerticalAlignment.Stretch);
 
-    public ILicenseService? LicenseService { get; } = null!;
+    [Inject] public ILicenseService? LicenseService { get; } = null!;
     public string CallToActionText { get; set; } = "PRO";
     public string Suffix { get; set; } = "";
 
