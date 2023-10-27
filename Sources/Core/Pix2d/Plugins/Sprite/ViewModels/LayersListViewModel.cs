@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using Mvvm;
 using Pix2d.Abstract.Operations;
 using Pix2d.CommonNodes;

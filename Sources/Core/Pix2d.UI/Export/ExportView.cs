@@ -10,6 +10,7 @@ using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
+using Sentry.Protocol;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 
@@ -19,7 +20,8 @@ public class ExportView : ComponentBase
 {
     public const string PreviewName = "export-preview";
     public const string SettingsName = "export-settings";
-    
+    public const string WatermarkMessageName = "watermark-message";
+
     private readonly IDataTemplate _itemTemplate =
         new FuncDataTemplate<IExporter>((itemVm, ns)
             => new TextBlock().Text(itemVm?.Title ?? ""));
@@ -104,7 +106,8 @@ public class ExportView : ComponentBase
                                     .Background(StaticResources.Brushes.SelectedItemBrush)
                                     .Command(Commands.View.HideExportDialogCommand)
                             ),
-                        new ExportProWarningView().ColSpan(1)
+                        new ExportProWarningView()
+                            .IsVisible(() => !LicenseService.IsPro)
                     )
             ));
 

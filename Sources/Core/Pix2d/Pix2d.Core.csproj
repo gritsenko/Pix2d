@@ -5,6 +5,8 @@
     <RootNamespace>Pix2d</RootNamespace>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <EnableAvaloniaXamlCompilation>false</EnableAvaloniaXamlCompilation>
     <Nullable>disable</Nullable>
     <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
   </PropertyGroup>

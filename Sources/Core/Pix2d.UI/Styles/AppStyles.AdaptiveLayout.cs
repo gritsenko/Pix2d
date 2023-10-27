@@ -206,6 +206,12 @@ public partial class AppStyles
                 new Setter(Layoutable.MarginProperty, new Thickness(0, 16))
             }
         },
+        new(s => s.NarrowScreen().Descendant().OfType<Pix2d.UI.Export.ExportProWarningView>())
+        {
+            Setters = {
+                new Setter(Grid.ColumnSpanProperty, 2),
+            }
+        },
     };
 
 }
