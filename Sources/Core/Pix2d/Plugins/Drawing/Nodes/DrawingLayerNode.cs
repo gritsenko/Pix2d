@@ -207,6 +207,10 @@ namespace Pix2d.Drawing.Nodes
         {
             if (!IsInitialized) return;
             
+            // On touch screens move event might not capture last position, so we need to update it here
+            // to prevent bugs with axis locked drawing.
+            _previewPos = eventArgs.Pointer.GetPosition(this).ToSkPointI();
+            
             if (_drawingMode == BrushDrawingMode.MoveSelection)
                 return;
 
