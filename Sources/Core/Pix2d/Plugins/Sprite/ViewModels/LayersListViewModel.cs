@@ -24,7 +24,7 @@ namespace Pix2d.ViewModels.Layers;
 
 public class LayersListViewModel : Pix2dViewModelBase
 {
-    private const int FreeLayersCount = 3;
+    private const int FreeLayersCount = 999;
     public IEditService EditService { get; }
     public IEffectsService EffectsService { get; } 
     public IMessenger Messenger { get; }

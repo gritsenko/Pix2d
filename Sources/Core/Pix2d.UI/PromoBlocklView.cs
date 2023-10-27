@@ -1,4 +1,5 @@
 ﻿using Avalonia.Styling;
+using Pix2d.Primitives;
 using Pix2d.UI.Resources;
 
 namespace Pix2d.UI;
@@ -50,15 +51,27 @@ public class PromoBlockView : ComponentBase
 
     protected override void OnAfterInitialized()
     {
-        var isPro = LicenseService?.IsPro ?? true;
-#if BETA
-        CallToActionText = "ULTIMATE";
-        Suffix = "𝛽";
-#else
-        CallToActionText = isPro ? "PRO" : "ESS";
-#endif
+        UpdateText();
+    }
+
+    private void UpdateText()
+    {
+        switch (LicenseService?.License)
+        {
+            case LicenseType.Pro:
+                CallToActionText = "PRO";
+                Suffix = "";
+                break;
+            case LicenseType.Ultimate:
+                CallToActionText = "ULTIMATE";
+                Suffix = "𝛽";
+                break;
+            default:
+                CallToActionText = "ESS";
+                Suffix = "";
+                break;
+        }
 
         StateHasChanged();
     }
-
 }

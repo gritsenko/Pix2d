@@ -17,6 +17,8 @@ public class InfoView : ComponentBase
         ProjectName = AppState.CurrentProject.Title;
         Messenger.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
         Messenger.Register<ProjectSavedMessage>(this, OnProjectSaved);
+
+        CoreServices.LicenseService.LicenseChanged += OnLicenseChanged;
     }
 
     protected override void OnUnloaded(RoutedEventArgs e)
@@ -24,6 +26,18 @@ public class InfoView : ComponentBase
         base.OnUnloaded(e);
         Messenger.Unregister<ProjectLoadedMessage>(this, OnProjectLoaded);
         Messenger.Unregister<ProjectSavedMessage>(this, OnProjectSaved);
+        
+        CoreServices.LicenseService.LicenseChanged -= OnLicenseChanged;
+    }
+
+    private void OnLicenseChanged(object? sender, EventArgs e)
+    {
+        UpdateLicense();
+    }
+
+    private void UpdateLicense()
+    {
+        License = CoreServices.LicenseService.License.ToString();
     }
 
     private void OnProjectSaved(ProjectSavedMessage _)
@@ -51,6 +65,22 @@ public class InfoView : ComponentBase
         }
     }
 
+    private string _license;
+    public string License
+    {
+        get => _license;
+        set
+        {
+            _license = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public InfoView()
+    {
+        UpdateLicense();
+    }
+
     protected override object Build() =>
         new ScrollViewer().Content(
             new StackPanel().Margin(16).HorizontalAlignment(HorizontalAlignment.Center).Children(
@@ -71,7 +101,7 @@ public class InfoView : ComponentBase
                             .Command(Commands.File.Rename)
                         ),
                     new TextBlock().Row(1).Text("License"),
-                    new TextBlock().Row(1).Col(1).Text(()=>Pix2DApp.Instance.CurrentLicense)
+                    new TextBlock().Row(1).Col(1).Text(@License)
                 ),
                 new TextBlock()
                     .HorizontalAlignment(HorizontalAlignment.Center)

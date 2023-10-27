@@ -1,4 +1,5 @@
-﻿using Pix2d.UI.Common;
+﻿using Avalonia.Interactivity;
+using Pix2d.UI.Common;
 using Pix2d.UI.Common.Extensions;
 using Pix2d.UI.MainMenu.ViewModels;
 using Pix2d.UI.Resources;
@@ -47,7 +48,7 @@ public class LicenseView : ViewBaseSingletonVm<LicenseViewModel>
                             .MinWidth(340)
                             ._Children(new()
                             {
-                                new StackPanel()._Children(new()
+                                new StackPanel().Margin(new Thickness(0, 0, 24, 0))._Children(new()
                                 {
                                     new Button()
                                         .Command(vm?.BuyProCommand)
@@ -88,13 +89,14 @@ public class LicenseView : ViewBaseSingletonVm<LicenseViewModel>
                                         .VerticalAlignment(VerticalAlignment.Top)
                                         .Foreground(Brushes.White)
                                         .Items(
-                                            new TextBlock().Text("✅ Unlimited layers"),
+                                            // new TextBlock().Text("✅ Unlimited layers"),
                                             new TextBlock().Text("✅ 100 undo steps"),
-                                            new TextBlock().Text("✅ Advanced tools"),
-                                            new TextBlock().Text("✅ Export to GIF"),
-                                            new TextBlock().Text("   PNG Sprite sheets"),
-                                            new TextBlock().Text("   PNG Sequences"),
-                                            new TextBlock().Text("✅ Layer effects")
+                                            new TextBlock().Text("✅ No watermark")
+                                            // new TextBlock().Text("✅ Advanced tools"),
+                                            // new TextBlock().Text("✅ Export to GIF"),
+                                            // new TextBlock().Text("   PNG Sprite sheets"),
+                                            // new TextBlock().Text("   PNG Sequences"),
+                                            // new TextBlock().Text("✅ Layer effects")
                                         )
                                 }),
                                 new StackPanel().Col(1)._Children(new()
@@ -157,8 +159,14 @@ public class LicenseView : ViewBaseSingletonVm<LicenseViewModel>
                             .Margin(0, 8)
                             .HorizontalAlignment(HorizontalAlignment.Left)
                             .Content("Read privacy policy")
+                            .OnClick(OpenPrivacyPolicy)
                     })
             });
+
+    private void OpenPrivacyPolicy(RoutedEventArgs _)
+    {
+        CoreServices.PlatformStuffService.OpenUrlInBrowser("https://pix2d.com/privacy.html");
+    }
 
     protected override void OnCreated()
     {
