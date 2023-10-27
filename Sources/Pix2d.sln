@@ -37,7 +37,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GlobalStuff", "GlobalStuff"
 		nuget.config = nuget.config
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pix2d.Plugins.PixelText", "Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj", "{03701459-763E-4B3A-ACD7-17CB487B026C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Plugins.PixelText", "Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj", "{03701459-763E-4B3A-ACD7-17CB487B026C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -65,8 +65,8 @@ Global
 		{49791FFA-8106-461E-8B99-90E016E74655}.Debug|ARM64.Build.0 = Debug|Any CPU
 		{49791FFA-8106-461E-8B99-90E016E74655}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{49791FFA-8106-461E-8B99-90E016E74655}.Debug|x64.Build.0 = Debug|Any CPU
-		{49791FFA-8106-461E-8B99-90E016E74655}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{49791FFA-8106-461E-8B99-90E016E74655}.Debug|x86.Build.0 = Debug|Any CPU
+		{49791FFA-8106-461E-8B99-90E016E74655}.Debug|x86.ActiveCfg = Debug|x86
+		{49791FFA-8106-461E-8B99-90E016E74655}.Debug|x86.Build.0 = Debug|x86
 		{49791FFA-8106-461E-8B99-90E016E74655}.DebugUltimate|Any CPU.ActiveCfg = Debug|Any CPU
 		{49791FFA-8106-461E-8B99-90E016E74655}.DebugUltimate|Any CPU.Build.0 = Debug|Any CPU
 		{49791FFA-8106-461E-8B99-90E016E74655}.DebugUltimate|ARM.ActiveCfg = Debug|Any CPU
@@ -185,9 +185,9 @@ Global
 		{3453A519-A81A-4500-BEE3-E174847F144D}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{3453A519-A81A-4500-BEE3-E174847F144D}.Debug|x64.Build.0 = Debug|Any CPU
 		{3453A519-A81A-4500-BEE3-E174847F144D}.Debug|x64.Deploy.0 = Debug|Any CPU
-		{3453A519-A81A-4500-BEE3-E174847F144D}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{3453A519-A81A-4500-BEE3-E174847F144D}.Debug|x86.Build.0 = Debug|Any CPU
-		{3453A519-A81A-4500-BEE3-E174847F144D}.Debug|x86.Deploy.0 = Debug|Any CPU
+		{3453A519-A81A-4500-BEE3-E174847F144D}.Debug|x86.ActiveCfg = Debug|x86
+		{3453A519-A81A-4500-BEE3-E174847F144D}.Debug|x86.Build.0 = Debug|x86
+		{3453A519-A81A-4500-BEE3-E174847F144D}.Debug|x86.Deploy.0 = Debug|x86
 		{3453A519-A81A-4500-BEE3-E174847F144D}.DebugUltimate|Any CPU.ActiveCfg = Debug|Any CPU
 		{3453A519-A81A-4500-BEE3-E174847F144D}.DebugUltimate|Any CPU.Build.0 = Debug|Any CPU
 		{3453A519-A81A-4500-BEE3-E174847F144D}.DebugUltimate|Any CPU.Deploy.0 = Debug|Any CPU
@@ -249,8 +249,8 @@ Global
 		{26B55533-489E-46C7-8A03-EF941EE230C3}.Debug|ARM64.Build.0 = Debug|Any CPU
 		{26B55533-489E-46C7-8A03-EF941EE230C3}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{26B55533-489E-46C7-8A03-EF941EE230C3}.Debug|x64.Build.0 = Debug|Any CPU
-		{26B55533-489E-46C7-8A03-EF941EE230C3}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{26B55533-489E-46C7-8A03-EF941EE230C3}.Debug|x86.Build.0 = Debug|Any CPU
+		{26B55533-489E-46C7-8A03-EF941EE230C3}.Debug|x86.ActiveCfg = Debug|x86
+		{26B55533-489E-46C7-8A03-EF941EE230C3}.Debug|x86.Build.0 = Debug|x86
 		{26B55533-489E-46C7-8A03-EF941EE230C3}.DebugUltimate|Any CPU.ActiveCfg = Debug|Any CPU
 		{26B55533-489E-46C7-8A03-EF941EE230C3}.DebugUltimate|Any CPU.Build.0 = Debug|Any CPU
 		{26B55533-489E-46C7-8A03-EF941EE230C3}.DebugUltimate|ARM.ActiveCfg = Debug|Any CPU
@@ -384,8 +384,8 @@ Global
 		{03701459-763E-4B3A-ACD7-17CB487B026C}.Debug|ARM64.Build.0 = Debug|Any CPU
 		{03701459-763E-4B3A-ACD7-17CB487B026C}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{03701459-763E-4B3A-ACD7-17CB487B026C}.Debug|x64.Build.0 = Debug|Any CPU
-		{03701459-763E-4B3A-ACD7-17CB487B026C}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{03701459-763E-4B3A-ACD7-17CB487B026C}.Debug|x86.Build.0 = Debug|Any CPU
+		{03701459-763E-4B3A-ACD7-17CB487B026C}.Debug|x86.ActiveCfg = Debug|x86
+		{03701459-763E-4B3A-ACD7-17CB487B026C}.Debug|x86.Build.0 = Debug|x86
 		{03701459-763E-4B3A-ACD7-17CB487B026C}.DebugUltimate|Any CPU.ActiveCfg = Debug|Any CPU
 		{03701459-763E-4B3A-ACD7-17CB487B026C}.DebugUltimate|Any CPU.Build.0 = Debug|Any CPU
 		{03701459-763E-4B3A-ACD7-17CB487B026C}.DebugUltimate|ARM.ActiveCfg = Debug|Any CPU

@@ -117,7 +117,7 @@ public class EditorApp : Application
 
             await EditorApp.Pix2dBootstrapper.InitializeAsync();
 
-            hostView.LoadMainView();
+            await hostView.LoadMainView();
         }
         catch (Exception ex)
         {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.LogicalTree;
 using CommonServiceLocator;
 
@@ -58,8 +59,11 @@ public class HostView : ViewBase
         };
 #endif
     }
-    public void LoadMainView()
+    public async Task LoadMainView()
     {
+        //hack: даём загрузиться сплеш скрину с полоской загрузки
+        await Task.Delay(300);
+
         var mainViewType = ServiceLocator.Current.GetInstance<AppState>().Settings.MainViewType;
         var mainLayoutView = IoC.Get<SimpleContainer>().BuildInstance(mainViewType) as ViewBase;
         mainLayoutView.ViewInitialized += () => UpdateCanvas(mainLayoutView);
