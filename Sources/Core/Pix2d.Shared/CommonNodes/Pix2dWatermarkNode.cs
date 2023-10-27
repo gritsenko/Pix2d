@@ -32,7 +32,7 @@ namespace Pix2d.CommonNodes
 
             var paint = canvas.GetSolidFillPaint(new SKColor(0xFF363d45));
 
-            canvas.DrawRect(0,0,Size.Width, Size.Height, paint);
+            canvas.DrawRect(-1,0,Size.Width + 2, Size.Height, paint);
 
             if (string.IsNullOrWhiteSpace(Text))
                 return;

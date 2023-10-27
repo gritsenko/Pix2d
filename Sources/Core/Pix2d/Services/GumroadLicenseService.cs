@@ -10,7 +10,7 @@ public class GumroadLicenseService : ILicenseService
     public LicenseType License { get; private set; }
     public bool IsPro => License == LicenseType.Pro || License == LicenseType.Ultimate;
     public string FormattedPrice { get; } = "$9.9";
-    public bool AllowBuyPro { get; } = false;
+    public bool AllowBuyPro { get; } = true;
     public async Task<bool> BuyPro()
     {
         return true;

@@ -6,10 +6,11 @@ public class ExportProWarningView : ComponentBase
         new Button().Background(Brushes.DeepSkyBlue)
             .Foreground(Brushes.White)
             .VerticalAlignment(VerticalAlignment.Top)
-            .IsHitTestVisible(false)
+            // .IsHitTestVisible(false)
+            .Command(Commands.View.ShowLicensePurchaseCommand)
             .Content(
                 new TextBlock()
-                    .Text("To disable Pix2d watermark, please accrue PRO version")
+                    .Text("Get PRO version now to disable Pix2d watermark")
                     .TextWrapping(TextWrapping.Wrap)
                     .FontSize(14)
             );

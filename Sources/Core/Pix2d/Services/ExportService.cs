@@ -127,7 +127,7 @@ public class ExportService : IExportService
         {
             watermarkNode.FontSize = (float)(14f / (scale == 0 ? 1 : scale));
             watermarkNode.Size = new SKSize(exportedNodeSize.Width, watermarkNode.FontSize + 2f);
-            watermarkNode.Position = new SKPoint(exportedNode.Position.X, exportedNode.Position.Y + exportedNodeSize.Height);
+            watermarkNode.Position = new SKPoint(exportedNode.Position.X, exportedNode.Position.Y + exportedNodeSize.Height - watermarkNode.Size.Height);
             watermarkNode.Effects = null;
         }
 
