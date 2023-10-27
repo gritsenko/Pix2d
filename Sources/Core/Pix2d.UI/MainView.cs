@@ -77,20 +77,23 @@ public class MainView : ComponentBase
 
                 new InfoPanelView().Col(0).Row(4).ColSpan(2),
 
-                new ActionsBarView().Col(1).Row(2)
-                    .IsVisible(UiState.ShowExtraTools, bindingSource: UiState)
-                    .HorizontalAlignment(HorizontalAlignment.Center)
-                    .VerticalAlignment(VerticalAlignment.Top),
+                new Grid().Col(1).Row(2).Rows("auto,auto")
+                    .Children(
+                        new ActionsBarView()
+                            .IsVisible(UiState.ShowExtraTools, bindingSource: UiState)
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .VerticalAlignment(VerticalAlignment.Top),
 
-                new ClipboardActionsView().Col(1).Row(2)
-                    .IsVisible(UiState.ShowClipboardBar, bindingSource: UiState)
-                    .HorizontalAlignment(HorizontalAlignment.Center)
-                    .VerticalAlignment(VerticalAlignment.Top),
+                        new ClipboardActionsView().Row(1)
+                            .IsVisible(UiState.ShowClipboardBar, bindingSource: UiState)
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .VerticalAlignment(VerticalAlignment.Top),
 
-                new TopToolUiContainer().Col(1).Row(2)
-                    //.IsVisible(() => UiState.TopToolUi != null)
-                    .HorizontalAlignment(HorizontalAlignment.Center)
-                    .VerticalAlignment(VerticalAlignment.Top),
+                        new TopToolUiContainer().Row(1)
+                            //.IsVisible(() => UiState.TopToolUi != null)
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .VerticalAlignment(VerticalAlignment.Top)
+                    ),
 
                 //new TextBarView().Col(1).Row(2)
                 //    .IsVisible(UiState.ShowTextBar, bindingSource: UiState)

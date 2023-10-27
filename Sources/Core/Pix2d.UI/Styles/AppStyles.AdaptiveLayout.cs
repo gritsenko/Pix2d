@@ -144,7 +144,7 @@ public partial class AppStyles
         // ADDITIONAL TOP BAR
         
         new Style<AdditionalTopBarView>(s => s.WideScreen().Descendant().OfType<AdditionalTopBarView>())
-            .VerticalAlignment(VerticalAlignment.Top)
+            .VerticalAlignment(VerticalAlignment.Bottom)
             .HorizontalAlignment(HorizontalAlignment.Right),
         new Style<AdditionalTopBarView>(s => s.NarrowScreen().Descendant().OfType<AdditionalTopBarView>())
             .VerticalAlignment(VerticalAlignment.Bottom)
@@ -152,9 +152,11 @@ public partial class AppStyles
         
         // ACTIONS BAR
         
-        new Style<ActionsBarView>(s => s.WideScreen().Descendant().OfType<ActionsBarView>())
-            .Margin(new Thickness(0, 33, 0, 0)),
-        new Style<ActionsBarView>(s => s.NarrowScreen().Descendant().OfType<ActionsBarView>())
+        // new Style<ActionsBarView>(s => s.WideScreen().Descendant().OfType<ActionsBarView>())
+        //     .Margin(new Thickness(0, 33, 0, 0)),
+        // new Style<ActionsBarView>(s => s.NarrowScreen().Descendant().OfType<ActionsBarView>())
+        //     .Margin(new Thickness(3, 0)),
+        new Style<ActionsBarView>(s => s.OfType<ActionsBarView>())
             .Margin(new Thickness(3, 0)),
         new Style<Button>(s => s.WideScreen().ActionsBarButton())
             .Width(58)
