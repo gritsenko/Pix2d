@@ -106,8 +106,9 @@ public partial class AppStyles
         },
         new Style<TextBlock>(s => s.NarrowScreen().TopBarButton().ButtonLabel()).IsVisible(false),
         
-        new Style<LayersView>(s => s.OfType<LayersView>()).VerticalAlignment(VerticalAlignment.Top),
-        new Style<LayersView>(s => s.NarrowScreen().Descendant().OfType<LayersView>()).VerticalAlignment(VerticalAlignment.Bottom),
+        new Style<LayersView>(s => s.OfType<LayersView>()).VerticalAlignment(VerticalAlignment.Bottom),
+        // new Style<LayersView>(s => s.OfType<LayersView>()).VerticalAlignment(VerticalAlignment.Top),
+        // new Style<LayersView>(s => s.NarrowScreen().Descendant().OfType<LayersView>()).VerticalAlignment(VerticalAlignment.Bottom),
         
         // MAIN MENU
         
