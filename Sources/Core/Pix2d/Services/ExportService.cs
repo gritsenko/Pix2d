@@ -20,8 +20,8 @@ public class ExportService : IExportService
     public AppState AppState { get; }
 
     public IWriteDestinationFolder CurrentBuildFolder { get; set; }
-    
-    public bool EnableWatermark => LicenseService is { IsPro: false, AllowBuyPro: true };
+
+    public bool EnableWatermark => AppState is { IsPro: false };
 
     public ExportService(ISelectionService selectionService, IFileService fileService, AppState appState, ILicenseService licenseService)
     {

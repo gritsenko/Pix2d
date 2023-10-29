@@ -1,13 +1,12 @@
-﻿namespace Pix2d.Abstract.Services
+﻿namespace Pix2d.Abstract.Services;
+
+public interface IAppStateService<out TAppState> : IAppStateService
 {
-    public interface AppStateService<out TAppState> : AppStateService
-    {
-        TAppState AppState { get; }
-    }
+    TAppState AppState { get; }
+}
 
-    public interface AppStateService
-    {
-        void SwitchToFullMode();
+public interface IAppStateService
+{
+    void SwitchToFullMode();
 
-    }
 }

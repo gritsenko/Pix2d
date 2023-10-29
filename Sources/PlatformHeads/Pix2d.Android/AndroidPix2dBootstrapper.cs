@@ -59,38 +59,16 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
         container.RegisterInstance<IMessenger>(Messenger.Default);
         container.RegisterSingleton<IDialogService, AvaloniaDialogService>();
 
-        var licenseName = await InitLicense(container);
+        InitLicense(container);
 
         InitiTelemetry();
 
         await Pix2DApp.CreateInstanceAsync(Pix2dSettings);
-
-        if (Pix2DApp.Instance != null)
-        {
-            Pix2DApp.Instance.CurrentLicense = licenseName;
-        }
-
     }
 
-    private async Task<string> InitLicense(SimpleContainer container)
+    private void InitLicense(SimpleContainer container)
     {
-        var licenseName = "Free";
-
-        ILicenseService? licenseService = null;
-
-        //todo: add huawei and rustore platforms
-        var playMarketLicenseService = new PlayMarketLicenseService();
-        await playMarketLicenseService.Init();
-        licenseService = playMarketLicenseService;
-
-        if (licenseService == null) return licenseName;
-
-        if (licenseService.IsPro)
-            licenseName = "Pro";
-
-        container.RegisterInstance<ILicenseService>(licenseService);
-
-        return licenseName;
+        container.RegisterSingleton<ILicenseService, PlayMarketLicenseService>();
     }
 
 

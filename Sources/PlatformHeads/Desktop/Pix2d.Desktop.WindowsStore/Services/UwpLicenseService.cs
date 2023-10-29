@@ -2,42 +2,38 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Windows.ApplicationModel.Store;
-using Windows.Storage;
-using Windows.UI.Popups;
 using CommonServiceLocator;
 using Pix2d.Abstract.Services;
 using Windows.Services.Store;
+using Avalonia.Threading;
 using Pix2d.Primitives;
+using Pix2d.State;
 
 namespace Pix2d.WindowsStore.Services;
 
 public class UwpLicenseService : ILicenseService
 {
-    public LicenseType License { get; private set; }
-    public bool IsPro => License == LicenseType.Pro || License == LicenseType.Ultimate;
-    public string FormattedPrice { get; set; } = "$4.99";
-    private LicenseInformation _licenseInformation;
+    public AppState AppState { get; }
+    public ISettingsService SettingsService { get; }
+    public string GetFormattedPrice { get; set; } = "$4.99";
     private StoreContext _context;
     private IntPtr? _hwnd;
 
-    public event EventHandler LicenseChanged;
-
-    public bool AllowBuyPro { get; } = true;
-
-    public UwpLicenseService()
+    public UwpLicenseService(AppState appState, ISettingsService settingsService)
     {
-        //Init();
+        AppState = appState;
+        SettingsService = settingsService;
+        Dispatcher.UIThread.InvokeAsync(InitAsync);
     }
 
-    public async Task Init()
+    public async Task InitAsync()
     {
 
         try
         {
             //#if DEBUG
             Logger.Log("Checking Pro version and price");
-            License = await CheckIsPro() ? LicenseType.Pro : LicenseType.Essentials;
+            AppState.LicenseType = await CheckIsPro() ? LicenseType.Pro : LicenseType.Essentials;
         }
         catch (Exception ex)
         {
@@ -58,7 +54,7 @@ public class UwpLicenseService : ILicenseService
             //_licenseInformation = CurrentAppSimulator.LicenseInformation;
 #endif
 
-            var proSetting = ApplicationData.Current.LocalSettings.Values["IsProActivated"];
+            var proSetting = SettingsService.Get<bool>("IsProActivated");
 
             var isPro = false;
 
@@ -76,9 +72,8 @@ public class UwpLicenseService : ILicenseService
 
             if (isPro)
             {
-                ApplicationData.Current.LocalSettings.Values["IsProActivated"] = true;
-                License = LicenseType.Pro;
-                OnLicenseChanged();
+                SettingsService.Set("IsProActivated", true);
+                AppState.LicenseType = LicenseType.Pro;
             }
 
             if (!isPro)
@@ -101,7 +96,7 @@ public class UwpLicenseService : ILicenseService
                         StoreProduct product = item.Value;
                         if (product.InAppOfferToken == "proVersion")
                         {
-                            ApplicationData.Current.LocalSettings.Values["IsProActivated"] = true;
+                            SettingsService.Set("IsProActivated", true);
                             return true;
                         }
                         // Use members of the product object to access info for the product...
@@ -117,7 +112,7 @@ public class UwpLicenseService : ILicenseService
                         StoreProduct product = item.Value;
                         if (product.InAppOfferToken == "proVersion")
                         {
-                            FormattedPrice = product?.Price?.FormattedPrice ?? "$10";
+                            GetFormattedPrice = product?.Price?.FormattedPrice ?? "$10";
                         }
                         // Use members of the product object to access info for the product...
                     }
@@ -164,7 +159,7 @@ public class UwpLicenseService : ILicenseService
 
     public async Task<bool> BuyPro()
     {
-        Logger.LogEventWithParams("$ Buy Pro", new Dictionary<string, string>() { { "Price", FormattedPrice } });
+        Logger.LogEventWithParams("$ Buy Pro", new Dictionary<string, string>() { { "Price", GetFormattedPrice } });
         try
         {
             if (_hwnd == null)
@@ -197,7 +192,7 @@ public class UwpLicenseService : ILicenseService
                 product = item.Value;
                 if (product.InAppOfferToken == "proVersion")
                 {
-                    FormattedPrice = product?.Price?.FormattedPrice ?? "$10";
+                    GetFormattedPrice = product?.Price?.FormattedPrice ?? "$10";
                 }
                 // Use members of the product object to access info for the product...
             }
@@ -211,10 +206,9 @@ public class UwpLicenseService : ILicenseService
             if (result.Status == StorePurchaseStatus.Succeeded ||
                 result.Status == StorePurchaseStatus.AlreadyPurchased)
             {
-                License = LicenseType.Pro;
-                ApplicationData.Current.LocalSettings.Values["IsProActivated"] = true;
+                AppState.LicenseType = LicenseType.Pro;
+                SettingsService.Set("IsProActivated", true);
                 Logger.LogEvent($"$ Pro version bought: {result.Status}");
-                OnLicenseChanged();
                 return true;
             }
             //if (_licenseInformation.IsActive && !_licenseInformation.IsTrial)
@@ -251,10 +245,9 @@ public class UwpLicenseService : ILicenseService
 
     public void ToggleIsPro()
     {
-        License = IsPro ? LicenseType.Essentials : LicenseType.Pro;
+        AppState.LicenseType = AppState.IsPro ? LicenseType.Essentials : LicenseType.Pro;
 
-        Logger.Log("$On license changed to " + (IsPro ? "PRO" : "ESS"));
-        OnLicenseChanged();
+        Logger.Log("$On license changed to " + (AppState.IsPro ? "PRO" : "ESS"));
     }
 
     public async Task<bool> RateApp()
@@ -274,18 +267,5 @@ public class UwpLicenseService : ILicenseService
 #else
         throw new NotImplementedException();
 #endif
-    }
-
-    private void CommandInvokedHandler(IUICommand command)
-    {
-        // Display message showing the label of the command that was invoked
-        //            rootPage.NotifyUser("The '" + command.Label + "' command has been selected.",
-        //                NotifyType.StatusMessage);
-    }
-
-
-    public void OnLicenseChanged()
-    {
-        LicenseChanged?.Invoke(null, EventArgs.Empty);
     }
 }

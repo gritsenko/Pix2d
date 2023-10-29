@@ -10,6 +10,7 @@ namespace Pix2d.Services
 {
     public class OperationService : IOperationService
     {
+        public AppState AppState { get; }
         public const int FreeUndoSteps = 30;
         public const int ProUndoSteps = 100;
         
@@ -25,14 +26,16 @@ namespace Pix2d.Services
 
         public event EventHandler<OperationInvokeEventArgs> OperationInvoked;
 
-        public OperationService()
+        public OperationService(AppState appState)
         {
+            AppState = appState;
             Messenger.Default.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
-            CoreServices.LicenseService.LicenseChanged += OnLicenseChange;
+            
+            AppState.WatchFor(x=>x.LicenseType, OnLicenseChange);
             UpdateMaxUndoLength();
         }
 
-        private void OnLicenseChange(object sender, EventArgs e)
+        private void OnLicenseChange()
         {
             UpdateMaxUndoLength();
         }
@@ -49,7 +52,7 @@ namespace Pix2d.Services
 
         private int GetMaxUndoLength()
         {
-            switch (CoreServices.LicenseService.License)
+            switch (AppState.LicenseType)
             {
                 case LicenseType.Pro:
                 case LicenseType.Ultimate:

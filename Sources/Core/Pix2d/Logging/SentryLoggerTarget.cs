@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using CommonServiceLocator;
@@ -9,6 +8,7 @@ namespace Pix2d.Logging;
 public class SentryLoggerTarget : ILoggerTarget
 {
     private readonly IPlatformStuffService _pps;
+    private string? _license;
     public bool EventsOnly => false;
 
     public SentryLoggerTarget()
@@ -33,7 +33,8 @@ public class SentryLoggerTarget : ILoggerTarget
         }
 
         var pars = new Dictionary<string, string>();
-        pars["lic"] = Pix2DApp.Instance.CurrentLicense;
+        _license ??= CoreServices.AppStateService.AppState.LicenseType.ToString();
+        pars["lic"] = _license;
         pars["ram"] = GetRamGroup(_pps.GetMemoryInfo().UsedRam);
 
         if (logEntry.ExtraParams != null && logEntry.ExtraParams.Any())

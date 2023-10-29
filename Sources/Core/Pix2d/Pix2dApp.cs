@@ -15,7 +15,7 @@ using SkiaSharp;
 
 namespace Pix2d;
 
-public class Pix2DApp : IViewPortService, AppStateService<AppState>
+public class Pix2DApp : IViewPortService, IAppStateService<AppState>
 {
     public static PlatformType CurrentPlatform { get; set; }
     public static string AppFolder { get; set; }
@@ -25,9 +25,9 @@ public class Pix2DApp : IViewPortService, AppStateService<AppState>
 
     private ViewPort _viewPort;
 
-    private readonly Timer _viewPortChangeTimer = new Timer(OnViewportTimerTick, null, -1, -1);
+    private readonly Timer _viewPortChangeTimer = new(OnViewportTimerTick, null, -1, -1);
 
-    private readonly Dictionary<Type, IPix2dPlugin> _pluginInstances = new Dictionary<Type, IPix2dPlugin>();
+    private readonly Dictionary<Type, IPix2dPlugin> _pluginInstances = new();
 
     public static Pix2DApp Instance { get; private set; }
 
@@ -42,8 +42,6 @@ public class Pix2DApp : IViewPortService, AppStateService<AppState>
             Instance.Initialize(settings);
         });
     }
-
-    public string CurrentLicense { get; set; } = "Unknown";
 
     public IFileContentSource StartupDocument { get; set; }
 
@@ -141,6 +139,7 @@ public class Pix2DApp : IViewPortService, AppStateService<AppState>
     public void InitializeCoreServices()
     {
         Trace("Initializing services...");
+        Pix2dServiceInitializer.RegisterServiceInstance<IAppStateService<AppState>>(this);
         Pix2dServiceInitializer.RegisterServiceInstance<AppState>(AppState);
         Pix2dServiceInitializer.RegisterServiceInstance<IViewPortService>(this);
         Pix2dServiceInitializer.RegisterServices();

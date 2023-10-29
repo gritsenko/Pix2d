@@ -1,6 +1,7 @@
 ﻿using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.Abstract.Tools;
+using Pix2d.State;
 
 namespace Pix2d;
 
@@ -20,8 +21,10 @@ public static class CoreServices
     public static ISnappingService SnappingService => GetService<ISnappingService>();
     public static IImportService ImportService => GetService<IImportService>();
     public static ILicenseService LicenseService => GetService<ILicenseService>();
+    public static IStoreRateService StoreRateService => GetService<IStoreRateService>();
     public static ISettingsService SettingsService => GetService<ISettingsService>();
     public static IPlatformStuffService PlatformStuffService => GetService<IPlatformStuffService>();
+    public static IAppStateService<AppState> AppStateService => GetService<IAppStateService<AppState>>();
     private static T GetService<T>() => CommonServiceLocator.ServiceLocator.Current.GetInstance<T>();
 
 }

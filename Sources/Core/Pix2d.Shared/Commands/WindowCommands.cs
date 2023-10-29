@@ -11,7 +11,7 @@ public class WindowCommands : CommandsListBase {
     
     public Pix2dCommand RateAppCommand => GetCommand(async () =>
     {
-        var result = await CoreServices.LicenseService.RateApp();
+        var result = await CoreServices.StoreRateService.RateApp();
         if (result)
         {
             AppState.UiState.ShowRatePrompt = false;

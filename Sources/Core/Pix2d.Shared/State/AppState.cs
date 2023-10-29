@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Pix2d.Abstract.State;
+using Pix2d.Primitives;
 
 namespace Pix2d.State;
 
@@ -17,6 +18,13 @@ public class AppState : StateBase
         set => Set(value);
     }
 
+    public LicenseType LicenseType
+    {
+        get => Get<LicenseType>();
+        set => Set(value);
+    }
+    public bool IsPro => LicenseType is LicenseType.Pro or LicenseType.Ultimate;
+
     public Pix2DAppSettings Settings { get; set; } = new();
     public UiState UiState { get; set; } = new();
 
@@ -27,5 +35,4 @@ public class AppState : StateBase
     public SelectionState SelectionState { get; set; } = new();
 
     public DrawingState DrawingState { get; set; } = new();
-
 }

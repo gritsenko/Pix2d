@@ -1,14 +1,25 @@
-﻿using Avalonia.Interactivity;
+﻿using System.Diagnostics;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Pix2d.UI.Common;
 using Pix2d.UI.Common.Extensions;
-using Pix2d.UI.MainMenu.ViewModels;
 using Pix2d.UI.Resources;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Pix2d.UI.MainMenu;
 
-public class LicenseView : ViewBaseSingletonVm<LicenseViewModel>
+public class LicenseView : ComponentBase
 {
-    protected override object Build(LicenseViewModel? vm)
+    private FuncDataTemplate<string> FeatureItemDataTemplate => new((model, ns) =>
+        new Grid().Cols("20,*")
+            .Children(
+                new TextBlock().Text("✅"),
+                new TextBlock().Col(1).Text(model)
+            )
+    );
+
+    protected override object Build()
         => new Grid()
             .Rows("Auto,*,Auto")
             ._Children<Grid>(new()
@@ -25,89 +36,95 @@ public class LicenseView : ViewBaseSingletonVm<LicenseViewModel>
                         new Button()
                             .Background(Brushes.Transparent)
                             .HorizontalAlignment(HorizontalAlignment.Left)
-                            .Command(vm?.ToggleProCommand)
+                            .OnClick(_ => OnToggleProClicked())
                             .Padding(0)
-                            .ContentTemplate(
-                                new FuncDataTemplate<LicenseViewModel>((o, ns) =>
-                                    new StackPanel()
-                                        ._Children(new()
-                                        {
-                                            new TextBlock().Margin(0, 8, 0, 0)
-                                                .Text("Current license:")
-                                                .FontSize(16),
-                                            new TextBlock()
-                                                .Text(@vm.LicenseType, BindingMode.OneWay, bindingSource: vm)
-                                                .FontSize(20)
-                                            //.Foreground(StaticResources.Brushes.LinkHighlightBrush),
-                                        }))),
+                            .Content(
+                                new StackPanel()
+                                    ._Children(new()
+                                    {
+                                        new TextBlock().Margin(0, 8, 0, 0)
+                                            .HorizontalAlignment(HorizontalAlignment.Left)
+                                            .Text("Current license:")
+                                            .FontSize(16),
+                                        new TextBlock()
+                                            .HorizontalAlignment(HorizontalAlignment.Left)
+                                            .Text(() => LicenseType)
+                                            .FontSize(20)
+                                        //.Foreground(StaticResources.Brushes.LinkHighlightBrush),
+                                    })
+                            ),
 
                         new Grid()
                             .Margin(0, 24, 0, 0)
                             .HorizontalAlignment(HorizontalAlignment.Left)
                             .Cols("*,*")
+                            .Rows("Auto,*")
                             .MinWidth(340)
                             ._Children(new()
                             {
                                 new StackPanel().Margin(new Thickness(0, 0, 24, 0))._Children(new()
                                 {
                                     new Button()
-                                        .Command(vm?.BuyProCommand)
+                                        .OnClick(_ => OnBuyProClicked())
+                                        .Margin(0)
+                                        .Padding(0)
                                         .Width(100)
                                         .Height(100)
                                         .HorizontalAlignment(HorizontalAlignment.Left)
                                         .Content(new Image().Source(StaticResources.ProImage)),
 
                                     new TextBlock()
-                                        .Margin(4)
+                                        .Margin(0, 4)
                                         .HorizontalAlignment(HorizontalAlignment.Left)
                                         .Text("Lifetime license"),
                                     new TextBlock().HorizontalAlignment(HorizontalAlignment.Left)
-                                        .Margin(4)
-                                        .Text("One time payment"),
-
-                                    new TextBlock()
-                                        .FontSize(14)
-                                        .TextDecorations(TextDecorationCollection.Parse("Strikethrough"))
-                                        .Text(@vm.OldPrice, BindingMode.OneWay, bindingSource: vm),
-                                    new TextBlock()
-                                        .FontSize(20)
-                                        .Text(@vm.Price, BindingMode.OneWay, bindingSource: vm),
-
-                                    new Button()
-                                        .Command(vm?.BuyProCommand)
-                                        .Margin(0, 8)
-                                        .Background("#FFFFD200".ToColor().ToBrush())
-                                        .Foreground("#FF3B2300".ToColor().ToBrush())
-                                        .FontSize(16)
-                                        .FontWeight(FontWeight.Bold)
-                                        .Padding(8)
-                                        .HorizontalAlignment(HorizontalAlignment.Left)
-                                        .Content("Buy now"),
-
-                                    new ItemsControl()
-                                        .HorizontalAlignment(HorizontalAlignment.Left)
-                                        .VerticalAlignment(VerticalAlignment.Top)
-                                        .Foreground(Brushes.White)
-                                        .Items(
-                                            // new TextBlock().Text("✅ Unlimited layers"),
-                                            new TextBlock().Text("✅ 100 undo steps"),
-                                            new TextBlock().Text("✅ No watermark")
-                                            // new TextBlock().Text("✅ Advanced tools"),
-                                            // new TextBlock().Text("✅ Export to GIF"),
-                                            // new TextBlock().Text("   PNG Sprite sheets"),
-                                            // new TextBlock().Text("   PNG Sequences"),
-                                            // new TextBlock().Text("✅ Layer effects")
-                                        )
+                                        .Margin(0, 4)
+                                        .Text("One time payment")
                                 }),
+                                new StackPanel().Row(1).Margin(new Thickness(0, 0, 24, 0))
+                                    .HorizontalAlignment(HorizontalAlignment.Left)._Children(new()
+                                    {
+                                        new TextBlock()
+                                            .FontSize(14)
+                                            .TextDecorations(TextDecorationCollection.Parse("Strikethrough"))
+                                            .Text(() => OldPrice),
+                                        new TextBlock()
+                                            .FontSize(20)
+                                            .Text(() => Price),
+
+                                        new Button()
+                                            .OnClick(_ => OnBuyProClicked())
+                                            .Margin(0, 8)
+                                            .Background("#FFFFD200".ToColor().ToBrush())
+                                            .Foreground("#FF3B2300".ToColor().ToBrush())
+                                            .FontSize(16)
+                                            .FontWeight(FontWeight.Bold)
+                                            .Padding(8)
+                                            .HorizontalAlignment(HorizontalAlignment.Left)
+                                            .Content("Buy now"),
+
+                                        new ItemsControl()
+                                            .HorizontalAlignment(HorizontalAlignment.Left)
+                                            .VerticalAlignment(VerticalAlignment.Top)
+
+                                            .Foreground(Brushes.White)
+                                            .ItemTemplate(FeatureItemDataTemplate)
+                                            .ItemsSource(new[] { "Up to 100 undo steps", "No watermark" })
+                                    }),
                                 new StackPanel().Col(1)._Children(new()
                                 {
                                     new Button()
-                                        .Command(vm?.BuyUltimateCommand)
+                                        .OnClick(_ => OnBuyUltimateClicked())
                                         .Width(100)
                                         .Height(100)
                                         .HorizontalAlignment(HorizontalAlignment.Left)
-                                        .Margin(0, 0, 0, 48)
+                                        .Margin(0)
+                                        .Padding(0)
                                         .Content(new Image().Source(StaticResources.UltimateImage)),
+
+                                }),
+                                new StackPanel().Col(1).Row(1).Margin(new Thickness(0, 0, 24, 0))._Children(new()
+                                {
 
                                     new StackPanel()
                                         .Orientation(Orientation.Horizontal)
@@ -116,8 +133,9 @@ public class LicenseView : ViewBaseSingletonVm<LicenseViewModel>
                                             new TextBlock()
                                                 .FontSize(14)
                                                 .TextDecorations(TextDecorationCollection.Parse("Strikethrough"))
-                                                .Text(@vm.OldUltimatePrice, BindingMode.OneWay, bindingSource: vm),
-                                            new TextBlock().Text("per month"),
+                                                .Text(() => OldUltimatePrice),
+                                            new TextBlock().Margin(4, 0, 0, 0)
+                                                .VerticalAlignment(VerticalAlignment.Bottom).Text("per month"),
                                         }),
 
                                     new StackPanel()
@@ -126,11 +144,12 @@ public class LicenseView : ViewBaseSingletonVm<LicenseViewModel>
                                         {
                                             new TextBlock()
                                                 .FontSize(20)
-                                                .Text(@vm.UltimatePrice, BindingMode.OneWay, bindingSource: vm),
-                                            new TextBlock().Text("per month"),
+                                                .Text(() => UltimatePrice),
+                                            new TextBlock().Margin(4, 0, 0, 2)
+                                                .VerticalAlignment(VerticalAlignment.Bottom).Text("per month"),
                                         }),
                                     new Button()
-                                        .Command(vm?.BuyUltimateCommand)
+                                        .OnClick(_ => OnBuyUltimateClicked())
                                         .Margin(0, 8)
                                         .Background("#FFCCCCCC".ToColor().ToBrush())
                                         .Foreground("#FF3B2300".ToColor().ToBrush())
@@ -144,13 +163,16 @@ public class LicenseView : ViewBaseSingletonVm<LicenseViewModel>
                                         .HorizontalAlignment(HorizontalAlignment.Left)
                                         .VerticalAlignment(VerticalAlignment.Top)
                                         .Foreground(Brushes.White)
-                                        .Items(
-                                            new TextBlock().Text("✅ All Pro features"),
-                                            new TextBlock().Text("✅ Access to Premium assets library"),
-                                            new TextBlock().Text("✅ Document tabs"),
-                                            new TextBlock().Text("✅ Layout mode"),
-                                            new TextBlock().Text("✅ Html5 export"),
-                                            new TextBlock().Text("✅ Scripting and more...")
+                                        .ItemTemplate(FeatureItemDataTemplate)
+                                        .ItemsSource(new[]
+                                            {
+                                                "All Pro features",
+                                                "Access to Premium assets library",
+                                                "Document tabs",
+                                                "Layout mode",
+                                                "Html5 export",
+                                                "Scripting and more..."
+                                            }
                                         )
                                 })
                             }),
@@ -163,14 +185,135 @@ public class LicenseView : ViewBaseSingletonVm<LicenseViewModel>
                     })
             });
 
+
+    [Inject] public ILicenseService LicenseService { get; set; } = null!;
+    [Inject] public IDialogService DialogService { get; set; } = null!;
+    [Inject] public AppState AppState { get; set; } = null!;
+
+    public string LicenseType => AppState.LicenseType.ToString();
+
+    public string Price { get; set; }
+    public string UltimatePrice { get; set; }
+    public string OldUltimatePrice { get; set; }
+
+    public string OldPrice { get; set; }
+
+
+    [Conditional("DEBUG")]
+    public void OnToggleProClicked()
+    {
+        AppState.LicenseType =
+            AppState.IsPro ? Pix2d.Primitives.LicenseType.Essentials : Pix2d.Primitives.LicenseType.Pro;
+        Logger.Log("$On license changed to " + (AppState.IsPro ? "PRO" : "ESS"));
+    }
+
     private void OpenPrivacyPolicy(RoutedEventArgs _)
     {
         CoreServices.PlatformStuffService.OpenUrlInBrowser("https://pix2d.com/privacy.html");
     }
 
-    protected override void OnCreated()
+    protected override void OnAfterInitialized()
     {
-        base.OnCreated();
-        ViewModel?.OnLoad();
+        AppState.WatchFor(x => x.LicenseType, StateHasChanged);
+        OnLoad();
     }
+
+    public void OnLoad()
+    {
+        Logger.Log("$License view opened");
+        GeneratePrice();
+    }
+
+
+    private async void OnBuyProClicked()
+    {
+        await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            try
+            {
+                Logger.Log("$Pressed buy/restore PRO on Main Menu");
+                if (await LicenseService.BuyPro())
+                {
+                    DialogService.Alert("Thank you! Now you are PRO user!", "Success!");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("$Error on buy PRO on Main Menu: " + ex.Message);
+                Logger.LogException(ex);
+            }
+            finally
+            {
+                Commands.View.HideMainMenuCommand.Execute();
+            }
+
+        });
+    }
+
+    private async void OnBuyUltimateClicked()
+    {
+        await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            try
+            {
+                Logger.Log("$Pressed pre-order ULTIMATE on Main Menu");
+                var result = await DialogService.ShowYesNoDialog(
+                    "With buying PRO version, you will get ULTIMATE edition for free, on it's release. Do you want to proceed with PRO purchase?",
+                    "Pre-order Pix2D ULTIMATE", "Yes", "No");
+
+                if (result)
+                {
+                    Logger.Log("$Pressed to buy PRO to ULTIMATE on Main Menu");
+                    if (await LicenseService.BuyPro())
+                    {
+                        DialogService.Alert("Thank you! Now you are PRO/ULTIMATE user!", "Success!");
+                    }
+                }
+                else
+                {
+                    Logger.Log("$Pressed No in pre-order message box PRO on Main Menu");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("$Error on buy PRO(pre-order ULTIMATE) on Main Menu: " + ex.Message);
+                Logger.LogException(ex);
+            }
+            finally
+            {
+                Commands.View.HideMainMenuCommand.Execute();
+            }
+        });
+    }
+
+    private void GeneratePrice()
+    {
+        try
+        {
+            var price = LicenseService.GetFormattedPrice;
+            Price = price;
+            var match = Regex.Match(price, @"\d+(,\d+)*(\.\d+)");
+
+            double val = 0;
+            if (match.Success && double.TryParse(match.Value, CultureInfo.InvariantCulture, out val))
+            {
+                var pattern = price.Replace(match.Value, "%price");
+                OldPrice = price;
+                var oldPrice = Math.Round(val * 2.5 / 10) * 10;
+                var ultimatePrice = Math.Round(oldPrice * 1.5);
+                var oldUltimatePrice = Math.Round(ultimatePrice * 2.5 / 10) * 10;
+
+                OldPrice = pattern.Replace("%price", oldPrice.ToString("#.00"));
+                UltimatePrice = pattern.Replace("%price", ultimatePrice.ToString("#.00"));
+                OldUltimatePrice = pattern.Replace("%price", oldUltimatePrice.ToString("#.00"));
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogException(exception);
+        }
+
+        StateHasChanged();
+    }
+
 }

@@ -5,27 +5,22 @@ namespace Pix2d.Services;
 
 public class GumroadLicenseService : ILicenseService
 {
-    public event EventHandler LicenseChanged;
-    
-    public LicenseType License { get; private set; }
-    public bool IsPro => License == LicenseType.Pro || License == LicenseType.Ultimate;
-    public string FormattedPrice { get; } = "$9.9";
-    public bool AllowBuyPro { get; } = true;
+    public AppState AppState { get; }
+    public string GetFormattedPrice { get; } = "$9.9";
     public async Task<bool> BuyPro()
     {
         return true;
     }
 
+    public GumroadLicenseService(AppState appState)
+    {
+        AppState = appState;
+    }
+
     public void ToggleIsPro()
     {
-        License = IsPro ? LicenseType.Essentials : LicenseType.Pro;
-
-        LicenseChanged?.Invoke(this, EventArgs.Empty);
+        AppState.LicenseType = AppState.IsPro ? LicenseType.Essentials : LicenseType.Pro;
+        Logger.Log("$On license changed to " + (AppState.IsPro ? "PRO" : "ESS"));
     }
 
-    public async Task<bool> RateApp()
-    {
-        //await Launcher.LaunchUriAsync(new Uri("https://gritsenko.itch.io/pix2d"));
-        return true;
-    }
 }

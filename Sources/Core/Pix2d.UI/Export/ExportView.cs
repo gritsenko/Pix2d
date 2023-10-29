@@ -107,12 +107,11 @@ public class ExportView : ComponentBase
                                     .Command(Commands.View.HideExportDialogCommand)
                             ),
                         new ExportProWarningView()
-                            .IsVisible(() => !LicenseService.IsPro)
+                            .IsVisible(() => !AppState.IsPro)
                     )
             ));
 
     [Inject] IExportService ExportService { get; set; }
-    [Inject] ILicenseService LicenseService { get; set; }
 
     [Inject] IBusyController BusyController { get; set; }
     [Inject] AppState AppState { get; set; }

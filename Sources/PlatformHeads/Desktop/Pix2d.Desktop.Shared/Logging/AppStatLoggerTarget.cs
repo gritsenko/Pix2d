@@ -12,6 +12,7 @@ namespace Pix2d.Desktop.Logging
         public bool EventsOnly => false;
         private static IPlatformStuffService? _pps;
         private string _ram = "";
+        private string? _license;
 
         public void OnLogged(LogEntry logEntry)
         {
@@ -27,7 +28,8 @@ namespace Pix2d.Desktop.Logging
             }
 
             var pars = new Dictionary<string, string>();
-            pars["lic"] = Pix2DApp.Instance.CurrentLicense;
+            _license ??= CoreServices.AppStateService.AppState.LicenseType.ToString();
+            pars["lic"] = _license;
 
 #if FULL_MODE
             pars["lic"] = "full";

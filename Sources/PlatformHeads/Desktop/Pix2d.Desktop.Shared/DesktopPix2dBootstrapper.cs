@@ -78,7 +78,7 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         Pix2DApp.CurrentPlatform = GetPlatform();
         Pix2DApp.AppFolder = Path.Combine(AppDataFolder(), "Pix2d");
 
-        var licenseName = await InitLicense(container);
+        await InitLicense(container);
         InitTelemetry(Pix2DApp.CurrentPlatform);
 
         if (!Directory.Exists(Pix2DApp.AppFolder))
@@ -87,35 +87,15 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         }
 
         await Pix2DApp.CreateInstanceAsync(Pix2dSettings);
-
-        if (Pix2DApp.Instance != null)
-        {
-            Pix2DApp.Instance.CurrentLicense = licenseName;
-        }
     }
 
-    private async Task<string> InitLicense(SimpleContainer container)
+    private async Task InitLicense(SimpleContainer container)
     {
-        var licenseName = "Free";
-
-        ILicenseService? licenseService = null;
 #if WINDOWS_UWP
-        var uwpLicenseService = new Pix2d.WindowsStore.Services.UwpLicenseService();
-        await uwpLicenseService.Init();
-        licenseService = uwpLicenseService;
-
+        container.RegisterSingleton<ILicenseService, Pix2d.WindowsStore.Services.UwpLicenseService>();
 #else
-        licenseService = new GumroadLicenseService();
+        container.RegisterSingleton<ILicenseService, GumroadLicenseService>();
 #endif
-
-        if (licenseService == null) return licenseName;
-
-        if (licenseService.IsPro)
-            licenseName = "Pro";
-
-        container.RegisterInstance<ILicenseService>(licenseService);
-
-        return licenseName;
     }
 
     private PlatformType GetPlatform()

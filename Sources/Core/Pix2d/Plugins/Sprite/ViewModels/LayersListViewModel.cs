@@ -28,6 +28,7 @@ public class LayersListViewModel : Pix2dViewModelBase
     public IEditService EditService { get; }
     public IEffectsService EffectsService { get; } 
     public IMessenger Messenger { get; }
+    public AppState AppState { get; }
 
     private bool _internalLayersUpdate;
     private bool _layersReordering;
@@ -75,7 +76,7 @@ public class LayersListViewModel : Pix2dViewModelBase
         }
     }
 
-    public bool ProhibitAddLayers => !CoreServices.LicenseService.IsPro && Layers.Count >= FreeLayersCount;
+    public bool ProhibitAddLayers => !AppState.IsPro && Layers.Count >= FreeLayersCount;
 
     [NotifiesOn(nameof(SelectedBackgroundColor))]
     [NotifiesOn(nameof(UseBackgroundColor))]
@@ -139,7 +140,7 @@ public class LayersListViewModel : Pix2dViewModelBase
     });
 
 
-    public LayersListViewModel(IEditService editService, IEffectsService effectsService, IMessenger messenger)
+    public LayersListViewModel(IEditService editService, IEffectsService effectsService, IMessenger messenger, AppState appState)
     {
         if (IsDesignMode)
             return;
@@ -147,6 +148,7 @@ public class LayersListViewModel : Pix2dViewModelBase
         EditService = editService;
         EffectsService = effectsService;
         Messenger = messenger;
+        AppState = appState;
 
         Layers.CollectionChanged += Layers_CollectionChanged;
 
@@ -155,15 +157,10 @@ public class LayersListViewModel : Pix2dViewModelBase
         Messenger.Register<CanvasSizeChanged>(this, _ => Reload());
         Messenger.Register<SelectedLayerChangedMessage>(this, _ => UpdatePreview());
 
-        CoreServices.LicenseService.LicenseChanged += OnLicenseChanged;
-            
+        appState.WatchFor(x => x.LicenseType, () => OnPropertyChanged(nameof(ProhibitAddLayers)));
+
         AvailableEffects.AddRange(EffectsService.GetAvailableEffects().Select(x => new EffectViewModel(Activator.CreateInstance(x.Value) as ISKNodeEffect)));
         OnEditorChanged();
-    }
-
-    private void OnLicenseChanged(object sender, EventArgs e)
-    {
-        OnPropertyChanged(nameof(ProhibitAddLayers));
     }
 
     private void OnNodeEditorChanged(NodeEditorChangedMessage obj)

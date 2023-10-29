@@ -36,7 +36,7 @@ public class PromoBlockView : ComponentBase
                     .Cols("auto,auto")
                     .Children(
                         new TextBlock()
-                            .Text(@CallToActionText)
+                            .Text(() => $"{AppState?.LicenseType.ToString().ToUpper()}")
                             .Foreground(StaticResources.Brushes.LinkHighlightBrush)
                             .FontSize(18),
                         new TextBlock().VerticalAlignment(VerticalAlignment.Top).Col(1).Margin(new Thickness(1, 0, 0, 0)).Text(@Suffix)
@@ -46,32 +46,12 @@ public class PromoBlockView : ComponentBase
             .VerticalAlignment(VerticalAlignment.Stretch);
 
     [Inject] public ILicenseService? LicenseService { get; } = null!;
+    [Inject] public AppState? AppState { get; } = null!;
     public string CallToActionText { get; set; } = "PRO";
     public string Suffix { get; set; } = "";
 
     protected override void OnAfterInitialized()
     {
-        UpdateText();
-    }
-
-    private void UpdateText()
-    {
-        switch (LicenseService?.License)
-        {
-            case LicenseType.Pro:
-                CallToActionText = "PRO";
-                Suffix = "";
-                break;
-            case LicenseType.Ultimate:
-                CallToActionText = "ULTIMATE";
-                Suffix = "𝛽";
-                break;
-            default:
-                CallToActionText = "ESS";
-                Suffix = "";
-                break;
-        }
-
-        StateHasChanged();
+        AppState.WatchFor(x => x.LicenseType, StateHasChanged);
     }
 }
