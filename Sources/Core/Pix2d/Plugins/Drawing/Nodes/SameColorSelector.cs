@@ -83,10 +83,28 @@ namespace Pix2d.Drawing.Nodes
                 var srcIndex = (srcX + srcY * srcWidth) * 4;
 
                 if (srcX >= 0 && srcY >= 0 && srcX < sourceBitmap.Width && srcY < sourceBitmap.Height)
-                    if (spanSrc[srcIndex] == _color.Blue
-                        && spanSrc[srcIndex + 1] == _color.Green
-                        && spanSrc[srcIndex + 2] == _color.Red
-                        && spanSrc[srcIndex + 3] == _color.Alpha)
+                {
+                    var isSameColor = false;
+                    
+                    switch (Pix2DAppSettings.ColorType)
+                    {
+                        case SKColorType.Bgra8888:
+                            if (spanSrc[srcIndex] == _color.Blue
+                                && spanSrc[srcIndex + 1] == _color.Green
+                                && spanSrc[srcIndex + 2] == _color.Red
+                                && spanSrc[srcIndex + 3] == _color.Alpha) isSameColor = true;
+                            break;
+                        case SKColorType.Rgba8888:
+                            if (spanSrc[srcIndex] == _color.Red
+                                && spanSrc[srcIndex + 1] == _color.Green
+                                && spanSrc[srcIndex + 2] == _color.Blue
+                                && spanSrc[srcIndex + 3] == _color.Alpha) isSameColor = true;
+                            break;
+                        default:
+                            throw new Exception("Sorry, I don't support this color type");
+                    }
+                
+                    if (isSameColor)
                     {
                         left = Math.Min(left, x);
                         top = Math.Min(top, y);
@@ -96,6 +114,7 @@ namespace Pix2d.Drawing.Nodes
                         _pixelsBuff[x + y * sourceBitmap.Width] = 1;
                         selectionPoints.Add(new SKPointI(srcX, srcY));
                     }
+                }
             }
 
             _offsetX = left;
@@ -107,8 +126,8 @@ namespace Pix2d.Drawing.Nodes
             _imageRight = _bitmap.Width;
             _imageBot = _bitmap.Height;
 
-            _width = right - left + 1;
-            _height = bottom - top + 1;
+            _width = Math.Max(0, right - left + 1);
+            _height = Math.Max(0, bottom - top + 1);
 
             if (highlightSelection)
             {
