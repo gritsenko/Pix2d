@@ -5,6 +5,7 @@ using Mvvm.Messaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
+using Pix2d.Android.Logging;
 using Pix2d.Android.Services;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Drawing;
@@ -15,6 +16,9 @@ using Pix2d.Services;
 using Pix2d.UI;
 
 #if !DEBUG
+using Microsoft.AppCenter;
+using Microsoft.AppCenter.Analytics;
+using Microsoft.AppCenter.Crashes;
 using Pix2d.Logging;
 #endif
 
@@ -75,6 +79,9 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
     private void InitiTelemetry()
     {
 #if !DEBUG
+        AppCenter.Start("220aa6d5-1d99-4214-8f58-c4c9cd694b06", typeof(Analytics), typeof(Crashes));
+        Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
+
         Logger.RegisterLoggerTarget(new SentryLoggerTarget());
 #endif
     }
