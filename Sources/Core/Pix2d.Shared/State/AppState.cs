@@ -20,7 +20,7 @@ public class AppState : StateBase
 
     public LicenseType LicenseType
     {
-        get => Get<LicenseType>();
+        get => Get<LicenseType>(LicenseType.Essentials);
         set => Set(value);
     }
     public bool IsPro => LicenseType is LicenseType.Pro or LicenseType.Ultimate;

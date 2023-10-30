@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using CommonServiceLocator;
 using Pix2d.Abstract.Services;
 using Pix2d.Primitives;
