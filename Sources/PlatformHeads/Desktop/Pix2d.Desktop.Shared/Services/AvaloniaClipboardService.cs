@@ -58,14 +58,20 @@ public class AvaloniaClipboardService : InternalClipboardService
         var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;
         Clowd.Clipboard.ClipboardGdi.SetImage(bm);
     }
-
+    
     public override async Task<SKBitmap?> GetImageFromClipboard()
     {
+        var supportedFormats = new[]
+        {
+            "PNG", "image/png", "image/webp", "image/jpeg", "image/bmp", "image/ico", "image/icon", "image/tiff",
+            "image/webp"
+        };
+        
         // last objects in clipboard from us
         var formats = await Clipboard.GetFormatsAsync();
-        if (formats.Any(x => x == "PNG"))
+        foreach (var format in supportedFormats.Where(x => formats.Contains(x)))
         {
-            if (await Clipboard.GetDataAsync("PNG") is byte[] data)
+            if (await Clipboard.GetDataAsync(format) is byte[] data)
             {
                 var bitmap = SKBitmap.Decode(data);
                 return bitmap;
