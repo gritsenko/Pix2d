@@ -10,6 +10,7 @@
     <UseMauiEssentials>true</UseMauiEssentials>
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
     <EnableAvaloniaXamlCompilation>false</EnableAvaloniaXamlCompilation>
+    <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Services\AndroidFileService.cs" />
