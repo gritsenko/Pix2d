@@ -15,6 +15,8 @@ public class GumroadLicenseService : ILicenseService
 {
     private readonly IDialogService _dialogService;
     private readonly IBusyController _busyController;
+    private readonly ISettingsService _settingsService;
+    private readonly IPlatformStuffService _platformStuffService;
     public AppState AppState { get; }
     public string GetFormattedPrice { get; } = "$9.9";
     public async Task<bool> BuyPro()
@@ -138,21 +140,23 @@ public class GumroadLicenseService : ILicenseService
 
     private void OpenGumroadPurchasePage()
     {
-        CoreServices.PlatformStuffService.OpenUrlInBrowser("https://pix2d.gumroad.com/l/FlQVG");
+        _platformStuffService.OpenUrlInBrowser("https://pix2d.gumroad.com/l/FlQVG");
     }
 
-    public GumroadLicenseService(AppState appState, IDialogService dialogService, IBusyController busyController)
+    public GumroadLicenseService(AppState appState, IDialogService dialogService, IBusyController busyController, ISettingsService settingsService, IPlatformStuffService platformStuffService)
     {
         AppState = appState;
         _dialogService = dialogService;
         _busyController = busyController;
+        _settingsService = settingsService;
+        _platformStuffService = platformStuffService;
 
         Task.Run(CheckLicenseInSettings);
     }
 
     private async Task CheckLicenseInSettings()
     {
-        if (CoreServices.SettingsService.TryGet<string>(LicenseCodeKey, out var licenseCode))
+        if (_settingsService.TryGet<string>(LicenseCodeKey, out var licenseCode))
         {
             await VerifyLicenseCode(licenseCode, false);
         }

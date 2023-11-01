@@ -124,7 +124,7 @@ public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
     public SKRect GetSelectionRect()
     {
         var selectionLayer = DrawingLayer.GetSelectionLayer();
-        return selectionLayer.GetBoundingBox();
+        return selectionLayer?.GetBoundingBox() ?? default;
     }
 
     public void ApplySelection()
