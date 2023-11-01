@@ -41,6 +41,7 @@ public class InputDialogView : ComponentBase, IDialogView
                 new TextBlock()
                     .VerticalAlignment(VerticalAlignment.Center)
                     .HorizontalAlignment(HorizontalAlignment.Center)
+                    .Margin(new Thickness(16, 0))
                     .Text(Message, BindingMode.OneWay, bindingSource: this),
                 
                 new TextBox().Row(1)

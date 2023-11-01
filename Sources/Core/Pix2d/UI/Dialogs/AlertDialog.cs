@@ -14,7 +14,8 @@ public class AlertDialog : ComponentBase, IDialogView
                 new TextBlock()
                     .VerticalAlignment(VerticalAlignment.Center)
                     .HorizontalAlignment(HorizontalAlignment.Center)
-                    .Text("Problem!"),
+                    .Margin(new Thickness(16, 0))
+                    .Text(Message, BindingMode.OneWay, bindingSource: this),
 
                 new StackPanel().Row(1)
                     .Orientation(Orientation.Horizontal)
@@ -41,5 +42,16 @@ public class AlertDialog : ComponentBase, IDialogView
             );
 
     public string Title { get; set; }
+    
+    private string _message = "Problem!";
+    public string Message
+    {
+        get => _message;
+        set
+        {
+            _message = value;
+            OnPropertyChanged();
+        }
+    }
     public Action<bool?> OnDialogClosed { get; set; }
 }

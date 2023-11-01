@@ -73,7 +73,11 @@ namespace Pix2d.Services
         public async Task<bool> ShowAlert(string message, string title)
         {
             if (_dialogContainer == null) return true;
-            await _dialogContainer.ShowDialogAsync(new AlertDialog());
+            await _dialogContainer.ShowDialogAsync(new AlertDialog
+            {
+                Message = message,
+                Title = title,
+            });
             return true;
         }
 

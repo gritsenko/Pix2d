@@ -93,6 +93,7 @@ public class LicenseView : ComponentBase
                                             .Text(() => Price),
 
                                         new Button()
+                                            .IsEnabled(() => !AppState.IsPro)
                                             .OnClick(_ => OnBuyProClicked())
                                             .Margin(0, 8)
                                             .Background("#FFFFD200".ToColor().ToBrush())
@@ -227,6 +228,11 @@ public class LicenseView : ComponentBase
 
     private async void OnBuyProClicked()
     {
+        if (AppState.IsPro)
+        {
+            return;
+        }
+        
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {
             try
