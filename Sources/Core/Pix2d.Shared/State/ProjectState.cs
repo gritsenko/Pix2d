@@ -20,7 +20,7 @@ public class ProjectState : StateBase
     public bool HasUnsavedChanges { get; set; }
     public bool IsNewProject => File == null;
     public bool IsModified { get; set; }
-    public IFileContentSource File { get; set; }
+    public IFileContentSource File { get => Get<IFileContentSource>(); set => Set(value); }
     public SKNode SceneNode { get; set; }
     public SKNode CurrentEditedNode { get; set; }
     public SKNode FrameEditorNode { get; set; }

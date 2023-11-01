@@ -122,6 +122,9 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
 
         try
         {
+            if (AppState.IsPro)
+                return false;
+
             var productId = "pix2d_pro";
 
             var connected = await CrossInAppBilling.Current.ConnectAsync();

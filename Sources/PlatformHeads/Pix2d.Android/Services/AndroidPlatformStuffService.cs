@@ -10,13 +10,14 @@ using AndroidX.Core.Content;
 using Pix2d.Abstract.Export;
 using Pix2d.Android;
 using File = Java.IO.File;
+using Microsoft.Maui.ApplicationModel;
 
 namespace Pix2d.Services;
 
 public class AndroidPlatformStuffService : IPlatformStuffService
 {
     private DeviceFormFactorType _deviceFormFactorType = DeviceFormFactorType.Desktop;
-    private string _appVersion;
+    private string? _appVersion;
 
     public AndroidPlatformStuffService()
     {
@@ -62,17 +63,9 @@ public class AndroidPlatformStuffService : IPlatformStuffService
 
     public string GetAppVersion()
     {
-        //string GetAppVer()
-        //{
-        //    var package = Package.Current;
-        //    var packageId = package.Id;
-        //    var version = packageId.Version;
-
-        //    return $"{version.Major}.{version.Minor}";
-        //}
-
-        //return _appVersion ?? (_appVersion = GetAppVer());
-        return "Alpha";
+        var info = AppInfo.Current;
+        _appVersion ??= $"{info.VersionString} ({info.BuildString})s";
+        return _appVersion;
     }
 
     public void ToggleTopmostWindow()

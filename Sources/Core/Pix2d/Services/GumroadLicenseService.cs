@@ -160,12 +160,6 @@ public class GumroadLicenseService : ILicenseService
 
     private const string LicenseCodeKey = "gumroad_license";
 
-    public void ToggleIsPro()
-    {
-        AppState.LicenseType = AppState.IsPro ? LicenseType.Essentials : LicenseType.Pro;
-        Logger.Log("$On license changed to " + (AppState.IsPro ? "PRO" : "ESS"));
-    }
-
     private class LicenseInfoResponse
     {
         public bool Success { get; set; }
