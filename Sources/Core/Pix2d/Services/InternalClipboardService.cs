@@ -43,7 +43,7 @@ namespace Pix2d.Services
 
         public virtual Task<bool> TryCopyNodesAsBitmapAsync(IEnumerable<SKNode> nodes, SKColor backgroundColor)
         {
-            if (!nodes.Any())
+            if (nodes == null || !nodes.Any())
             {
                 return Task.FromResult(false);
             }
