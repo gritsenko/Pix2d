@@ -76,7 +76,7 @@ jobs:
       uses: microsoft/setup-msbuild@v1.3.1
       with:
         # Enable searching for pre-release versions of Visual Studio/MSBuild
-        vs-prerelease: 1 # optional
+        vs-prerelease: true
 
     #- name: Setting path to msbuild
     #  run: set /p PATH=%PATH%;$env.MSBuildPath
