@@ -57,7 +57,8 @@ jobs:
       Test_Project_Path: Sources\Tests\Pix2d.Core.Tests\Pix2d.Core.Tests.csproj                 # Replace with the path to your test project, i.e. MyWpfApp.Tests\MyWpfApp.Tests.csproj.
       Wap_Project_Directory: Sources\PlatformHeads\Desktop\Pix2d.Desktop.WindowsStore.Wap    # Replace with the Wap project directory relative to the solution, i.e. MyWpfApp.Package.
       Wap_Project_Path: Sources\PlatformHeads\Desktop\Pix2d.Desktop.WindowsStore.Wap\Pix2d.Desktop.WindowsStore.Wap.wapproj                   # Replace with the path to your Wap project, i.e. MyWpf.App.Package\MyWpfApp.Package.wapproj.
-
+      MSBuildPath: C:\Program Files\Microsoft Visual Studio\2022\Preview\MSBuild\Current\Bin
+      
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -73,6 +74,12 @@ jobs:
     # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v1.3.1
+      with:
+        # Enable searching for pre-release versions of Visual Studio/MSBuild
+        vs-prerelease: 1 # optional
+
+    #- name: Setting path to msbuild
+    #  run: set /p PATH=%PATH%;$env.MSBuildPath
 
     # Execute all unit tests in the solution
     #- name: Execute unit tests
