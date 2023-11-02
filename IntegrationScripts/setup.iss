@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Pix2d"
-#define MyAppVersion "3.0.2"
+#define MyAppVersion "3.1.1"
 #define MyAppPublisher "Gritsenko"
 #define MyAppURL "https://pix2d.com/"
 #define MyAppExeName "Pix2d.exe"
