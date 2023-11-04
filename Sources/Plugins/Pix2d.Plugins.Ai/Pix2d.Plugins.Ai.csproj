@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
+    <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
   </PropertyGroup>
 
 
