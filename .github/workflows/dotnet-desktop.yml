@@ -86,8 +86,18 @@ jobs:
     #  run: dotnet test
 
     # Restore the application to populate the obj folder with RuntimeIdentifiers
-    - name: Restore the application
+    - name: Restore the application for x86 platform
       run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:Platform=x86
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    - name: Restore the application for x64 platform
+      run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:Platform=x64
+      env:
+        Configuration: ${{ matrix.configuration }}
+    
+    - name: Restore the application for arm64 platform
+      run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:Platform=arm64
       env:
         Configuration: ${{ matrix.configuration }}
 
