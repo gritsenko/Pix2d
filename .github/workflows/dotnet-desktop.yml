@@ -87,19 +87,19 @@ jobs:
 
     # Restore the application to populate the obj folder with RuntimeIdentifiers
     - name: Restore the application for x86 platform
-      run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:Platform=x86
+      run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:RestorePackagesConfig=true
       env:
         Configuration: ${{ matrix.configuration }}
 
-    - name: Restore the application for x64 platform
-      run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:Platform=x64
-      env:
-        Configuration: ${{ matrix.configuration }}
+    #- name: Restore the application for x64 platform
+    #  run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:Platform=x64
+    #  env:
+    #    Configuration: ${{ matrix.configuration }}
     
-    - name: Restore the application for arm64 platform
-      run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:Platform=arm64
-      env:
-        Configuration: ${{ matrix.configuration }}
+    #- name: Restore the application for arm64 platform
+    #  run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration /p:Platform=arm64
+    #  env:
+    #    Configuration: ${{ matrix.configuration }}
 
     # Decode the base 64 encoded pfx and save the Signing_Certificate
     - name: Decode the pfx
