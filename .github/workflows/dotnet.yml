@@ -30,7 +30,7 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal $env:Project_Path
     - name: publish x64
-      run: dotnet publish -c Release -r x64 --sc true -o C:\tmp\pix2dAv $env:Project_Path
+      run: dotnet publish -c Release -r win-x64 -o C:\tmp\pix2dAv $env:Project_Path
     # - name: Building the installer
     #   run: |
     #     "%programfiles(x86)%\Inno Setup 6\iscc.exe" "FreenetInstall_InnoSetup.iss"
