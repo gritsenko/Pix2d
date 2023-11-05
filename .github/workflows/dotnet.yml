@@ -10,7 +10,7 @@ on:
     branches: [ "main" ]
 
 env:
-    Project_Path: .\Sources\PlatformHeads\Desktop\Pix2d.Desktop.Windows                        # Replace with your solution name, i.e. MyWpfApp.sln.
+    Project_Path: Sources\PlatformHeads\Desktop\Pix2d.Desktop.Windows                        # Replace with your solution name, i.e. MyWpfApp.sln.
     
 jobs:
   build:
