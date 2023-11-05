@@ -32,7 +32,7 @@ jobs:
       run: dotnet test --no-build --verbosity normal $env:Project_Path
     
     - name: clean output directory
-      run: RMDIR $env:Project_Path /S /Q
+      run: Remove-Item -Recurse -Force $env:Output_Path
       
     - name: publish x64
       run: dotnet publish -c Release -r win-x64 -o $env:Output_Path $env:Project_Path
