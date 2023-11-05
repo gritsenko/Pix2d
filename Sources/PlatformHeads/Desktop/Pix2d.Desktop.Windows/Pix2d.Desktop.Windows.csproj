@@ -10,6 +10,7 @@
 		<PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
     <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishSingleFile>true</PublishSingleFile>
 	</PropertyGroup>
 	<PropertyGroup>
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
