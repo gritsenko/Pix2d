@@ -10,7 +10,7 @@ on:
     branches: [ "main" ]
 
 env:
-    Solution_Name: Sources\Pix2d.sln                        # Replace with your solution name, i.e. MyWpfApp.sln.
+    Solution_Name: .\Sources\Pix2d.sln                        # Replace with your solution name, i.e. MyWpfApp.sln.
     
 jobs:
   build:
@@ -23,10 +23,10 @@ jobs:
     #   uses: actions/setup-dotnet@v3
     #   with:
     #     dotnet-version: 7.0.x
-    - name: Restore dependencies
-      run: dotnet restore
     - name: change dir
       run: cd $env:Solution_Name
+    - name: Restore dependencies
+      run: dotnet restore
     - name: Build
       run: dotnet build --no-restore
     - name: Test
