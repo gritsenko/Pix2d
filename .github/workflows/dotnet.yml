@@ -11,7 +11,8 @@ on:
 
 env:
     Project_Path: Sources\PlatformHeads\Desktop\Pix2d.Desktop.Windows\Pix2d.Desktop.Windows.csproj                        # Replace with your solution name, i.e. MyWpfApp.sln.
-    
+    Output_Path: C:\tmp\pix2dAv
+
 jobs:
   build:
 
@@ -29,8 +30,12 @@ jobs:
       run: dotnet build --no-restore $env:Project_Path
     - name: Test
       run: dotnet test --no-build --verbosity normal $env:Project_Path
+    
+    - name: clean output directory
+      run: RMDIR $env:Project_Path /S /Q
+      
     - name: publish x64
-      run: dotnet publish -c Release -r win-x64 -o C:\tmp\pix2dAv $env:Project_Path
+      run: dotnet publish -c Release -r win-x64 -o $env:Output_Path $env:Project_Path
     # - name: Building the installer
     #   run: |
     #     "%programfiles(x86)%\Inno Setup 6\iscc.exe" "FreenetInstall_InnoSetup.iss"
