@@ -24,7 +24,7 @@ jobs:
     #   with:
     #     dotnet-version: 7.0.x
     - name: change dir
-      run: cd $env:Solution_Name
+      run: cd $env:Project_Path
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
