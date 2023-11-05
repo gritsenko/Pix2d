@@ -9,12 +9,17 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+    Solution_Name: Sources\Pix2d.sln                        # Replace with your solution name, i.e. MyWpfApp.sln.
+    
 jobs:
   build:
 
     runs-on: self-hosted
 
     steps:
+    - name: change dir
+      run: cd $env:Solution_Name
     - uses: actions/checkout@v3
     # - name: Setup .NET
     #   uses: actions/setup-dotnet@v3
