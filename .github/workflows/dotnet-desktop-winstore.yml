@@ -39,6 +39,7 @@
 name: Windows store msix package
 
 on:
+  workflow_dispatch:
   push:
     # Pattern matched against refs/tags
     tags:        

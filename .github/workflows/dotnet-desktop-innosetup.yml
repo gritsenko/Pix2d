@@ -4,6 +4,7 @@
 name: Desktop windows innosetup release
 
 on:
+  workflow_dispatch:
   push:
     # Pattern matched against refs/tags
     tags:        
