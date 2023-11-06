@@ -82,8 +82,7 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
         AppCenter.Start("220aa6d5-1d99-4214-8f58-c4c9cd694b06", typeof(Analytics), typeof(Crashes));
         Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
 
-        //too much events
-        //Logger.RegisterLoggerTarget(new SentryLoggerTarget());
+        Logger.RegisterLoggerTarget(new SentryLoggerTarget());
 #endif
     }
 }

@@ -32,6 +32,12 @@ public class SentryLoggerTarget : ILoggerTarget
             logEntry.IsEvent = true;
         }
 
+        if (logEntry.IsEvent)
+        {
+            //we are not logging events anymore, crashes only
+            return;
+        }
+
         var pars = new Dictionary<string, string>();
         _license ??= CoreServices.AppStateService.AppState.LicenseType.ToString();
         pars["lic"] = _license;
