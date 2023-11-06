@@ -5,9 +5,9 @@ name: Desktop windows innosetup release
 
 on:
   push:
-    branches: [ "release" ]
-  pull_request:
-    branches: [ "release" ]
+    # Pattern matched against refs/tags
+    tags:        
+      - '*'           # Push events to every tag not containing /
 
 env:
     Project_Path: Sources\PlatformHeads\Desktop\Pix2d.Desktop.Windows\Pix2d.Desktop.Windows.csproj                        # Replace with your solution name, i.e. MyWpfApp.sln.

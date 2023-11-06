@@ -40,9 +40,9 @@ name: Windows store msix package
 
 on:
   push:
-    branches: [ "release" ]
-  pull_request:
-    branches: [ "release" ]
+    # Pattern matched against refs/tags
+    tags:        
+      - '*'           # Push events to every tag not containing /
  
 jobs:
 
