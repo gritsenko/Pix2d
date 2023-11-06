@@ -12,7 +12,7 @@ on:
 env:
     Project_Path: Sources\PlatformHeads\Desktop\Pix2d.Desktop.Windows\Pix2d.Desktop.Windows.csproj                        # Replace with your solution name, i.e. MyWpfApp.sln.
     Output_Path: C:\tmp\pix2dAv
-    InnoSetupPath: C:\Projects\pix2d\IntegrationScripts\setup.iss
+    InnoSetupPath: C:\Projects\pix2d\IntegrationScripts\build-setup.cmd
 
 jobs:
   build:
@@ -39,6 +39,5 @@ jobs:
       run: dotnet publish -c Release -r win-x64 -o $env:Output_Path $env:Project_Path
     
     - name: Building the installer
-      run: |
-        "%programfiles(x86)%\Inno Setup 6\iscc.exe" $env:InnoSetupPath
+      run: $env:InnoSetupPath
       shell: cmd
