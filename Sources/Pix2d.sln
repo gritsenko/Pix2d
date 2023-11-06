@@ -33,6 +33,7 @@ Project("{C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5}") = "Pix2d.Desktop.WindowsStore.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GlobalStuff", "GlobalStuff", "{408E1C7B-5DCA-4EE5-877B-72D3E772901C}"
 	ProjectSection(SolutionItems) = preProject
+		..\IntegrationScripts\build-setup.cmd = ..\IntegrationScripts\build-setup.cmd
 		Directory.Build.props = Directory.Build.props
 		nuget.config = nuget.config
 	EndProjectSection

@@ -39,4 +39,5 @@ jobs:
       run: dotnet publish -c Release -r win-x64 -o $env:Output_Path $env:Project_Path
     
     - name: Building the installer
-      run: "$env:InnoSetupPath"
+      run: C:\Projects\pix2d\IntegrationScripts\build-setup.cmd
+      shell: cmd
