@@ -40,5 +40,5 @@ jobs:
     
     - name: Building the installer
       run: |
-        "%programfiles(x86)%\Inno Setup 6\iscc.exe" "$env:InnoSetupPath"
+        "%programfiles(x86)%\Inno Setup 6\iscc.exe" $env:InnoSetupPath
       shell: cmd
