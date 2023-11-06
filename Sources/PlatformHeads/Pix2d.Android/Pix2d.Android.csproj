@@ -11,7 +11,21 @@
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
     <EnableAvaloniaXamlCompilation>false</EnableAvaloniaXamlCompilation>
     <Platforms>AnyCPU</Platforms>
+
+    <ApplicationTitle>Pix2d</ApplicationTitle>
+    <ApplicationId>com.pix2d.pix2dapp</ApplicationId>
+    <ApplicationVersion>65</ApplicationVersion>
+    <ApplicationDisplayVersion>3.1.2</ApplicationDisplayVersion>
+    <AndroidSigningKeyAlias>Pix2d</AndroidSigningKeyAlias>
   </PropertyGroup>
+
+  <PropertyGroup Condition="$(TargetFramework.Contains('-android')) and '$(Configuration)' == 'Release'">
+    <AndroidSigningKeyStore>Pix2d.keystore</AndroidSigningKeyStore>
+    <AndroidSigningKeyAlias>Pix2d</AndroidSigningKeyAlias>
+    <AndroidSigningKeyPass>file:C:\tmp\pass.txt</AndroidSigningKeyPass>
+    <AndroidSigningStorePass>file:C:\tmp\pass.txt</AndroidSigningStorePass>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Services\AndroidFileService.cs" />
     <Compile Remove="SplashActivity.cs" />
