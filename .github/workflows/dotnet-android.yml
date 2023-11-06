@@ -1,0 +1,39 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Desktop windows innosetup release
+
+on:
+  workflow_dispatch:
+  push:
+    # Pattern matched against refs/tags
+    tags:        
+      - '*'           # Push events to every tag not containing /
+
+env:
+    Project_Path: Sources\PlatformHeads\Pix2d.Android\Pix2d.Android.csproj"                        # Replace with your solution name, i.e. MyWpfApp.sln.
+    Output_Path: C:\tmp\Pix2d-Android
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v3
+    # - name: Setup .NET
+    #   uses: actions/setup-dotnet@v3
+    #   with:
+    #     dotnet-version: 7.0.x
+    - name: Restore dependencies
+      run: dotnet restore $env:Project_Path
+    - name: Build
+      run: dotnet build --no-restore $env:Project_Path
+    - name: Test
+      run: dotnet test --no-build --verbosity normal $env:Project_Path
+    
+    - name: clean output directory
+      run: Remove-Item -Recurse -Force $env:Output_Path
+      
+    - name: publish for android
+      run: dotnet publish -f net7.0-android -c Release -p:AndroidKeyStore=true -o $env:Output_Path $env:Project_Path
