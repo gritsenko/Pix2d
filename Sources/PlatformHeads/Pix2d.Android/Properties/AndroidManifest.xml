@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto" package="com.pix2d.pix2dapp" android:versionCode="63" android:versionName="3.1.1">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto" package="com.pix2d.pix2dapp" android:versionCode="64" android:versionName="3.1.2">
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -9,5 +9,5 @@
 			<meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
 		</provider>
 	</application>
-	<uses-sdk android:minSdkVersion="24" android:targetSdkVersion="33" />
+	<uses-sdk android:minSdkVersion="25" android:targetSdkVersion="33" />
 </manifest>

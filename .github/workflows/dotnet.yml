@@ -12,7 +12,7 @@ on:
 env:
     Project_Path: Sources\PlatformHeads\Desktop\Pix2d.Desktop.Windows\Pix2d.Desktop.Windows.csproj                        # Replace with your solution name, i.e. MyWpfApp.sln.
     Output_Path: C:\tmp\pix2dAv
-    InnoSetupPath: IntegrationScripts\setup.iss
+    InnoSetupPath: C:\Projects\pix2d\IntegrationScripts\setup.iss
 
 jobs:
   build:
