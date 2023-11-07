@@ -27,37 +27,38 @@ jobs:
     #   with:
     #     dotnet-version: 7.0.x
 
-    - name: Get version
-      id: package_version
-      uses: KageKirin/get-csproj-version@v0
-      with:
-        regex: (?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)
-        xpath: //PropertyGroup/Pix2dVersion
-        file: Sources\Directory.Build.props
+    # - name: Get version
+    #   id: package_version
+    #   uses: KageKirin/get-csproj-version@v0
+    #   with:
+    #     regex: (?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)
+    #     xpath: //PropertyGroup/Pix2dVersion
+    #     file: Sources\Directory.Build.props
 
-    - name: show version
-      run: |
-        echo v${{ steps.test.package_version.version }}
-
-    # - name: Restore dependencies
-    #   run: dotnet restore $env:Project_Path
-    # - name: Build
-    #   run: dotnet build --no-restore $env:Project_Path
-    # - name: Test
-    #   run: dotnet test --no-build --verbosity normal $env:Project_Path
-    
-    # - name: clean output directory
-    #   run: Remove-Item -Recurse -Force $env:Output_Path
-      
-    # - name: publish x64
-    #   run: dotnet publish -c Release -r win-x64 -o $env:Output_Path $env:Project_Path
-    
-    # - name: Building the installer
-    #   run: C:\Projects\pix2d\IntegrationScripts\build-setup.cmd
-    #   shell: cmd
-
-    # - name: Create Release
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.RELEASE_REPO_SECRET }} # This token is provided by Actions, you do not need to create your own token
+    # - name: show version
     #   run: |
-    #     gh release create v3.1.4 "C:\tmp\pix2d_setup\pix2d_setup.exe" -R https://github.com/gritsenko/pix2d.com
+    #     echo v${{ steps.package_version.version }}
+
+    - name: Restore dependencies
+      run: dotnet restore $env:Project_Path
+    - name: Build
+      run: dotnet build --no-restore $env:Project_Path
+    - name: Test
+      run: dotnet test --no-build --verbosity normal $env:Project_Path
+    
+    - name: clean output directory
+      run: Remove-Item -Recurse -Force $env:Output_Path
+      
+    - name: publish x64
+      run: dotnet publish -c Release -r win-x64 -o $env:Output_Path $env:Project_Path
+    
+    - name: Building the installer
+      run: C:\Projects\pix2d\IntegrationScripts\build-setup.cmd
+      shell: cmd
+
+    - name: Create Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.RELEASE_REPO_SECRET }} # This token is provided by Actions, you do not need to create your own token
+      run: |
+        copy "C:\tmp\pix2d_setup\pix2d_setup.exe" "C:\tmp\pix2d_setup\pix2d_${{ github.event.release.tag_name }}_x64_setup.exe"
+        gh release create ${{ github.event.release.tag_name }} "C:\tmp\pix2d_setup\pix2d_${{ github.event.release.tag_name }}_x64_setup.exe" -R https://github.com/gritsenko/pix2d.com
