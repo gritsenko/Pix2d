@@ -31,7 +31,7 @@ jobs:
       id: package_version
       uses: KageKirin/get-csproj-version@v0
       with:
-        file: $env:Project_Path
+        file: ${{ env:Project_Path }}
 
     - name: show version
       run: |
