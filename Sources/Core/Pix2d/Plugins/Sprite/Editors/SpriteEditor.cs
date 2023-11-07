@@ -97,7 +97,8 @@ public class SpriteEditor : ISpriteEditor
     {
         if (FrameRate == 0)
         {
-            TogglePlay(); // stop playing on change frame rate to zero
+            // stop playing on change frame rate to zero
+            Dispatcher.UIThread.Invoke(TogglePlay);
             return;
         }
 

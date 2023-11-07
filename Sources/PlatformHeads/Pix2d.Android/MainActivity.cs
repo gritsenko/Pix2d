@@ -36,7 +36,18 @@ public class MainActivity : AvaloniaMainActivity<EditorApp>
         EditorApp.Pix2dBootstrapper ??= new AndroidPix2dBootstrapper();
         EditorApp.UiModule ??= new UiModule();
 
-        base.OnCreate(savedInstanceState);
+        try
+        {
+            base.OnCreate(savedInstanceState);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.LogException(exception);
+            
+            // Sometimes application initialization fails due to invalid saved state, so let's reset state in that case
+            base.OnCreate(new Bundle());
+        }
+        
         Platform.Init(this, savedInstanceState);
         
         // Set our view from the "main" layout resource

@@ -109,39 +109,39 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IUpdatableNode, IDr
 
     public void SetData(byte[] data)
     {
-        SelectedLayer.EnsureFrameHasUniqueSprite(CurrentFrameIndex);
-        SelectedLayer.SetData(CurrentFrameIndex, data);
+        SelectedLayer?.EnsureFrameHasUniqueSprite(CurrentFrameIndex);
+        SelectedLayer?.SetData(CurrentFrameIndex, data);
     }
 
     public byte[] GetData()
     {
-        var selectedFrame = SelectedLayer.GetSpriteByFrame(CurrentFrameIndex);
+        var selectedFrame = SelectedLayer?.GetSpriteByFrame(CurrentFrameIndex);
         return selectedFrame?.GetData();
     }
 
     public void HideTargetBitmap()
     {
-        this.SelectedLayer.HideFrame(CurrentFrameIndex);
+        this.SelectedLayer?.HideFrame(CurrentFrameIndex);
     }
 
     public void ShowTargetBitmap()
     {
-        this.SelectedLayer.ShowFrame(CurrentFrameIndex);
+        this.SelectedLayer?.ShowFrame(CurrentFrameIndex);
     }
 
     public void SetTargetBitmapSubstitute(Func<SKBitmap> substitute)
     {
-        SelectedLayer.GetSpriteByFrame(SelectedLayer.CurrentFrameIndex)?.SetTargetBitmapSubstitute(substitute);
+        SelectedLayer?.GetSpriteByFrame(SelectedLayer.CurrentFrameIndex)?.SetTargetBitmapSubstitute(substitute);
     }
 
     public bool IsTargetBitmapVisible()
     {
-        return this.SelectedLayer.IsVisible;
+        return this.SelectedLayer?.IsVisible ?? false;
     }
 
     public float GetOpacity()
     {
-        return SelectedLayer.Opacity;
+        return SelectedLayer?.Opacity ?? 1f;
     }
 
     public SKColor PickColorByPoint(int localPosX, int localPosY)

@@ -74,7 +74,14 @@ namespace Mvvm
 
             if (!IsAlive) return;
             if (Method == null || ActionReference == null || actionTarget == null) return;
-            Method.Invoke(actionTarget, null);
+            try
+            {
+                Method.Invoke(actionTarget, null);
+            }
+            catch (TargetInvocationException exception)
+            {
+                throw exception.InnerException ?? exception;
+            }
         }
 
         public void MarkForDeletion()

@@ -24,16 +24,16 @@ public class ProjectPacker
         using var serializer = new NodeSerializer();
         var sceneJson = serializer.Serialize(scene);
 
-        using var outputFileStream = await file.OpenWriteAsync();
+        await using var outputFileStream = await file.OpenWriteAsync();
         using var zip = new ZipArchive(outputFileStream, ZipArchiveMode.Create, true, ZipEncoding);
         var projectZipEntry = zip.CreateEntry("project.json", compressionLevel);
 
-        using (var projectZipStream = projectZipEntry.Open())
-        using (var streamWriter = new StreamWriter(projectZipStream))
+        await using (var projectZipStream = projectZipEntry.Open())
+        await using (var streamWriter = new StreamWriter(projectZipStream))
             await streamWriter.WriteAsync(sceneJson);
 
         foreach (var (key, bitmap) in serializer.GetDataEntries().Select(x => (key: x.Key, bitmap: x.Value)))
-            using (var entryStream = zip.CreateEntry(key, compressionLevel).Open())
+            await using (var entryStream = zip.CreateEntry(key, compressionLevel).Open())
                 bitmap.Encode(entryStream, SKEncodedImageFormat.Png, 100);
         
         if (scene.Nodes.FirstOrDefault() is Pix2dSprite sprite)

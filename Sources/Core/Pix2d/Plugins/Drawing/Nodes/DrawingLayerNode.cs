@@ -1221,6 +1221,11 @@ namespace Pix2d.Drawing.Nodes
 
         public void SetSelectionRect(SKPoint startPos, SKPoint endPos)
         {
+            if (_pixelSelector == null)
+            {
+                return;
+            }
+            
             var pivot = SKPoint.Empty;
             GetGlobalTransform().TryInvert(out var invertedTransform);
 

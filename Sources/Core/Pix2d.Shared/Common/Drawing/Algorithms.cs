@@ -228,8 +228,6 @@ public static class Algorithms
             return index < pixelBuff.Length && pixelBuff[index] > 0;
         }
 
-        var sortedEdges = new List<Edge>();
-
         var edges = new List<Edge>();
         var vertices = new Dictionary<SKPointI, List<int>>();
 
@@ -252,29 +250,29 @@ public static class Algorithms
             AddVertex(x1, y1, index);
         }
 
+        foreach (var spt in points)
         {
-            foreach (var spt in points)
-            {
-                var x = spt.X;
-                var y = spt.Y;
+            var x = spt.X;
+            var y = spt.Y;
 
-                if (!IsPSet(x, y - 1)) AddEdge(x, y, x + 1, y);
-                if (!IsPSet(x, y + 1)) AddEdge(x, y + 1, x + 1, y + 1);
-                if (!IsPSet(x - 1, y)) AddEdge(x, y, x, y + 1);
-                if (!IsPSet(x + 1, y)) AddEdge(x + 1, y, x + 1, y + 1);
-
-            }
+            if (!IsPSet(x, y - 1)) AddEdge(x, y, x + 1, y);
+            if (!IsPSet(x, y + 1)) AddEdge(x, y + 1, x + 1, y + 1);
+            if (!IsPSet(x - 1, y)) AddEdge(x, y, x, y + 1);
+            if (!IsPSet(x + 1, y)) AddEdge(x + 1, y, x + 1, y + 1);
         }
         
-        foreach (var (_, edgeIndices) in vertices)
-        {
-            Debug.Assert(edgeIndices.Count == 2 || edgeIndices.Count == 4);
-        }
-
         var contours = new List<List<SKPoint>>();
         while (vertices.Any())
         {
             var (firstKey, firstValue) = vertices.First();
+            if (!firstValue.Any())
+            {
+                // Because of how filling algorithm works, this can happen sometimes when
+                // contour is self-intersecting.
+                vertices.Remove(firstKey);
+                continue;
+            }
+            
             var contour = new List<SKPoint> {firstKey};
             var nextEdgeIndex = firstValue.Last();
             firstValue.RemoveAt(firstValue.Count - 1);
