@@ -11,10 +11,10 @@
     <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
     <ApplicationTitle>Pix2d</ApplicationTitle>
     <ApplicationId>com.pix2d.pix2dapp</ApplicationId>
-    <ApplicationVersion>65</ApplicationVersion>
-    <ApplicationDisplayVersion>3.1.2</ApplicationDisplayVersion>
-    <PublishTrimmed>false</PublishTrimmed>
-    <RunAOTCompilation>false</RunAOTCompilation>
+    <ApplicationVersion>$(Pix2dAndroidVersion)</ApplicationVersion>
+    <ApplicationDisplayVersion>$(Pix2dVersion)</ApplicationDisplayVersion>
+    <PublishTrimmed>true</PublishTrimmed>
+    <RunAOTCompilation>true</RunAOTCompilation>
   </PropertyGroup>
 
   <PropertyGroup Condition="$(TargetFramework.Contains('-android')) and '$(Configuration)' == 'Release'">

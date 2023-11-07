@@ -2,6 +2,7 @@
   <PropertyGroup>
     <Nullable>enable</Nullable>
     <AvaloniaVersion>11.0.4</AvaloniaVersion>
-    <Pix2dVersion>3.1.1</Pix2dVersion>
+    <Pix2dAndroidVersion>66</Pix2dAndroidVersion>
+    <Pix2dVersion>3.1.3</Pix2dVersion>
   </PropertyGroup>
 </Project>
