@@ -8,7 +8,7 @@ on:
   push:
     # Pattern matched against refs/tags
     tags:        
-      - '*'           # Push events to every tag not containing /
+      - 'v*'           # Push events to every tag not containing /
 
 env:
     Project_Path: Sources\PlatformHeads\Desktop\Pix2d.Desktop.Windows\Pix2d.Desktop.Windows.csproj                        # Replace with your solution name, i.e. MyWpfApp.sln.
@@ -42,3 +42,18 @@ jobs:
     - name: Building the installer
       run: C:\Projects\pix2d\IntegrationScripts\build-setup.cmd
       shell: cmd
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+            Changes in this Release
+            - First Change
+            - Second Change
+        draft: true
+        prerelease: false

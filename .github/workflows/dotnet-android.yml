@@ -8,7 +8,7 @@ on:
   push:
     # Pattern matched against refs/tags
     tags:        
-      - '*'           # Push events to every tag not containing /
+      - 'v*'           # Push events to every tag not containing /
 
 env:
     Project_Path: Sources\PlatformHeads\Pix2d.Android\Pix2d.Android.csproj"                        # Replace with your solution name, i.e. MyWpfApp.sln.
