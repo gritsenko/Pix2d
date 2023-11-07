@@ -561,7 +561,7 @@ namespace Pix2d.Drawing.Nodes
 
         public void FinishDrawing(bool cancel = false)
         {
-            var wbIsEmpty = _drawingMode != BrushDrawingMode.Erase && WorkingBitmap.Pixels.All(x => x.Alpha == 0);
+            var wbIsEmpty = _drawingMode != BrushDrawingMode.Erase && _workingBitmap.Pixels.All(x => x.Alpha == 0);
             if (!cancel && !wbIsEmpty) ApplyWorkingBitmap();
 
             if (State == DrawingLayerState.Drawing)
