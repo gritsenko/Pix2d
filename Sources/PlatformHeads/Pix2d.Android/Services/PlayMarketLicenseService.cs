@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CommonServiceLocator;
@@ -79,7 +80,6 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
 
             if (isPro)
             {
-
                 //save to app settings
                 SettingsService.Set("IsProActivated", true);
                 AppState.LicenseType = LicenseType.Pro;
@@ -94,9 +94,14 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
 
             return isPro;
         }
-        catch (InAppBillingPurchaseException pEx)
+        catch (InAppBillingPurchaseException e)
         {
-            HandleCheckProException(pEx);
+            Logger.LogEventWithParams("$ Error getting billing app info", new Dictionary<string, string>
+            {
+                ["type"] = e.PurchaseError.ToString(),
+                ["message"] = e.Message,
+                ["stack trace"] = e.StackTrace,
+            });
         }
         catch (Exception ex)
         {
@@ -114,12 +119,11 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
     {
         Logger.LogException(ex);
         var dlgService = ServiceLocator.Current.GetInstance<IDialogService>();
-        dlgService?.Alert("Can't get license information from Windows Store. Error: " + ex.Message + ". Please try to restart Pix2d. Contact to the developer, if this problem still persist.", "Getting license error");
+        dlgService?.Alert("Can't get license information from Play Market. Error: " + ex.Message + ". Please try to restart Pix2d. Contact to the developer, if this problem still persist.", "Getting license error");
     }
 
     public async Task<bool> BuyPro()
     {
-
         try
         {
             if (AppState.IsPro)
@@ -136,7 +140,7 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
                 dlgService.Alert("Can't connect to google play services.", "Network problem");
                 return false;
             }
-                
+
             //try to purchase item
             var purchase = await CrossInAppBilling.Current.PurchaseAsync(productId, ItemType.InAppPurchase);
             if (purchase == null)
@@ -168,7 +172,7 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
                     if (state == PurchaseState.Purchased)
                     {
                         var result =
-                            await CrossInAppBilling.Current.FinalizePurchaseOfProductAsync(new[] { productId });
+                            await CrossInAppBilling.Current.FinalizePurchaseOfProductAsync(new[] {productId});
                         if (result.FirstOrDefault().Success)
                         {
                             Logger.LogEvent($"$ Purchase acknowledged");
@@ -183,12 +187,29 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
                 }
             }
         }
+        catch (InAppBillingPurchaseException e)
+        {
+            Logger.LogEventWithParams("$ Purchase error", new Dictionary<string, string>
+            {
+                ["type"] = e.PurchaseError.ToString(),
+                ["message"] = e.Message,
+                ["stack trace"] = e.StackTrace,
+            });
+            
+            if (e.PurchaseError == PurchaseError.BillingUnavailable)
+            {
+                return await ShowBackdoorForSanctionedUsers();
+            }
+
+            return false;
+        }
         catch (Exception e)
         {
             Logger.LogException(e);
             Logger.LogEvent($"$ Exception while buying:\n{e.Message}\n{e.StackTrace}");
 
             //Something bad has occurred, alert user
+            return false;
         }
         finally
         {
@@ -200,7 +221,37 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
 
         return false;
     }
-    
+
+    private async Task<bool> ShowBackdoorForSanctionedUsers()
+    {
+        Logger.LogEvent($"$ Show cheat code dialog");
+        
+        var dlgService = ServiceLocator.Current.GetInstance<IDialogService>();
+        var userCode = await dlgService.ShowInputDialogAsync(
+            "It seems that billing service does not work in your region. " +
+            "Please, contact us at igor@pix2d.com to get a promo code to " +
+            "enjoy Pix2d PRO.",
+            "Google billing unavailable");
+
+        if (userCode == "idkfa")
+        {
+            AppState.LicenseType = LicenseType.Pro;
+            SettingsService.Set("IsProActivated", true);
+            Logger.LogEvent($"$ Pro version activated through cheat code");
+            await dlgService.ShowAlert("Thank you. You are a PRO now!", "PRO activated");
+            return true;
+        }
+
+        if (userCode == null)
+        {
+            return false;
+        }
+
+        Logger.LogEvent($"$ Invalid cheat code entered");
+        await dlgService.ShowAlert("Sorry, your promo code is not valid.", "Promo code is not valid");
+        return false;
+    }
+
     public async Task<bool> RateApp()
     {
         try
