@@ -952,36 +952,37 @@ namespace Pix2d.Drawing.Nodes
 
         public void FillSelection(SKColor color)
         {
-            if (HasSelection)
+            if (!HasSelection) return;
+            
+            using (var canvas = new SKCanvas(WorkingBitmap))
             {
-                ClearWorkingBitmap();
-                using (var canvas = new SKCanvas(WorkingBitmap))
+                canvas.Clear();
+                
+                var blendMode = SKBlendMode.SrcOver;
+                if (LockTransparentPixels)
                 {
-                    if (!LockTransparentPixels)
-                    {
-                        _selectionLayer.Bitmap.Erase(color);
-                    }
-
-                    _selectionLayer.Render(canvas, new ViewPort((int)Size.Width, (int)Size.Height));
-                    canvas.DrawColor(color, SKBlendMode.SrcATop);
-                    
-                    if (_backgroundBitmap != null)
-                    {
-                        canvas.DrawBitmap(_backgroundBitmap, SKPoint.Empty, new SKPaint() { BlendMode = SKBlendMode.DstOver });
-                    }
-                    canvas.Flush();
-                    
-                    WorkingBitmap.NotifyPixelsChanged();
-                }
-
-                if (WorkingBitmap == _swapBitmap)
-                {
-                    SwapWorkingBitmap();
+                    canvas.DrawBitmap(_selectionLayer.Bitmap, _selectionLayer.Position);
+                    blendMode = SKBlendMode.SrcIn;
                 }
                 
-                _selectionEditor.SetIsChanged();
-                ApplySelection(true);
+                if (_selectionLayer.SelectionPath != null)
+                {
+                    canvas.DrawPath(_selectionLayer.SelectionPath, new SKPaint {IsStroke = false, Color = color, BlendMode = blendMode});
+                }
+                else
+                {
+                    _selectionLayer.Bitmap.Erase(color);
+                    canvas.DrawBitmap(_selectionLayer.Bitmap, _selectionLayer.Position, new SKPaint() { BlendMode = blendMode});
+                }
             }
+
+            if (WorkingBitmap == _swapBitmap)
+            {
+                SwapWorkingBitmap();
+            }
+                
+            _selectionEditor.SetIsChanged();
+            ApplySelection(true);
         }
 
         public void SetSelection(SpriteSelectionNode selectionLayer, SKBitmap backgroundBitmap)
