@@ -421,6 +421,11 @@ public class SpriteEditor : ISpriteEditor
 
     public void DeleteFrame(int index = -1)
     {
+        if (CurrentSprite.GetFramesCount() <= 1)
+        {
+            return;
+        }
+        
         if (index == -1)
         {
             index = CurrentFrameIndex;

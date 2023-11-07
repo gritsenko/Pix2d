@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
@@ -52,14 +51,6 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
                     _editor.SetFrameIndex(Frames.IndexOf(_currentFrame));
                 }
                 OnPropertyChanged(nameof(CurrentFrame));
-
-                if (!IsPlaying)
-                {
-                    RunInUiThread(() =>
-                    {
-                        DeleteFrameCommand.RaiseCanExecuteChanged();
-                    });
-                }
             }
         }
     }
@@ -109,7 +100,7 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
     public IRelayCommand DeleteFrameCommand => GetCommand(() =>
     {
         _editor.DeleteFrame();
-    }, () => (_editor?.FramesCount ?? 0) > 1);
+    }, () => !IsPlaying && (_editor?.FramesCount ?? 0) > 1);
 
     public SpriteAnimationTimelineViewModel(IMessenger messenger, AppState appState)
     {
@@ -172,7 +163,7 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
 
     private void InitFrameRates()
     {
-        for (int i = 0; i <= 60; i++)
+        for (int i = 1; i <= 60; i++)
         {
             FrameRates.Add(i);
         }
@@ -228,6 +219,11 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
 
         OnPropertyChanged(nameof(IsPlaying));
         OnPropertyChanged(nameof(CurrentFrame));
+        RunInUiThread(() =>
+        
+        {
+            DeleteFrameCommand.RaiseCanExecuteChanged();
+        });
     }
 
     private void EditorOnFramesChanged(object sender, FramesChangedEventArgs e)
