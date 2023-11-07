@@ -31,6 +31,7 @@ jobs:
       id: package_version
       uses: KageKirin/get-csproj-version@v0
       with:
+        regex: (?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)
         xpath: //PropertyGroup/Pix2dVersion
         file: Sources\Directory.Build.props
 
