@@ -213,10 +213,19 @@ public class LicenseView : ComponentBase
         CoreServices.PlatformStuffService.OpenUrlInBrowser("https://pix2d.com/privacy.html");
     }
 
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == IsVisibleProperty && (bool)(change.NewValue ?? false))
+        {
+            OnLoad();
+        }
+    }
+
     protected override void OnAfterInitialized()
     {
         AppState.WatchFor(x => x.LicenseType, StateHasChanged);
-        OnLoad();
     }
 
     public void OnLoad()
