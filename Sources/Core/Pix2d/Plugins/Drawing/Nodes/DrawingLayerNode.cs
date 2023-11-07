@@ -507,7 +507,7 @@ namespace Pix2d.Drawing.Nodes
 
         public void SetPixel(int x, int y, SKColor color)
         {
-            if (!InBounds(x, y))
+            if (!InBounds(x, y) || WorkingBitmap.Width != (int)Size.Width || WorkingBitmap.Height != (int)Size.Height)
                 return;
 
             WorkingBitmap.SetPixel(x, y, color);
