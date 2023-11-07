@@ -89,7 +89,10 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
             {
                 var items = await billing.GetProductInfoAsync(ItemType.InAppPurchase, productIds);
                 var item = items.FirstOrDefault();
-                GetFormattedPrice = item.LocalizedPrice;
+                if (item != null)
+                {
+                    GetFormattedPrice = item.LocalizedPrice;
+                }
             }
 
             return isPro;
