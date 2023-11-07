@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Selection;
 using Pix2d.Common.Drawing;
@@ -1043,9 +1044,9 @@ namespace Pix2d.Drawing.Nodes
             else
             {
                 _pixelSelector = _customPixelSelector ?? new PixelSelector();
-                UseSwapBitmap = true;
             }
 
+            UseSwapBitmap = SelectionMode == PixelSelectionMode.Rectangle;
             _pixelSelector.BeginSelection(new SKPointI((int)pos.X, (int)pos.Y));
         }
 
@@ -1217,7 +1218,6 @@ namespace Pix2d.Drawing.Nodes
                     if (InBounds(x, y))
                         SetPixel(x, y, _selectionColor);
                 });
-            SwapWorkingBitmap();
         }
 
         public void SetSelectionRect(SKPoint startPos, SKPoint endPos)
@@ -1251,7 +1251,6 @@ namespace Pix2d.Drawing.Nodes
             var h = Math.Abs(p3.Y - p1.Y);
             SelectionSize = new SKSizeI(w + 1, h + 1);
             SwapWorkingBitmap();
-            //            OnNodeChanged();
         }
 
         protected virtual void OnDrawingApplied(bool saveToUndo)
