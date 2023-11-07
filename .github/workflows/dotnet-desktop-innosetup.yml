@@ -31,6 +31,7 @@ jobs:
       id: package_version
       uses: KageKirin/get-csproj-version@v0
       with:
+        xpath: //PropertyGroup/Pix2dVersion
         file: Sources\Directory.Build.props
 
     - name: show version
