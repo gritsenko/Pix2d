@@ -11,6 +11,8 @@ public class EffectsService : IEffectsService
     {
         {"Shadow", typeof (PixelShadowEffect)},
         {"Blur", typeof (PixelBlurEffect)},
+        {"Glow", typeof (PixelGlowEffect)},
+        {"Outline", typeof (OutlineEffect)},
         {"Color overlay", typeof (ColorOverlayEffect)},
         {"Grayscale", typeof (GrayscaleEffect)},
         {"Image adjust", typeof(ImageAdjustEffect) },

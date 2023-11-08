@@ -246,6 +246,23 @@ public static class EffectTemplates
             
             )
     );
+    
+    public static FuncDataTemplate<EffectViewModel> OutlineEffectTemplate => new((vm, ns) =>
+        new StackPanel().Children(
+            new Grid().Cols("*, Auto")
+                .Children(
+                    new TextBlock().Col(0).Text("Color"),
+                    new ColorPickerButton().Col(1).Color(((OutlineEffect)vm.Effect).Color, BindingMode.TwoWay, bindingSource: vm.Effect)
+                ),
+            
+            new TextBlock().Text("Radius"),
+            new Slider()
+                .Minimum(1)
+                .Maximum(20)
+                .SmallChange(1)
+                .Value(((OutlineEffect)vm.Effect).Radius, BindingMode.TwoWay, bindingSource: vm.Effect)
+            )
+    );
 
     public static FuncDataTemplate<EffectViewModel> BlurEffectTemplate => new((vm, ns) =>
         new StackPanel().Children(
@@ -256,6 +273,32 @@ public static class EffectTemplates
                 .SmallChange(0.1)
                 .LargeChange(3)
                 .Value(((PixelBlurEffect)vm.Effect).Blur, BindingMode.TwoWay, bindingSource: vm.Effect)
+            )
+    );
+    
+    public static FuncDataTemplate<EffectViewModel> GlowEffectTemplate => new((vm, ns) =>
+        new StackPanel().Children(
+            new TextBlock().Text("Radius"),
+            new Slider()
+                .Maximum(10)
+                .Minimum(-10)
+                .SmallChange(1)
+                .LargeChange(3)
+                .Value(((PixelGlowEffect)vm.Effect).Radius, BindingMode.TwoWay, bindingSource: vm.Effect),
+            new TextBlock().Text("Blur amount"),
+            new Slider()
+                .Maximum(20)
+                .Minimum(0)
+                .SmallChange(0.1)
+                .LargeChange(3)
+                .Value(((PixelGlowEffect)vm.Effect).Blur, BindingMode.TwoWay, bindingSource: vm.Effect),
+            new TextBlock().Text("Opacity"),
+            new Slider()
+                .Maximum(255)
+                .Minimum(0)
+                .SmallChange(1)
+                .LargeChange(5)
+                .Value(((PixelGlowEffect)vm.Effect).Opacity, BindingMode.TwoWay, bindingSource: vm.Effect)
             )
     );
 
@@ -291,6 +334,8 @@ public static class EffectTemplates
             ColorOverlayEffect => ColorOverlayEffectTemplate,
             PixelShadowEffect => ShadowEffectTemplate,
             PixelBlurEffect => BlurEffectTemplate,
+            PixelGlowEffect => GlowEffectTemplate,
+            OutlineEffect => OutlineEffectTemplate,
             GrayscaleEffect => GrayscaleEffectTemplate,
             ImageAdjustEffect => ImageAdjustSettingsEffectTemplate,
             _ => default
