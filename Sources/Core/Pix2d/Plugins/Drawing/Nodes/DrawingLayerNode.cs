@@ -493,7 +493,7 @@ namespace Pix2d.Drawing.Nodes
 
             if (State == DrawingLayerState.Drawing)
             {
-                DrawingStarted?.Invoke(this, EventArgs.Empty);
+                BeginDrawing();
             }
         }
 
@@ -553,10 +553,12 @@ namespace Pix2d.Drawing.Nodes
             if (State == DrawingLayerState.Drawing)
             {
                 ApplyWorkingBitmap();
-                if (UseSwapBitmap)
-                {
-                    SwapWorkingBitmap();
-                }
+                
+                DrawingTarget.ShowTargetBitmap();
+                DrawingTarget.SetTargetBitmapSubstitute(null);
+                
+                ClearWorkingBitmap();
+                OnDrawingApplied(false);
             }
         }
 

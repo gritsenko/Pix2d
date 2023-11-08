@@ -255,6 +255,7 @@ namespace Pix2d.Services
             adornerLayer.Add((SKNode)_drawingLayer);
 
             ((SKNode)_drawingLayer).Position = new SKPoint();
+            OnDrawingTargetChanged();
         }
 
         public void SplitCurrentOperation()
@@ -275,7 +276,6 @@ namespace Pix2d.Services
             _drawingLayer.DrawingColor = DrawingState.CurrentColor;
 
             UpdateDrawingTarget();
-            OnDrawingTargetChanged();
         }
 
         public void UpdateFromDesignerState()

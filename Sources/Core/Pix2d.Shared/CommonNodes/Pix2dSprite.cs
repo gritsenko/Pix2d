@@ -11,14 +11,12 @@ using SkiaSharp;
 
 namespace Pix2d.CommonNodes;
 
-public partial class Pix2dSprite : DrawingContainerBaseNode, IUpdatableNode, IDrawingTarget, IImportTarget, IClippingSource, IAnimatedNode
+public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, IImportTarget, IClippingSource, IAnimatedNode
 {
     private int _currentFrameIndex;
 
     public override bool DoNotRenderChildren => true;
 
-
-    private float _timeToNextFrame = 0;
     private bool _isPlaying;
     private SKMatrix _adornerTransform;
 
@@ -63,18 +61,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IUpdatableNode, IDr
 
     private Layer GetLayer(int index) => Nodes[index] as Layer;
 
-    public void OnUpdate(float dt)
-    {
-        if (!IsPlaying || FrameRate < 0.01)
-            return;
-
-        _timeToNextFrame -= dt;
-        if (_timeToNextFrame <= 0)
-        {
-            _timeToNextFrame = 1000 / FrameRate;
-            SetNextFrame();
-        }
-    }
+    public int NextFrameIndex => (CurrentFrameIndex + 1) % GetFramesCount();
 
     public void SetNextFrame(bool cycled = true)
     {

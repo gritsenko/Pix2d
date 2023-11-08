@@ -5,6 +5,7 @@ using Pix2d.Abstract.Tools;
 using Pix2d.Primitives.Drawing;
 using SkiaNodes;
 using SkiaNodes.Interactive;
+using SkiaSharp;
 
 namespace Pix2d.Drawing.Tools
 {
@@ -13,6 +14,7 @@ namespace Pix2d.Drawing.Tools
         public IDrawingService DrawingService { get; }
         private ShapeBuilderBase _currentBuilder;
         private ShapeType _shapeType = ShapeType.Rectangle;
+        private SKPoint _lastPoint;
 
         public event EventHandler ShapeTypeChanged;
 
@@ -65,12 +67,23 @@ namespace Pix2d.Drawing.Tools
         public ShapeTool(IDrawingService drawingService)
         {
             DrawingService = drawingService;
+            DrawingService.DrawingTargetChanged += DrawingService_DrawingTargetChanged;
+        }
+
+        private void DrawingService_DrawingTargetChanged(object sender, EventArgs e)
+        {
+            if (!IsActive) return;
+            
+            _currentBuilder.SetNextPointPreview(_lastPoint);
+            DrawingService.DrawingLayer.FinishCurrentDrawing();
         }
 
         public override Task Activate()
         {
             UpdateShapeBuilder(ShapeType);
             DrawingService.DrawingLayer.SetDrawingLayerMode(BrushDrawingMode.ExternalDraw);
+            DrawingService.DrawingLayer.UseSwapBitmap = true;
+            
             return base.Activate();
         }
 
@@ -78,7 +91,8 @@ namespace Pix2d.Drawing.Tools
         {
             _currentBuilder.Reset();
             _currentBuilder.BeginDrawing();
-            _currentBuilder.AddPoint(e.Pointer.GetPosition((SKNode) DrawingService.DrawingLayer));
+            _lastPoint = e.Pointer.GetPosition((SKNode) DrawingService.DrawingLayer);
+            _currentBuilder.AddPoint(_lastPoint);
         }
 
         protected override void OnPointerMoved(object sender, PointerActionEventArgs e)
@@ -89,7 +103,9 @@ namespace Pix2d.Drawing.Tools
                 return;
             }
 
-            _currentBuilder.SetNextPointPreview(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
+            _lastPoint = e.Pointer.GetPosition((SKNode) DrawingService.DrawingLayer);
+            _currentBuilder.SetNextPointPreview(_lastPoint);
+            DrawingService.DrawingLayer.FinishCurrentDrawing();
             DrawingService.Refresh();
         }
 

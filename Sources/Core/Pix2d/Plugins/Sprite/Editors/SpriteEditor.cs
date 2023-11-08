@@ -102,17 +102,9 @@ public class SpriteEditor : ISpriteEditor
             return;
         }
 
-        var frame = CurrentSprite.CurrentFrameIndex;
-        CurrentSprite?.OnUpdate(1000f / FrameRate);
-
-        var newFrameIndex = CurrentSprite.CurrentFrameIndex;
-
-        if (newFrameIndex != frame)
-        {
-            // Changing frames modifies the node structure. If this is done not in the UI thread, it can result
-            // in race conditions with processing user input.
-            Dispatcher.UIThread.Invoke(() => SetFrameIndex(newFrameIndex));
-        }
+        // Changing frames modifies the node structure. If this is done not in the UI thread, it can result
+        // in race conditions with processing user input.
+        Dispatcher.UIThread.Invoke(() => SetFrameIndex(CurrentSprite.NextFrameIndex));
     }
 
 
