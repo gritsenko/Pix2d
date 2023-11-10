@@ -1,4 +1,5 @@
-﻿using Avalonia.Xaml.Interactions.DragAndDrop;
+﻿using Avalonia.Controls.Shapes;
+using Avalonia.Xaml.Interactions.DragAndDrop;
 using Pix2d.Common.Common.Behaviors;
 using Pix2d.UI.Common;
 using Pix2d.UI.Common.Extensions;
@@ -35,15 +36,13 @@ public class LayersView : ViewBaseSingletonVm<LayersListViewModel>
                             .Classes("ItemsDragAndDrop")
                             .ItemsSource(vm.Layers)
                             .SelectedItem(vm.SelectedLayer, bindingMode: BindingMode.TwoWay)
-                            .AddBehavior(new ContextDropBehavior { Handler = new ItemsListBoxDropHandler() })
                             .ItemTemplate((LayerViewModel itemVm) =>
                             {
                                 if (itemVm == null)
                                     return new TextBlock().Text("No layer");
 
                                 return new LayerItemView(itemVm)
-                                    .AddBehavior(new ItemsListContextDragBehavior
-                                        { HorizontalDragThreshold = 3, VerticalDragThreshold = 3 });
+                                    .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Vertical });
                             }),
                         new BackgroundSelectorView().Row(2)
                     )

@@ -107,7 +107,6 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                     .ItemsPanel(new StackPanel().Orientation(Orientation.Horizontal))
                     .ItemsSource(vm.Frames)
                     .SelectedItem(@vm.CurrentFrame, BindingMode.TwoWay)
-                    .AddBehavior(new ContextDropBehavior { Handler = new FrameItemsListBoxDropHandler() })
                     .ItemTemplate<AnimationFrameViewModel>(itemVm =>
                         new Border()
                             .Background(StaticResources.Brushes.CheckerTilesBrush)
@@ -116,8 +115,7 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                                     .Width(52)
                                     .Height(52)
                                     .Fill(itemVm.Preview, bindingMode: BindingMode.OneWay, converter: StaticResources.Converters.SKBitmapToIBrushConverter)
-                            ).AddBehavior(new ItemsListContextDragBehavior
-                                { HorizontalDragThreshold = 3, VerticalDragThreshold = 3 })
+                            ).AddBehavior(new ItemsListContextDragBehavior(){Orientation = Orientation.Horizontal})
                     )//ItemTemplate
             });
 
