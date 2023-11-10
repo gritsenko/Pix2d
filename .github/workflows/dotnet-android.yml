@@ -5,10 +5,10 @@ name: Android release
 
 on:
   workflow_dispatch:
-  push:
-    # Pattern matched against refs/tags
-    tags:        
-      - 'v*'           # Push events to every tag not containing /
+  # push:
+  #   # Pattern matched against refs/tags
+  #   tags:        
+  #     - 'v*'           # Push events to every tag not containing /
 
 env:
     Project_Path: Sources\PlatformHeads\Pix2d.Android\Pix2d.Android.csproj"                        # Replace with your solution name, i.e. MyWpfApp.sln.

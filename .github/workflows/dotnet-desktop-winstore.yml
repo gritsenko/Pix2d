@@ -40,10 +40,10 @@ name: Windows store msix package
 
 on:
   workflow_dispatch:
-  push:
-    # Pattern matched against refs/tags
-    tags:        
-      - 'v*'           # Push events to every tag not containing /
+  # push:
+  #   # Pattern matched against refs/tags
+  #   tags:        
+  #     - 'v*'           # Push events to every tag not containing /
  
 jobs:
 
