@@ -29,7 +29,8 @@ jobs:
 
     - name: Get version
       id: package_version
-      uses: MWin10/get-csproj-version-fork@latest
+      uses: MWin10/get-csproj-version-fork@v1.5.0
+
       with:
         regex: (?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)
         xpath: //PropertyGroup/Pix2dVersion
