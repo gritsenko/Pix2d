@@ -11,6 +11,24 @@
     <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
+
+    <CFBundleName>Pix2d</CFBundleName>
+    <!-- Also defines .app file name -->
+    <CFBundleDisplayName>Pix2d</CFBundleDisplayName>
+    <CFBundleIdentifier>com.pix2d.app</CFBundleIdentifier>
+    <CFBundleVersion>$(Pix2dVersion)</CFBundleVersion>
+    <CFBundlePackageType>APPL</CFBundlePackageType>
+    <!--<CFBundleSignature>????</CFBundleSignature>-->
+    <CFBundleExecutable>Pix2d</CFBundleExecutable>
+    <CFBundleIconFile>AppName.icns</CFBundleIconFile>
+    <!-- Will be copied from output directory -->
+    <NSPrincipalClass>NSApplication</NSPrincipalClass>
+    <NSHighResolutionCapable>true</NSHighResolutionCapable>
+
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <UseAppHost>true</UseAppHost>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
@@ -37,6 +55,9 @@
     </AvaloniaResource>
   </ItemGroup>
   <ItemGroup>
+
+    <PackageReference Include="Dotnet.Bundle" Version="*" />
+
     <PackageReference Include="Avalonia.Angle.Windows.Natives" Version="2.1.0.2023020321" />
     <PackageReference Include="Avalonia.Desktop" Version="11.0.5" />
     <PackageReference Include="Avalonia.Diagnostics" Version="11.0.5" />
