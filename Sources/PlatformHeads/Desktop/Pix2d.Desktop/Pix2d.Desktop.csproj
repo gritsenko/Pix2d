@@ -9,6 +9,12 @@
 		<PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
+	<PublishSingleFile>true</PublishSingleFile>
+	<SelfContained>true</SelfContained>
+  </PropertyGroup>
+
+  <PropertyGroup>
+  	<UseAppHost>true</UseAppHost>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
@@ -35,6 +41,9 @@
 		</AvaloniaResource>
 	</ItemGroup>
 	<ItemGroup>
+
+		<PackageReference Include="Dotnet.Bundle" Version="*" />
+
 		<PackageReference Include="Avalonia.Angle.Windows.Natives" Version="2.1.0.2023020321" />
 		<PackageReference Include="Avalonia.Desktop" Version="11.0.5" />
 		<PackageReference Include="Avalonia.Diagnostics" Version="11.0.5" />
