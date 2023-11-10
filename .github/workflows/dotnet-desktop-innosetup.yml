@@ -41,10 +41,10 @@ jobs:
         echo v${{ steps.package_version.outputs.version }}
 
     - name: Restore dependencies
-      run: dotnet restore $env:Project_Path
+      run: dotnet restore $env:Project_Path --property WarningLevel=0
     
     - name: Build
-      run: dotnet build --no-restore $env:Project_Path
+      run: dotnet build --no-restore $env:Project_Path --property WarningLevel=0
 
     - name: Test
       run: dotnet test --no-build --verbosity normal $env:Project_Path
@@ -53,7 +53,7 @@ jobs:
       run: Remove-Item -Recurse -Force $env:Output_Path
       
     - name: publish x64
-      run: dotnet publish -c Release -r win-x64 -o $env:Output_Path $env:Project_Path
+      run: dotnet publish -c Release -r win-x64 -o $env:Output_Path $env:Project_Path --property WarningLevel=0
     
     - name: Building the installer
       run: C:\Projects\pix2d\IntegrationScripts\build-setup.cmd
