@@ -17,6 +17,7 @@
     <CFBundleDisplayName>Pix2d</CFBundleDisplayName>
     <CFBundleIdentifier>com.pix2d.app</CFBundleIdentifier>
     <CFBundleVersion>$(Pix2dVersion)</CFBundleVersion>
+    <CFBundleShortVersionString>$(Pix2dVersion)</CFBundleShortVersionString>
     <CFBundlePackageType>APPL</CFBundlePackageType>
     <!--<CFBundleSignature>????</CFBundleSignature>-->
     <CFBundleExecutable>Pix2d</CFBundleExecutable>
