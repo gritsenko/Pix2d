@@ -261,3 +261,4 @@ __pycache__/
 *.pyc
 .vs/
 .vscode/
+Sources/PlatformHeads/Desktop/.DS_Store
