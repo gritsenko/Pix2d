@@ -7,7 +7,7 @@
     <AssemblyName>Pix2d</AssemblyName>
     <Version>$(Pix2dVersion)</Version>
     <PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
     <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
