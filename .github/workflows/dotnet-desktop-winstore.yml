@@ -139,4 +139,5 @@ jobs:
 
     - name: Publish to msstore
       run: |
+        msstore init -n Gritsenko
         msstore publish ${{ env.Wap_Project_Directory }}
