@@ -5,10 +5,10 @@ name: Android release
 
 on:
   workflow_dispatch:
-  # push:
-  #   # Pattern matched against refs/tags
-  #   tags:        
-  #     - 'v*'           # Push events to every tag not containing /
+  push:
+    # Pattern matched against refs/tags
+    tags:        
+      - 'v*'           # Push events to every tag not containing /
 
 env:
     Project_Path: Sources\PlatformHeads\Pix2d.Android\Pix2d.Android.csproj"                        # Replace with your solution name, i.e. MyWpfApp.sln.
@@ -26,9 +26,9 @@ jobs:
     #   with:
     #     dotnet-version: 7.0.x
     - name: Restore dependencies
-      run: dotnet restore $env:Project_Path
+      run: dotnet restore $env:Project_Path --property WarningLevel=0
     - name: Build
-      run: dotnet build --no-restore $env:Project_Path
+      run: dotnet build --no-restore $env:Project_Path --property WarningLevel=0
     - name: Test
       run: dotnet test --no-build --verbosity normal $env:Project_Path
     
@@ -36,4 +36,4 @@ jobs:
       run: Remove-Item -Recurse -Force $env:Output_Path
       
     - name: publish for android
-      run: dotnet publish -f net7.0-android -c Release -p:AndroidKeyStore=true -o $env:Output_Path $env:Project_Path
+      run: dotnet publish -f net7.0-android -c Release -p:AndroidKeyStore=true -o $env:Output_Path $env:Project_Path --property WarningLevel=0
