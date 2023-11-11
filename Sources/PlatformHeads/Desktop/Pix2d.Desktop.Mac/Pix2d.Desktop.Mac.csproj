@@ -9,7 +9,7 @@
     <PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
     <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
     <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
-    <PublishSingleFile>true</PublishSingleFile>
+    <PublishSingleFile>false</PublishSingleFile>
     <SelfContained>true</SelfContained>
 
     <CFBundleName>Pix2d</CFBundleName>
@@ -21,7 +21,7 @@
     <CFBundlePackageType>APPL</CFBundlePackageType>
     <!--<CFBundleSignature>????</CFBundleSignature>-->
     <CFBundleExecutable>Pix2d</CFBundleExecutable>
-    <CFBundleIconFile>AppName.icns</CFBundleIconFile>
+    <CFBundleIconFile>Pix2d.png</CFBundleIconFile>
     <!-- Will be copied from output directory -->
     <NSPrincipalClass>NSApplication</NSPrincipalClass>
     <NSHighResolutionCapable>true</NSHighResolutionCapable>
@@ -75,6 +75,11 @@
     <ProjectReference Include="..\..\..\Core\Pix2d\Pix2d.Core.csproj" />
     <ProjectReference Include="..\..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
     <ProjectReference Include="..\..\..\Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Pix2d.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="..\Pix2d.Desktop.Shared\Pix2d.Desktop.Shared.projitems" Label="Shared" />
 </Project>
