@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0-ios</TargetFramework>
+    <SupportedOSPlatformVersion>13.0</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.iOS" Version="$(AvaloniaVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+    <ProjectReference Include="..\..\Core\Pix2d.UI\Pix2d.UI.csproj" />
+    <ProjectReference Include="..\..\Core\Pix2d\Pix2d.Core.csproj" />
+    <ProjectReference Include="..\..\Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj" />
+  </ItemGroup>
+</Project>
