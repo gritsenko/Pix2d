@@ -30,7 +30,8 @@ namespace SkiaNodes
                     canvas.Clear();
                 }
 
-                Render(canvas, null, null, srcBm, null);
+                var vp = new ViewPort(targetBitmap.Width, targetBitmap.Height);
+                Render(canvas, vp, null, srcBm, null);
 
                 if (EffectType == EffectType.BackEffect)
                 {

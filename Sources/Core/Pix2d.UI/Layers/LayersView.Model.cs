@@ -404,8 +404,6 @@ public class LayersListViewModel : Pix2dViewModelBase
 
         FillLayersFromNodes(_editor.CurrentSprite.Layers);
         SetSelectedLayer(Layers.FirstOrDefault(x => x.SourceNode == _editor.CurrentSprite.SelectedLayer), false);
-            
-        Commands.View.HideLayerOptionsCommand.Execute();
 
         OnPropertyChanged(nameof(UseBackgroundColor));
         OnPropertyChanged(nameof(ResultBackgroundColor));

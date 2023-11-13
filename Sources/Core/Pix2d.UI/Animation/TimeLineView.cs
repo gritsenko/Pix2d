@@ -47,7 +47,7 @@ public class TimeLineView : ViewBaseSingletonVm<SpriteAnimationTimelineViewModel
                                     .Text(v ? "\xE92b" : "\xe91e")))
                             .With(ButtonStyle),
                         new Button()
-                            .Command(SpriteAnimationCommands.PrevFrame)
+                            .Command(SpriteAnimationCommands.NextFrame)
                             .Content("\xe91a")
                             .With(ButtonStyle)
                     }

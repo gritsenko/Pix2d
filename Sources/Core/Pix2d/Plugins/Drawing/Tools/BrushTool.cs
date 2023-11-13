@@ -25,6 +25,7 @@ public class BrushTool : BaseTool, IDrawingTool
     private ShapeType _shapeType;
     private ShapeBuilderBase _currentBuilder;
     private BrushDrawingMode _drawingMode = BrushDrawingMode.Draw;
+    private bool _isDrawing;
 
     private IDialogService DialogService => DefaultServiceLocator.ServiceLocatorProvider().GetInstance<IDialogService>();
 
@@ -118,7 +119,7 @@ public class BrushTool : BaseTool, IDrawingTool
                 DrawingService.SetDrawingTarget(dt);
         }
 
-        if (e.Pointer.IsPressed && ShapeType != ShapeType.Free && _currentBuilder?.AddPointInputMode == AddPointInputMode.PressAndHold)
+        if (_isDrawing && e.Pointer.IsPressed && ShapeType != ShapeType.Free && _currentBuilder?.AddPointInputMode == AddPointInputMode.PressAndHold)
         {
             _currentBuilder?.SetNextPointPreview(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
             DrawingService.DrawingLayer.FinishCurrentDrawing();
@@ -145,6 +146,7 @@ public class BrushTool : BaseTool, IDrawingTool
             _currentBuilder.BeginDrawing();
             DrawingService.DrawingLayer.UseSwapBitmap = true;
             _currentBuilder.AddPoint(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
+            _isDrawing = true;
         }
 
         base.OnPointerPressed(sender, e);
@@ -152,10 +154,12 @@ public class BrushTool : BaseTool, IDrawingTool
 
     protected override void OnPointerReleased(object sender, PointerActionEventArgs e)
     {
-        if (ShapeType != ShapeType.Free && _currentBuilder.AddPointInputMode == AddPointInputMode.PressAndHold)
+        if (_isDrawing && ShapeType != ShapeType.Free && _currentBuilder.AddPointInputMode == AddPointInputMode.PressAndHold)
         {
             _currentBuilder.AddPoint(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
         }
+        
+        _isDrawing = false;
     }
 
     private void PickColorUnderPointer(in SKInputPointer pointer)

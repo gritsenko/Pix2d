@@ -48,14 +48,15 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
     private void AssociatedObject_PointerPressed(object sender, PointerPressedEventArgs e)
     {
+        if (e.Pointer.Type != PointerType.Mouse) return;
+        
         e.PreventGestureRecognition();
         if (AssociatedObject?.Parent?.Parent is not ItemsControl itemsControl)
         {
             return;
         }
 
-        _itemsControl = itemsControl;
-
+        _itemsControl = itemsControl; 
         var properties = e.GetCurrentPoint(AssociatedObject).Properties;
         if (properties.IsLeftButtonPressed)
         {
@@ -72,6 +73,8 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
     private void AssociatedObject_PointerReleased(object sender, PointerReleasedEventArgs e)
     {
+        if (e.Pointer.Type != PointerType.Mouse) return;
+        
         e.PreventGestureRecognition();
         if (!Equals(e.Pointer.Captured, AssociatedObject)) return;
 
@@ -111,7 +114,6 @@ public class ItemsListContextDragBehavior : Behavior<Control>
         var container = _itemsControl.ItemContainerGenerator.ContainerFromIndex(i);
         if (container is not null) container.RenderTransform = t;
     }
-
     private void MoveDraggedItem(ItemsControl? itemsControl, int draggedIndex, int targetIndex)
     {
         if (itemsControl?.ItemsSource is not IList items)

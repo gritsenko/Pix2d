@@ -967,16 +967,40 @@ namespace Pix2d.Drawing.Nodes
                     canvas.DrawBitmap(_selectionLayer.Bitmap, _selectionLayer.Position);
                     blendMode = SKBlendMode.SrcIn;
                 }
+
+                canvas.Save();
                 
+                var rot = SKMatrix.CreateRotationDegrees(_selectionLayer.Rotation, _selectionLayer.PivotPosition.X, _selectionLayer.PivotPosition.Y);
+                var trans = SKMatrix.CreateTranslation(_selectionLayer.Position.X - _selectionLayer.PivotPosition.X, _selectionLayer.Position.Y - _selectionLayer.PivotPosition.Y);
+                var scaleX = _selectionLayer.Size.Width / _selectionLayer.Bitmap.Width;
+                var scaleY = _selectionLayer.Size.Height / _selectionLayer.Bitmap.Height;
+                var scale = SKMatrix.CreateScale(scaleX, scaleY);
+                    
                 if (_selectionLayer.SelectionPath != null)
                 {
+                    // TODO: There is a bug here. If selection is scaled by not right bottom handle, or if rotation and
+                    // scale applied, position of the fill will be wrong.
+                    var localTransform = SKMatrix.Identity;
+                    SKMatrix.Concat(ref localTransform, localTransform, trans);
+                    SKMatrix.Concat(ref localTransform, localTransform, rot);
+                    SKMatrix.Concat(ref localTransform, localTransform, scale);
+                    SKMatrix.Concat(ref localTransform, localTransform, trans.Invert());
+                    
+                    canvas.SetMatrix(localTransform);
                     canvas.DrawPath(_selectionLayer.SelectionPath, new SKPaint {IsStroke = false, Color = color, BlendMode = blendMode});
                 }
                 else
                 {
+                    var localTransform = trans;
+                    SKMatrix.Concat(ref localTransform, localTransform, rot);
+                    SKMatrix.Concat(ref localTransform, localTransform, scale);
+                    
+                    canvas.SetMatrix(localTransform);
+                    
                     _selectionLayer.Bitmap.Erase(color);
-                    canvas.DrawBitmap(_selectionLayer.Bitmap, _selectionLayer.Position, new SKPaint() { BlendMode = blendMode});
+                    canvas.DrawBitmap(_selectionLayer.Bitmap, SKPoint.Empty, new SKPaint() { BlendMode = blendMode});
                 }
+                canvas.Restore();
             }
 
             if (WorkingBitmap == _swapBitmap)
