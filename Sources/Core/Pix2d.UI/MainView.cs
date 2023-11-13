@@ -1,15 +1,12 @@
 ﻿using System.Diagnostics;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
-using Avalonia.Data;
+using System.Linq;
+using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Markup.Declarative;
+using Avalonia.Platform.Storage;
 using Avalonia.Xaml.Interactions.Responsive;
 using CommonServiceLocator;
-using Mvvm.Messaging;
+using Pix2d.Common.FileSystem;
 using Pix2d.Messages;
-using Pix2d.State;
 using Pix2d.UI.Animation;
 using Pix2d.UI.BrushSettings;
 using Pix2d.UI.Common.Extensions;
@@ -27,6 +24,53 @@ public class MainView : ComponentBase
 {
     [Inject] private AppState? AppState { get; set; }
     private UiState? UiState => AppState?.UiState;
+
+    public MainView()
+    {
+        DragDrop.SetAllowDrop(this, true);
+        AddHandler(DragDrop.DropEvent, OnDrop);
+        AddHandler(DragDrop.DragEnterEvent, OnDragEnter);
+        AddHandler(DragDrop.DragLeaveEvent, OnDragLeave);
+    }
+
+    private void OnDragLeave(object? sender, DragEventArgs e)
+    {
+    }
+
+    private void OnDragEnter(object? sender, DragEventArgs e)
+    {
+        var hasFiles = e.Data.GetDataFormats().Any(x => x == "Files");
+        if(hasFiles) 
+            e.DragEffects = DragDropEffects.Copy;
+    }
+
+    private async void OnDrop(object? sender, DragEventArgs e)
+    {
+        var data = e.Data.Get("Files");
+
+        if (data == null)
+            return;
+
+        var droppedFiles = data as IEnumerable<IStorageItem>;
+
+        foreach (var storageFile in droppedFiles.OfType<IStorageFile>())
+        {
+            var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);
+
+            var fileSource = new NetFileSource(path);
+
+            if (path.EndsWith(".pxm") || path.EndsWith(".pix2d"))
+            {
+                var ps = ServiceLocator.Current.GetInstance<IProjectService>();
+                await ps.OpenFilesAsync(new[] { fileSource });
+                return;
+            }
+
+            var importSrv = ServiceLocator.Current.GetInstance<IImportService>();
+            await importSrv.ImportToScene(new[] { fileSource });
+
+        }
+    }
 
     protected override object Build() =>
         new Grid()
