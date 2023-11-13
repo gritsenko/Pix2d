@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Markup.Declarative;
 using Pix2d.Abstract.Services;
+using Pix2d.Desktop.Services;
 using Pix2d.UI;
 using Sentry;
 
@@ -17,12 +19,19 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        if (!OperatingSystem.IsMacOS())
+            SingleInstancePipeService.CheckSingleInstance();
+
         //DispatcherUnhandledException += App_DispatcherUnhandledException;
 
-        EditorApp.Pix2dBootstrapper = new DesktopPix2dBootstrapper();
+        EditorApp.Pix2dBootstrapper = new DesktopPix2dBootstrapper()
+        {
+            StartupDocument = args.FirstOrDefault()
+        };
         EditorApp.OnAppStarted = OnAppStarted;
         EditorApp.OnAppClosing = OnAppClosing;
         EditorApp.UiModule = new UiModule();
+
         try
         {
             var isActive = SentrySdk.IsEnabled;

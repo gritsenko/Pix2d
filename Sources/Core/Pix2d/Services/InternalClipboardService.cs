@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommonServiceLocator;
 using Pix2d.Abstract.Platform;
-using Pix2d.Abstract.Services;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
 using Pix2d.Plugins.Drawing.Operations;

@@ -14,6 +14,7 @@ using Pix2d.Abstract;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.Common;
+using Pix2d.Common.FileSystem;
 using Pix2d.Desktop.Logging;
 using Pix2d.Desktop.Services;
 using Pix2d.Editor.Desktop.Services;
@@ -44,6 +45,8 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         },
         MainViewType = typeof(MainView)
     };
+
+    public string? StartupDocument { get; set; }
 
     public async Task InitializeAsync()
     {
@@ -77,7 +80,7 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
 
         Pix2DApp.CurrentPlatform = GetPlatform();
         Pix2DApp.AppFolder = Path.Combine(AppDataFolder(), "Pix2d");
-
+        
         await InitLicense(container);
         InitTelemetry(Pix2DApp.CurrentPlatform);
 
@@ -85,6 +88,9 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         {
             Directory.CreateDirectory(Pix2DApp.AppFolder);
         }
+
+        if(!string.IsNullOrWhiteSpace(StartupDocument))
+            Pix2dSettings.StartupDocument = new NetFileSource(StartupDocument);
 
         await Pix2DApp.CreateInstanceAsync(Pix2dSettings);
     }

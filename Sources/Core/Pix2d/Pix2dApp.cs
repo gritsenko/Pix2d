@@ -39,6 +39,7 @@ public class Pix2DApp : IViewPortService, IAppStateService<AppState>
         await Task.Run(() =>
         {
             Instance = new Pix2DApp();
+            Instance.StartupDocument = settings.StartupDocument;
             Instance.Initialize(settings);
         });
     }

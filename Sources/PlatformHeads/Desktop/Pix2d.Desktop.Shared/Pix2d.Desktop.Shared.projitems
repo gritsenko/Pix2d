@@ -16,6 +16,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Services\AvaloniaClipboardService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\AvaloniaFontService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\PlatformStuffService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\SingleInstancePipeService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Assets\app.ico" />

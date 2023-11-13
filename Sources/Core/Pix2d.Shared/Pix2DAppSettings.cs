@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Pix2d.Abstract.Platform.FileSystem;
 using SkiaSharp;
 
 namespace Pix2d;
@@ -14,4 +15,5 @@ public class Pix2DAppSettings
 
     public Type MainViewType { get; set; }
     public bool UseInternalFolder { get; set; }
+    public IFileContentSource? StartupDocument { get; set; }
 }

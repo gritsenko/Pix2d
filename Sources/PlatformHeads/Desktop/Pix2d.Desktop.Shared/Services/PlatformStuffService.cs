@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using CommonServiceLocator;
+using Newtonsoft.Json;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
+using Pix2d.Common.FileSystem;
 using Pix2d.State;
 using SkiaNodes.Interactive;
 
@@ -16,8 +20,36 @@ public class PlatformStuffService : IPlatformStuffService
     public PlatformStuffService(AppState state)
     {
         state.PropertyChanged += (_, p) => { if (p.PropertyName == nameof(state.WindowTitle)) SetWindowTitle(state.WindowTitle); };
+
+        SingleInstancePipeService.MessageReceived += SingleInstancePipeService_MessageReceived;
     }
-    
+
+    private void SingleInstancePipeService_MessageReceived(object? sender, string e)
+    {
+        Dispatcher.UIThread.Invoke(async () =>
+        {
+            if (string.IsNullOrWhiteSpace(e))
+                return;
+
+            var args = JsonConvert.DeserializeObject<string[]>(e);
+            if (args == null || !args.Any())
+                return;
+
+            var file = args.LastOrDefault();
+
+            if (string.IsNullOrWhiteSpace(file) || !file.ToLower().EndsWith("pix2d"))
+                return;
+
+            var projectService = ServiceLocator.Current.GetInstance<IProjectService>();
+
+            if (projectService == null)
+                return;
+
+            var fileSource = new NetFileSource(file);
+            await projectService.OpenFilesAsync(new[] { fileSource });
+        });
+    }
+
     public void OpenUrlInBrowser(string url)
     {
         //System.Diagnostics.Process.Start(url);
@@ -62,7 +94,8 @@ public class PlatformStuffService : IPlatformStuffService
 
     public void SetWindowTitle(string title)
     {
-        if (EditorApp.TopLevel is MainWindow wnd) {
+        if (EditorApp.TopLevel is MainWindow wnd)
+        {
             Dispatcher.UIThread.Post(() =>
             {
                 wnd.Title = title + " - Pix2d v" + GetAppVersion();
@@ -110,7 +143,7 @@ public class PlatformStuffService : IPlatformStuffService
             var appPath = AppContext.BaseDirectory;
             var asm = this.GetType().Assembly.GetName().Version;
             if (asm != null)
-            { 
+            {
                 return $"{asm.Major}.{asm.Minor}.{asm.Build}";
             }
 
@@ -119,7 +152,7 @@ public class PlatformStuffService : IPlatformStuffService
             var version = fvi.ProductVersion;
             return version;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Logger.LogException(ex);
         }
