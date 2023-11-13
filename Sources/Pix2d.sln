@@ -36,6 +36,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GlobalStuff", "GlobalStuff"
 		..\IntegrationScripts\build-setup.cmd = ..\IntegrationScripts\build-setup.cmd
 		Directory.Build.props = Directory.Build.props
 		nuget.config = nuget.config
+		..\IntegrationScripts\setup.iss = ..\IntegrationScripts\setup.iss
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Plugins.PixelText", "Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj", "{03701459-763E-4B3A-ACD7-17CB487B026C}"
