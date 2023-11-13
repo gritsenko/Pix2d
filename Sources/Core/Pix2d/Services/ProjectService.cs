@@ -119,11 +119,12 @@ public class ProjectService : IProjectService
     {
         var name = "New Project";
 
-
         if (isSessionMode && ProjectState.LastSessionInfo.ProjectPath != null)
             name = ProjectState.LastSessionInfo.ProjectPath;
         else if (ProjectState.File != null)
             name = ProjectState.File.Path;
+
+        name = Path.GetFileNameWithoutExtension(name);
 
         if (HasUnsavedChanges) name += "*";
 

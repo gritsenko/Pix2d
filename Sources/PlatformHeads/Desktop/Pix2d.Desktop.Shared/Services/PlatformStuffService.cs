@@ -7,11 +7,17 @@ using Avalonia.Threading;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
+using Pix2d.State;
 using SkiaNodes.Interactive;
 
 namespace Pix2d.Desktop.Services;
 public class PlatformStuffService : IPlatformStuffService
 {
+    public PlatformStuffService(AppState state)
+    {
+        state.PropertyChanged += (_, p) => { if (p.PropertyName == nameof(state.WindowTitle)) SetWindowTitle(state.WindowTitle); };
+    }
+    
     public void OpenUrlInBrowser(string url)
     {
         //System.Diagnostics.Process.Start(url);
@@ -59,7 +65,7 @@ public class PlatformStuffService : IPlatformStuffService
         if (EditorApp.TopLevel is MainWindow wnd) {
             Dispatcher.UIThread.Post(() =>
             {
-                wnd.Title = title + " - v" + GetAppVersion();
+                wnd.Title = title + " - Pix2d v" + GetAppVersion();
             });
         }
     }
