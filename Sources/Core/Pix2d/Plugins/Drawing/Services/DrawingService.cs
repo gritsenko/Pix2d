@@ -137,18 +137,42 @@ namespace Pix2d.Services
 
         private void DrawingLayerOnDrawingStarted(object sender, EventArgs e)
         {
+            Debug.WriteLine("Drawing started");
             StartNewDrawingOperation();
         }
 
         private void StartNewDrawingOperation()
         {
+            FinishCurrentDrawingOperation();
+            
+            Debug.WriteLine("Starting new operation");
+            _currentDrawingOperation = new DrawingOperation(CurrentDrawingTarget);
+        }
+
+        private void FinishCurrentDrawingOperation()
+        {
             if (_currentDrawingOperation != null)
             {
+                Debug.WriteLine("Setting final data");
                 _currentDrawingOperation.SetFinalData();
+                if (_currentDrawingOperation.HasChanges())
+                {
+                    MergeOrAddOperation(_currentDrawingOperation);
+                }
             }
-            
-            _currentDrawingOperation = new DrawingOperation(CurrentDrawingTarget);
-            _currentDrawingOperations.Add(_currentDrawingOperation);
+        }
+
+        private void MergeOrAddOperation(DrawingOperation operation)
+        {
+            var prev = _currentDrawingOperations.FirstOrDefault(x => x.CanMerge(operation));
+            if (prev == null)
+            {
+                _currentDrawingOperations.Add(operation);
+            }
+            else
+            {
+                prev.Merge(operation);
+            }
         }
 
         private void DrawingLayer_DrawingApplied(object sender, DrawingAppliedEventArgs e)
@@ -162,15 +186,12 @@ namespace Pix2d.Services
 
             if (e.SaveToUndo)
             {
-                _currentDrawingOperation.SetFinalData();
-
-                Debug.Assert(_currentDrawingOperations.Count != 0);
-
+                FinishCurrentDrawingOperation();
                 if (_currentDrawingOperations.Count == 1)
                 {
                     _currentDrawingOperation.PushToHistory();
                 }
-                else
+                else if (_currentDrawingOperations.Count > 1)
                 {
                     var operation = new BulkEditOperation(_currentDrawingOperations.ToArray<IEditOperation>());
                     operation.PushToHistory();
@@ -260,8 +281,16 @@ namespace Pix2d.Services
 
         public void SplitCurrentOperation()
         {
+            if (_currentDrawingOperation == null)
+            {
+                return;
+            }
+            
+            Debug.WriteLine("Split operation");
+            
             _drawingLayer.ApplyDrawing();
             StartNewDrawingOperation();
+            Refresh();
         }
 
         public void SetCurrentColor(SKColor value)
@@ -360,7 +389,16 @@ namespace Pix2d.Services
 
         public void CancelCurrentOperation()
         {
+            var operations = _currentDrawingOperations.ToArray();
             _drawingLayer.CancelCurrentOperation();
+
+            foreach (var operation in ((IEnumerable<DrawingOperation>) operations).Reverse())
+            {
+                operation.OnPerformUndo();
+            }
+
+            _currentDrawingOperation = null;
+            _currentDrawingOperations.Clear();
         }
 
         public void Refresh()

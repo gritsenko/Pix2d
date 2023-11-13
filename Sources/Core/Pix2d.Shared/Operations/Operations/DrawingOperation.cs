@@ -69,10 +69,42 @@ namespace Pix2d.Plugins.Drawing.Operations
         }
 
         public IDrawingTarget GetDrawingTarget() => _drawingTarget;
+
+        public bool HasChanges()
+        {
+            if (_finalData == null)
+            {
+                return _initialData != null;
+            }
+
+            if (_initialData == null)
+            {
+                return true;
+            }
+
+            return !((ReadOnlySpan<byte>) _finalData).SequenceEqual((ReadOnlySpan<byte>) _initialData);
+        }
+        
         public void Dispose()
         {
             _initialData = null;
             _finalData = null;
+        }
+
+        public bool CanMerge(DrawingOperation operation)
+        {
+            return _drawingTarget == operation._drawingTarget && _frame == operation._frame &&
+                _layerIndex == operation._layerIndex;
+        }
+
+        public void Merge(DrawingOperation operation)
+        {
+            if (!CanMerge(operation))
+            {
+                throw new InvalidOperationException("Operation drawing targets are not same");
+            }
+
+            _finalData = operation._finalData;
         }
     }
 }

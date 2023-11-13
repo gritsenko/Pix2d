@@ -493,7 +493,7 @@ namespace Pix2d.Drawing.Nodes
 
             if (State == DrawingLayerState.Drawing)
             {
-                BeginDrawing();
+                BeginDrawingInternal(false);
             }
         }
 
@@ -520,8 +520,17 @@ namespace Pix2d.Drawing.Nodes
 
         public void BeginDrawing()
         {
+            BeginDrawingInternal();
+        }
+
+        private void BeginDrawingInternal(bool raiseDrawingStarted = true)
+        {
             _strokePoints.Clear();
-            DrawingStarted?.Invoke(this, EventArgs.Empty);
+
+            if (raiseDrawingStarted)
+            {
+                DrawingStarted?.Invoke(this, EventArgs.Empty);
+            }
 
             Opacity = DrawingTarget.GetOpacity();
             DrawingTarget.CopyBitmapTo(_backgroundBitmap);
@@ -558,14 +567,12 @@ namespace Pix2d.Drawing.Nodes
                 DrawingTarget.SetTargetBitmapSubstitute(null);
                 
                 ClearWorkingBitmap();
-                OnDrawingApplied(false);
             }
         }
 
         public void FinishDrawing(bool cancel = false)
         {
-            var wbIsEmpty = _drawingMode != BrushDrawingMode.Erase && _workingBitmap.Pixels.All(x => x.Alpha == 0);
-            if (!cancel && !wbIsEmpty) ApplyWorkingBitmap();
+            if (!cancel) ApplyWorkingBitmap();
 
             if (State == DrawingLayerState.Drawing)
             {
@@ -578,7 +585,7 @@ namespace Pix2d.Drawing.Nodes
             Opacity = 1;
             UseSwapBitmap = false;
 
-            OnDrawingApplied(!cancel && !wbIsEmpty);
+            OnDrawingApplied(!cancel);
         }
 
         public void CancelDrawing() => FinishDrawing(true);
