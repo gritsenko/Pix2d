@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using Avalonia.Controls;
 using Avalonia.Threading;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
@@ -133,5 +134,13 @@ public class PlatformStuffService : IPlatformStuffService
     public void Share(IStreamExporter exporter, double scale = 1)
     {
         throw new NotSupportedException();
+    }
+
+    public void ToggleFullscreenMode()
+    {
+        if (EditorApp.TopLevel is MainWindow wnd)
+        {
+            wnd.WindowState = wnd.WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
+        }
     }
 }

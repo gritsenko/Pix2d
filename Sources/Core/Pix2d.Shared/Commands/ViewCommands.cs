@@ -51,15 +51,24 @@ public class ViewCommands : CommandsListBase
 
     public Pix2dCommand HideExportDialogCommand => GetCommand(() => AppState.UiState.ShowExportDialog = false);
     public Pix2dCommand ShowExportDialogCommand => GetCommand(() => AppState.UiState.ShowExportDialog = true);
-    public Pix2dCommand ToggleExtraToolsCommand => GetCommand(() => AppState.UiState.ShowExtraTools = !AppState.UiState.ShowExtraTools);
-    public Pix2dCommand ToggleTimelineCommand => GetCommand(() => AppState.UiState.ShowTimeline = !AppState.UiState.ShowTimeline);
+
+    public Pix2dCommand ToggleExtraToolsCommand =>
+        GetCommand(() => AppState.UiState.ShowExtraTools = !AppState.UiState.ShowExtraTools);
+
+    public Pix2dCommand ToggleTimelineCommand =>
+        GetCommand(() => AppState.UiState.ShowTimeline = !AppState.UiState.ShowTimeline);
 
     public Pix2dCommand ShowMainMenuCommand => GetCommand(() => AppState.UiState.ShowMenu = true);
     public Pix2dCommand HideMainMenuCommand => GetCommand(() => AppState.UiState.ShowMenu = false);
-    public Pix2dCommand ToggleMainMenuCommand => GetCommand(() => AppState.UiState.ShowMenu = !AppState.UiState.ShowMenu);
 
-    public Pix2dCommand ToggleCanvasSizePanelCommand => GetCommand(() => AppState.UiState.ShowCanvasResizePanel = !AppState.UiState.ShowCanvasResizePanel, behaviour: DisableOnAnimation.Instance);
-    public Pix2dCommand ToggleBrushSettingsCommand => GetCommand("Brush settings", 
+    public Pix2dCommand ToggleMainMenuCommand =>
+        GetCommand(() => AppState.UiState.ShowMenu = !AppState.UiState.ShowMenu);
+
+    public Pix2dCommand ToggleCanvasSizePanelCommand => GetCommand(
+        () => AppState.UiState.ShowCanvasResizePanel = !AppState.UiState.ShowCanvasResizePanel,
+        behaviour: DisableOnAnimation.Instance);
+
+    public Pix2dCommand ToggleBrushSettingsCommand => GetCommand("Brush settings",
         null,
         EditContextType.All,
         () =>
@@ -73,11 +82,15 @@ public class ViewCommands : CommandsListBase
 
     public Pix2dCommand ShowLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = true);
     public Pix2dCommand HideLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = false);
-    public Pix2dCommand ToggleLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = !AppState.UiState.ShowLayerProperties);
+
+    public Pix2dCommand ToggleLayerOptionsCommand => GetCommand(() =>
+        AppState.UiState.ShowLayerProperties = !AppState.UiState.ShowLayerProperties);
 
     public Pix2dCommand ShowClipboardBarCommand => GetCommand(() => AppState.UiState.ShowClipboardBar = true);
     public Pix2dCommand HideClipboardBarCommand => GetCommand(() => AppState.UiState.ShowClipboardBar = false);
-    public Pix2dCommand ToggleClipboardBarCommand => GetCommand(() => AppState.UiState.ShowClipboardBar = !AppState.UiState.ShowClipboardBar);
+
+    public Pix2dCommand ToggleClipboardBarCommand =>
+        GetCommand(() => AppState.UiState.ShowClipboardBar = !AppState.UiState.ShowClipboardBar);
 
     public Pix2dCommand ToggleColorEditorCommand => GetCommand("Select color", null, EditContextType.All, () =>
     {
@@ -93,4 +106,10 @@ public class ViewCommands : CommandsListBase
     });
 
     public SnappingCommands Snapping { get; } = new();
+
+    public Pix2dCommand ToggleFullScreenModeCommand =>
+        GetCommand("Full screen", new CommandShortcut(VirtualKeys.F11), EditContextType.All, () => {
+            CoreServices.PlatformStuffService.ToggleFullscreenMode();
+
+    });
 }

@@ -131,4 +131,8 @@ public class AndroidPlatformStuffService : IPlatformStuffService
         sharingIntent.AddFlags (ActivityFlags.GrantReadUriPermission);
         MainActivity.Instance.StartActivity (Intent.CreateChooser (sharingIntent, "Pix2d project"));
     }
+
+    public void ToggleFullscreenMode()
+    {
+    }
 }

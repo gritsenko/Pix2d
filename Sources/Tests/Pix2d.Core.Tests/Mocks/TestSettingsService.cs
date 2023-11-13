@@ -66,4 +66,9 @@ public class TestPlatformStaffService : IPlatformStuffService
     {
         throw new NotImplementedException();
     }
+
+    public void ToggleFullscreenMode()
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -27,6 +27,7 @@ namespace Pix2d.Abstract.Services
 
         public bool CanShare { get; }
         public void Share(IStreamExporter exporter, double scale = 1);
+        public void ToggleFullscreenMode();
     }
 
     public enum DeviceFormFactorType

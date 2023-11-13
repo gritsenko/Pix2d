@@ -43,6 +43,10 @@ namespace Pix2d.Browser.Services
             throw new NotSupportedException();
         }
 
+        public void ToggleFullscreenMode()
+        {
+        }
+
         public BlazorPlatformStuffService(IMessenger messenger)
         {
             var arch = Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE");
