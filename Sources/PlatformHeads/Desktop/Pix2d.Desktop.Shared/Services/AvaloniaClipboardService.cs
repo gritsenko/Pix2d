@@ -21,7 +21,7 @@ public class AvaloniaClipboardService : InternalClipboardService
 
     IClipboard? Clipboard => EditorApp.TopLevel?.Clipboard;
 
-    public AvaloniaClipboardService(IDrawingService drawingService, IToolService toolService, IViewPortService viewPortService) : base(drawingService, toolService, viewPortService)
+    public AvaloniaClipboardService(IDrawingService drawingService, IToolService toolService, IViewPortService viewPortService, IDialogService dialogService) : base(drawingService, toolService, viewPortService, dialogService)
     {
     }
 

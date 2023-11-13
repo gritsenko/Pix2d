@@ -48,7 +48,7 @@ namespace SkiaNodes
         /// <summary>
         /// Position of viewport center point relative to world coordinates
         /// </summary>
-        public SKPoint ViewPortCenterGlobal => ViewportToWorld(new SKPoint(Size.Width / 2, Size.Height / 2));
+        public SKPoint ViewPortCenterGlobal => ViewportToWorld(new SKPoint(Size.Width * ScaleFactor / 2, Size.Height * ScaleFactor / 2));
 
         /// <summary>
         /// Local position of viewport center point. Half of viewport size
