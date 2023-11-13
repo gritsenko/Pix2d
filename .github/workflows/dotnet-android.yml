@@ -11,7 +11,7 @@ on:
       - 'v*'           # Push events to every tag not containing /
 
 env:
-    Project_Path: Sources\PlatformHeads\Pix2d.Android\Pix2d.Android.csproj"                        # Replace with your solution name, i.e. MyWpfApp.sln.
+    Project_Path: Sources\PlatformHeads\Pix2d.Android\Pix2d.Android.csproj                        # Replace with your solution name, i.e. MyWpfApp.sln.
     Output_Path: C:\tmp\Pix2d-Android
 
 jobs:
