@@ -108,7 +108,7 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
         AppState = appState;
 
         messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
-        messenger.Register<SelectedLayerChangedMessage>(this, _ => UpdatePreview());
+        messenger.Register<SelectedLayerChangedMessage>(this, _ => UpdatePreview(null));
         messenger.Register<NodeEditorChangedMessage>(this, OnEditorChanged);
         Messenger.Register<CanvasSizeChanged>(this, msg => OnLoad());
 
@@ -121,13 +121,24 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
 
     private void OnOperationInvoked(OperationInvokedMessage obj)
     {
-        UpdatePreview();
+        UpdatePreview(obj.Operation.AffectedFrameIndexes);
+        UpdateCurrentFrame();
         CurrentFrame?.UpdateProperties();
     }
 
-    private void UpdatePreview()
+    private void UpdatePreview(HashSet<int> updatedFrames)
     {
-        CurrentFrame?.UpdatePreview();
+        if (updatedFrames == null)
+        {
+            CurrentFrame?.UpdatePreview();
+        }
+        else
+        {
+            foreach (var frame in updatedFrames.Where(frame => frame < Frames.Count))
+            {
+                Frames[frame].UpdatePreview();
+            }
+        }
     }
 
     private void OnEditorChanged(NodeEditorChangedMessage obj)
@@ -150,6 +161,8 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
         if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted)
         {
             _reorderInfo.NewIndex = e.NewStartingIndex;
+            OnFramesReordered(_reorderInfo);
+            
             _reorderingStarted = false;
             _reorderInfo = null;
         }
@@ -208,6 +221,11 @@ public class SpriteAnimationTimelineViewModel : Pix2dViewModelBase
     }
 
     private void EditorOnCurrentFrameChanged(object sender, SpriteFrameChangedEvenArgs e)
+    {
+        UpdateCurrentFrame();
+    }
+
+    private void UpdateCurrentFrame()
     {
         if (Frames.Count > _editor.CurrentFrameIndex)
             CurrentFrame = Frames[_editor.CurrentFrameIndex];

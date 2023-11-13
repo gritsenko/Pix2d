@@ -9,5 +9,6 @@ namespace Pix2d.Abstract.Operations
         void OnPerform();
         void OnPerformUndo();
         IEnumerable<SKNode> GetEditedNodes();
+        HashSet<int> AffectedFrameIndexes { get; }
     }
 }

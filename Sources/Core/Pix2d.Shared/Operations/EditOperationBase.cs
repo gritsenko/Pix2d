@@ -27,5 +27,7 @@ namespace Pix2d.Operations
         public abstract void OnPerformUndo();
 
         public abstract IEnumerable<SKNode> GetEditedNodes();
+        
+        public HashSet<int> AffectedFrameIndexes { get; protected set; }
     }
 }

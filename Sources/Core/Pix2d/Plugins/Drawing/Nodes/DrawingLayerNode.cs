@@ -493,7 +493,7 @@ namespace Pix2d.Drawing.Nodes
 
             if (State == DrawingLayerState.Drawing)
             {
-                BeginDrawingInternal(false);
+                BeginDrawing();
             }
         }
 
@@ -520,17 +520,9 @@ namespace Pix2d.Drawing.Nodes
 
         public void BeginDrawing()
         {
-            BeginDrawingInternal();
-        }
-
-        private void BeginDrawingInternal(bool raiseDrawingStarted = true)
-        {
             _strokePoints.Clear();
 
-            if (raiseDrawingStarted)
-            {
-                DrawingStarted?.Invoke(this, EventArgs.Empty);
-            }
+            DrawingStarted?.Invoke(this, EventArgs.Empty);
 
             Opacity = DrawingTarget.GetOpacity();
             DrawingTarget.CopyBitmapTo(_backgroundBitmap);

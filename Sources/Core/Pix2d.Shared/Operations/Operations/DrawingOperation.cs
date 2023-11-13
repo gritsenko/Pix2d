@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
 using Pix2d.Operations;
@@ -27,17 +28,28 @@ namespace Pix2d.Plugins.Drawing.Operations
             {
                 _frame = sprite.CurrentFrameIndex;
                 _layerIndex = sprite.SelectedLayerIndex;
+
+                AffectedFrameIndexes = new() {_frame};
             }
         }
 
         public void SetFinalData()
         {
             _finalData = _drawingTarget.GetData();
+            if (_finalData != null && _finalData[0] == 0)
+            {
+                // Debugger.Break();
+            }
             
             if (_drawingTarget is IAnimatedNode sprite)
             {
                 _finalFrame = sprite.CurrentFrameIndex;
                 _finalLayerIndex = sprite.SelectedLayerIndex;
+
+                if (_finalFrame != _frame)
+                {
+                    AffectedFrameIndexes.Add(_finalFrame);
+                }
             }
         }
 

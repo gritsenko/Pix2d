@@ -137,15 +137,11 @@ namespace Pix2d.Services
 
         private void DrawingLayerOnDrawingStarted(object sender, EventArgs e)
         {
-            Debug.WriteLine("Drawing started");
             StartNewDrawingOperation();
         }
 
         private void StartNewDrawingOperation()
         {
-            FinishCurrentDrawingOperation();
-            
-            Debug.WriteLine("Starting new operation");
             _currentDrawingOperation = new DrawingOperation(CurrentDrawingTarget);
         }
 
@@ -153,12 +149,13 @@ namespace Pix2d.Services
         {
             if (_currentDrawingOperation != null)
             {
-                Debug.WriteLine("Setting final data");
                 _currentDrawingOperation.SetFinalData();
                 if (_currentDrawingOperation.HasChanges())
                 {
                     MergeOrAddOperation(_currentDrawingOperation);
                 }
+
+                _currentDrawingOperation = null;
             }
         }
 
@@ -189,7 +186,7 @@ namespace Pix2d.Services
                 FinishCurrentDrawingOperation();
                 if (_currentDrawingOperations.Count == 1)
                 {
-                    _currentDrawingOperation.PushToHistory();
+                    _currentDrawingOperations[0].PushToHistory();
                 }
                 else if (_currentDrawingOperations.Count > 1)
                 {
@@ -286,10 +283,9 @@ namespace Pix2d.Services
                 return;
             }
             
-            Debug.WriteLine("Split operation");
-            
             _drawingLayer.ApplyDrawing();
-            StartNewDrawingOperation();
+            FinishCurrentDrawingOperation();
+            
             Refresh();
         }
 

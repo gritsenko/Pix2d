@@ -17,6 +17,22 @@ namespace Pix2d.Operations
         public BulkEditOperation(params IEditOperation[] operations)
         {
             _operations.AddRange(operations);
+            var affectedFrames = new HashSet<int>();
+            foreach (var operation in _operations)
+            {
+                if (operation.AffectedFrameIndexes != null)
+                {
+                    foreach (var frame in operation.AffectedFrameIndexes)
+                    {
+                        affectedFrames.Add(frame);
+                    }
+                }
+            }
+
+            if (affectedFrames.Count > 0)
+            {
+                AffectedFrameIndexes = affectedFrames;
+            }
         }
 
         public void AddSubOperation(IEditOperation operation)
