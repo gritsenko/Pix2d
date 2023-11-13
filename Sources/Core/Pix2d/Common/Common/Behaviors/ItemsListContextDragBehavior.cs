@@ -48,8 +48,6 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
     private void AssociatedObject_PointerPressed(object sender, PointerPressedEventArgs e)
     {
-        if (e.Pointer.Type != PointerType.Mouse) return;
-        
         e.PreventGestureRecognition();
         if (AssociatedObject?.Parent?.Parent is not ItemsControl itemsControl)
         {
@@ -73,8 +71,6 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
     private void AssociatedObject_PointerReleased(object sender, PointerReleasedEventArgs e)
     {
-        if (e.Pointer.Type != PointerType.Mouse) return;
-        
         e.PreventGestureRecognition();
         if (!Equals(e.Pointer.Captured, AssociatedObject)) return;
 
