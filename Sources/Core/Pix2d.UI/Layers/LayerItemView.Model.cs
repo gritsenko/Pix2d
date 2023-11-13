@@ -1,15 +1,16 @@
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using Mvvm;
+using Pix2d.Common;
 using Pix2d.CommonNodes;
 using Pix2d.Mvvm;
 using Pix2d.Plugins.Sprite.Editors;
+using Pix2d.ViewModels.Layers;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 
-namespace Pix2d.ViewModels.Layers;
+namespace Pix2d.UI.Layers;
 
 public class LayerViewModel : Pix2dViewModelBase
 {
@@ -17,6 +18,7 @@ public class LayerViewModel : Pix2dViewModelBase
     private float _oldOpacity;
     public string LayerType { get; set; }
     public Pix2dSprite.Layer SourceNode { get; set; }
+    public AppState AppState { get; }
 
     public SKBitmapObservable Preview { get; set; } = new SKBitmapObservable();
 
@@ -181,10 +183,11 @@ public class LayerViewModel : Pix2dViewModelBase
     {
     }
 
-    public LayerViewModel(Pix2dSprite.Layer node, SpriteEditor editor) : this()
+    public LayerViewModel(Pix2dSprite.Layer node, SpriteEditor editor, AppState appState) : this()
     {
         _editor = editor;
         SourceNode = node;
+        AppState = appState;
         LayerType = node.GetType().Name;
         UpdatePreview();
         UpdateEffectsFromNode();
@@ -196,7 +199,7 @@ public class LayerViewModel : Pix2dViewModelBase
         }
     }
 
-    public LayerViewModel(LayerViewModel toCopy, string newName) : this(toCopy.SourceNode.Clone(), toCopy._editor)
+    public LayerViewModel(LayerViewModel toCopy, string newName, AppState appState) : this(toCopy.SourceNode.Clone(), toCopy._editor, appState)
     {
         Name = newName;
     }
@@ -262,5 +265,11 @@ public class LayerViewModel : Pix2dViewModelBase
 
         OnPropertyChanged(nameof(HasEffects));
         OnPropertyChanged(nameof(ShowEffects));
+    }
+
+    public void SelectAndShowLayerProperties()
+    {
+        SelectLayerCommand?.Execute(this);
+        AppState.UiState.ShowLayerProperties = true;
     }
 }

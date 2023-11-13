@@ -1,8 +1,8 @@
 ﻿using Avalonia.Controls.Presenters;
+using Avalonia.Input;
 using Pix2d.UI.Common.Extensions;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
-using Pix2d.ViewModels.Layers;
 
 namespace Pix2d.UI.Layers;
 
@@ -32,7 +32,8 @@ public class LayerItemView : ViewBase<LayerViewModel>
                         new SKImageView()
                             .ShowCheckerBackground(true)
                             .Source(@vm.Preview)
-                    ),
+                    )
+                    .OnPointerPressed( e => OnRightPointerPressed(e)) as Button,
 
                 new Grid()
                     .Rows("*,*,*")
@@ -76,4 +77,13 @@ public class LayerItemView : ViewBase<LayerViewModel>
                         new TextBlock().Text(vm.BlendModeStr).Foreground(Brushes.Black).Margin(7)
                     )
             );
+
+    private void OnRightPointerPressed(PointerPressedEventArgs e)
+    {
+        var properties = e.GetCurrentPoint(this).Properties;
+        if (properties.IsRightButtonPressed)
+        {
+            ViewModel?.SelectAndShowLayerProperties();
+        }
+    }
 }

@@ -12,6 +12,8 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
     private ItemsControl _itemsControl;
 
+    private double _thresholdDelta = 3;
+
     private int _draggedIndex;
     private int _targetIndex;
     private Control _draggedContainer;
@@ -131,20 +133,23 @@ public class ItemsListContextDragBehavior : Behavior<Control>
     {
         e.PreventGestureRecognition();
 
+        var point = e.GetPosition(null);
+        var diff = _dragStartPoint - point;
+
         var isCaptured = Equals(e.Pointer.Captured, AssociatedObject);
         var properties = e.GetCurrentPoint(AssociatedObject).Properties;
 
         if (!isCaptured && _readyToDrag && properties.IsLeftButtonPressed)
         {
-            e.Pointer.Capture(AssociatedObject);
-            isCaptured = true;
+            if (Math.Abs(diff.X) > _thresholdDelta || Math.Abs(diff.Y) > _thresholdDelta)
+            {
+                e.Pointer.Capture(AssociatedObject);
+                isCaptured = true;
+            }
         }
 
-        if (!isCaptured) return;
-        var point = e.GetPosition(null);
-        var diff = _dragStartPoint - point;
-
-        DragItem(diff);
+        if (isCaptured) 
+            DragItem(diff);
     }
 
     private void DragItem(Point diff)

@@ -1,10 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using Mvvm;
 using Pix2d.Abstract.Operations;
+using Pix2d.Common;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Messages.Edit;
@@ -15,6 +14,7 @@ using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Plugins.Sprite.Operations.Effects;
 using Pix2d.Primitives.SpriteEditor;
 using Pix2d.UI.Common.Extensions;
+using Pix2d.UI.Layers;
 using Pix2d.UI.Resources;
 using SkiaNodes;
 using SkiaNodes.Common;
@@ -419,7 +419,7 @@ public class LayersListViewModel : Pix2dViewModelBase
         var reversedNodes = nodes.Reverse().ToArray();
         foreach (var node in reversedNodes)
         {
-            var layerVm = new LayerViewModel(node, _editor)
+            var layerVm = new LayerViewModel(node, _editor, AppState)
             {
                 CloseCommand = Commands.View.HideLayerOptionsCommand,
                 ClearLayerCommand = this.ClearLayerCommand,
