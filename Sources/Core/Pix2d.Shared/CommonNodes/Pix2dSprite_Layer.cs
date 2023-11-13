@@ -238,7 +238,7 @@ namespace Pix2d.CommonNodes
                         continue;
                     
                     var destNode = GetSpriteByFrame(i);
-                    destNode.MergeFrom(srcNode);
+                    destNode.MergeFrom(srcNode, sourceLayer.Opacity);
                 }
             }
 

@@ -187,12 +187,13 @@ namespace Pix2d.CommonNodes
             OnNodeInvalidated();
         }
 
-        public void MergeFrom(BitmapNode sprite)
+        public void MergeFrom(BitmapNode sprite, float opacity = 1)
         {
             using (var surface = _bitmap.GetSKSurface())
             {
                 var canvas = surface.Canvas;
-                canvas.DrawBitmap(sprite.Bitmap, sprite.GetBoundingBox());
+                var paint = new SKPaint() {Color = SKColors.Black.WithAlpha((byte)(opacity * 255))};
+                canvas.DrawBitmap(sprite.Bitmap, sprite.GetBoundingBox(), paint);
                 canvas.Flush();
             }
 
