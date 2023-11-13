@@ -5,6 +5,7 @@ using Pix2d.CommonNodes;
 using Pix2d.Operations;
 using SkiaNodes;
 using SkiaNodes.Common;
+using SkiaNodes.Extensions;
 
 namespace Pix2d.Plugins.Sprite.Operations.Effects
 {
@@ -46,6 +47,11 @@ namespace Pix2d.Plugins.Sprite.Operations.Effects
 
         public override void OnPerformUndo()
         {
+            foreach (var (frameNode, data) in _frameNodesWithOriginalData)
+            {
+                frameNode.Bitmap.CopyPixelsToBitmap(data);
+            }
+            
             if (_node.Effects == null)
                 _node.Effects = new List<ISKNodeEffect>();
 
