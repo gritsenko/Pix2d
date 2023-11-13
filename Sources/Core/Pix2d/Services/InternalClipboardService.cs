@@ -37,7 +37,9 @@ namespace Pix2d.Services
             var img = await GetImageFromClipboard();
             if (img != null)
             {
-                new PasteOperation(img, SKPoint.Empty).Invoke();
+                var dln = DrawingService?.DrawingLayer as SKNode;
+                var localPos = dln.GetLocalPosition(ViewPortService.ViewPort.ViewPortCenterGlobal);
+                new PasteOperation(img, localPos).Invoke();
             }
         }
 
