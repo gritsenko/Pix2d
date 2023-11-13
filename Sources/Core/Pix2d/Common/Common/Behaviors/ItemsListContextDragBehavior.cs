@@ -20,6 +20,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
         AvaloniaProperty.Register<ItemsListContextDragBehavior, Orientation>(nameof(Orientation));
 
     private int _oldItemZIndex;
+    private bool _readyToDrag = false;
 
     public Orientation Orientation
     {
@@ -42,7 +43,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
         AssociatedObject?.RemoveHandler(InputElement.PointerReleasedEvent, AssociatedObject_PointerReleased);
         AssociatedObject?.RemoveHandler(InputElement.PointerMovedEvent, AssociatedObject_PointerMoved);
     }
-    
+
     private void AssociatedObject_PointerPressed(object sender, PointerPressedEventArgs e)
     {
         e.PreventGestureRecognition();
@@ -62,7 +63,8 @@ public class ItemsListContextDragBehavior : Behavior<Control>
             _draggedContainer.ZIndex = 100;
             AddTransforms();
 
-            e.Pointer.Capture(AssociatedObject);
+            _readyToDrag = true;
+            // e.Pointer.Capture(AssociatedObject);
         }
     }
 
@@ -71,7 +73,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
         e.PreventGestureRecognition();
         if (!Equals(e.Pointer.Captured, AssociatedObject)) return;
 
-        if(_draggedContainer != null)
+        if (_draggedContainer != null)
             _draggedContainer.ZIndex = _oldItemZIndex;
         RemoveTransforms();
 
@@ -83,6 +85,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
         e.Pointer.Capture(null);
 
+        _readyToDrag = false;
         _itemsControl = null;
         _draggedContainer = null;
     }
@@ -129,6 +132,14 @@ public class ItemsListContextDragBehavior : Behavior<Control>
         e.PreventGestureRecognition();
 
         var isCaptured = Equals(e.Pointer.Captured, AssociatedObject);
+        var properties = e.GetCurrentPoint(AssociatedObject).Properties;
+
+        if (!isCaptured && _readyToDrag && properties.IsLeftButtonPressed)
+        {
+            e.Pointer.Capture(AssociatedObject);
+            isCaptured = true;
+        }
+
         if (!isCaptured) return;
         var point = e.GetPosition(null);
         var diff = _dragStartPoint - point;
