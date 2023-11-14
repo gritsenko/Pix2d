@@ -15,7 +15,7 @@ namespace Pix2d.iOS.Services
         public bool Is64App { get; set; }
         public string KeyToString(VirtualKeys key)
         {
-            throw new NotImplementedException();
+            return key.ToString();
         }
 
         public string GetAppVersion()

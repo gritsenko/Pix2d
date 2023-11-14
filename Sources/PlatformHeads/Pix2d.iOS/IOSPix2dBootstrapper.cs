@@ -16,11 +16,9 @@ using Pix2d.Plugins.Sprite;
 using Pix2d.Services;
 using Pix2d.UI;
 
-#if !DEBUG
 using Microsoft.AppCenter;
 using Microsoft.AppCenter.Analytics;
 using Microsoft.AppCenter.Crashes;
-#endif
 
 namespace Pix2d.Android;
 
@@ -79,7 +77,7 @@ public class IOSPix2dBootstrapper : IPix2dBootstrapper
     [Conditional("DEBUG")]
     private void InitiTelemetry()
     {
-        AppCenter.Start("78f7d38e-ec8b-43f8-9152-8a4c527827b5", typeof(Analytics), typeof(Crashes));
-        Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
+        //AppCenter.Start("78f7d38e-ec8b-43f8-9152-8a4c527827b5", typeof(Analytics), typeof(Crashes));
+        //Logger.RegisterLoggerTarget(new AppCenterLoggerTarget());
     }
 }

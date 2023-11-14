@@ -395,6 +395,9 @@ public class ProjectService : IProjectService
 
     public async Task<IFileContentSource[]> GetRecentProjectsAsync()
     {
+        if (FileService == null)
+            return new IFileContentSource[] {};
+
         var result = await FileService.GetMruFilesAsync();
         result.Sort((a, b) => b.LastModified.CompareTo(a.LastModified));
         return result.ToArray();
