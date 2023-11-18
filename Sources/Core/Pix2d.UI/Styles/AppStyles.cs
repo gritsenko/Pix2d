@@ -1,5 +1,6 @@
 ﻿using Avalonia.Controls.Presenters;
 using Avalonia.Styling;
+using Pix2d.UI;
 using Pix2d.UI.Common.Extensions;
 using Pix2d.UI.MainMenu;
 using Pix2d.UI.Resources;
@@ -50,6 +51,8 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .Foreground(Brushes.White),
                 
                 new Style<Button>(s => s.Is<Button>())
+                    .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
+                    .FontSize(8)
                     .Background(Brushes.Transparent)
                     .BorderThickness(new Thickness(0, 0)),
                 

@@ -14,6 +14,7 @@ public class TopBarView : ComponentBase
 
     [Inject] public ICommandService CommandService { get; set; }
     private ISpriteEditCommands SpriteEditCommands => CommandService.GetCommandList<ISpriteEditCommands>();
+
     protected override object Build() =>
         new Grid()
             .Cols("Auto,*,Auto")
@@ -37,45 +38,47 @@ public class TopBarView : ComponentBase
                     .Col(1)
                     .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden)
                     .Content(
-                    new StackPanel()
-                         .HorizontalAlignment(HorizontalAlignment.Center)
-                         .Orientation(Orientation.Horizontal)
-                         .Children(
+                        new StackPanel()
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .Orientation(Orientation.Horizontal)
+                            .Children(
 
-                            new AppButton()
-                                .With(ButtonStyle)
-                                .Command(SpriteEditCommands.Clear)
-                                .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
-                                .Label("Clear")
-                                .Content("\xE894"),
+                                new AppButton()
+                                    .With(ButtonStyle)
+                                    .Command(SpriteEditCommands.Clear)
+                                    .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
+                                    .Label("Clear")
+                                    .Content("\xE894"),
 
-                            new AppToggleButton()
-                                .IsChecked(AppState.UiState.ShowExtraTools, BindingMode.TwoWay, bindingSource: AppState.UiState)
-                                .With(ButtonStyle)
-                                .Label("Tools")
-                                .Content("\xEC7A"),
+                                new AppToggleButton()
+                                    .IsChecked(AppState.UiState.ShowExtraTools, BindingMode.TwoWay,
+                                        bindingSource: AppState.UiState)
+                                    .With(ButtonStyle)
+                                    .Label("Tools")
+                                    .Content("\xEC7A"),
 
-                            new AppToggleButton()
-                                .IsChecked(AppState.UiState.ShowTimeline, BindingMode.TwoWay, bindingSource: AppState.UiState)
-                                .With(ButtonStyle)
-                                .Label("Animate")
-                                .Content("\xED5A"),
+                                new AppToggleButton()
+                                    .IsChecked(AppState.UiState.ShowTimeline, BindingMode.TwoWay,
+                                        bindingSource: AppState.UiState)
+                                    .With(ButtonStyle)
+                                    .Label("Animate")
+                                    .Content("\xED5A"),
 
-                            new AppButton()
-                                .With(ButtonStyle)
-                                .Label("Export")
-                                .Command(Commands.View.ShowExportDialogCommand)
-                                .Content("\xEE71")
-                        )
-                ),
-                
+                                new AppButton()
+                                    .With(ButtonStyle)
+                                    .Label("Export")
+                                    .Command(Commands.View.ShowExportDialogCommand)
+                                    .Content("\xEE71")
+                            )
+                    ),
+
                 //UNDO REDO BLOCK
                 new StackPanel().Col(2)
                     .Orientation(Orientation.Horizontal)
                     .Children(
 
                         new AppButton().Col(1)
-                            .With(ButtonStyle)
+                            .Classes("TopBar")
                             .Command(Commands.Edit.Undo)
                             .Label("Undo")
                             .Content(
@@ -87,20 +90,21 @@ public class TopBarView : ComponentBase
                                     .Height(30)
                                     .Children(
 
-                                    new TextBlock()
-                                        .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                                        .VerticalAlignment(VerticalAlignment.Center)
-                                        .HorizontalAlignment(HorizontalAlignment.Center)
-                                        .Text("\xE7A7"),
+                                        new TextBlock()
+                                            .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
+                                            .Margin(new Thickness(0, 0, 4, 4))
+                                            .HorizontalAlignment(HorizontalAlignment.Right)
+                                            .VerticalAlignment(VerticalAlignment.Top)
+                                            .FontSize(12)
+                                            .Foreground(Colors.Gray.ToBrush())
+                                            .Text(Bind(UndoSteps)),
+                                        new TextBlock()
+                                            .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                                            .VerticalAlignment(VerticalAlignment.Center)
+                                            .HorizontalAlignment(HorizontalAlignment.Center)
+                                            .Text("\xE7A7")
 
-                                    new TextBlock()
-                                        .Margin(new Thickness(0, 0, 4, 4))
-                                        .HorizontalAlignment(HorizontalAlignment.Right)
-                                        .VerticalAlignment(VerticalAlignment.Top)
-                                        .FontSize(12)
-                                        .Foreground(Colors.Gray.ToBrush())
-                                        .Text(Bind(UndoSteps))
-                                )),
+                                    )),
 
                         new AppButton().Col(1)
                             .With(ButtonStyle)
@@ -113,7 +117,7 @@ public class TopBarView : ComponentBase
     [Inject] private IOperationService OperationService { get; set; } = null!;
     [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private AppState AppState { get; set; } = null;
-    
+
     public int UndoSteps => OperationService?.UndoOperationsCount ?? 0;
 
     protected override void OnAfterInitialized()

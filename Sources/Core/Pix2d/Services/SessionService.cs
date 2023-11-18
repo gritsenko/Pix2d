@@ -127,6 +127,12 @@ public class SessionService : ISessionService
 
     public async Task<bool> TryLoadSessionAsync()
     {
+        if (OperatingSystem.IsBrowser())
+        {
+            Console.WriteLine("Session loading is not supported in browsers");
+            return false;
+        }
+
         try
         {
             if (SettingsService.TryGet<SessionInfo>("session", out var sessionInfo) && sessionInfo != null)

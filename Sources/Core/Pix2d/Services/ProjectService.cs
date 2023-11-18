@@ -262,19 +262,22 @@ public class ProjectService : IProjectService
                     }
                     else
                     {
-                        var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
-                        if (AppState.Settings.UseInternalFolder && !file.Path.StartsWith(folder.Path))
+                        if (!OperatingSystem.IsBrowser())
                         {
-                            var projectName = Path.GetFileNameWithoutExtension(file.Path);
-                            file = GetUniqueProjectFile(folder, projectName);
-                            HasUnsavedChanges = true;
+                            var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
+                            if (AppState.Settings.UseInternalFolder && !file.Path.StartsWith(folder.Path))
+                            {
+                                var projectName = Path.GetFileNameWithoutExtension(file.Path);
+                                file = GetUniqueProjectFile(folder, projectName);
+                                HasUnsavedChanges = true;
+                            }
+                            else
+                            {
+                                HasUnsavedChanges = false;
+                            }
+
+                            FileService.AddToMru(file);
                         }
-                        else
-                        {
-                            HasUnsavedChanges = false;
-                        }
-                        
-                        FileService.AddToMru(file);
                         ProjectState.File = file;
                     }
 

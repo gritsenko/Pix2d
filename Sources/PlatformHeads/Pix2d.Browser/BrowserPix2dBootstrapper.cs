@@ -43,9 +43,9 @@ namespace Pix2d.Browser
             var container = IoC.Get<SimpleContainer>();
             container.RegisterInstance<IMessenger>(Messenger.Default);
 
-            //container.RegisterSingleton<ISettingsService, SettingsService>();
+            container.RegisterSingleton<ILicenseService, FullLicenseService>();
             container.RegisterSingleton<ISettingsService, BlazorSettingsService>();
-            //container.RegisterSingleton<IFileService, AvaloiaNetFileService>();
+            container.RegisterSingleton<IFileService, BrowserFileService>();
             container.RegisterSingleton<IClipboardService, InternalClipboardService>();
             container.RegisterSingleton<IPlatformStuffService, BlazorPlatformStuffService>();
             container.RegisterSingleton<IDialogService, AvaloniaDialogService>();

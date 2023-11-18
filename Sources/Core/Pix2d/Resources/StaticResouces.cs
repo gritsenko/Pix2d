@@ -59,6 +59,12 @@ public static class StaticResources
             new FontFamily(ResourceManager.GetEmbeddedResourceURI("/Assets/Fonts/"), "icons.ttf#icons");
         //public static FontFamily FluentIcons { get; } = 
         //    new FontFamily(new Uri("avares://Pix2d.Core/Assets/Fonts/"), "Segoe Fluent Icons.ttf#Segoe Fluent Icons");
+        public static FontFamily DefaultTextFontFamily { get; } =
+            new FontFamily(ResourceManager.GetEmbeddedResourceURI("/Assets/Fonts/v3/"), "ProtoMono-Regular.ttf#Proto Mono");
+
+        public static FontFamily Pix2dIconFontFamilyV3 { get; } =
+            new FontFamily(ResourceManager.GetEmbeddedResourceURI("/Assets/Fonts/v3/"), "pix2d-icons-v3.ttf#pix2d-icons-v3");
+
     }
 
     public static class Converters

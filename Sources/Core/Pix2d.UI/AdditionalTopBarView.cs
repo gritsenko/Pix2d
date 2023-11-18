@@ -14,7 +14,7 @@ public class AdditionalTopBarView : ComponentBase
                 new Style<Button>()
                     .FontFamily(StaticResources.Fonts.IconFontSegoe),
                 new Style<ToggleButton>()
-                    .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                    .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
             )
             .Height(32)
             .Cols("32,33,Auto,Auto")
@@ -29,6 +29,8 @@ public class AdditionalTopBarView : ComponentBase
                 //toggle grid 
                 new ToggleButton().Col(0)
                     .Classes("secondary-button")
+                    .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                    .FontSize(12)
                     .IsChecked(AppState.CurrentProject.ViewPortState.ShowGrid, BindingMode.TwoWay,
                         bindingSource: AppState.CurrentProject.ViewPortState)
                     .Content("\xE80A"),
@@ -38,7 +40,8 @@ public class AdditionalTopBarView : ComponentBase
                     .Classes("secondary-button")
                     .IsChecked(AppState.UiState.ShowPreviewPanel, BindingMode.TwoWay, bindingSource: AppState.UiState)
                     .Margin(new Thickness(1, 0, 0, 0))
-                    .Content("\xE91B"),
+                    .FontSize(14)
+                    .Content("\xe903"),
 
                 new ZoomPanelView().Col(2)
                     .Margin(new Thickness(1, 0, 0, 0)),
@@ -49,10 +52,10 @@ public class AdditionalTopBarView : ComponentBase
                     .IsVisible(() => AppState.CurrentProject.CurrentContextType == EditContextType.Sprite)
                     .Width(64)
                     .Margin(new Thickness(1, 0, 0, 0))
-                    .FontSize(16)
+                    .FontSize(14)
                     .Styles(LayersButtonStyle)
                     .IsChecked(AppState.UiState.ShowLayers, BindingMode.TwoWay, bindingSource: AppState.UiState)
-                    .Content("\xE81E")
+                    .Content("\xe900")
             );
 
     protected Style LayersButtonStyle => new(s => s.OfType<ToggleButton>().Class(":checked").Template().Is<ContentPresenter>())

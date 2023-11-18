@@ -22,7 +22,7 @@ public class ProjectUnpacker
         if (!file.Exists)
             return null;
 
-        using var fileStream = await file.OpenRead();
+        await using var fileStream = await file.OpenRead();
         if (!fileStream.CanRead || fileStream.Length < 1 || fileStream.Position < 0) 
             return null;
 

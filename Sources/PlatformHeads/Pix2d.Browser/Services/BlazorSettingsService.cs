@@ -1,30 +1,43 @@
-﻿using System.IO;
-using Pix2d.Abstract;
+﻿using System.Runtime.InteropServices.JavaScript;
+using Newtonsoft.Json;
 using Pix2d.Abstract.Services;
 
 namespace Pix2d.Browser.Services;
 
+internal static partial class MyLocalStorage
+{
+    [JSImport("get", "myLocalStorage")]
+    internal static partial string? GetItem(string key);
+
+    [JSImport("set", "myLocalStorage")]
+    internal static partial void SetItem(string key, string value);
+
+    [JSImport("remove", "myLocalStorage")]
+    internal static partial void RemoveItem(string key);
+
+    [JSImport("clear", "myLocalStorage")]
+    internal static partial void Clear();
+}
+
 public class BlazorSettingsService : ISettingsService
 {
-    public const string DbName = "pix2d_settings.json";
-    private readonly string _dbFullPath;
-
-
-    public BlazorSettingsService(string dbFolderPath)
+    public T? Get<T>(string key)
     {
-        if (string.IsNullOrEmpty(dbFolderPath))
-            dbFolderPath = Pix2DApp.AppFolder;
-        _dbFullPath = Path.Combine(dbFolderPath, DbName);
+        var strValue = MyLocalStorage.GetItem(key);
+
+        if (strValue == null)
+            return default;
+
+        return JsonConvert.DeserializeObject<T>(strValue);
     }
 
-    public string GetRaw(string key)
+    public void Set<T>(string key, T? value)
     {
-        return default;
-    }
+        if (value == null)
+            return;
 
-    public T Get<T>(string key)
-    {
-        return default;
+        var json = JsonConvert.SerializeObject(value);
+        MyLocalStorage.SetItem(key, json);
     }
 
     public bool TryGet<T>(string key, out T value)
@@ -40,9 +53,5 @@ public class BlazorSettingsService : ISettingsService
         }
 
         return true;
-    }
-
-    public void Set<T>(string key, T value)
-    {
     }
 }

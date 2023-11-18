@@ -10,6 +10,8 @@ public class ZoomPanelView : ComponentBase
             .Styles(
                 new Style<Button>()
                     .Background(StaticResources.Brushes.SelectedItemBrush)
+                    .FontSize(12)
+                    .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
                 )
             .Height(32)
             .Cols("32,*,32")

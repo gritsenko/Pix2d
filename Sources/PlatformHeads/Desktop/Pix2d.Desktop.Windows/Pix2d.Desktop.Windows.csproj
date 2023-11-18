@@ -34,7 +34,7 @@
 		<PackageReference Include="Microsoft.AppCenter" Version="5.0.3" />
 		<PackageReference Include="Microsoft.AppCenter.Analytics" Version="5.0.3" />
 		<PackageReference Include="Microsoft.AppCenter.Crashes" Version="5.0.3" />
-		<PackageReference Include="Sentry" Version="3.40.1" />
+		<PackageReference Include="Sentry" Version="3.41.0" />
 	</ItemGroup>
 	<ItemGroup>
     <ProjectReference Include="..\..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />

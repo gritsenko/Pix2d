@@ -17,7 +17,6 @@ namespace Pix2d.Abstract.Platform.FileSystem
 
         string Title { get; set; }
 
-        Task<byte[]> GetContentAsync();
         Task SaveAsync(Stream sourceStream);
 
 //        void SaveAsync(string textContent);

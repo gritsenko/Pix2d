@@ -29,7 +29,7 @@ public class DefaultBusyController : IBusyController
         catch (Exception e)
         {
             Logger.LogException(e);
-            ShowAlert("Can't finish task: " + e.Message);
+            ShowAlert($"Can't finish task: {e.Message}\n\n{e.StackTrace}");
         }
         finally
         {

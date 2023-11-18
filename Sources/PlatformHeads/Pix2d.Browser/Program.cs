@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Browser;
@@ -20,6 +21,8 @@ internal partial class Program
             .UseServiceProvider(DefaultServiceLocator.ServiceLocatorProvider())
             //.UseReactiveUI()
             .StartBrowserAppAsync("out");
+
+
     }
 
     public static AppBuilder BuildAvaloniaApp()
