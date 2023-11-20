@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CommonServiceLocator;
+using Mvvm.Messaging;
 using Pix2d.Abstract.Services;
 using Pix2d.Primitives;
 using Pix2d.State;
@@ -255,15 +256,27 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
         return false;
     }
 
-    public async Task<bool> RateApp()
+    public async Task<bool> VerifyPurchase(string signedData, string signature, string productId = null, string transactionId = null)
+    {
+        return true;
+    }
+}
+
+public class AndroidReviewService : ReviewService
+{
+    public AndroidReviewService(ISettingsService settingsService, IMessenger messenger) : base(settingsService, messenger)
+    {
+    }
+
+    public override async Task<bool> RateApp()
     {
         try
         {
             var appId = "com.pix2d.pix2dapp";
 
-            var isInAppReviewShown = SettingsService.Get<bool>("isInAppReviewShown");
+            var isInAppReviewShown = SettingsService.Get<bool?>("isInAppReviewShown");
 
-            if (isInAppReviewShown != null)
+            if (isInAppReviewShown == true)
             {
                 Plugin.StoreReview.CrossStoreReview.Current.OpenStoreReviewPage(appId);
             }
@@ -282,8 +295,4 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
         return false;
     }
 
-    public async Task<bool> VerifyPurchase(string signedData, string signature, string productId = null, string transactionId = null)
-    {
-        return true;
-    }
 }

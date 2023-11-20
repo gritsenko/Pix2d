@@ -1,14 +1,13 @@
 ﻿using Pix2d.Messages;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Pix2d.Services;
 
 public abstract class ReviewService : IReviewService
 {
-    private ISettingsService SettingsService { get; }
-    private IMessenger Messenger { get; }
+    protected ISettingsService SettingsService { get; }
+    protected IMessenger Messenger { get; }
 
     private static readonly string[] PromptMessages =
     {
@@ -41,7 +40,7 @@ public abstract class ReviewService : IReviewService
 
     private Dictionary<string, string> _lastReviewArgs;
 
-    public ReviewService(ISettingsService settingsService, IMessenger messenger)
+    protected ReviewService(ISettingsService settingsService, IMessenger messenger)
     {
         SettingsService = settingsService;
         Messenger = messenger;

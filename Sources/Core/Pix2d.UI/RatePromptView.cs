@@ -16,7 +16,8 @@ public partial class RatePromptView : ComponentBase
             .Background("#994384de".ToColor().ToBrush())
             .Children(
                 new TextBlock()
-                    .FontSize(14)
+                    .MaxWidth(250)
+                    .FontSize(12)
                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
                     .Text(()=>RatePromptMessage)
                     .Margin(16, 4, 16, 4)

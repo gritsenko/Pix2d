@@ -62,6 +62,8 @@ public class AndroidPix2dBootstrapper : IPix2dBootstrapper
 
         container.RegisterInstance<IMessenger>(Messenger.Default);
         container.RegisterSingleton<IDialogService, AvaloniaDialogService>();
+        
+        container.RegisterSingleton<IReviewService, AndroidReviewService>();
 
         InitLicense(container);
 
