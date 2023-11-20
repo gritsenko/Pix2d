@@ -65,6 +65,8 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         };
 
         var ff = RuntimeInformation.FrameworkDescription;
+        Pix2DApp.CurrentPlatform = GetPlatform();
+
         var container = IoC.Get<SimpleContainer>();
 
         container.RegisterSingleton<ISettingsService, SettingsService>();
@@ -73,12 +75,14 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
         container.RegisterSingleton<IFontService, AvaloniaFontService>();
 
         container.RegisterInstance<IMessenger>(Messenger.Default);
-
-        container.RegisterSingleton<IPlatformStuffService, PlatformStuffService>();
         container.RegisterSingleton<IDialogService, AvaloniaDialogService>();
 
+#if WINDOWS_UWP
+        container.RegisterSingleton<IPlatformStuffService, UwpPlatformStuffService>();
+#else
+        container.RegisterSingleton<IPlatformStuffService, PlatformStuffService>();
+#endif
 
-        Pix2DApp.CurrentPlatform = GetPlatform();
         Pix2DApp.AppFolder = Path.Combine(AppDataFolder(), "Pix2d");
         
         await InitLicense(container);
@@ -98,7 +102,8 @@ public class DesktopPix2dBootstrapper : IPix2dBootstrapper
     private async Task InitLicense(SimpleContainer container)
     {
 #if WINDOWS_UWP
-        container.RegisterSingleton<ILicenseService, Pix2d.WindowsStore.Services.UwpLicenseService>();
+        container.RegisterSingleton<ILicenseService, UwpLicenseService>();
+        container.RegisterSingleton<IReviewService, UwpReviewService>();
 #else
         container.RegisterSingleton<ILicenseService, GumroadLicenseService>();
 #endif

@@ -40,7 +40,7 @@ public class MainView : ComponentBase
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
         var hasFiles = e.Data.GetDataFormats().Any(x => x == "Files");
-        if(hasFiles) 
+        if (hasFiles)
             e.DragEffects = DragDropEffects.Copy;
     }
 
@@ -118,6 +118,9 @@ public class MainView : ComponentBase
                     ),
 
                 new AdditionalTopBarView().Col(1).Row(2),
+
+                new RatePromptView().Col(1).Row(2)
+                    .IsVisible(()=> AppState?.UiState.ShowRatePrompt ?? false),
 
                 new InfoPanelView().Col(0).Row(4).ColSpan(2),
 
@@ -241,9 +244,15 @@ public class MainView : ComponentBase
                     .Row(0).RowSpan(5)
             });
 
+
     protected override void OnBeforeReload()
     {
         Debug.WriteLine(" Reloading main view...");
         base.OnBeforeReload();
+    }
+
+    protected override void OnAfterInitialized()
+    {
+        AppState.UiState.WatchFor(x => x.ShowRatePrompt, StateHasChanged);
     }
 }

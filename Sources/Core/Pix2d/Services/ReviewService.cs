@@ -1,11 +1,11 @@
 ﻿using Pix2d.Messages;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
-namespace Pix2d.Common;
+namespace Pix2d.Services;
 
-public class ReviewService : IReviewService
+public abstract class ReviewService : IReviewService
 {
     private ISettingsService SettingsService { get; }
     private IMessenger Messenger { get; }
@@ -47,6 +47,7 @@ public class ReviewService : IReviewService
         Messenger = messenger;
 
         messenger.Register<ProjectSavedMessage>(this, m => TrySuggestRate("Save"));
+        messenger.Register<ProjectExportedMessage>(this, m => TrySuggestRate("Export"));
 
         //InitRatePromptMessage
         var random = new Random();
@@ -69,12 +70,13 @@ public class ReviewService : IReviewService
         SettingsService.TryGet<DateTime>("NextPromptTime", out var nextPromptTime);
         SettingsService.TryGet<TimeSpan>("TotalWorkTime", out var totalWorkTime);
 
+#if !DEBUG
         if (isReviewed || nextPromptTime > DateTime.Now || totalWorkTime.TotalHours < 2)
         {
             Debug.WriteLine("Not ready for review prompt");
             return false;
         }
-
+#endif
         SettingsService.TryGet<int>("AppReviewPromptsCount", out var promptsCount);
 
         LogReview("Showing prompt", contextTitle);
@@ -91,6 +93,7 @@ public class ReviewService : IReviewService
 
         switch (promptsCount)
         {
+            case 0:
             case 1:
                 defferDays = 3;
                 break;
@@ -112,6 +115,17 @@ public class ReviewService : IReviewService
         SettingsService.Set("NextPromptTime", nextPromptTime);
     }
 
+    public abstract Task<bool> RateApp();
+
+    public string GetPromptMessage()
+    {
+        return RatePromptMessage;
+    }
+
+    public string GetPromptButtonText()
+    {
+        return RatePromptButtonText;
+    }
 
     public void LogReview(string action, string context = default)
     {

@@ -17,6 +17,7 @@
 
   <PropertyGroup>
     <DefineConstants>$(DefineConstants);WINDOWS_UWP</DefineConstants>
+    <RootNamespace>Pix2d.Desktop</RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">

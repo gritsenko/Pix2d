@@ -1,7 +1,6 @@
-﻿namespace Pix2d.Messages
-{
-    public class ProjectSavedMessage
-    {
+﻿namespace Pix2d.Messages;
 
-    }
+public class ProjectSavedMessage
+{
+
 }

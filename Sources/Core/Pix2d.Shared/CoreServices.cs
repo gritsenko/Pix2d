@@ -20,8 +20,6 @@ public static class CoreServices
     public static IClipboardService ClipboardService => GetService<IClipboardService>();
     public static ISnappingService SnappingService => GetService<ISnappingService>();
     public static IImportService ImportService => GetService<IImportService>();
-    public static ILicenseService LicenseService => GetService<ILicenseService>();
-    public static IStoreRateService StoreRateService => GetService<IStoreRateService>();
     public static ISettingsService SettingsService => GetService<ISettingsService>();
     public static IPlatformStuffService PlatformStuffService => GetService<IPlatformStuffService>();
     public static IAppStateService<AppState> AppStateService => GetService<IAppStateService<AppState>>();

@@ -29,6 +29,7 @@ class Program
             StartupDocument = args.FirstOrDefault()
         };
         EditorApp.OnAppStarted = OnAppStarted;
+        EditorApp.OnAppInitialized = OnAppInitialized;
         EditorApp.OnAppClosing = OnAppClosing;
         EditorApp.UiModule = new UiModule();
 
@@ -84,4 +85,11 @@ class Program
 #endif
         }
     }
+    private static void OnAppInitialized()
+    {
+#if WINDOWS_UWP
+        UwpPlatformStuffService.InitStoreContext();
+#endif
+    }
+
 }

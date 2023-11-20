@@ -10,7 +10,6 @@ using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
-using Sentry.Protocol;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 

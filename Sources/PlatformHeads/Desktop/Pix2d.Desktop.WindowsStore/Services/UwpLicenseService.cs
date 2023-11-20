@@ -2,22 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CommonServiceLocator;
-using Pix2d.Abstract.Services;
 using Windows.Services.Store;
 using Avalonia.Threading;
+using CommonServiceLocator;
+using Pix2d.Abstract.Services;
 using Pix2d.Primitives;
 using Pix2d.State;
 
-namespace Pix2d.WindowsStore.Services;
+namespace Pix2d.Desktop.Services;
 
 public class UwpLicenseService : ILicenseService
 {
     public AppState AppState { get; }
     public ISettingsService SettingsService { get; }
     public string GetFormattedPrice { get; set; } = "$4.99";
-    private StoreContext _context;
-    private IntPtr? _hwnd;
 
     public UwpLicenseService(AppState appState, ISettingsService settingsService)
     {
@@ -45,7 +43,7 @@ public class UwpLicenseService : ILicenseService
     {
         try
         {
-            _context = StoreContext.GetDefault();
+            var context = UwpPlatformStuffService.WindowsStoreContext;
 
             //old api
             //_licenseInformation = CurrentApp.LicenseInformation;
@@ -83,7 +81,7 @@ public class UwpLicenseService : ILicenseService
                 List<String> filterList = new List<string>(productKinds);
 
                 {
-                    StoreProductQueryResult queryResult = await _context.GetUserCollectionAsync(filterList);
+                    StoreProductQueryResult queryResult = await context.GetUserCollectionAsync(filterList);
 
                     if (queryResult.ExtendedError != null)
                     {
@@ -105,7 +103,7 @@ public class UwpLicenseService : ILicenseService
 
                 //check available in-apps
                 {
-                    StoreProductQueryResult queryResult = await _context.GetAssociatedStoreProductsAsync(filterList);
+                    StoreProductQueryResult queryResult = await context.GetAssociatedStoreProductsAsync(filterList);
 
                     foreach (KeyValuePair<string, StoreProduct> item in queryResult.Products)
                     {
@@ -135,7 +133,8 @@ public class UwpLicenseService : ILicenseService
     {
         try
         {
-            var license = await _context.GetAppLicenseAsync();
+            var context = UwpPlatformStuffService.WindowsStoreContext;
+            var license = await context.GetAppLicenseAsync();
             
             if (!license.IsActive)
                 return false;
@@ -162,19 +161,6 @@ public class UwpLicenseService : ILicenseService
         Logger.LogEventWithParams("$ Buy Pro", new Dictionary<string, string>() { { "Price", GetFormattedPrice } });
         try
         {
-            if (_hwnd == null)
-            {
-                _hwnd = EditorApp.TopLevel.TryGetPlatformHandle()?.Handle;
-
-                if (_hwnd != null)
-                {
-                    // Initialize the dialog using wrapper funcion for IInitializeWithWindow
-                    WinRT.Interop.InitializeWithWindow.Initialize(_context, _hwnd.Value);
-                }
-
-            }
-
-            
             //await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
             //{
             //    var _result = await CurrentApp.RequestProductPurchaseAsync("proVersion");
@@ -184,7 +170,8 @@ public class UwpLicenseService : ILicenseService
 
             string[] productKinds = { "Durable" };
             List<String> filterList = new List<string>(productKinds);
-            StoreProductQueryResult queryResult = await _context.GetAssociatedStoreProductsAsync(filterList);
+            var context = UwpPlatformStuffService.WindowsStoreContext;
+            StoreProductQueryResult queryResult = await context.GetAssociatedStoreProductsAsync(filterList);
             StoreProduct? product = null;
 
             foreach (KeyValuePair<string, StoreProduct> item in queryResult.Products)
@@ -241,31 +228,5 @@ public class UwpLicenseService : ILicenseService
         Logger.LogEvent($"$ Buy cancelled: unknown reason");
 
         return false;
-    }
-
-    public void ToggleIsPro()
-    {
-        AppState.LicenseType = AppState.IsPro ? LicenseType.Essentials : LicenseType.Pro;
-
-        Logger.Log("$On license changed to " + (AppState.IsPro ? "PRO" : "ESS"));
-    }
-
-    public async Task<bool> RateApp()
-    {
-        var appId = "9nblggh1zdfv";
-        //await Launcher.LaunchUriAsync(new Uri("ms-windows-store://review/?ProductId=" + appId));
-
-        var result = await RateWithSystemDialogApp();
-        return result;
-    }
-
-    private async Task<bool> RateWithSystemDialogApp()
-    {
-#if WINDOWS_UWP
-        var result = await StoreContext.GetDefault().RequestRateAndReviewAppAsync();
-        return result.WasUpdated;
-#else
-        throw new NotImplementedException();
-#endif
     }
 }

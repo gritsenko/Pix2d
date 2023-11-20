@@ -16,6 +16,7 @@ public class EditorApp : Application
 
     public static IPix2dBootstrapper Pix2dBootstrapper { get; set; }
     public static Action<object> OnAppStarted { get; set; }
+    public static Action OnAppInitialized { get; set; }
     public static Func<bool> OnAppClosing { get; set; }
     public static TopLevel TopLevel { get; private set; }
     public static IUiModule UiModule { get; set; }
@@ -80,7 +81,6 @@ public class EditorApp : Application
             {
                 Content = HostView
             };
-            OnAppStarted?.Invoke(desktop.MainWindow);
             TopLevel = desktop.MainWindow.GetVisualRoot() as TopLevel;
             desktop.MainWindow.Closing += (sender, args) =>
             {
@@ -88,6 +88,7 @@ public class EditorApp : Application
                 var close = OnAppClosing.Invoke();
                 if (close == false) args.Cancel = true;
             };
+            OnAppStarted?.Invoke(desktop.MainWindow);
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewLifetime) //WEB ASSEMBLY
         {
@@ -104,6 +105,8 @@ public class EditorApp : Application
             return;
         }
         InitializePix2d(HostView);
+
+        OnAppInitialized?.Invoke();
     }
 
     private async void InitializePix2d(HostView hostView)

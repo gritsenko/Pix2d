@@ -6,6 +6,7 @@ using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.CommonNodes;
 using Pix2d.Exporters;
+using Pix2d.Messages;
 using Pix2d.UI.Resources;
 using SkiaNodes;
 using SkiaSharp;
@@ -15,7 +16,7 @@ namespace Pix2d.Services;
 public class ExportService : IExportService
 {
     public ISelectionService SelectionService { get; }
-    public ILicenseService LicenseService { get; }
+    public IMessenger Messenger { get; }
     public IFileService FileService { get; }
     public AppState AppState { get; }
 
@@ -23,12 +24,12 @@ public class ExportService : IExportService
 
     public bool EnableWatermark => AppState is { IsPro: false };
 
-    public ExportService(ISelectionService selectionService, IFileService fileService, AppState appState, ILicenseService licenseService)
+    public ExportService(ISelectionService selectionService, IFileService fileService, AppState appState, IMessenger messenger)
     {
         SelectionService = selectionService;
         FileService = fileService;
         AppState = appState;
-        LicenseService = licenseService;
+        Messenger = messenger;
     }
 
 
@@ -68,6 +69,7 @@ public class ExportService : IExportService
             fileName += "_" + DateTime.Now.ToString("s").Replace(":", "").Replace("-", "");
 
         await exporter.ExportAsync(nodesToRender, scale);
+        Messenger.Send<ProjectExportedMessage>(default);
     }
 
     public async Task ExportNodesToFileAsync(IFileContentSource fileContentSource, IEnumerable<SKNode> nodesToRender, double scale)

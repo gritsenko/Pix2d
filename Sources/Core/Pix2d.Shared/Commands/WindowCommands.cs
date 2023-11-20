@@ -1,4 +1,5 @@
-﻿using Pix2d.Abstract.Commands;
+﻿using CommonServiceLocator;
+using Pix2d.Abstract.Commands;
 using Pix2d.Abstract.Services;
 using Pix2d.Primitives;
 
@@ -11,7 +12,7 @@ public class WindowCommands : CommandsListBase {
     
     public Pix2dCommand RateAppCommand => GetCommand(async () =>
     {
-        var result = await CoreServices.StoreRateService.RateApp();
+        var result = await ServiceLocator.Current.GetInstance<IReviewService>().RateApp();
         if (result)
         {
             AppState.UiState.ShowRatePrompt = false;
