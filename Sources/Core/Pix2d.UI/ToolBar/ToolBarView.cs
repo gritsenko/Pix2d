@@ -12,7 +12,7 @@ public class ToolBarView : ComponentBase
 {
     protected override object Build()
     {
-        return new StackPanel()
+        return new StackPanel().Ref(out var parentStackPanel)
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children(
                 new Button() //Color picker button
@@ -43,6 +43,7 @@ public class ToolBarView : ComponentBase
                         new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) =>
                             new BrushItemView().Preset(itemVm))),
                 new StackPanel().Ref(out _toolsStackPanel)
+                    .Orientation(parentStackPanel.Orientation, bindingSource: parentStackPanel)
             );
     }
 

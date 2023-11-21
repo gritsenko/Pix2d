@@ -264,9 +264,6 @@ public class PlayMarketLicenseService : ILicenseService, IInAppBillingVerifyPurc
 
 public class AndroidReviewService : ReviewService
 {
-    public AndroidReviewService(ISettingsService settingsService, IMessenger messenger) : base(settingsService, messenger)
-    {
-    }
 
     public override async Task<bool> RateApp()
     {
@@ -295,4 +292,7 @@ public class AndroidReviewService : ReviewService
         return false;
     }
 
+    public AndroidReviewService(ISettingsService settingsService, IMessenger messenger, AppState appState) : base(settingsService, messenger, appState)
+    {
+    }
 }

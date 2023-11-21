@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Sentry.Protocol;
 
 namespace Pix2d.Services;
 
@@ -9,6 +10,7 @@ public abstract class ReviewService : IReviewService
 {
     protected ISettingsService SettingsService { get; }
     protected IMessenger Messenger { get; }
+    public AppState AppState { get; }
 
     private static readonly string[] PromptMessages =
     {
@@ -42,10 +44,11 @@ public abstract class ReviewService : IReviewService
 
     private Dictionary<string, string> _lastReviewArgs;
 
-    protected ReviewService(ISettingsService settingsService, IMessenger messenger)
+    protected ReviewService(ISettingsService settingsService, IMessenger messenger, AppState appState)
     {
         SettingsService = settingsService;
         Messenger = messenger;
+        AppState = appState;
 
         messenger.Register<ProjectSavedMessage>(this, m => TrySuggestRate("Save"));
         messenger.Register<ProjectExportedMessage>(this, m => TrySuggestRate("Export"));
@@ -84,6 +87,8 @@ public abstract class ReviewService : IReviewService
 
         promptsCount++;
         SettingsService.Set("AppReviewPromptsCount", promptsCount);
+
+        AppState.UiState.ShowRatePrompt = true;
         return true;
     }
 
