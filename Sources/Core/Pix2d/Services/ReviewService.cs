@@ -1,5 +1,6 @@
 ﻿using Pix2d.Messages;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Pix2d.Services;
@@ -34,8 +35,9 @@ public abstract class ReviewService : IReviewService
         "Rate",
         "Review",
         "OK",
-        "👌",
-        "👍"
+        "Yes",
+        "  👌  ",
+        "  👍  "
     };
 
     private Dictionary<string, string> _lastReviewArgs;
@@ -69,13 +71,13 @@ public abstract class ReviewService : IReviewService
         SettingsService.TryGet<DateTime>("NextPromptTime", out var nextPromptTime);
         SettingsService.TryGet<TimeSpan>("TotalWorkTime", out var totalWorkTime);
 
-#if !DEBUG
         if (isReviewed || nextPromptTime > DateTime.Now || totalWorkTime.TotalHours < 2)
         {
             Debug.WriteLine("Not ready for review prompt");
+#if !DEBUG
             return false;
-        }
 #endif
+        }
         SettingsService.TryGet<int>("AppReviewPromptsCount", out var promptsCount);
 
         LogReview("Showing prompt", contextTitle);

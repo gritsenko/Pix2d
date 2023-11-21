@@ -513,6 +513,23 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, IIm
     public void SetEditMode(bool enabled)
     {
         this.EditMode = enabled;
+        if (enabled)
+        {
+            InvalidateLayersAndFrames();
+        }
+    }
+
+    /// <summary>
+    /// Used for fixing invalid offsets on children nodes
+    /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
+    private void InvalidateLayersAndFrames()
+    {
+        foreach (var layer in Layers)
+        {
+            if(layer.Position != SKPoint.Empty)
+                layer.Position = SKPoint.Empty;
+        }
     }
 
     public IDrawingTarget GetDrawingTarget()

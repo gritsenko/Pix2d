@@ -423,20 +423,20 @@ namespace SkiaNodes
         {
             DrawHitZone(canvas, vp, 2, SKColors.Red);
 
-            DrawBoundingBox(canvas, vp, 2, SKColors.Blue);
+            DrawBoundingBox(canvas, vp, 2, SKColors.BurlyWood);
         }
 
         public virtual void DrawBoundingBox(SKCanvas canvas, ViewPort vp, float thikness, SKColor color)
         {
             DrawRect(GetBoundingBox(), canvas, vp, thikness, color);
-            //#if DEBUG
-            //            using (var paint = new SKPaint())
-            //            {
-            //                paint.Color = color;
-            //                paint.TextSize = 10;
-            //                canvas.DrawText($"{this.Name}[{this.GetType().Name}]", 30* GetNestingLevel(), 20+ 20 * Index, paint);
-            //            }
-            //#endif
+//#if DEBUG
+//            using (var paint = new SKPaint())
+//            {
+//                paint.Color = color;
+//                paint.TextSize = 10;
+//                canvas.DrawText($"{this.Name}[{this.GetType().Name}]", 10 * GetNestingLevel(), 20 + 20 * Index, paint);
+//            }
+//#endif
         }
 
         public virtual void DrawHitZone(SKCanvas canvas, ViewPort vp, float thikness, SKColor color) => DrawRect(GetHitZone(), canvas, vp, thikness, color);

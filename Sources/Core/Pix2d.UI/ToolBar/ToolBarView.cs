@@ -12,8 +12,9 @@ public class ToolBarView : ComponentBase
 {
     protected override object Build()
     {
-        var tools = new List<Control>()
-        {
+        return new StackPanel()
+            .Background(StaticResources.Brushes.PanelsBackgroundBrush)
+            .Children(
                 new Button() //Color picker button
                     .Classes("color-button")
                     .IsVisible(IsSpriteEditMode)
@@ -41,16 +42,8 @@ public class ToolBarView : ComponentBase
                     .ContentTemplate(
                         new FuncDataTemplate<Primitives.Drawing.BrushSettings>((itemVm, ns) =>
                             new BrushItemView().Preset(itemVm))),
-        };
-
-        foreach (var tool in AppState.UiState.Tools.Where(x => x.Context == EditContextType.Sprite))
-        {
-            tools.Add(new ToolItemView(tool));
-        }
-        
-        return new StackPanel()
-            .Background(StaticResources.Brushes.PanelsBackgroundBrush)
-            .Children(tools.ToArray());
+                new StackPanel().Ref(out _toolsStackPanel)
+            );
     }
 
 
@@ -59,6 +52,7 @@ public class ToolBarView : ComponentBase
     [Inject] private IMessenger Messenger { get; set; }
 
     private bool IsSpriteEditMode = true;
+    private StackPanel _toolsStackPanel;
 
     public List<ToolItemView> Tools { get; set; } = new();
 
@@ -67,9 +61,27 @@ public class ToolBarView : ComponentBase
     {
         //Messenger.Register<EditContextChangedMessage>(this, msg => UpdateToolsFromCurrentContext());
         Messenger.Register<CurrentToolChangedMessage>(this, msg => StateHasChanged());
+        AppState.CurrentProject.WatchFor(x=>x.CurrentContextType, OnEditContextChanged);
         //UpdateToolsFromCurrentContext(false);
+        RebuildTools();
     }
-    
+
+    private void OnEditContextChanged()
+    {
+        RebuildTools();
+        StateHasChanged();
+    }
+
+    private void RebuildTools()
+    {
+        _toolsStackPanel.Children.Clear();
+
+        foreach (var tool in AppState.UiState.Tools.Where(x => x.Context == AppState.CurrentProject.CurrentContextType))
+        {
+            _toolsStackPanel.Children.Add(new ToolItemView(tool));
+        }
+    }
+
     private void ButtonStyle(Button b)
     {
         if(b.Command is Pix2dCommand pc)

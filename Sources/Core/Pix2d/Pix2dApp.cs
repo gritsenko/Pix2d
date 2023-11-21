@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Pix2d.Abstract.Platform.FileSystem;
+using Pix2d.CommonNodes;
 using Pix2d.Infrastructure;
 using Pix2d.Messages;
 using Pix2d.Messages.ViewPort;
@@ -110,6 +112,18 @@ public class Pix2DApp : IViewPortService, IAppStateService<AppState>
                 return Task.CompletedTask;
             }, "Full Mode",
             new CommandShortcut(VirtualKeys.F12));
+
+        CoreServices.CommandService.RegisterAsyncCommand("Global.SwitchToSpriteMode",
+            () =>
+            {
+                var selectedNodes = CoreServices.SelectionService.Selection.Nodes;
+                if (selectedNodes.FirstOrDefault() is Pix2dSprite sprite)
+                {
+                    CoreServices.EditService.RequestEdit(selectedNodes);
+                }
+                return Task.CompletedTask;
+            }, "Sprite Mode",
+            new CommandShortcut(VirtualKeys.F2));
 #endif
 
 
@@ -168,7 +182,6 @@ public class Pix2DApp : IViewPortService, IAppStateService<AppState>
 
         CoreServices.EditService.ApplyCurrentEdit();
     }
-
 
     private void InitializePlugins()
     {
