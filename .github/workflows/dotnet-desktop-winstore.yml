@@ -130,13 +130,15 @@ jobs:
     - name: Remove the pfx
       run: Remove-Item -path $env:Wap_Project_Directory\GitHubActionsWorkflow.pfx
 
-    - name: Publish to msstore
-      run: |
-        msstore init -n Gritsenko
-        msstore publish ${{ env.Wap_Project_Directory }}
+    # - name: Publish to msstore
+    #   run: |
+    #     msstore init -n Gritsenko
+    #     msstore publish ${{ env.Wap_Project_Directory }}
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
     # - name: Upload build artifacts
     #   uses: actions/upload-artifact@v3
     #   with:
     #     name: MSIX Package
     #     path: ${{ env.Wap_Project_Directory }}\AppPackages
+    - name: copy to tmp
+      run: Copy-Item -Path "${{ env.Wap_Project_Directory }}\AppPackages" -Destination "C:\tmp\WinStore" -Recurse
