@@ -141,4 +141,4 @@ jobs:
     #     name: MSIX Package
     #     path: ${{ env.Wap_Project_Directory }}\AppPackages
     - name: copy to tmp
-      run: Copy-Item -Path "${{ env.Wap_Project_Directory }}\AppPackages" -Destination "C:\tmp\WinStore" -Recurse
+      run: Copy-Item -Path "${{ env.Wap_Project_Directory }}\AppPackages" -Destination "C:\tmp\WinStore" -Recurse –Force
