@@ -1,19 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<OutputType>WinExe</OutputType>
-		<TargetFramework>net7.0-windows10.0.19041.0</TargetFramework>
-		<ApplicationIcon>app.ico</ApplicationIcon>
-		<StartupObject />
-		<AssemblyName>Pix2d</AssemblyName>
-		<Version>$(Pix2dVersion)</Version>
-		<PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net7.0-windows10.0.19041.0</TargetFramework>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <StartupObject />
+    <AssemblyName>Pix2d</AssemblyName>
+    <Version>$(Pix2dVersion)</Version>
+    <PackageProjectUrl>http://pix2d.com</PackageProjectUrl>
     <Platforms>AnyCPU;x86;x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
     <UseSubFolderForOutputDirDuringMultiPlatformBuild>false</UseSubFolderForOutputDirDuringMultiPlatformBuild>
-	</PropertyGroup>
-	<PropertyGroup>
-		<EnableWindowsTargeting>true</EnableWindowsTargeting>
-	</PropertyGroup>
+  </PropertyGroup>
+  <PropertyGroup>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <RunAOTCompilation>true</RunAOTCompilation>
+  </PropertyGroup>
+
 
   <PropertyGroup>
     <DefineConstants>$(DefineConstants);WINDOWS_UWP</DefineConstants>
@@ -36,31 +41,31 @@
   </PropertyGroup>
 
   <ItemGroup>
-		<Compile Update="**\*.xaml.cs">
-			<DependentUpon>%(Filename)</DependentUpon>
-		</Compile>
-		<AvaloniaResource Include="**\*.xaml">
-			<SubType>Designer</SubType>
-		</AvaloniaResource>
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="Avalonia.Angle.Windows.Natives" Version="2.1.0.2023020321" />
-		<PackageReference Include="Avalonia.Desktop" Version="11.0.5" />
-		<PackageReference Include="Avalonia.Diagnostics" Version="11.0.5" />
-		<PackageReference Include="Clowd.Clipboard" Version="1.0.1" />
-		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.0.1" />
-		<PackageReference Include="Dock.Avalonia.Themes.Default" Version="0.10.0" />
-		<PackageReference Include="Microsoft.AppCenter" Version="5.0.3" />
-		<PackageReference Include="Microsoft.AppCenter.Analytics" Version="5.0.3" />
-		<PackageReference Include="Microsoft.AppCenter.Crashes" Version="5.0.3" />
-		<PackageReference Include="Sentry" Version="3.41.0" />
-	</ItemGroup>
-	<ItemGroup>
+    <Compile Update="**\*.xaml.cs">
+      <DependentUpon>%(Filename)</DependentUpon>
+    </Compile>
+    <AvaloniaResource Include="**\*.xaml">
+      <SubType>Designer</SubType>
+    </AvaloniaResource>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Angle.Windows.Natives" Version="2.1.0.2023020321" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.0.5" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.0.5" />
+    <PackageReference Include="Clowd.Clipboard" Version="1.0.1" />
+    <PackageReference Include="Clowd.Clipboard.Gdi" Version="1.0.1" />
+    <PackageReference Include="Dock.Avalonia.Themes.Default" Version="0.10.0" />
+    <PackageReference Include="Microsoft.AppCenter" Version="5.0.3" />
+    <PackageReference Include="Microsoft.AppCenter.Analytics" Version="5.0.3" />
+    <PackageReference Include="Microsoft.AppCenter.Crashes" Version="5.0.3" />
+    <PackageReference Include="Sentry" Version="3.41.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
     <ProjectReference Include="..\..\..\Core\Pix2d.UI\Pix2d.UI.csproj" />
     <ProjectReference Include="..\..\..\Core\Pix2d\Pix2d.Core.csproj" />
     <ProjectReference Include="..\..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
     <ProjectReference Include="..\..\..\Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj" />
-	</ItemGroup>
-	<Import Project="..\Pix2d.Desktop.Shared\Pix2d.Desktop.Shared.projitems" Label="Shared" />
+  </ItemGroup>
+  <Import Project="..\Pix2d.Desktop.Shared\Pix2d.Desktop.Shared.projitems" Label="Shared" />
 </Project>
