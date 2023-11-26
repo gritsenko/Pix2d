@@ -1,7 +1,5 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Threading.Tasks;
-using Pix2d.Abstract.Services;
 using SkiaNodes;
 using SkiaNodes.Interactive;
 
@@ -10,32 +8,11 @@ namespace Pix2d.Abstract.Tools;
 public abstract class BaseTool : ITool
 {
     protected SKNode? RootNode => SKInput.Current.RootNodeProvider?.Invoke();
-    public string Key => GetType().Name;
-    public virtual EditContextType EditContextType => EditContextType.General;
     public bool IsActive { get; private set; }
-    public bool IsEnabled { get; } = true;
-    public virtual ToolBehaviorType Behavior => ToolBehaviorType.Selectable;
-    public virtual string NextToolKey { get; } = "";
-    public abstract string DisplayName { get; }
-
-    public virtual string ToolIconData { get; } = null!;
-    public virtual string HotKey
-    {
-        get
-        {
-            if (DefaultServiceLocator.ServiceLocatorProvider().GetInstance<ICommandService>()?.TryGetCommand("Tools.Activate" + this.Key, out var command) == true)
-            {
-                return command.DefaultShortcut.Key.ToString();
-            }
-            return null;
-        }
-    }
-
-    private bool _isPointerCatched = false;
 
     public virtual Task Activate()
     {
-        Debug.WriteLine(Key + " Tool activated");
+        Debug.WriteLine($"{GetType().Name} Tool activated");
         IsActive = true;
 
         if (RootNode == null) return Task.CompletedTask;
@@ -50,10 +27,8 @@ public abstract class BaseTool : ITool
 
     public virtual void Deactivate()
     {
-        if (_isPointerCatched)
-            ReleasePointer();
         IsActive = false;
-        Debug.WriteLine(Key + " Tool deactivated");
+        Debug.WriteLine($"{GetType().Name} Tool deactivated");
 
         if (RootNode == null) return;
         
@@ -78,24 +53,4 @@ public abstract class BaseTool : ITool
     protected virtual void OnPointerDoubleClicked(object sender, PointerActionEventArgs e)
     {
     }
-
-    protected void CapturePointer()
-    {
-        SKInput.Current.CapturePointer(RootNode);
-        _isPointerCatched = true;
-    }
-
-    protected void ReleasePointer()
-    {
-        SKInput.Current.ReleasePointer(RootNode);
-        _isPointerCatched = false;
-    }
-}
-
-public class ToolSettings
-{
-    public string DisplayName { get; set; }
-    public string HotKey { get; set; }
-    public string IconData { get; set; }
-    public Func<object>? TopBarUI { get; set; }
 }

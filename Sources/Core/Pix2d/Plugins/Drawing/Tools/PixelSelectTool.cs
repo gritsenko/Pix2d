@@ -14,26 +14,20 @@ using SkiaSharp;
 namespace Pix2d.Drawing.Tools;
 
 
-[Pix2dTool(HasSettings = true)]
+[Pix2dTool(
+    EditContextType = EditContextType.Sprite,
+    HasSettings = true, 
+    DisplayName = "Pixels select tool")]
 public class PixelSelectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 {
-    public static ToolSettings ToolSettings { get; } = new()
-    {
-        DisplayName = "Pixels select tool",
-        HotKey = null,
-    };
-
     public IDrawingService DrawingService { get; }
     public IMessenger Messenger { get; }
     public AppState AppState { get; }
     public SelectionState SelectionState => AppState.SelectionState;
 
     private DrawingOperation _pixelSelectDrawingOperation;
-    public override string DisplayName => ToolSettings.DisplayName;
 
     private IDrawingLayer DrawingLayer => DrawingService.DrawingLayer;
-
-    public override EditContextType EditContextType => EditContextType.Sprite;
 
     public PixelSelectionMode SelectionMode
     {

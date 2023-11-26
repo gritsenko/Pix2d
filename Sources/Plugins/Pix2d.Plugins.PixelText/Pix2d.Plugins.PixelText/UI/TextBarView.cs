@@ -9,13 +9,15 @@ using Avalonia.Layout;
 using Avalonia.Markup.Declarative;
 using Pix2d.Abstract.Tools;
 using Pix2d.Drawing.Tools;
+using Pix2d.Plugins.PixelText;
 using Pix2d.Primitives;
 using Pix2d.State;
 using Pix2d.UI.Resources;
 
 namespace Pix2d.Views.Text;
 
-public class TextBarView : ComponentBase {
+public class TextBarView : ComponentBase
+{
 
     protected override object Build() =>
         new StackPanel()
@@ -114,7 +116,8 @@ public class TextBarView : ComponentBase {
                     .Content("\xE73E")
             });
 
-    private void ButtonStyle(Button b) {
+    private void ButtonStyle(Button b)
+    {
         b.Classes("AppBarButton")
             .Width(48)
             .Height(48)
@@ -122,13 +125,13 @@ public class TextBarView : ComponentBase {
             .FontFamily(StaticResources.Fonts.IconFontSegoe)
             .Padding(new Thickness(0));
 
-        if (b.Command is Pix2dCommand pc) {
+        if (b.Command is Pix2dCommand pc)
+        {
             b.ToolTip(pc.Tooltip);
         }
     }
     [Inject] public IFontService FontService { get; set; } = null!;
     [Inject] public AppState AppState { get; set; } = null!;
-    [Inject] public IToolService ToolService { get; set; } = null!;
 
     private PixelTextTool? _pixelTextTool = null!;
     public string Text
@@ -195,11 +198,7 @@ public class TextBarView : ComponentBase {
 
     protected override async void OnAfterInitialized()
     {
-        if(ToolService.GetToolByKey(nameof(PixelTextTool)) is PixelTextTool pixelTextTool)
-        {
-            _pixelTextTool = pixelTextTool;
-        }
-
+        _pixelTextTool = AppState.ToolsState.Tools.FirstOrDefault(x => x.ToolType == typeof(PixelTextTool)).ToolInstance as PixelTextTool;
         await LoadFonts();
     }
 
@@ -221,8 +220,7 @@ public class TextBarView : ComponentBase {
 
     protected virtual void OnTextApplied()
     {
-        var toolKey = AppState.UiState.CurrentToolKey;
-        if (toolKey == _pixelTextTool.Key)
+        if (AppState.ToolsState.CurrentTool.ToolInstance == _pixelTextTool)
         {
             _pixelTextTool.ApplyText(Text);
         }

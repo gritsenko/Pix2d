@@ -82,9 +82,8 @@ public class BrushToolSettingsView : ComponentBase
 
     public ICommand SelectShapeCommand => new RelayCommand<ShapeType>(shapeType =>
     {
-        var dc = this.DataContext as BrushTool;
-        if (dc != null)
-            dc.ShapeType = shapeType;
+        //if (this.DataContext is BrushTool dc)
+        //    dc.ShapeType = shapeType;
     });
 
     protected override void OnAfterInitialized()

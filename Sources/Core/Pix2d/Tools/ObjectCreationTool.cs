@@ -13,8 +13,6 @@ namespace Pix2d.Tools
         private Frame _selectionFrame = new Frame();
         private SKNode _scene;
 
-        public override string NextToolKey => nameof(ObjectManipulationTool);
-
         protected IObjectCreationService ObjectCreationService => DefaultServiceLocator.ServiceLocatorProvider().GetInstance<IObjectCreationService>();
         protected IToolService ToolService => DefaultServiceLocator.ServiceLocatorProvider().GetInstance<IToolService>();
         protected ISceneService SceneService => DefaultServiceLocator.ServiceLocatorProvider().GetInstance<ISceneService>();
@@ -56,11 +54,6 @@ namespace Pix2d.Tools
             _selectionFrame.IsVisible = false;
 
             CreateObjectCore(_selectionFrame.GetBoundingBox());
-
-            if (!string.IsNullOrWhiteSpace(NextToolKey))
-            {
-                ToolService.ActivateTool(NextToolKey);
-            }
         }
 
         protected abstract void CreateObjectCore(SKRect destRect);

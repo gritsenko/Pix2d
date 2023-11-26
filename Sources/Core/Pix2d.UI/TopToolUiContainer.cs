@@ -20,13 +20,13 @@ public class TopToolUiContainer : ComponentBase
 
     protected override void OnInitialized()
     {
-        AppState.UiState.WatchFor(x => x.CurrentToolKey, OnStatePropertyChanged);
+        AppState.ToolsState.WatchFor(x => x.CurrentToolKey, OnStatePropertyChanged);
     }
 
     private void OnStatePropertyChanged()
     {
-        var toolUiProvider = AppState.UiState.Tools.FirstOrDefault(x => x.Name == AppState.UiState.CurrentToolKey)
-            ?.TopBarUI;
+        var toolUiProvider = AppState.ToolsState.Tools
+            .FirstOrDefault(x => x.Name == AppState.ToolsState.CurrentToolKey)?.TopBarUi;
 
         ToolUiContent = toolUiProvider?.Invoke() as Control;
 

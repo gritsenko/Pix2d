@@ -33,13 +33,12 @@ public class SpritePlugin : IPix2dPlugin
         CommandService.RegisterCommandList(EditCommands);
         CommandService.RegisterCommandList(AnimationCommands);
 
-        ToolService.RegisterTool<ImageTool>(EditContextType.General);
         //EditService.RegisterEditor<Pix2dSprite, SpriteEditor>();
     }
 
     internal static (IEnumerable<SKNode> Nodes, SKColor BackgroundColor) GetDataForCutOrCopy(AppState appState)
     {
-        if (appState.CurrentProject.CurrentTool is not IPixelSelectionTool)
+        if (appState.ToolsState.CurrentTool.ToolInstance is not IPixelSelectionTool)
             return (Enumerable.Empty<SKNode>(), SKColor.Empty);
         
         IEnumerable<SKNode> selectedNodes = appState.CurrentProject.Selection?.Nodes;

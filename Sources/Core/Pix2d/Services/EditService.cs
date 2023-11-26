@@ -120,7 +120,7 @@ public class EditService : IEditService
                 return;
 
             var selection = ProjectState.Selection;
-            if (selection == null || ProjectState.CurrentTool is IDrawingTool)
+            if (selection == null || AppState.ToolsState.CurrentTool.ToolInstance is IDrawingTool)
             {
                 FrameEditorNode.IsVisible = false;
                 return;

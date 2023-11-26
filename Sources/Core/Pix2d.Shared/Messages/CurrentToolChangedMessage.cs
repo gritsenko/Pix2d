@@ -1,16 +1,13 @@
 ﻿using Pix2d.Abstract.Tools;
 
-namespace Pix2d.Messages
-{
-    public class CurrentToolChangedMessage
-    {
-        public ITool OldTool { get; }
-        public ITool NewTool { get; }
+namespace Pix2d.Messages;
 
-        public CurrentToolChangedMessage(ITool oldTool, ITool newTool)
-        {
-            NewTool = newTool;
-            OldTool = oldTool;
-        }
+public class CurrentToolChangedMessage
+{
+    public ITool NewTool { get; }
+
+    public CurrentToolChangedMessage(ITool newTool)
+    {
+        NewTool = newTool;
     }
 }

@@ -17,7 +17,7 @@ public class ToolBarView : ComponentBase
             .Children(
                 new Button() //Color picker button
                     .Classes("color-button")
-                    .IsVisible(IsSpriteEditMode)
+                    .IsVisible(() => IsSpriteEditMode)
                     .Command(Commands.View.ToggleColorEditorCommand)
                     .CornerRadius(25)
                     .BorderThickness(3)
@@ -31,7 +31,7 @@ public class ToolBarView : ComponentBase
                 new Button() //Brush settings button
                     .Classes("toolbar-button")
                     .Classes("brush-button")
-                    .IsVisible(IsSpriteEditMode)
+                    .IsVisible(() => IsSpriteEditMode)
                     .Padding(0)
                     .Command(Commands.View.ToggleBrushSettingsCommand)
                     .Content(AppState.DrawingState.CurrentBrushSettings, BindingMode.OneWay,
@@ -52,7 +52,8 @@ public class ToolBarView : ComponentBase
     [Inject] private AppState AppState { get; set; }
     [Inject] private IMessenger Messenger { get; set; }
 
-    private bool IsSpriteEditMode = true;
+    private bool IsSpriteEditMode => AppState.CurrentProject.CurrentContextType == EditContextType.Sprite;
+
     private StackPanel _toolsStackPanel;
 
     public List<ToolItemView> Tools { get; set; } = new();
@@ -62,7 +63,7 @@ public class ToolBarView : ComponentBase
     {
         //Messenger.Register<EditContextChangedMessage>(this, msg => UpdateToolsFromCurrentContext());
         Messenger.Register<CurrentToolChangedMessage>(this, msg => StateHasChanged());
-        AppState.CurrentProject.WatchFor(x=>x.CurrentContextType, OnEditContextChanged);
+        AppState.CurrentProject.WatchFor(x => x.CurrentContextType, OnEditContextChanged);
         //UpdateToolsFromCurrentContext(false);
         RebuildTools();
     }
@@ -77,15 +78,31 @@ public class ToolBarView : ComponentBase
     {
         _toolsStackPanel.Children.Clear();
 
-        foreach (var tool in AppState.UiState.Tools.Where(x => x.Context == AppState.CurrentProject.CurrentContextType))
+        var groupItems = new List<ToolItemGroupView>();
+
+        foreach (var tool in AppState.ToolsState.Tools.Where(x => x.Context == AppState.CurrentProject.CurrentContextType))
         {
-            _toolsStackPanel.Children.Add(new ToolItemView(tool));
+            var toolItemView = new ToolItemView(tool);
+            if (string.IsNullOrWhiteSpace(tool.GroupName))
+                _toolsStackPanel.Children.Add(toolItemView);
+            else
+            {
+                var groupItem = groupItems.FirstOrDefault(x => x.GroupName == tool.GroupName);
+                if (groupItem == null)
+                {
+                    groupItem = new ToolItemGroupView() { GroupName = tool.GroupName };
+                    groupItems.Add(groupItem);
+                    groupItem.SetActiveItem(toolItemView);
+                    _toolsStackPanel.Children.Add(groupItem);
+                }
+                groupItem.Items.Add(toolItemView);
+            }
         }
     }
 
     private void ButtonStyle(Button b)
     {
-        if(b.Command is Pix2dCommand pc)
+        if (b.Command is Pix2dCommand pc)
         {
             b.ToolTip(pc.Tooltip);
         }

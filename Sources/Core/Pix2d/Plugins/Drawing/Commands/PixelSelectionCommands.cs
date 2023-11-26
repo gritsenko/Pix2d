@@ -13,7 +13,7 @@ namespace Pix2d.Plugins.Drawing.Commands
             EditContextType.Sprite,
             () =>
             {
-                CoreServices.ToolService.ActivateTool(nameof(PixelSelectTool));
+                CoreServices.ToolService.ActivateTool<PixelSelectTool>();
                 CoreServices.DrawingService.SelectAll();
                 CoreServices.ViewPortService.Refresh();
             });

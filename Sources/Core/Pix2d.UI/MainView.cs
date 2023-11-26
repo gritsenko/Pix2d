@@ -16,7 +16,6 @@ using Pix2d.UI.MainMenu;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using Pix2d.UI.ToolBar;
-using VisualExtensions = Avalonia.Markup.Declarative.VisualExtensions;
 
 namespace Pix2d.UI;
 
@@ -208,7 +207,14 @@ public class MainView : ComponentBase
 
                     }),
 
-                LayoutableExtensions.VerticalAlignment(LayoutableExtensions.HorizontalAlignment(LayoutableExtensions.MinHeight(LayoutableExtensions.MinWidth(LayoutableExtensions.Margin(VisualExtensions.IsVisible(ControlPropertyExtensions.Row(ControlPropertyExtensions.Col(new ToolSettingsContainerView(), 1), 2), UiState.ShowToolProperties, bindingSource: UiState), 8, 120, 0, 0), 40), 40), HorizontalAlignment.Left), VerticalAlignment.Top),
+                new ToolSettingsContainerView()
+                    .Col(1).Row(2)
+                    .IsVisible(UiState.ShowToolProperties, bindingSource: UiState)
+                    .Margin(8, 120, 0, 0)
+                    .MinWidth(40)
+                    .MinHeight(40)
+                    .HorizontalAlignment(HorizontalAlignment.Left)
+                    .VerticalAlignment(VerticalAlignment.Top),
 
 
                 new ExportView().ColSpan(2).RowSpan(5).IsVisible(UiState.ShowExportDialog, bindingSource: UiState),

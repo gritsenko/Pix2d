@@ -11,6 +11,7 @@ using Pix2d.Infrastructure;
 using Pix2d.Messages;
 using Pix2d.Messages.ViewPort;
 using Pix2d.Primitives;
+using Pix2d.Services;
 using SkiaNodes;
 using SkiaNodes.Interactive;
 using SkiaSharp;
@@ -102,7 +103,7 @@ public class Pix2DApp : IViewPortService, IAppStateService<AppState>
         InitializeRefreshEvents();
 
         Trace("Init tools");
-        CoreServices.ToolService.Initialize();
+        ((ToolService)CoreServices.ToolService).Initialize();
 
 #if DEBUG
         CoreServices.CommandService.RegisterAsyncCommand("Global.SwitchToFullMode",

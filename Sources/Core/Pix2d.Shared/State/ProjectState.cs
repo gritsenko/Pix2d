@@ -29,10 +29,6 @@ public class ProjectState : StateBase
 
     public SKSize SelectionSize => HasSelection ? Selection.Bounds.Size : (SceneNode?.GetChildrenBounds().Size ?? SKSize.Empty);
     public bool HasSelection => Selection?.Nodes?.Any() == true;
-
-    [Obsolete]
-    //вот молодец! написал что обсолете, а на что менять не написал! мда!
-    public ITool CurrentTool { get; set; }
     public INodeEditor CurrentNodeEditor { get; set; }
     public EditContextType DefaultEditContextType { get; set; }
     public EditContextType CurrentContextType

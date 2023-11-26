@@ -35,4 +35,6 @@ public class AppState : StateBase
     public SelectionState SelectionState { get; set; } = new();
 
     public DrawingState DrawingState { get; set; } = new();
+
+    public ToolsState ToolsState { get; set; } = new();
 }

@@ -42,7 +42,7 @@ public class ToolItemView : ComponentBase
                 .Classes("toolbar-button")
                 .OnClick(OnButtonClicked)
                 // .CommandParameter(new Binding())
-                .Content(() => ToolKey)
+                .Content(() => ToolIconKey)
                 .IsEnabled(() => !AppState.CurrentProject.IsAnimationPlaying || ToolState.EnabledDuringAnimation)
                 .DataTemplates(StaticResources.Templates.ToolIconTemplateSelector),
             new Path()
@@ -60,12 +60,15 @@ public class ToolItemView : ComponentBase
     [Inject] AppState AppState { get; set; } = null!;
     [Inject] private IMessenger Messenger { get; set; } = null!;
     public string ToolKey => ToolState?.Name ?? "";
-    public bool IsSelected => AppState.UiState.CurrentToolKey == ToolKey;
+
+    public string ToolIconKey => ToolState?.IconKey ?? "";
+    public bool IsSelected => AppState.ToolsState.CurrentToolKey == ToolKey;
 
     public bool ShowProperties => ToolState?.HasToolProperties ?? false;
     public ToolState ToolState
     {
-        get => _toolState; set
+        get => _toolState; 
+        set
         {
             _toolState = value;
             StateHasChanged();

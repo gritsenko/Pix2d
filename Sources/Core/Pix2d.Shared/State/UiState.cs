@@ -122,11 +122,5 @@ public class UiState : StateBase
         set => Set(value);
     }
 
-    public List<ToolState> Tools = new();
 
-    public string CurrentToolKey
-    {
-        get => Get<string>();
-        set => Set(value);
-    }
 }

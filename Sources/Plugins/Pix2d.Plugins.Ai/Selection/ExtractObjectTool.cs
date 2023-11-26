@@ -13,19 +13,14 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Ai.Selection;
 
+[Pix2dTool(
+    EditContextType = EditContextType.Sprite,
+    DisplayName = "Object selection tool",
+    HotKey = null,
+    IconData = AiPlugin.ToolIcon
+)]
 public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 {
-    public static ToolSettings ToolSettings { get; } = new()
-    {
-        DisplayName = "Object selection tool",
-        HotKey = null,
-        IconData = AiPlugin.ToolIcon,
-    };
-
-    public override string DisplayName => ToolSettings.DisplayName;
-
-    public override string ToolIconData => AiPlugin.ToolIcon;
-
     public IDrawingService DrawingService { get; }
     public IMessenger Messenger { get; }
     public AppState AppState { get; }
@@ -36,8 +31,6 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
     private AiPixelSelector _aiPixelSelector;
 
     private IDrawingLayer DrawingLayer => DrawingService.DrawingLayer;
-
-    public override EditContextType EditContextType => EditContextType.Sprite;
 
     public PixelSelectionMode SelectionMode
     {

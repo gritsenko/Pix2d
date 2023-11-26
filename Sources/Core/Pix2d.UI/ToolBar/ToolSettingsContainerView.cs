@@ -29,7 +29,7 @@ public class ToolSettingsContainerView : ComponentBase
                 FillToolSettingsTemplate,
                 PixelSelectToolSettingsTemplate
             )
-            .Content(() => AppState.CurrentProject.CurrentTool);
+            .Content(() => AppState.ToolsState.CurrentTool?.ToolInstance);
 
     [Inject] AppState AppState { get; set; } = null!;
     [Inject] IMessenger Messenger { get; set; } = null!;

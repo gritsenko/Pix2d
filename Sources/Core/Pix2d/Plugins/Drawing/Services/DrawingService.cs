@@ -305,7 +305,7 @@ namespace Pix2d.Services
 
         public void UpdateFromDesignerState()
         {
-            var tool = AppState.CurrentProject.CurrentTool;
+            var tool = AppState.ToolsState.CurrentTool?.ToolInstance;
             if (tool == null) return;
             tool.Deactivate();
             tool.Activate();
@@ -340,7 +340,7 @@ namespace Pix2d.Services
 
         public void PasteBitmap(SKBitmap bitmap, SKPoint pos)
         {
-            ToolService.ActivateTool(nameof(PixelSelectTool));
+            ToolService.ActivateTool<PixelSelectTool>();
             DrawingLayer?.ApplySelection();
             DrawingLayer?.SetSelectionFromExternal(bitmap, pos);
             

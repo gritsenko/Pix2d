@@ -65,7 +65,7 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
                     selectionBitmap = bmn.Bitmap.Copy();
                 }
 
-                if (AppState.CurrentProject.CurrentTool is PixelSelectTool ps)
+                if (AppState.ToolsState.CurrentTool.ToolInstance is PixelSelectTool ps)
                 {
                     targetBounds = ps.GetSelectionRect();
                     ps.ApplySelection();

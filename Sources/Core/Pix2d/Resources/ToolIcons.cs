@@ -11,7 +11,32 @@ public static class ToolIcons
         {
             ["BrushTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
                 new TextBlock().Classes("FontIcon").Classes("ToolIcon").Text("\xE70F")),
- 
+
+            ["PixelLineTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
+                    new Path()
+                        .Data(Geometry.Parse(
+                            "M 26.28125 4.28125 L 4.28125 26.28125 L 5.71875 27.71875 L 27.71875 5.71875 Z "))
+                        .Fill(Brushes.White)
+                        .Width(28)
+                        .Height(28)
+                        .Stretch(Stretch.Uniform)),
+
+            ["PixelRectangleTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
+                new TextBlock().Classes("FontIcon").Classes("ToolIcon")
+                    .FontFamily(StaticResources.Fonts.Pix2dThemeFontFamily)
+                    .Text("\xe920")),
+
+            ["PixelOvalTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
+                new TextBlock().Classes("FontIcon").Classes("ToolIcon")
+                    .FontFamily(StaticResources.Fonts.Pix2dThemeFontFamily)
+                    .Text("\xe908")),
+            
+            ["PixelTriangleTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
+                new TextBlock().Classes("FontIcon").Classes("ToolIcon")
+                    .FontFamily(StaticResources.Fonts.Pix2dThemeFontFamily)
+                    .Text("\xe927")),
+
+
             ["EraserTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
                 new TextBlock().Classes("FontIcon").Classes("ToolIcon").Text("\xE75C")),
             

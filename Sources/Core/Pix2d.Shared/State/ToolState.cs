@@ -1,4 +1,5 @@
-﻿using Pix2d.Abstract;
+﻿#nullable enable
+using Pix2d.Abstract;
 using Pix2d.Abstract.Tools;
 using System;
 using System.Reflection;
@@ -11,23 +12,23 @@ public class ToolState
     {
         Name = toolType.Name;
         this.ToolType = toolType;
-
         var toolAttr = toolType.GetCustomAttribute<Pix2dToolAttribute>();
         if (toolAttr != null)
         {
             HasToolProperties = toolAttr.HasSettings;
             EnabledDuringAnimation = toolAttr.EnabledDuringAnimation;
+            ToolTip = toolAttr.HotKey != null ? $"{toolAttr.DisplayName} ({toolAttr.HotKey})" : toolAttr.DisplayName;
+            IconKey = toolAttr.IconData;
+            GroupName = toolAttr.Group ?? "";
+            if (toolAttr.SettingsViewType != null) TopBarUi = () => IoC.Create<object>(toolAttr.SettingsViewType);
         }
 
-        if (toolType.GetProperty("ToolSettings")?.GetValue(null) is ToolSettings settings)
-        {
-            ToolTip = settings.HotKey != null ? $"{settings.DisplayName} ({settings.HotKey})" : settings.DisplayName;
-            IconKey = settings.IconData;
-            TopBarUI = settings.TopBarUI;
-        }
+        IconKey ??= toolType.Name;
     }
 
-    public Func<object>? TopBarUI { get; set; }
+    public string GroupName { get; set; }
+
+    public Func<object>? TopBarUi { get; set; }
 
     public bool EnabledDuringAnimation { get; set; }
 
@@ -37,9 +38,9 @@ public class ToolState
 
     public ITool? ToolInstance { get; set; }
 
-    public string? IconKey { get; set; }
+    public string? IconKey { get; }
 
-    public string ToolTip { get; }
+    public string ToolTip { get; } = "";
 
     public bool HasToolProperties { get; }
 }

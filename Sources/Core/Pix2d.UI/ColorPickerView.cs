@@ -297,7 +297,7 @@ public class ColorPickerView : ComponentBase
     }
 
 
-    public bool IsEyedropperSelected => AppState?.CurrentProject?.CurrentTool?.Key == "EyedropperTool";
+    public bool IsEyedropperSelected => AppState?.ToolsState.CurrentToolKey == "EyedropperTool";
 
     public ICommand OnAddColorCommand => new RelayCommand<SKColor>((c) =>
     {

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
@@ -12,16 +11,11 @@ public class ToolService : IToolService
 {
     public IMessenger Messenger { get; }
     public AppState AppState { get; }
-    private readonly SimpleContainer _container;
-        
-    private readonly Dictionary<string, ToolMeta> _tools = new();
-    private readonly Dictionary<EditContextType, string> _defaultContextTool = new();
+    private ToolsState ToolsState => AppState.ToolsState;
 
-    private ITool CurrentTool
-    {
-        get => AppState.CurrentProject.CurrentTool;
-        set => AppState.CurrentProject.CurrentTool = value;
-    }
+    private readonly SimpleContainer _container;
+
+    private readonly Dictionary<EditContextType, string> _defaultContextTool = new();
 
     public ToolService(SimpleContainer container, IMessenger messenger, AppState appState)
     {
@@ -31,43 +25,33 @@ public class ToolService : IToolService
         messenger.Register<ProjectLoadedMessage>(this, m => ActivateDefaultTool());
     }
 
-    public async void ActivateTool(string key)
+    public void ActivateTool(string key)
     {
-        if (!_tools.ContainsKey(key))
-            return;
+        var tool = GetToolStateByKey(key);
 
-        if (CurrentTool?.Key == key) return;
+        if (tool == null || ToolsState.CurrentToolKey == key) return;
 
-        var newTool = GetToolByKey(key);
-        //Tool is just action - no need to select
-        if (newTool.Behavior == ToolBehaviorType.OneAction && newTool.IsEnabled)
-        {
-            await newTool.Activate();
+        tool.ToolInstance ??= _container.BuildInstance(tool.ToolType) as ITool;
 
-            if (!string.IsNullOrWhiteSpace(newTool.NextToolKey))
-            {
-                ActivateTool(newTool.NextToolKey);
-            }
-            return;
-        }
+        var oldTool = GetToolStateByKey(ToolsState.CurrentToolKey);
+        oldTool?.ToolInstance?.Deactivate();
+        ToolsState.CurrentToolKey = tool.Name;
+        tool.ToolInstance?.Activate();
 
-        var oldTool = CurrentTool;
-
-        CurrentTool?.Deactivate();
-        CurrentTool = newTool;
-            
-        if (CurrentTool?.IsEnabled == true)
-        {
-            await CurrentTool.Activate();
-
-            OnToolChanged(oldTool, CurrentTool);
-        }
+        Messenger.Send(new CurrentToolChangedMessage(tool.ToolInstance));
     }
+
+    public void ActivateTool<TTool>()
+    {
+        ActivateTool(typeof(TTool).Name);
+    }
+
+    private ToolState? GetToolStateByKey(string key) => ToolsState.Tools.FirstOrDefault(x => x.Name == key);
 
     public void ActivateDefaultTool()
     {
         var context = AppState.CurrentProject.CurrentContextType;
-        if(!_defaultContextTool.TryGetValue(context, out var defaultTool))
+        if (!_defaultContextTool.TryGetValue(context, out var defaultTool))
         {
             defaultTool = _defaultContextTool[EditContextType.General];
         }
@@ -83,81 +67,28 @@ public class ToolService : IToolService
 
     private void OnAnimationStateChanged()
     {
-        if (AppState.CurrentProject.IsAnimationPlaying && CurrentTool is {IsActive: true} &&
-            !_tools[CurrentTool.Key].EnabledDuringAnimation)
-        {
-            ActivateDefaultTool();
-        }
+        var tool = GetToolStateByKey(ToolsState.CurrentToolKey);
+
+        if (!AppState.CurrentProject.IsAnimationPlaying || tool?.EnabledDuringAnimation == true) 
+            return;
+
+        ActivateDefaultTool();
     }
 
     public void RegisterTool<TTool>(EditContextType context)
         where TTool : ITool
     {
         var toolState = new ToolState(typeof(TTool)) { Context = context };
-        var toolMeta = new ToolMeta<TTool>(context, toolState.EnabledDuringAnimation);
-
-        _tools[toolMeta.Key] = toolMeta;
-
         if (!_defaultContextTool.ContainsKey(context))
         {
-            _defaultContextTool[context] = toolMeta.Key;
+            _defaultContextTool[context] = toolState.Name;
         }
 
-        AppState.UiState.Tools.Add(toolState);
-        if (toolState.IconKey != null)
+        AppState.ToolsState.Tools.Add(toolState);
+
+        if (toolState.IconKey != null && !ToolIcons.ToolIconTemplateSelector.Templates.ContainsKey(toolState.Name))
         {
             ToolIcons.ToolIconTemplateSelector.Templates.Add(toolState.Name, ToolIcons.GetToolTemplate(toolState.IconKey));
         }
     }
-
-    public ITool GetToolByKey(string key)
-    {
-        var meta = _tools[key];
-            
-        if (meta.Instance == null) 
-            meta.Instance = _container.BuildInstance(meta.ToolType) as ITool;
-            
-        return meta.Instance;
-    }
-
-    public IEnumerable<Type> GetTools(EditContextType contextType)
-    {
-        return _tools.Values
-            .Where(x => x.ContextType == contextType)
-            .Select(x => x.ToolType)
-            .ToArray();
-    }
-        
-    public void DeactivateTool()
-    {
-        CurrentTool?.Deactivate();
-    }
-    protected virtual void OnToolChanged(ITool oldTool, ITool newTool)
-    {
-        AppState.UiState.CurrentToolKey = newTool.Key;
-        Messenger.Send(new CurrentToolChangedMessage(oldTool, newTool));
-    }
-
-    private class ToolMeta
-    {
-        public Type ToolType { get; set; }
-        public ITool Instance { get; set; }
-        public EditContextType ContextType { get; set; }
-        public string Key { get; set; }
-        public bool EnabledDuringAnimation { get; set; }
-    }
-        
-    private class ToolMeta<TTool> : ToolMeta
-        where TTool : ITool
-    {
-
-        public ToolMeta(EditContextType contextType, bool enabledDuringAnimation)
-        {
-            ContextType = contextType;
-            Key = typeof(TTool).Name;
-            ToolType = typeof(TTool);
-            EnabledDuringAnimation = enabledDuringAnimation;
-        }
-    }
-
 }

@@ -12,7 +12,5 @@ namespace Pix2d.Tools
                 destRect = new SKRect(destRect.Left, destRect.Top, destRect.Left + 64, destRect.Top + 64);
             ObjectCreationService.CreateArtboard(destRect);
         }
-
-        public override string DisplayName => "Artboard tool";
     }
 }

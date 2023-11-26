@@ -32,6 +32,11 @@ namespace Pix2d.Plugins.Drawing
             CoreServices.DrawingService.InitBrushSettings();
 
             RegisterTool<BrushTool>();
+            RegisterTool<PixelLineTool>();
+            RegisterTool<PixelRectangleTool>();
+            RegisterTool<PixelOvalTool>();
+            RegisterTool<PixelTriangleTool>();
+
             RegisterTool<EraserTool>();
             RegisterTool<FillTool>();
             RegisterTool<PixelSelectTool>();
