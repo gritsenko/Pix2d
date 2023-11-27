@@ -80,7 +80,7 @@ public class MainView : ComponentBase
                     .Setters(
                         new AdaptiveClassSetter() { MinWidth = 0, MaxWidth = 400, ClassName = "small" },
                         new AdaptiveClassSetter()
-                        { MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide" }
+                            { MinWidth = 400, MaxWidth = double.PositiveInfinity, ClassName = "wide" }
                     )
             )
             .Children(new Control[]
@@ -94,7 +94,8 @@ public class MainView : ComponentBase
                         {
                             if (e.Source is StyledElement element)
                             {
-                                ServiceLocator.Current.GetInstance<IMessenger>()?.Send(new WindowClickedMessage(element));
+                                ServiceLocator.Current.GetInstance<IMessenger>()
+                                    ?.Send(new WindowClickedMessage(element));
                             }
                         }, RoutingStrategies.Tunnel);
                     })
@@ -119,7 +120,7 @@ public class MainView : ComponentBase
                 new AdditionalTopBarView().Col(1).Row(2),
 
                 new RatePromptView().Col(1).Row(2)
-                    .IsVisible(()=> AppState?.UiState.ShowRatePrompt ?? false),
+                    .IsVisible(() => AppState?.UiState.ShowRatePrompt ?? false),
 
                 new InfoPanelView().Col(0).Row(4).ColSpan(2),
 
@@ -206,6 +207,15 @@ public class MainView : ComponentBase
                             .Content(new LayerOptionsView())
 
                     }),
+
+                new ToolGroupContainerView()
+                    .Col(1).Row(2)
+                    .IsVisible(UiState.ShowToolGroup, bindingSource: UiState)
+                    .Margin(8, 120, 0, 0)
+                    .MinWidth(40)
+                    .MinHeight(40)
+                    .HorizontalAlignment(HorizontalAlignment.Left)
+                    .VerticalAlignment(VerticalAlignment.Top),
 
                 new ToolSettingsContainerView()
                     .Col(1).Row(2)

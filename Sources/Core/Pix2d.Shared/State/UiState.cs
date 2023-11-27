@@ -17,6 +17,11 @@ public class UiState : StateBase
         get => Get<bool>();
         set => Set(value);
     }
+    public bool ShowToolGroup
+    {
+        get => Get<bool>();
+        set => Set(value);
+    }
 
 
     public bool ShowBrushSettings
