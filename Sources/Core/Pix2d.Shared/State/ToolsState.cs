@@ -15,4 +15,11 @@ public class ToolsState : StateBase
         get => Get<string>();
         set => Set(value);
     }
+
+    public string ActiveToolGroup
+    {
+        get => Get<string>();
+        set => Set(value);
+    }
+
 }

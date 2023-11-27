@@ -8,9 +8,6 @@ namespace Pix2d.UI.ToolBar;
 
 public class ToolSettingsContainerView : ComponentBase
 {
-
-    public IDataTemplate BrushToolSettingsTemplate { get; } =
-        new FuncDataTemplate<BrushTool>((vm, ns) => new BrushToolSettingsView());
     public IDataTemplate EraserToolSettingsTemplate { get; } =
         new FuncDataTemplate<EraserTool>((vm, ns) => new Grid());
 
@@ -25,7 +22,6 @@ public class ToolSettingsContainerView : ComponentBase
             .Background(StaticResources.Brushes.MainBackgroundBrush)
             .DataTemplates(
                 EraserToolSettingsTemplate,
-                BrushToolSettingsTemplate,
                 FillToolSettingsTemplate,
                 PixelSelectToolSettingsTemplate
             )

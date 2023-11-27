@@ -92,10 +92,9 @@ public class ToolBarView : ComponentBase
                 {
                     groupItem = new ToolItemGroupView() { GroupName = tool.GroupName };
                     groupItems.Add(groupItem);
-                    groupItem.SetActiveItem(toolItemView);
+                    groupItem.SetActiveItem(tool);
                     _toolsStackPanel.Children.Add(groupItem);
                 }
-                groupItem.Items.Add(toolItemView);
             }
         }
     }

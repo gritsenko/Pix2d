@@ -4,7 +4,7 @@ namespace Pix2d.Plugins.Drawing.Tools;
 
 [Pix2dTool(
     EditContextType = EditContextType.Sprite,
-    HasSettings = true,
+    HasSettings = false,
     EnabledDuringAnimation = true,
     DisplayName = "Brush tool"
 )]

@@ -41,7 +41,6 @@ public class ToolItemView : ComponentBase
             new Button()
                 .Classes("toolbar-button")
                 .OnClick(OnButtonClicked)
-                // .CommandParameter(new Binding())
                 .Content(() => ToolIconKey)
                 .IsEnabled(() => !AppState.CurrentProject.IsAnimationPlaying || ToolState.EnabledDuringAnimation)
                 .DataTemplates(StaticResources.Templates.ToolIconTemplateSelector),
@@ -82,6 +81,8 @@ public class ToolItemView : ComponentBase
 
     private void OnButtonClicked(RoutedEventArgs args)
     {
+        AppState.UiState.ShowToolGroup = false;
+
         if (IsSelected)
         {
             if(ToolState.HasToolProperties)

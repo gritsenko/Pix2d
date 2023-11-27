@@ -27,6 +27,8 @@ public partial class AppStyles
         // Toolbar
         new Style<Button>(s => s.WideScreen().Toolbar().Descendant().OfType<Button>().Class("toolbar-button"))
             .Width(51).Height(51).Padding(new Thickness(0)),
+        new Style<Button>(s => s.WideScreen().ToolbarGroup().Descendant().OfType<Button>().Class("toolbar-button"))
+            .Width(51).Height(51).Padding(new Thickness(0)),
         new Style<Button>(s => s.WideScreen().Toolbar().Descendant().OfType<Button>().Class("brush-button"))
             .Margin(new Thickness(0, 8)),
         new Style<Button>(s => s.WideScreen().Toolbar().Descendant().OfType<Button>().Class("color-button"))
@@ -35,8 +37,10 @@ public partial class AppStyles
             .Width(40).Height(40).Padding(new Thickness(0)).VerticalAlignment(VerticalAlignment.Top),
         new Style<Button>(s => s.NarrowScreen().Toolbar().Descendant().OfType<Button>().Class("color-button"))
             .Width(26).Height(26).Margin(new Thickness(8, 6, 8, 6)).VerticalAlignment(VerticalAlignment.Top),
-        
+
         new Style<Border>(s => s.WideScreen().Toolbar().Descendant().OfType<ToolItemView>().Descendant().OfType<Border>())
+            .BorderThickness(new Thickness(4, 0, 0, 0)),
+        new Style<Border>(s => s.WideScreen().Toolbar().Descendant().OfType<ToolItemGroupView>().Descendant().OfType<Border>())
             .BorderThickness(new Thickness(4, 0, 0, 0)),
         new Style<Border>(s => s.NarrowScreen().Toolbar().Descendant().OfType<ToolItemView>().Descendant().OfType<Border>())
             .BorderThickness(new Thickness(0, 0, 0, 4)),
@@ -227,6 +231,7 @@ public static class StyleSelectors
     public static Selector NarrowScreen(this Selector s) => s.Class(NarrowClass);
     public static Selector ToolbarContainer(this Selector s) => s.Descendant().Name("toolbar");
     public static Selector Toolbar(this Selector s) => s.Descendant().OfType<ToolBarView>();
+    public static Selector ToolbarGroup(this Selector s) => s.Descendant().OfType<ToolGroupContainerView>();
     public static Selector InfoPanel(this Selector s) => s.Descendant().OfType<InfoPanelView>();
     public static Selector TopBarButton(this Selector s) => s.Descendant().Class("TopBar");
     public static Selector ActionsBarButton(this Selector s) => s.Descendant().Class(ActionsBarView.ButtonClass);
