@@ -2,7 +2,7 @@
 
 ## Security & Sensitive Information (Priority: CRITICAL)
 - [x] Audit and remove API keys/credentials from SentryLoggerTarget.cs
-- [x] Review and secure license verification logic in PlayMarketLicenseService.cs (remove hardcoded "idkfa" backdoor)
+- [x] Review and secure license verification logic in PlayMarketLicenseService.cs
 - [x] Move settings storage encryption keys from SettingsService to secure configuration
 - [x] Review and secure session storage mechanisms in SessionService.cs
 - [x] Audit file permission handling in AndroidFileService for potential security issues
@@ -29,15 +29,15 @@
   - Unify AndroidFileService and AvaloniaFileService implementations
   - Add consistent error handling for file operations
 - [x] Implement proper keyboard input handling for all platforms
-- [ ] Add configuration system for platform-specific settings
-- [ ] Create platform-specific UI component overrides where needed
+- [x] Add configuration system for platform-specific settings
+- [x] Create platform-specific UI component overrides where needed
 
 ## HTML5/Web Integration (Priority: MEDIUM)
-- [ ] Clean up and modernize Browser/wwwroot structure:
+- [x] Clean up and modernize Browser/wwwroot structure:
   - Remove old/unused files (_old directories)
   - Organize static assets
   - Update HTML templates
-- [ ] Improve WebGL rendering performance:
+- [x] Improve WebGL rendering performance:
   - Add frame buffering optimizations
   - Implement efficient texture handling
 - [ ] Create proper web-specific storage service (improve BrowserSettingsService)
@@ -46,13 +46,13 @@
 - [ ] Add proper offline support and caching
 
 ## Project Structure & Build System (Priority: MEDIUM)
-- [ ] Create proper CI/CD pipeline configuration
+- [o] Create proper CI/CD pipeline configuration
 - [ ] Add comprehensive test coverage:
   - Unit tests for core services
   - Integration tests for platform implementations
   - UI automation tests
 - [ ] Set up proper versioning system
-- [ ] Create release automation scripts
+- [o] Create release automation scripts
 - [x] Add proper dependency management:
   - Update NuGet packages
   - Document third-party dependencies
@@ -64,7 +64,7 @@
   - Remove or properly configure Sentry integration
   - Add configurable log levels
   - Implement proper log rotation
-- [ ] Refactor service registration to use proper DI patterns
+- [x] Refactor service registration to use proper DI patterns
 - [ ] Clean up unused code and remove TODO comments
 - [ ] Add code style enforcement (EditorConfig, etc.)
 
@@ -90,12 +90,12 @@
   - Ensure the license is clearly stated in the README.md.
   - Perform a final check for license compatibility issues with all third-party dependencies. If using REUSE, validate compliance.   
 
-- [ ] Security Sweep:
+- [x] Security Sweep:
   - Manually search the codebase and commit history one last time for any missed  secrets, API keys, or sensitive information.
   - Consider running basic static analysis security testing (SAST) tools if available.
   - Confirm the SECURITY.md file exists and clearly outlines the reporting process.   
 
-- [ ] Dependency Review:
+- [x] Dependency Review:
   - Review the list of all direct and transitive dependencies.
   - Check their licenses again for compatibility.   
   - Assess the maintenance status and known vulnerabilities of dependencies.   
@@ -115,5 +115,5 @@
   - Confirm repository visibility is set correctly (likely private until this point, then switched to public).
 
 - [ ] Infrastructure & Communication:
-  - If planning external communication channels (e.g., Discord server, mailing list mentioned in README.md or CONTRIBUTING.md ), ensure they are set up and monitored.   
+  - If planning external communication channels (e.g., Discord server, mailing list mentioned in README.md or CONTRIBUTING.md ), ensure they are set up and monitored.
   - Ensure CI/CD infrastructure (e.g., GitHub Actions workflows) is configured and operational.   

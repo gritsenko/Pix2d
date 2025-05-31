@@ -15,10 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.UI", "Core\Pix2d.UI\P
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_GlobalItems", "_GlobalItems", "{408E1C7B-5DCA-4EE5-877B-72D3E772901C}"
 	ProjectSection(SolutionItems) = preProject
-		..\IntegrationScripts\build-setup.cmd = ..\IntegrationScripts\build-setup.cmd
 		Directory.Build.props = Directory.Build.props
 		nuget.config = nuget.config
-		..\IntegrationScripts\setup.iss = ..\IntegrationScripts\setup.iss
 		..\TODO.md = ..\TODO.md
 	EndProjectSection
 EndProject
