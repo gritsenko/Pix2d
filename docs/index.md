@@ -1,4 +1,4 @@
-# <img width="20px" alt="logo" src="./assets/Logo.png"/> Open source Game Art Editor
+# <img width="32px" alt="logo" src="./assets/Logo.png"/> Open source Game Art Editor
 
 <img alt="logo" src="./assets/screenshot1.jpg"/>
 
