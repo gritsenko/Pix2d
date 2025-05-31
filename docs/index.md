@@ -1,6 +1,6 @@
-# Powerful Game Art & Pixel Art Editor
+# <img width="20px" alt="logo" src="./assets/Logo.png"/> Open source Game Art Editor
 
-<img width="100px" alt="logo" src="./docs/assets/Logo.png"/>
+<img alt="logo" src="./assets/screenshot1.jpg"/>
 
 Welcome to the Pix2D documentation!
 
