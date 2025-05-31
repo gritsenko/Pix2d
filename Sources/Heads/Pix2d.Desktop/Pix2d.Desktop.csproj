@@ -1,0 +1,91 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net9.0</TargetFramework>
+		<ApplicationIcon>app.ico</ApplicationIcon>
+		<StartupObject />
+		<AssemblyName>Pix2d</AssemblyName>
+		<Version>$(Pix2dVersion)</Version>
+		<PackageProjectUrl>https://pix2d.com</PackageProjectUrl>
+		<Platforms>AnyCPU;x86;x64;ARM64</Platforms>
+		<PublishSingleFile>true</PublishSingleFile>
+		<SelfContained>false</SelfContained>
+		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+		<RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+		<UseSubFolderForOutputDirDuringMultiPlatformBuild>false</UseSubFolderForOutputDirDuringMultiPlatformBuild>
+		<IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
+		<IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX>
+		<IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(IsWindows)'=='true'">
+		<DefineConstants>Windows</DefineConstants>
+		<EnableWindowsTargeting>true</EnableWindowsTargeting>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(IsOSX)'=='true'">
+		<DefineConstants>OSX</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(IsLinux)'=='true'">
+		<DefineConstants>Linux</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(IsOSX)'=='true'">
+		<CFBundleName>Pix2d</CFBundleName>
+		<!-- Also defines .app file name -->
+		<CFBundleDisplayName>Pix2d</CFBundleDisplayName>
+		<CFBundleIdentifier>com.pix2d.app</CFBundleIdentifier>
+		<CFBundleVersion>$(Pix2dVersion)</CFBundleVersion>
+		<CFBundleShortVersionString>$(Pix2dVersion)</CFBundleShortVersionString>
+		<CFBundlePackageType>APPL</CFBundlePackageType>
+		<!--<CFBundleSignature>????</CFBundleSignature>-->
+		<CFBundleExecutable>Pix2d</CFBundleExecutable>
+		<CFBundleIconFile>Pix2d.png</CFBundleIconFile>
+		<!-- Will be copied from output directory -->
+		<NSPrincipalClass>NSApplication</NSPrincipalClass>
+		<NSHighResolutionCapable>true</NSHighResolutionCapable>
+		<UseAppHost>true</UseAppHost>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<RunAOTCompilation>true</RunAOTCompilation>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+		<PlatformTarget>x86</PlatformTarget>
+		<RuntimeIdentifier>win-x86</RuntimeIdentifier>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+		<PlatformTarget>x64</PlatformTarget>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+		<PlatformTarget>ARM64</PlatformTarget>
+		<RuntimeIdentifier>win-arm64</RuntimeIdentifier>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Update="**\*.xaml.cs">
+			<DependentUpon>%(Filename)</DependentUpon>
+		</Compile>
+		<AvaloniaResource Include="**\*.xaml">
+			<SubType>Designer</SubType>
+		</AvaloniaResource>
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="11.3.0" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.3.0" />
+		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.0" />
+		<PackageReference Include="Clowd.Clipboard" Version="1.1.4" />
+		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.1.4" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+		<ProjectReference Include="..\..\Core\Pix2d.UI\Pix2d.UI.csproj" />
+		<ProjectReference Include="..\..\Core\Pix2d.Core\Pix2d.Core.csproj" />
+		<ProjectReference Include="..\..\Plugins\Effects\Pix2d.Plugins.BaseEffectsSettings\Pix2d.Plugins.BaseEffects.csproj" />
+		<ProjectReference Include="..\..\Plugins\FormatSupport\Psd\Pix2d.Plugins.Psd\Pix2d.Plugins.Psd.csproj" />
+		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
+		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Collaborate\Pix2d.Plugins.Collaborate.csproj" />
+		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Drawing\Pix2d.Plugins.Drawing.csproj" />
+		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.HttpHost\Pix2d.Plugins.HttpHost.csproj" />
+		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj" />
+		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.PngCompress\Pix2d.Plugins.PngCompress.csproj" />
+	</ItemGroup>
+</Project>

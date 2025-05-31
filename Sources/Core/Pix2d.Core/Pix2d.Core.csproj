@@ -1,0 +1,98 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<RootNamespace>Pix2d</RootNamespace>
+		<LangVersion>latest</LangVersion>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<Nullable>disable</Nullable>
+		<Platforms>AnyCPU;x86;x64;ARM64</Platforms>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Version>$(Pix2dVersion)</Version>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Remove="Common\BarPlotter.cs" />
+		<Compile Remove="Common\Label.cs" />
+		<Compile Remove="Logging\SentryLoggerTarget.cs" />
+		<Compile Remove="PinchGestureRecognizer.cs" />
+		<Compile Remove="Pix2dBootstrapperBase.cs" />
+		<Compile Remove="UI\MarkupExtensions.cs" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Remove="Assets\app1.png" />
+		<None Remove="Assets\BackgroundTile100.png" />
+		<None Remove="Assets\BackgroundTile60.png" />
+		<None Remove="Assets\Burger.png" />
+		<None Remove="Assets\checker.png" />
+		<None Remove="Assets\ColorThumb.png" />
+		<None Remove="Assets\essentials.png" />
+		<None Remove="Assets\Fonts\icons.ttf" />
+		<None Remove="Assets\Fonts\pix2d.ttf" />
+		<None Remove="Assets\Fonts\segmdl2.ttf" />
+		<None Remove="Assets\Fonts\Segoe Fluent Icons.ttf" />
+		<None Remove="Assets\Fonts\v3\pix2d-icons-v3.ttf" />
+		<None Remove="Assets\Fonts\v3\ProtoMono-Light.ttf" />
+		<None Remove="Assets\Fonts\v3\ProtoMono-Regular.ttf" />
+		<None Remove="Assets\Fonts\v3\ProtoMono-SemiBold.ttf" />
+		<None Remove="Assets\Fonts\v31\zed-mono-extended.ttf" />
+		<None Remove="Assets\Fonts\v31\zed-mono-extendedbold.ttf" />
+		<None Remove="Assets\Fonts\v31\zed-mono-extendedbolditalic.ttf" />
+		<None Remove="Assets\Fonts\v31\zed-mono-extendeditalic.ttf" />
+		<None Remove="Assets\MenuButton.png" />
+		<None Remove="Assets\PRO.png" />
+		<None Remove="Assets\proIcon.png" />
+		<None Remove="Assets\proIcon1.png" />
+		<None Remove="Assets\StoreLogo.png" />
+		<None Remove="Assets\strings.json" />
+		<None Remove="Assets\ULTIMATE.png" />
+		<None Remove="Assets\untitled.png" />
+		<None Remove="Assets\Watermark.png" />
+		<None Remove="Assets\no_preview.png" />
+	</ItemGroup>
+	<ItemGroup>
+		<AvaloniaResource Include="Assets\app1.png" />
+		<AvaloniaResource Include="Assets\checker.png" />
+		<AvaloniaResource Include="Assets\Fonts\icons.ttf" />
+		<AvaloniaResource Include="Assets\Fonts\pix2d.ttf" />
+		<AvaloniaResource Include="Assets\Fonts\segmdl2.ttf" />
+		<AvaloniaResource Include="Assets\BackgroundTile100.png" />
+		<AvaloniaResource Include="Assets\BackgroundTile60.png" />
+		<AvaloniaResource Include="Assets\ColorThumb.png" />
+		<AvaloniaResource Include="Assets\essentials.png" />
+		<AvaloniaResource Include="Assets\Fonts\Segoe Fluent Icons.ttf" />
+		<AvaloniaResource Include="Assets\Fonts\v3\pix2d-icons-v3.ttf" />
+		<AvaloniaResource Include="Assets\Fonts\v3\ProtoMono-Light.ttf" />
+		<AvaloniaResource Include="Assets\Fonts\v3\ProtoMono-Regular.ttf" />
+		<AvaloniaResource Include="Assets\Fonts\v3\ProtoMono-SemiBold.ttf" />
+		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extended.ttf" />
+		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extendedbold.ttf" />
+		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extendedbolditalic.ttf" />
+		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extendeditalic.ttf" />
+		<AvaloniaResource Include="Assets\MenuButton.png" />
+		<AvaloniaResource Include="Assets\PRO.png" />
+		<AvaloniaResource Include="Assets\proIcon.png" />
+		<AvaloniaResource Include="Assets\proIcon1.png" />
+		<AvaloniaResource Include="Assets\StoreLogo.png" />
+		<AvaloniaResource Include="Assets\strings.json" />
+		<AvaloniaResource Include="Assets\ULTIMATE.png" />
+		<AvaloniaResource Include="Assets\untitled.png" />
+		<AvaloniaResource Include="Assets\no_preview.png" />
+		<AvaloniaResource Include="Assets\Watermark.png" />
+		<EmbeddedResource Include="Assets\Burger.png" />
+		<EmbeddedResource Include="Assets\teapot.bin" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="11.3.0" />
+		<PackageReference Include="Avalonia.Markup.Declarative" Version="11.3.0-beta05" />
+		<PackageReference Include="Avalonia.Skia" Version="11.3.0" />
+		<PackageReference Include="Avalonia.Themes.Simple" Version="11.3.0" />
+		<PackageReference Include="Xaml.Behaviors" Version="11.3.0.7" />
+	</ItemGroup>
+	<!--<ItemGroup>
+		<ProjectReference Include="..\..\AvaloniaMarkupDeclarative\Avalonia.Markup.Declarative\Avalonia.Markup.Declarative.csproj" />
+		<ProjectReference Include="..\..\AvaloniaMarkupDeclarative\Avalonia.Markup.Declarative.SourceGenerator\Avalonia.Markup.Declarative.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>-->
+	<ItemGroup>
+		<ProjectReference Include="..\Pix2d.Shared\Pix2d.Shared.csproj" />
+	</ItemGroup>
+</Project>

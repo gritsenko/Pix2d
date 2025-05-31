@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+		<EnableAvaloniaXamlCompilation>false</EnableAvaloniaXamlCompilation>
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+		<EmitCompilerGeneratedFiles>false</EmitCompilerGeneratedFiles>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Remove="Animation\FrameItemsListBoxDropHandler.cs" />
+		<Compile Remove="Layers\ItemsListBoxDropHandler.cs" />
+		<Compile Remove="Layers\LayerItemView.Model.cs" />
+		<Compile Remove="Layers\LayersView.Model.cs" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="11.3.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Pix2d.Core\Pix2d.Core.csproj" />
+		<ProjectReference Include="..\Pix2d.Shared\Pix2d.Shared.csproj" />
+	</ItemGroup>
+</Project>

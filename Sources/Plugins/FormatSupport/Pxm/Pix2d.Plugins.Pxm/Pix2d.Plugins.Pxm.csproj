@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Pix2d.Core\Pix2d.Core.csproj" />
+    <ProjectReference Include="..\..\Pix2d\Pix2d.Api\Pix2d.Api.csproj" />
+    <ProjectReference Include="..\..\Pix2d\PixelMixel.Common\PixelMixel.Common.csproj" />
+    <ProjectReference Include="..\..\Pix2d\SkiaNodes\SkiaNodes.csproj" />
+  </ItemGroup>
+
+</Project>

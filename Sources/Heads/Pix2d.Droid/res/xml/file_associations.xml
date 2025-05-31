@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<file-associations>
+	<association
+		mimeType="application/x-pix2d"
+		extension=".pix2d"
+		icon="@mipmap/ic_launcher" />
+</file-associations>

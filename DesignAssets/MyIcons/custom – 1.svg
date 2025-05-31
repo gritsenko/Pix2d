@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="24" viewBox="0 0 24 24">
+  <defs>
+    <clipPath id="clip-custom_1">
+      <rect width="24" height="24"/>
+    </clipPath>
+  </defs>
+  <g id="custom_1" data-name="custom – 1" clip-path="url(#clip-custom_1)">
+    <rect width="24" height="24" fill="#818181"/>
+    <g id="MirrorX">
+      <path id="Mirror_X" d="M8,14V0H9V14Zm9-2H11V2h6V12h0Zm-5-1h4V3H12ZM0,12V2H6V12Z" transform="translate(3 5)" fill="#fff"/>
+    </g>
+  </g>
+</svg>

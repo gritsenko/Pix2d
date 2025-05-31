@@ -1,0 +1,73 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net9.0-android</TargetFramework>
+		<Nullable>enable</Nullable>
+		<!--<UseMauiEssentials>true</UseMauiEssentials>-->
+		<AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+		<EnableAvaloniaXamlCompilation>false</EnableAvaloniaXamlCompilation>
+		<Platforms>AnyCPU</Platforms>
+		<SupportedOSPlatformVersion>25</SupportedOSPlatformVersion>
+		<ApplicationTitle>Pix2d</ApplicationTitle>
+		<ApplicationId>com.pix2d.pix2dapp</ApplicationId>
+		<ApplicationVersion>$(Pix2dAndroidVersion)</ApplicationVersion>
+		<ApplicationDisplayVersion>$(Pix2dVersion)</ApplicationDisplayVersion>
+	</PropertyGroup>
+	<PropertyGroup Condition="$(TargetFramework.Contains('-android')) and '$(Configuration)' == 'Release'">
+		<PublishTrimmed>true</PublishTrimmed>
+		<RunAOTCompilation>true</RunAOTCompilation>
+		<AndroidSigningKeyStore>C:\tmp\Pix2d.keystore</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias>Pix2d</AndroidSigningKeyAlias>
+		<AndroidSigningKeyPass>file:C:\tmp\pass.txt</AndroidSigningKeyPass>
+		<AndroidSigningStorePass>file:C:\tmp\pass.txt</AndroidSigningStorePass>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Remove="Logging\AppCenterLoggerTarget.cs" />
+		<Compile Remove="Services\AndroidFileService.cs" />
+		<Compile Remove="SplashActivity.cs" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Remove="Assets\Fonts\v31\zed-mono-extended.ttf" />
+		<None Remove="Assets\Fonts\v31\zed-mono-extendedbold.ttf" />
+		<None Remove="Assets\Fonts\v31\zed-mono-extendedbolditalic.ttf" />
+		<None Remove="Assets\Fonts\v31\zed-mono-extendeditalic.ttf" />
+		<None Remove="Assets\Fonts\v3\pix2d-icons-v3.ttf" />
+		<None Remove="Assets\Fonts\v3\ProtoMono-Light.ttf" />
+		<None Remove="Assets\Fonts\v3\ProtoMono-Regular.ttf" />
+		<None Remove="Assets\Fonts\v3\ProtoMono-SemiBold.ttf" />
+	</ItemGroup>
+	<ItemGroup>
+		<AndroidResource Include="Icon.png">
+			<Link>Resources\drawable\Icon.png</Link>
+		</AndroidResource>
+		<AndroidResource Include="res/xml/file_paths.xml" />
+		<AndroidResource Include="res\xml\file_associations.xml" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Avalonia.Android" Version="11.3.0" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.0" />
+		<PackageReference Include="Microsoft.Maui.Essentials" />
+		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
+		<PackageReference Update="Microsoft.Maui.Essentials" Version="9.0.60" />
+		<PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\Core\Pix2d.Core\Pix2d.Core.csproj" />
+		<ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+		<ProjectReference Include="..\..\Core\Pix2d.UI\Pix2d.UI.csproj" />
+		<ProjectReference Include="..\..\Plugins\Effects\Pix2d.Plugins.BaseEffectsSettings\Pix2d.Plugins.BaseEffects.csproj" />
+		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
+		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Drawing\Pix2d.Plugins.Drawing.csproj" />
+		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Logging\" />
+	</ItemGroup>
+	<Target Name="ConfigureTrimming" BeforeTargets="PrepareForILLink">
+		<ItemGroup>
+			<ManagedAssemblyToLink Condition="'%(Filename)' == 'System.Private.CoreLib'">
+				<IsTrimmable>false</IsTrimmable>
+			</ManagedAssemblyToLink>
+		</ItemGroup>
+	</Target>
+</Project>

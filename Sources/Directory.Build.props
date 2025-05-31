@@ -1,0 +1,20 @@
+<Project>
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<AvaloniaVersion>11.3.0</AvaloniaVersion>
+		<Pix2dAndroidVersion>72</Pix2dAndroidVersion>
+		<Pix2dVersion>3.3.2</Pix2dVersion>
+		<Platforms>AnyCPU;x86;x64;ARM64</Platforms>
+
+		<!--Used by microsoft store bridge project-->
+		<RuntimeIdentifiers Condition="'$(IsWAPHeadProject)' == 'true'">
+			win-x86;win-x64;win-arm64
+		</RuntimeIdentifiers>
+		
+	</PropertyGroup>
+
+	<!--Used for display version in GitHub Actions when building release-->
+	<Target Name="GetPix2dVersion">
+    	<Message Text="Pix2dVersion: $(Pix2dVersion)" Importance="high" />
+  	</Target>
+</Project>

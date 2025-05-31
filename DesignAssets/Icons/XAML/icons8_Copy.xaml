@@ -1,0 +1,8 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls">
+
+<DrawingImage x:Key="Icons8_Copy_6495435">
+  <DrawingImage.Drawing>    <DrawingGroup>      <DrawingGroup.Children>        <DrawingGroup>          <DrawingGroup.Children>            <DrawingGroup svg:SvgObject.Id="surface1">              <DrawingGroup.Children>                <GeometryDrawing Brush="#FF000000" Pen="{x:Null}">                  <GeometryDrawing.Geometry>                    <PathGeometry FillRule="Nonzero" Figures="M6.839844,0L6.839844,2.160156 7.558594,2.878906 7.558594,0.71875 12.960938,0.71875 12.960938,5.039063 17.28125,5.039063 17.28125,14.398438 11.878906,14.398438 11.878906,15.121094 18,15.121094 18,4.535156 13.464844,0z M13.679688,1.226563L16.773438,4.320313 13.679688,4.320313z M0,2.878906L0,18 11.160156,18 11.160156,7.414063 11.058594,7.300781 6.738281,2.980469 6.625,2.878906z M0.71875,3.601563L6.121094,3.601563 6.121094,7.921875 10.441406,7.921875 10.441406,17.28125 0.71875,17.28125z M6.839844,4.117188L9.921875,7.199219 6.839844,7.199219z" />                  </GeometryDrawing.Geometry>                </GeometryDrawing>              </DrawingGroup.Children>            </DrawingGroup>          </DrawingGroup.Children>          <DrawingGroup.ClipGeometry>            <RectangleGeometry Rect="0,0,18,18" />          </DrawingGroup.ClipGeometry>        </DrawingGroup>      </DrawingGroup.Children>    </DrawingGroup>  </DrawingImage.Drawing></DrawingImage>
+
+</ResourceDictionary>

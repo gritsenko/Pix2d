@@ -1,0 +1,132 @@
+﻿name: Windows Store MSIX Package
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      SOLUTION_NAME: Sources/Pix2d.sln
+      WAP_PROJECT_DIR: Sources/Heads/Pix2d.Desktop.Wap
+      WAP_PROJECT_PATH: Sources/Heads/Pix2d.Desktop.Wap/Pix2d.Desktop.Wap.wapproj
+      CONFIGURATION: Release
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          9.0.x
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2.0.0
+
+    - name: Restore NuGet packages
+      run: msbuild $env:WAP_PROJECT_PATH /t:Restore /p:Configuration=$env:CONFIGURATION /p:IsWAPHeadProject=true
+
+    - name: Decode signing certificate
+      shell: pwsh
+      run: |
+        $certBytes = [Convert]::FromBase64String("${{ secrets.BASE64_ENCODED_PFX }}")
+        $certPath = Join-Path -Path $env:WAP_PROJECT_DIR -ChildPath 'certificate.pfx'
+        [IO.File]::WriteAllBytes($certPath, $certBytes)
+
+    - name: Build MSIX package
+      shell: pwsh
+      run: |
+        msbuild $env:WAP_PROJECT_PATH `
+          /p:IsWAPHeadProject=true `
+          /p:Configuration=$env:CONFIGURATION `
+          /p:AppxBundle=Always `
+          /p:UapAppxPackageBuildMode=StoreUpload `
+          /p:AppxBundlePlatforms="x86|x64|arm64" `
+          /p:PackageCertificateKeyFile="$env:WAP_PROJECT_DIR/certificate.pfx" `
+          # /p:PackageCertificatePassword="${{ secrets.PFX_KEY }}"
+
+    - name: Remove signing certificate
+      shell: pwsh
+      run: Remove-Item -Path "$env:WAP_PROJECT_DIR/certificate.pfx" -Force
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: msix-package
+        path: ${{ env.WAP_PROJECT_DIR }}/AppPackages
+        retention-days: 7
+
+  upload-to-store:
+    needs: build
+    runs-on: windows-latest
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: msix-package
+        path: ./artifacts
+  
+    - name: Setup PowerShell environment
+      shell: pwsh
+      run: |
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+        
+        Install-Module -Name StoreBroker -Force -AllowClobber -Scope AllUsers
+        
+        Import-Module StoreBroker -Force
+        
+        Get-Command -Module StoreBroker
+  
+    - name: Upload to Microsoft Store
+      shell: pwsh
+      env:
+        TENANT_ID: ${{ secrets.TENANT_ID }}
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+        PRODUCT_ID: ${{ secrets.PRODUCT_ID }}
+      run: |
+        # install StoreBroker if needed
+        if (-not (Get-Module -ListAvailable -Name StoreBroker)) {
+            Install-PackageProvider -Name NuGet -Force
+            Install-Module -Name StoreBroker -Force -AllowClobber
+        }
+    
+        Import-Module StoreBroker -Force
+    
+        $packagePath = Get-ChildItem -Path ./artifacts -Filter *msix-package.zip -Recurse -ErrorAction Stop | Select-Object -First 1
+        if (-not $packagePath) { throw "MSIX package not found" }
+    
+        try {
+            $secureSecret = ConvertTo-SecureString $env:CLIENT_SECRET -AsPlainText -Force
+            $credential = New-Object System.Management.Automation.PSCredential($env:CLIENT_ID, $secureSecret)
+            
+            Write-Host "Authenticating..."
+            Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential
+
+            Write-Host "Creating new submission..."
+            $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID -Force
+            
+            # Check if fileUploadUrl exists
+            if (-not $submission.fileUploadUrl) {
+                throw "fileUploadUrl is empty. Cannot proceed with uploading the package."
+            }
+            $uploadUrl = $submission.fileUploadUrl 
+            
+            Write-Host "Adding package to submission..."
+            Set-SubmissionPackage -PackagePath $packagePath.FullName -UploadUrl $uploadUrl
+            
+            Write-Host "Completing submission..."
+            Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id
+            
+            Write-Host "Success!"
+        }
+        catch {
+            Write-Error "Failed: $_"
+            exit 1
+        }

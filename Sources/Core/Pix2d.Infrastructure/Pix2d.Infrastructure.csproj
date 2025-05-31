@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Platforms>AnyCPU;x64;x86;ARM64</Platforms>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Common\**" />
+	  <EmbeddedResource Remove="Common\**" />
+	  <None Remove="Common\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="IoC\DefaultServiceLocator.cs" />
+	  <Compile Remove="IoC\IServiceLocator.cs" />
+	  <Compile Remove="IoC\ServiceLocator.cs" />
+	  <Compile Remove="IoC\ServiceLocatorImplBase.cs" />
+	  <Compile Remove="IoC\ServiceLocatorProvider.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\SkiaNodes\SkiaNodes.csproj" />
+	</ItemGroup>
+
+</Project>

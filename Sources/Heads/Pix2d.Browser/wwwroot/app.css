@@ -1,0 +1,127 @@
+﻿/* HTML styles for the splash screen */
+
+.highlight {
+    color: white;
+    font-size: 2.5rem;
+    display: block;
+}
+
+.icon {
+    height: 150px;
+    width: 150px;
+    background-repeat: no-repeat;
+    z-index: 5000;
+    pointer-events: none;
+}
+
+#avalonia-splash a {
+    color: whitesmoke;
+    text-decoration: none;
+}
+
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+    gap: 32px;
+}
+
+#avalonia-splash {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    color: whitesmoke;
+    background: #4a525c;
+    font-family: 'Nunito', sans-serif;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    justify-content: center;
+    align-items: center;
+}
+
+.splash-close {
+    animation: fadeout 0.25s linear forwards;
+}
+
+@keyframes fadeout {
+    0% {
+        opacity: 100%;
+    }
+
+    100% {
+        opacity: 0;
+        visibility: collapse;
+    }
+}
+
+.lds-ring {
+    display: inline-block;
+    position: relative;
+    width: 80px;
+    height: 80px;
+    transform: scale(0.5);
+}
+
+    .lds-ring div {
+        box-sizing: border-box;
+        display: block;
+        position: absolute;
+        width: 64px;
+        height: 64px;
+        margin: 8px;
+        border: 8px solid #fff;
+        border-radius: 50%;
+        animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        border-color: #fff transparent transparent transparent;
+    }
+
+        .lds-ring div:nth-child(1) {
+            animation-delay: -0.45s;
+        }
+
+        .lds-ring div:nth-child(2) {
+            animation-delay: -0.3s;
+        }
+
+        .lds-ring div:nth-child(3) {
+            animation-delay: -0.15s;
+        }
+
+@keyframes lds-ring {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+
+.progressbar {
+    height: 20px;
+    position: relative;
+    background: #555;
+    padding: 0;
+    margin-top: -4px;
+    width: 130px;
+}
+
+    .progressbar #progress-value {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background-color: rgb(81 128 190);
+        position: relative;
+        overflow: hidden;
+    }
+
+#progress-text {
+    font-size: 10pt;
+    text-align: center;
+    color: white;
+}

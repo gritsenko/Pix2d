@@ -1,0 +1,254 @@
+name: Multi-Platform Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_android:
+        description: 'Skip Android build'
+        type: boolean
+        required: false
+        default: false
+      skip_windows:
+        description: 'Skip Windows build'
+        type: boolean
+        required: false
+        default: false
+      skip_linux:
+        description: 'Skip Linux build'
+        type: boolean
+        required: false
+        default: false
+  push:
+    tags:        
+      - 'v*'
+
+env:
+  Android_Project_Path: Sources/Heads/Pix2d.Android/Pix2d.Android.csproj
+  Desktop_Project_Path: Sources/Heads/Pix2d.Desktop/Pix2d.Desktop.csproj
+  Output_Path: ./build-output
+
+jobs:
+  build_android:
+    # if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.skip_android }}
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Get Version
+      id: version
+      shell: pwsh
+      run: |
+        if ($env:GITHUB_EVENT_NAME -eq 'push') {
+            $version = $env:GITHUB_REF -replace 'refs/tags/v',''
+            Write-Host "Using version from git tag: $version"
+        } else {
+            $version = '0.0.0'
+            Write-Host "Using default version for manual run: $version"
+        }
+
+        $cleanVersion = $version -replace '[^\d.]', ''
+        if (-not ($cleanVersion -match '^\d+\.\d+\.\d+$')) {
+            Write-Error "Invalid version format: $cleanVersion"
+            exit 1
+        }
+
+        Write-Output "VERSION=$cleanVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        Write-Host "Using version: $cleanVersion"
+
+    - name: Restore dependencies
+      run: dotnet restore $env:Android_Project_Path --property WarningLevel=0
+
+    - name: Build
+      run: dotnet build --no-restore $env:Android_Project_Path --property WarningLevel=0 -p:Version=${{ env.VERSION }}
+
+    - name: Test
+      run: dotnet test --no-build --verbosity normal $env:Android_Project_Path
+
+    - name: Clean output directory
+      run: |
+        if (Test-Path $env:Output_Path) {
+          Remove-Item -Recurse -Force $env:Output_Path
+        }
+
+    - name: Publish for Android
+      env:
+        ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+        ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      run: |
+        New-Item -ItemType Directory -Path "$env:RUNNER_TEMP/keystore" -Force
+        $keyStorePath = "$env:RUNNER_TEMP/keystore/Pix2d.keystore"
+        [System.Convert]::FromBase64String($env:ANDROID_KEYSTORE) | Set-Content -Path $keyStorePath -AsByteStream
+        dotnet publish -f net9.0-android -c Release `
+          -p:AndroidKeyStore=true `
+          -p:AndroidSigningKeyStore=$keyStorePath `
+          -p:AndroidSigningStorePass=$env:ANDROID_KEYSTORE_PASSWORD `
+          -p:AndroidSigningKeyAlias=$env:ANDROID_KEY_ALIAS `
+          -p:AndroidSigningKeyPass=$env:ANDROID_KEY_PASSWORD `
+          -o $env:Output_Path $env:Android_Project_Path `
+          --property WarningLevel=0
+
+    - name: Rename Artifacts
+      shell: pwsh
+      run: |
+        $version = $env:VERSION
+        cd $env:Output_Path
+        Get-ChildItem -Filter *-Signed.* | Where-Object {
+            $_.Extension -in '.apk', '.aab'
+        } | Rename-Item -NewName {
+            "pix2d_v$version$($_.Extension)"
+        }
+
+    - name: Upload Android Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android
+        path: ${{ env.Output_Path }}/pix2d_v${{ env.VERSION }}.*
+
+  build_windows:
+    # if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.skip_windows }}
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Get Version
+      id: version
+      shell: pwsh
+      run: |
+        if ($env:GITHUB_EVENT_NAME -eq 'push') {
+            $version = $env:GITHUB_REF -replace 'refs/tags/v',''
+            Write-Host "Using version from git tag: $version"
+        } else {
+            $version = '0.0.0'
+            Write-Host "Using default version for manual run: $version"
+        }
+
+        $cleanVersion = $version -replace '[^\d.]', ''
+        if (-not ($cleanVersion -match '^\d+\.\d+\.\d+$')) {
+            Write-Error "Invalid version format: $cleanVersion"
+            exit 1
+        }
+
+        Write-Output "VERSION=$cleanVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        Write-Host "Using version: $cleanVersion"
+
+    - name: Restore dependencies
+      run: dotnet restore $env:Desktop_Project_Path --property WarningLevel=0
+
+    - name: Build
+      run: dotnet build --no-restore $env:Desktop_Project_Path --property WarningLevel=0 -p:Version=${{ env.VERSION }}
+
+    - name: Publish for Windows
+      shell: pwsh
+      run: |
+        $OutputDir = "./publish-windows"
+        dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o $OutputDir $env:Desktop_Project_Path
+        Compress-Archive -Path "$OutputDir/*" -DestinationPath "Pix2d_win-x64-$env:VERSION-portable.zip"
+
+    - name: Upload Windows Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-desktop
+        path: Pix2d_win-x64-${{ env.VERSION }}-portable.zip
+
+  build_linux:
+    # if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.skip_linux }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Get Version
+      id: version
+      shell: bash
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            version=$(echo "$GITHUB_REF" | sed 's/refs\/tags\/v//')
+            echo "Using version from git tag: $version"
+        else
+            version="0.0.0"
+            echo "Using default version for manual run: $version"
+        fi
+
+        clean_version=$(echo "$version" | tr -cd '0-9.')
+        if [[ ! "$clean_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: $clean_version"
+            exit 1
+        fi
+
+        echo "VERSION=$clean_version" >> $GITHUB_ENV
+        echo "Using version: $clean_version"
+
+    - name: Restore dependencies
+      run: dotnet restore $Desktop_Project_Path --property WarningLevel=0
+
+    - name: Build
+      run: dotnet build --no-restore $Desktop_Project_Path --property WarningLevel=0 -p:Version=${{ env.VERSION }}
+
+    - name: Publish for Linux
+      shell: bash
+      run: |
+        OutputDir="./publish-linux"
+        dotnet publish -c Release -r linux-x64 --self-contained true \
+          -p:PublishSingleFile=true -o "$OutputDir" "$Desktop_Project_Path"
+        tar -czvf "Pix2d_linux-x64.$VERSION.tar.gz" -C "$OutputDir" .
+
+    - name: Upload Linux Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-desktop
+        path: Pix2d_linux-x64-${{ env.VERSION }}.tar.gz
+
+  create_release:
+    runs-on: ubuntu-latest
+    needs: [build_android, build_windows, build_linux]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Extract Version
+      id: extract_version
+      shell: bash
+      run: |
+        if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+        else
+          echo "Error: Release can only be created from a version tag"
+          exit 1
+        fi
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.extract_version.outputs.version }}
+        name: Pix2D v${{ steps.extract_version.outputs.version }}
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+        files: |
+          artifacts/android/pix2d_v${{ steps.extract_version.outputs.version }}.apk
+          artifacts/android/pix2d_v${{ steps.extract_version.outputs.version }}.aab
+          artifacts/windows-desktop/Pix2d_win-x64-${{ steps.extract_version.outputs.version }}-portable.zip
+          artifacts/linux-desktop/Pix2d_linux-x64-${{ steps.extract_version.outputs.version }}.tar.gz

@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<RootNamespace>Pix2d</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>latest</LangVersion>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<Nullable>disable</Nullable>
+		<Platforms>AnyCPU;x86;x64;ARM64</Platforms>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Remove="Abstract\Platform\**" />
+		<EmbeddedResource Remove="Abstract\Platform\**" />
+		<None Remove="Abstract\Platform\**" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Remove="AboutAssets.txt" />
+	</ItemGroup>
+	<ItemGroup>
+		<AvaloniaResource Include="AboutAssets.txt" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="SkiaSharp" Version="3.119.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Pix2d.Infrastructure\Pix2d.Infrastructure.csproj" />
+		<ProjectReference Include="..\SkiaNodes\SkiaNodes.csproj" />
+	</ItemGroup>
+</Project>

@@ -1,0 +1,67 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+	<PropertyGroup>
+		<TargetFramework>net9.0-browser</TargetFramework>
+		<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+		<WasmMainJSPath>AppBundle/main.js</WasmMainJSPath>
+		<OutputType>Exe</OutputType>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<!--<TrimMode>partial</TrimMode>
+		<EnableTrimAnalyzer>true</EnableTrimAnalyzer>-->
+	<!--<WasmEnableThreads>false</WasmEnableThreads>-->
+	</PropertyGroup>
+	<ItemGroup>
+		<TrimmerRootDescriptor Include="LinkerConfig.xml" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="wwwroot\CNAME">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Include="wwwroot\CommonStuff.js">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Include="wwwroot\Splash.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Avalonia.Browser" Version="11.3.0" />
+		<PackageReference Include="SkiaSharp" Version="3.119.0" />
+		<PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="3.119.0" />
+		<!--<PackageReference Include="Microsoft.NET.WebAssembly.Threading" Version="9.0.0-rc.2.24473.5" />-->
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="../../Core/Pix2d.Shared/Pix2d.Shared.csproj" />
+		<ProjectReference Include="../../Core/Pix2d.UI/Pix2d.UI.csproj" />
+		<ProjectReference Include="../../Plugins/Pix2d.Plugins.PixelText/Pix2d.Plugins.PixelText.csproj" />
+		<ProjectReference Include="../../Plugins/Pix2d.Plugins.Drawing/Pix2d.Plugins.Drawing.csproj" />
+		<ProjectReference Include="../../Plugins/Pix2d.Plugins.Ai/Pix2d.Plugins.Ai.csproj" />
+		<ProjectReference Include="../../Plugins\Effects\Pix2d.Plugins.BaseEffectsSettings\Pix2d.Plugins.BaseEffects.csproj" />
+		<ProjectReference Include="../../Plugins\FormatSupport\Psd\Pix2d.Plugins.Psd\Pix2d.Plugins.Psd.csproj" />
+		<ProjectReference Include="../../Plugins\Pix2d.Plugins.OpenCv\Pix2d.Plugins.OpenCv.csproj" />
+		<ProjectReference Include="../../Plugins\Pix2d.Plugins.PngCompress\Pix2d.Plugins.PngCompress.csproj" />
+		<ProjectReference Include="..\..\Core\Pix2d.Core\Pix2d.Core.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<Content Update="wwwroot\.gitattributes">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Update="wwwroot\.nojekyll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Update="wwwroot\app.css">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Update="wwwroot\favicon.ico">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Update="wwwroot\index.html">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Update="wwwroot\main.js">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Update="wwwroot\README.md">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+</Project>

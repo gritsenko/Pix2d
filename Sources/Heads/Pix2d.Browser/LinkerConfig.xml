@@ -1,0 +1,12 @@
+﻿<linker>
+	<assembly fullname="Pix2d.Core" preserve="all" />
+	<assembly fullname="Pix2d.Infrastructure" preserve="all" />
+	<assembly fullname="Pix2d.Shared" preserve="all" />
+	<assembly fullname="Pix2d.UI" preserve="all" />
+	<assembly fullname="SkiaNodes" preserve="all" />
+	<assembly fullname="Pix2d.Plugins.Drawing" preserve="all" />
+	<assembly fullname="Pix2d.Plugins.BaseEffects" preserve="all" />
+	<assembly fullname="Pix2d.Plugins.Psd" preserve="all" />
+	<assembly fullname="Pix2d.Plugins.PixelText" preserve="all" />
+
+</linker>
