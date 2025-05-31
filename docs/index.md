@@ -1,4 +1,6 @@
-# Pix2D – Powerful Game Art & Pixel Art Editor
+# Powerful Game Art & Pixel Art Editor
+
+<img width="100px" alt="logo" src="./docs/assets/Logo.png"/>
 
 Welcome to the Pix2D documentation!
 
