@@ -59,6 +59,7 @@ public class SkiaCanvas : Control
         AttachedToVisualTree += SkiaCanvas_AttachedToVisualTree;
 
         _viewPortService = serviceProvider.GetRequiredService<IViewPortService>();
+
     }
 
     private void SkiaCanvas_AttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)

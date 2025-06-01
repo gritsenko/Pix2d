@@ -42,12 +42,12 @@ public class InputDialogView : ComponentBase, IDialogView<string>
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .TextWrapping(TextWrapping.Wrap)
                     .Margin(new Thickness(16, 0))
-                    .Text(Message, BindingMode.OneWay, bindingSource: this),
+                    .Text(() => Message),
                 
                 new TextBox().Row(1)
                     .Margin(new Thickness(16, 0))
                     .With(Focus)
-                    .Text(DialogResult, BindingMode.TwoWay),
+                    .Text(() => DialogResult, v => DialogResult = v),
 
                 new StackPanel().Row(2)
                     .Orientation(Orientation.Horizontal)

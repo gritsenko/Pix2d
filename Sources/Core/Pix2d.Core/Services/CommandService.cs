@@ -13,6 +13,9 @@ public class CommandService : ICommandService
     private readonly IServiceProvider? _serviceProvider;
     private readonly Dictionary<string, Pix2dCommand> _commands = new();
     private readonly List<ICommandList> _commandLists = [];
+
+    public bool IsTextInputFocused { get; set; }
+
     public CommandService(IPlatformStuffService platformStuffService, AppState appState, IServiceProvider? serviceProvider)
     {
         _platformStuffService = platformStuffService;
@@ -67,20 +70,30 @@ public class CommandService : ICommandService
 
     private async void OnKeyPressed(object? sender, KeyboardActionEventArgs e)
     {
-        if (e.Key is VirtualKeys.Control
-            or VirtualKeys.LeftControl
-            or VirtualKeys.RightControl
-            or VirtualKeys.Menu
-            or VirtualKeys.LeftMenu
-            or VirtualKeys.RightMenu)
+        try
         {
-            return;
-        }
+            if(IsTextInputFocused)
+                return;
 
-        var editContextType = _appState.CurrentProject.CurrentContextType;
-        if (FindCommand(e.Key, e.Modifiers, editContextType, out var command))
+            if (e.Key is VirtualKeys.Control
+                or VirtualKeys.LeftControl
+                or VirtualKeys.RightControl
+                or VirtualKeys.Menu
+                or VirtualKeys.LeftMenu
+                or VirtualKeys.RightMenu)
+            {
+                return;
+            }
+
+            var editContextType = _appState.CurrentProject.CurrentContextType;
+            if (FindCommand(e.Key, e.Modifiers, editContextType, out var command))
+            {
+                await ExecuteCommandAsync(command.Name);
+            }
+        }
+        catch (Exception ex)
         {
-            await ExecuteCommandAsync(command.Name);
+            Logger.LogException(ex);
         }
     }
 

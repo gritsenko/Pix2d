@@ -146,7 +146,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
             }
             else
             {
-                canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect, new SKPaint() { FilterQuality = SKFilterQuality.None });
+                    canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect, new SKPaint() { FilterQuality = SKFilterQuality.None });
             }
         }
     }

@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using Mvvm;
 using Pix2d.Messages;
 using Pix2d.UI.Shared;
 using SkiaSharp;
@@ -25,7 +24,7 @@ public class ResizeCanvasView : LocalizedComponentBase
                                     .Row(1)
                                     .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
                                     .Increment(1)
-                                    .Value(CanvasWidth, BindingMode.TwoWay),
+                                    .Value(() => CanvasWidth, v => CanvasWidth = (int)v!),
                                 new TextBlock().Col(1)
                                     .Row(1)
                                     .VerticalAlignment(VerticalAlignment.Center)
@@ -38,7 +37,7 @@ public class ResizeCanvasView : LocalizedComponentBase
                                     .Row(1)
                                     .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
                                     .Increment(1)
-                                    .Value(CanvasHeight, BindingMode.TwoWay)
+                                    .Value(() => CanvasHeight, v => CanvasHeight = (int)v!)
                             ),
 
                         new TextBlock()
@@ -48,7 +47,7 @@ public class ResizeCanvasView : LocalizedComponentBase
                         // The initial values are not displayed right away due to https://github.com/AvaloniaUI/CrossPlatformDesktop/issues/4610
                         new ComboBox()
                             .Margin(0, 8, 0, 0)
-                            .SelectedIndex(HorizontalAnchor, BindingMode.TwoWay)
+                            .SelectedIndex(() => HorizontalAnchor, v => HorizontalAnchor = (int)v!)
                             .HorizontalAlignment(HorizontalAlignment.Left)
                             .Width(100)
                             .Items(
@@ -63,7 +62,7 @@ public class ResizeCanvasView : LocalizedComponentBase
 
                         new ComboBox()
                             .Margin(0, 8, 0, 0)
-                            .SelectedIndex(VerticalAnchor, BindingMode.TwoWay)
+                            .SelectedIndex(() => VerticalAnchor, v => VerticalAnchor = (int)v!)
                             .HorizontalAlignment(HorizontalAlignment.Left)
                             .Width(100)
                             .Items(
@@ -77,7 +76,7 @@ public class ResizeCanvasView : LocalizedComponentBase
                             .Text(L("Keep aspect ratio")),
 
                         new ToggleSwitch().Margin(0, 0, 0, 0)
-                            .IsChecked(Bind(KeepAspect, BindingMode.TwoWay)),
+                            .IsChecked(() => KeepAspect, v => KeepAspect = (bool)v!),
 
                         new StackPanel()
                             .Orientation(Orientation.Horizontal)
