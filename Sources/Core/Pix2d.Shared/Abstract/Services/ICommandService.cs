@@ -6,8 +6,6 @@ namespace Pix2d.Abstract.Services;
 
 public interface ICommandService
 {
-    public bool IsTextInputFocused { get; set; }
-
     Pix2dCommand RegisterAsyncCommand(string name, Func<Task> commandActionTask, string description, CommandShortcut? defaultShortcut, EditContextType? editContextType = null, ICommandBehaviour? behaviour = null);
     Pix2dCommand RegisterSyncCommand(string key, Action action, string description, CommandShortcut? shortcut, EditContextType? editContextType = null, ICommandBehaviour? behaviour = null);
     Task ExecuteCommandAsync(string name);

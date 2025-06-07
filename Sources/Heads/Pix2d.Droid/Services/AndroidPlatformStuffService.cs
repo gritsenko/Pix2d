@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using File = Java.IO.File;
 
@@ -21,6 +22,9 @@ public class AndroidPlatformStuffService : IPlatformStuffService
     //not using direct services injection to prevent circular dependencies
     private readonly IServiceProvider _serviceProvider;
     private string? _appVersion;
+
+    public PlatformType CurrentPlatform => PlatformType.Android;
+    public bool IsTextInputFocused => EditorApp.TopLevel.FocusManager?.GetFocusedElement() is TextBox;
 
     public AndroidPlatformStuffService(IServiceProvider serviceProvider)
     {
@@ -58,9 +62,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
             ds.Alert($"Error in file opening \"{fileSource?.Title ?? "неизвестный файл"}\": \n{ex.Message}", "Error in file opening");
         }
     }
-
-    public PlatformType CurrentPlatform => PlatformType.Android;
-
+    
     public void OpenUrlInBrowser(string url)
     {
         var uri = global::Android.Net.Uri.Parse(url);

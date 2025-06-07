@@ -13,6 +13,8 @@ namespace Pix2d.Services;
 public class PlatformStuffService : IPlatformStuffService
 {
     private readonly IServiceProvider _serviceProvider;
+    public PlatformType CurrentPlatform => PlatformType.CrossPlatformDesktop;
+    public bool IsTextInputFocused => EditorApp.TopLevel.FocusManager?.GetFocusedElement() is TextBox;
 
     public PlatformStuffService(AppState state, IServiceProvider serviceProvider)
     {
@@ -60,10 +62,7 @@ public class PlatformStuffService : IPlatformStuffService
             await projectService.OpenFilesAsync([fileSource]);
         });
     }
-
-
-    public PlatformType CurrentPlatform => PlatformType.CrossPlatformDesktop;
-
+    
     public void OpenUrlInBrowser(string url)
     {
         //System.Diagnostics.Process.Start(url);
