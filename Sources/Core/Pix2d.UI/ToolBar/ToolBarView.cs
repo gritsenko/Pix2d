@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using Avalonia.Controls.Shapes;
+﻿using Avalonia.Controls.Shapes;
 using Avalonia.Styling;
 using Pix2d.Command;
 using Pix2d.Common.Extensions;
@@ -9,7 +8,6 @@ using Pix2d.UI.BrushSettings;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using Pix2d.UI.Styles;
-using SkiaSharp;
 
 namespace Pix2d.UI.ToolBar;
 
@@ -74,6 +72,11 @@ public class ToolBarView : ComponentBase
         }
     ];
 
+    private void ButtonToolTipSetter(Button b)
+    {
+        if (b.Command is Pix2dCommand pc) b.ToolTip(pc.Tooltip);
+    }
+
     protected override object Build() =>
         new Grid()
             .Rows("Auto, *")
@@ -93,7 +96,7 @@ public class ToolBarView : ComponentBase
                                 .CornerRadius(32)
                                 .BorderThickness(1)
                                 .BorderBrush(Colors.White.WithAlpha(0.3f).ToBrush().ToImmutable())
-                                .With(ButtonStyle)
+                                .With(ButtonToolTipSetter)
                                 .Background(() => AppState.SpriteEditorState.CurrentColor.ToBrush()),
 
                             new Button() //Brush settings button
@@ -103,7 +106,7 @@ public class ToolBarView : ComponentBase
                                 .Padding(0)
                                 .Command(ViewCommands.ToggleBrushSettingsCommand)
                                 .Content(()=>AppState.SpriteEditorState.CurrentBrushSettings)
-                                .With(ButtonStyle)
+                                .With(ButtonToolTipSetter)
                                 .VerticalContentAlignment(VerticalAlignment.Stretch)
                                 .HorizontalContentAlignment(HorizontalAlignment.Stretch)
                                 .ContentTemplate(
@@ -130,7 +133,7 @@ public class ToolBarView : ComponentBase
     [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private ICommandService CommandService { get; set; } = null!;
 
-    private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>();
+    private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
 
     private bool IsSpriteEditMode => AppState.CurrentProject.CurrentContextType == EditContextType.Sprite;
 
@@ -142,7 +145,7 @@ public class ToolBarView : ComponentBase
     protected override void OnAfterInitialized()
     {
         //Messenger.Register<EditContextChangedMessage>(this, msg => UpdateToolsFromCurrentContext());
-        Messenger.Register<CurrentToolChangedMessage>(this, msg => StateHasChanged());
+        AppState.ToolsState.WatchFor(x=>x.CurrentToolKey, StateHasChanged);
         AppState.CurrentProject.WatchFor(x => x.CurrentContextType, OnEditContextChanged);
         AppState.SpriteEditorState.WatchFor(x => x.CurrentColor, StateHasChanged);
         AppState.SpriteEditorState.WatchFor(x => x.CurrentBrushSettings, StateHasChanged);
@@ -177,14 +180,6 @@ public class ToolBarView : ComponentBase
                     _toolsStackPanel.Children.Add(groupItem);
                 }
             }
-        }
-    }
-
-    private void ButtonStyle(Button b)
-    {
-        if (b.Command is Pix2dCommand pc)
-        {
-            b.ToolTip(pc.Tooltip);
         }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using Avalonia.Interactivity;
 using Pix2d.Abstract.Tools;
-using Pix2d.Messages;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 
@@ -9,30 +8,20 @@ namespace Pix2d.UI.ToolBar;
 public class ToolItemView : LocalizedComponentBase
 {
     private ToolState _toolState;
-
+    
     public ToolItemView(ToolState toolState)
     {
         _toolState = toolState;
         Initialize();
     }
-
-    protected override void OnLoaded(RoutedEventArgs e)
-    {
-        base.OnLoaded(e);
-        AppState.CurrentProject.WatchFor(x => x.IsAnimationPlaying, StateHasChanged);
-    }
-
-    protected override void OnUnloaded(RoutedEventArgs e)
-    {
-        base.OnUnloaded(e);
-        AppState.CurrentProject.Unwatch(x => x.IsAnimationPlaying, StateHasChanged);
-    }
-
+    
     protected override object Build() =>
         new Button()
+            .Ref(out _button)
             .ToolTip(L(_toolState?.ToolTip)())
             .Classes("toolbar-button")
-            .BindClass(IsSelected, "selected", bindingSource: this)
+            // todo: update BindClass in avalonia markup with expression binding
+            //.BindClass(IsSelected, "selected", bindingSource: this)
             .OnClick(OnButtonClicked)
             .IsEnabled(() => !AppState.CurrentProject.IsAnimationPlaying || ToolState.EnabledDuringAnimation)
             .HorizontalContentAlignment(HorizontalAlignment.Stretch)
@@ -52,29 +41,20 @@ public class ToolItemView : LocalizedComponentBase
                                     .HorizontalContentAlignment(HorizontalAlignment.Stretch)
                                     .VerticalContentAlignment(VerticalAlignment.Stretch)
                                     .Content(() => ToolIconKey)
-                                //new Rectangle()
-                                //    .RadiusX(StaticResources.Measures.PipkaCornerRadius)
-                                //    .RadiusY(StaticResources.Measures.PipkaCornerRadius)
-                                //    .Fill(Colors.White.WithAlpha(0.3f).ToBrush())
-                                //    .Width(8)
-                                //    .Height(8)
-                                //    .Stretch(Stretch.Fill)
-                                //    .VerticalAlignment(VerticalAlignment.Bottom)
-                                //    .HorizontalAlignment(HorizontalAlignment.Right)
-                                //    .IsVisible(() => ShowProperties)
                             )
                     )
             );
 
-    [Inject] IToolService ToolService { get; set; } = null!;
-    [Inject] AppState AppState { get; set; } = null!;
-    [Inject] private IMessenger Messenger { get; set; } = null!;
+    [Inject] private IToolService ToolService { get; set; } = null!;
+    [Inject] private AppState AppState { get; set; } = null!;
+
+    private Button _button;
+
     public string ToolKey => ToolState?.Name ?? "";
 
     public string ToolIconKey => ToolState?.IconKey ?? "";
     public bool IsSelected => AppState.ToolsState.CurrentToolKey == ToolKey;
 
-    public bool ShowProperties => ToolState?.HasToolProperties ?? false;
     public ToolState ToolState
     {
         get => _toolState;
@@ -85,9 +65,30 @@ public class ToolItemView : LocalizedComponentBase
         }
     }
 
-    protected override void OnAfterInitialized()
+    protected override void OnLoaded(RoutedEventArgs e)
     {
-        Messenger.Register<CurrentToolChangedMessage>(this, msg => StateHasChanged());
+        base.OnLoaded(e);
+        AppState.CurrentProject.WatchFor(x => x.IsAnimationPlaying, StateHasChanged);
+        AppState.ToolsState.WatchFor(x => x.CurrentToolKey, UpdateIsSelected);
+
+        UpdateIsSelected();
+    }
+
+    private void UpdateIsSelected()
+    {
+        if (IsSelected)
+            _button.Classes.Add("selected");
+        else
+            _button.Classes.Remove("selected");
+
+        StateHasChanged();
+    }
+
+    protected override void OnUnloaded(RoutedEventArgs e)
+    {
+        base.OnUnloaded(e);
+        AppState.CurrentProject.Unwatch(x => x.IsAnimationPlaying, StateHasChanged);
+        AppState.ToolsState.Unwatch(x => x.CurrentToolKey, UpdateIsSelected);
     }
 
     private void OnButtonClicked(RoutedEventArgs args)
