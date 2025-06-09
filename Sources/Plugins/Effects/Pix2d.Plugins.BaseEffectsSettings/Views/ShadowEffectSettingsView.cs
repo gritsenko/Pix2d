@@ -1,5 +1,4 @@
 ﻿using Avalonia.Controls;
-using Avalonia.Data;
 using Avalonia.Markup.Declarative;
 using Pix2d.Effects;
 using Pix2d.UI.Shared;
@@ -13,7 +12,7 @@ public class ShadowEffectSettingsView(PixelShadowEffect effect, Action onEffectU
             new Grid().Cols("*, Auto")
                 .Children(
                     new TextBlock().Col(0).Text("Color"),
-                    new ColorPickerButton().Col(1).Color(effect.Color, BindingMode.TwoWay, bindingSource: effect)
+                    new ColorPickerButton().Col(1).Color(() => effect.Color, v => UpdateEffect(() => effect.Color = v))
                 ),
 
             new TextBlock().Text("Offset X"),
