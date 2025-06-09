@@ -5,12 +5,15 @@ using Pix2d.State;
 using SkiaNodes.Interactive;
 using System;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 
 namespace Pix2d.Browser.Services;
 
 public class BrowserPlatformStuffService : IPlatformStuffService
 {
     private string _appVersion;
+
+    public bool IsTextInputFocused => EditorApp.TopLevel.FocusManager?.GetFocusedElement() is TextBox;
 
     public string KeyToString(VirtualKeys key)
     {

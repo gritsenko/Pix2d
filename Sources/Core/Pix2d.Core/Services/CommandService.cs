@@ -14,7 +14,7 @@ public class CommandService : ICommandService
     private readonly Dictionary<string, Pix2dCommand> _commands = new();
     private readonly List<ICommandList> _commandLists = [];
 
-    public bool IsTextInputFocused { get; set; }
+    public bool IsTextInputFocused => _platformStuffService.IsTextInputFocused;
 
     public CommandService(IPlatformStuffService platformStuffService, AppState appState, IServiceProvider? serviceProvider)
     {
@@ -42,7 +42,7 @@ public class CommandService : ICommandService
         return _commandLists.OfType<TCommandList>().FirstOrDefault();
     }
 
-    public void RegisterCommandList<TCommandList>() where TCommandList : new()
+    private void RegisterCommandList<TCommandList>() where TCommandList : new()
     {
         var listInstance = (ICommandList)new TCommandList();
         RegisterCommandList(listInstance);

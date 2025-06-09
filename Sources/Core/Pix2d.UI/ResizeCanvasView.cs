@@ -24,7 +24,7 @@ public class ResizeCanvasView : LocalizedComponentBase
                                     .Row(1)
                                     .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
                                     .Increment(1)
-                                    .Value(() => CanvasWidth, v => CanvasWidth = (int)v!),
+                                    .Value(() => CanvasWidth, v => CanvasWidth = (int)(v ?? 0)),
                                 new TextBlock().Col(1)
                                     .Row(1)
                                     .VerticalAlignment(VerticalAlignment.Center)
@@ -37,7 +37,7 @@ public class ResizeCanvasView : LocalizedComponentBase
                                     .Row(1)
                                     .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
                                     .Increment(1)
-                                    .Value(() => CanvasHeight, v => CanvasHeight = (int)v!)
+                                    .Value(() => CanvasHeight, v => CanvasHeight = (int)(v ?? 0))
                             ),
 
                         new TextBlock()
@@ -133,9 +133,9 @@ public class ResizeCanvasView : LocalizedComponentBase
         }
     }
 
-    public bool HasActiveArtboard => SelectionService.GetActiveContainer() != null;
-    public int OriginalWidth => HasActiveArtboard ? (int)SelectionService.GetActiveContainer().Size.Width : 0;
-    public int OriginalHeight => HasActiveArtboard ? (int)SelectionService.GetActiveContainer().Size.Height : 0;
+    private bool HasActiveArtboard => SelectionService.GetActiveContainer() != null;
+    private int OriginalWidth => HasActiveArtboard ? (int)SelectionService.GetActiveContainer().Size.Width : 0;
+    private int OriginalHeight => HasActiveArtboard ? (int)SelectionService.GetActiveContainer().Size.Height : 0;
 
     public int CanvasWidth
     {
@@ -240,7 +240,7 @@ public class ResizeCanvasView : LocalizedComponentBase
         UpdateSizeProperties();
     }
 
-    public void UpdateSizeProperties()
+    private void UpdateSizeProperties()
     {
         CanvasWidth = OriginalWidth;
         CanvasHeight = OriginalHeight;

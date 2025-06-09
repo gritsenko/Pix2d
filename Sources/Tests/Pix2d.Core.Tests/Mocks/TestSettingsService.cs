@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
@@ -25,6 +26,8 @@ public class TestSettingsService : ISettingsService
 
 public class TestPlatformStaffService : IPlatformStuffService
 {
+    public bool IsTextInputFocused => EditorApp.TopLevel.FocusManager?.GetFocusedElement() is TextBox;
+
     public PlatformType CurrentPlatform => PlatformType.CrossPlatformDesktop;
 
     public void OpenUrlInBrowser(string url)

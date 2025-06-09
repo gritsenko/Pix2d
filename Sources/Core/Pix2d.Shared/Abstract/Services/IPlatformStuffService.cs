@@ -16,6 +16,11 @@ public interface IPlatformStuffService
     PlatformType CurrentPlatform { get; }
 
     /// <summary>
+    /// Detect if any text input is selected in application
+    /// </summary>
+    bool IsTextInputFocused { get; }
+    
+    /// <summary>
     /// Opens the specified URL in the default web browser.
     /// </summary>
     /// <param name="url">The URL string to open.</param>
@@ -49,29 +54,29 @@ public interface IPlatformStuffService
     /// <summary>
     /// Toggles the topmost state of the main application window (whether it stays on top of other windows).
     /// </summary>
-    public void ToggleTopmostWindow();
+    void ToggleTopmostWindow();
 
     /// <summary>
     /// Gets a value indicating whether the current platform has a physical keyboard available.
     /// </summary>
-    public bool HasKeyboard { get; }
+    bool HasKeyboard { get; }
 
     /// <summary>
     /// Gets a value indicating whether the current platform supports sharing content.
     /// </summary>
-    public bool CanShare { get; }
+    bool CanShare { get; }
 
     /// <summary>
     /// Initiates the platform's sharing mechanism with content exported by the provided exporter.
     /// </summary>
     /// <param name="exporter">The IStreamExporter to use to get the content to share.</param>
     /// <param name="scale">The scaling factor to apply during export for sharing (default is 1).</param>
-    public void Share(IStreamExporter exporter, double scale = 1);
+    void Share(IStreamExporter exporter, double scale = 1);
 
     /// <summary>
     /// Toggles the fullscreen mode of the main application window.
     /// </summary>
-    public void ToggleFullscreenMode();
+    void ToggleFullscreenMode();
 
     /// <summary>
     /// Gets the path to the application's data folder where settings and other files are stored.
