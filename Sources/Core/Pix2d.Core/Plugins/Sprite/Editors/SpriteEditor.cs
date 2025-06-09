@@ -69,6 +69,16 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
             _viewPortRefreshService.Refresh();
         });
 
+        state.SpriteEditorState.WatchFor(x => x.FrameRate, () =>
+        {
+            CurrentSprite.FrameRate = state.SpriteEditorState.FrameRate;
+
+            if(IsPlaying)
+                _timer.Change(1000 / FrameRate, 1000 / FrameRate);
+
+            _viewPortRefreshService.Refresh();
+        });
+
         _operationTimer = new Timer(OnOperationTimerTick, this, -1, -1);
     }
 
@@ -91,21 +101,21 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
                 var changeType = e.OperationType == OperationEventType.Undo
                     ? FramesChangedType.Delete
                     : FramesChangedType.Add;
-                OnFramesChanged(changeType, new[] { add.FrameIndex });
+                OnFramesChanged(changeType, [add.FrameIndex]);
             }
             else if (e.Operation is DeleteAnimationFrameOperation del)
             {
                 var changeType = e.OperationType == OperationEventType.Undo
                     ? FramesChangedType.Add
                     : FramesChangedType.Delete;
-                OnFramesChanged(changeType, new[] { del.FrameIndex });
+                OnFramesChanged(changeType, [del.FrameIndex]);
             }
             else if (e.Operation is DuplicateAnimationFrameOperation per)
             {
                 var changeType = e.OperationType == OperationEventType.Undo
                     ? FramesChangedType.Delete
                     : FramesChangedType.Add;
-                OnFramesChanged(changeType, new[] { per.FrameIndex });
+                OnFramesChanged(changeType, [per.FrameIndex]);
                 OnFramesChanged(FramesChangedType.Reset, null);
             }
         }
@@ -453,13 +463,13 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
     {
         var operation = new AddAnimationFrameOperation(CurrentSprite, CurrentFrameIndex);
         _operationService.InvokeAndPushOperations(operation);
-        OnFramesChanged(FramesChangedType.Add, new[] { CurrentFrameIndex });
+        OnFramesChanged(FramesChangedType.Add, [CurrentFrameIndex]);
     }
     public void DuplicateFrame()
     {
         var operation = new DuplicateAnimationFrameOperation(CurrentSprite, CurrentFrameIndex);
         _operationService.InvokeAndPushOperations(operation);
-        OnFramesChanged(FramesChangedType.Add, new[] { CurrentFrameIndex });
+        OnFramesChanged(FramesChangedType.Add, [CurrentFrameIndex]);
     }
 
     public void DeleteFrame(int index = -1)

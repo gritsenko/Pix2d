@@ -8,31 +8,8 @@ namespace Pix2d.UI.Animation;
 
 public class AnimationControlsView : LocalizedComponentBase
 {
-
-    [Inject] public ICommandService CommandService { get; set; } = null!;
-    [Inject] private AppState AppState { get; set; } = null!;
-    [Inject] private IMessenger Messenger { get; set; } = null!;
-
-    private SpriteEditorState SpriteEditorState => AppState.SpriteEditorState;
-    private ISpriteAnimationCommands SpriteAnimationCommands =>
-        CommandService.GetCommandList<ISpriteAnimationCommands>()!;
-
-    protected override void OnAfterInitialized()
-    {
-        SpriteEditorState.WatchFor(s => s.CurrentFrameIndex, StateHasChanged);
-        SpriteEditorState.WatchFor(s => s.FramesCount, StateHasChanged);
-        Messenger.Register<ProjectLoadedMessage>(this, plm =>
-        {
-            if (AppState.CurrentProject.CurrentEditedNode is Pix2dSprite sprite)
-            {
-                SpriteEditorState.ShowOnionSkin = sprite.OnionSkinSettings.IsEnabled;
-            }
-            StateHasChanged();
-        });
-    }
-
-    protected override object Build()=>
-            new Grid()
+    protected override object Build() =>
+        new Grid()
             .Cols("auto,*")
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children([
@@ -124,4 +101,29 @@ public class AnimationControlsView : LocalizedComponentBase
                             ]))
             ]);
 
+    [Inject] public ICommandService CommandService { get; set; } = null!;
+
+    [Inject] private AppState AppState { get; set; } = null!;
+
+    [Inject] private IMessenger Messenger { get; set; } = null!;
+
+    private SpriteEditorState SpriteEditorState => AppState.SpriteEditorState;
+
+    private ISpriteAnimationCommands SpriteAnimationCommands =>
+        CommandService.GetCommandList<ISpriteAnimationCommands>()!;
+
+    protected override void OnAfterInitialized()
+    {
+        SpriteEditorState.WatchFor(s => s.CurrentFrameIndex, StateHasChanged);
+        SpriteEditorState.WatchFor(s => s.FramesCount, StateHasChanged);
+
+        Messenger.Register<ProjectLoadedMessage>(this, plm =>
+        {
+            if (AppState.CurrentProject.CurrentEditedNode is Pix2dSprite sprite)
+            {
+                SpriteEditorState.ShowOnionSkin = sprite.OnionSkinSettings.IsEnabled;
+            }
+            StateHasChanged();
+        });
+    }
 }
