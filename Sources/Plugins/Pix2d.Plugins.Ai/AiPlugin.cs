@@ -27,7 +27,7 @@ public class AiPlugin : IPix2dPlugin
         LoadModel();
 
         ToolService.RegisterTool<ExtractObjectTool>(EditContextType.Sprite);
-        ToolService.RegisterTool<ImageGenerateTool>(EditContextType.Sprite);
+        //ToolService.RegisterTool<ImageGenerateTool>(EditContextType.Sprite);
     }
 
     private void LoadModel()

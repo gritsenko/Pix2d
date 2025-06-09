@@ -25,7 +25,7 @@ public class AndroidPix2dBootstrapper : Pix2dBootstrapperDI
         return new Pix2DAppSettings
         {
             AppMode = Pix2DAppMode.SpriteEditor,
-            AutoSaveInterval = TimeSpan.FromSeconds(30),
+            AutoSaveInterval = TimeSpan.FromSeconds(60),
             StartupDocument = startupDoc,
             UseInternalFolder = true,
         };

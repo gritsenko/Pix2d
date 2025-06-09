@@ -14,7 +14,7 @@ public class AndroidAvaloniaFileService(
     ISettingsService settingsService)
     : AvaloniaFileService(messenger, platformStuffService, settingsService)
 {
-    protected override IFileContentSource? GetFileSource(IStorageFile? file)
+    protected override IFileContentSource GetFileSource(IStorageFile? file)
     {
         var ext = Path.GetExtension(file.Name);
         var uri = Uri.Parse(file.Path.AbsoluteUri);

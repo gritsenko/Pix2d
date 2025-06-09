@@ -29,7 +29,9 @@ public class BackgroundSelectorView : LocalizedComponentBase
                                             .Color(() => AppState.SpriteEditorState.BackgroundColor,
                                                 v =>
                                                 {
-                                                    UpdateState(() => AppState.SpriteEditorState.BackgroundColor = v);
+                                                    if (AppState.SpriteEditorState.BackgroundColor != v)
+                                                        AppState.SpriteEditorState.ShowBackground = true;
+                                                    AppState.SpriteEditorState.BackgroundColor = v;
                                                     UpdateSprite();
                                                 })
                                             .Margin(0, 8)
@@ -39,8 +41,7 @@ public class BackgroundSelectorView : LocalizedComponentBase
                                             .IsChecked(() => AppState.SpriteEditorState.ShowBackground,
                                                 v =>
                                                 {
-                                                    UpdateState(() =>
-                                                        AppState.SpriteEditorState.ShowBackground = v.Value);
+                                                    AppState.SpriteEditorState.ShowBackground = v.Value;
                                                     UpdateSprite();
                                                 })
                                             .Content(L("Show background"))
@@ -52,6 +53,20 @@ public class BackgroundSelectorView : LocalizedComponentBase
     [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private IViewPortRefreshService ViewPortRefreshService { get; set; } = null!;
 
+    protected override void OnAfterInitialized()
+    {
+        //AppState.WatchFor(x=>x.CurrentProject, UpdateStateFromSprite);
+        AppState.CurrentProject.WatchFor(x=>x.CurrentEditedNode, UpdateStateFromSprite);
+    }
+
+    private void UpdateStateFromSprite()
+    {
+        if (AppState.CurrentProject.CurrentEditedNode is not Pix2dSprite sprite) return;
+        AppState.SpriteEditorState.BackgroundColor = sprite.BackgroundColor;
+        AppState.SpriteEditorState.ShowBackground = sprite.UseBackgroundColor;
+        StateHasChanged();
+    }
+
     private void UpdateSprite()
     {
         if (AppState.CurrentProject.CurrentEditedNode is not Pix2dSprite sprite) return;
@@ -59,5 +74,6 @@ public class BackgroundSelectorView : LocalizedComponentBase
         sprite.BackgroundColor = AppState.SpriteEditorState.BackgroundColor;
         sprite.UseBackgroundColor = AppState.SpriteEditorState.ShowBackground;
         ViewPortRefreshService.Refresh();
+        StateHasChanged();
     }
 }
