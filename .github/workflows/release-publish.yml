@@ -35,23 +35,23 @@ env:
   WASM_OUTPUT_DIR_NAME: wasm # Directory name for WASM build within OUTPUT_PATH
 
 jobs:
-  # This variable determines if all platforms should be built if no specific platform is selected for manual dispatch.
-  # It's true if all 'include' inputs are false during a workflow_dispatch event.
-  build_all_platforms_flag:
+  # This job calculates whether any specific build platform has been explicitly selected
+  # in a manual workflow dispatch. If none are selected, it implies building all.
+  determine_build_scope:
     runs-on: ubuntu-latest
     outputs:
-      should_build_all: ${{ github.event_name == 'workflow_dispatch' && !github.event.inputs.include_android && !github.event.inputs.include_windows && !github.event.inputs.include_linux && !github.event.inputs.include_wasm_deploy }}
+      any_platform_included: ${{ github.event.inputs.include_android || github.event.inputs.include_windows || github.event.inputs.include_linux || github.event.inputs.include_wasm_deploy }}
     steps:
-      - name: Set should_build_all output
-        run: echo "should_build_all=${{ github.event_name == 'workflow_dispatch' && !github.event.inputs.include_android && !github.event.inputs.include_windows && !github.event.inputs.include_linux && !github.event.inputs.include_wasm_deploy }}" >> $GITHUB_OUTPUT
+      - name: Set 'any_platform_included' output
+        run: echo "any_platform_included=${{ github.event.inputs.include_android || github.event.inputs.include_windows || github.event.inputs.include_linux || github.event.inputs.include_wasm_deploy }}" >> $GITHUB_OUTPUT
 
   build_android:
-    needs: build_all_platforms_flag
+    needs: determine_build_scope
     # Condition to run the job:
-    # 1. If it's a push event (not workflow_dispatch), or
+    # 1. If it's a push event (e.g., tag push), or
     # 2. If 'include_android' input is true, or
-    # 3. If 'should_build_all' is true (no specific platform selected for manual dispatch).
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_android || needs.build_all_platforms_flag.outputs.should_build_all == 'true' }}
+    # 3. If no specific platform was selected for manual dispatch (meaning all should be built).
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_android || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: windows-latest
     permissions:
       contents: write
@@ -92,7 +92,7 @@ jobs:
       run: dotnet build --no-restore ${{ env.ANDROID_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }}
 
     - name: Test
-      run: dotnet dotnet test --no-build --verbosity normal ${{ env.ANDROID_PROJECT_PATH }}
+      run: dotnet test --no-build --verbosity normal ${{ env.ANDROID_PROJECT_PATH }}
 
     - name: Clean output directory
       run: |
@@ -137,12 +137,12 @@ jobs:
         path: ${{ env.OUTPUT_PATH }}/pix2d_v${{ env.VERSION }}.*
 
   build_windows:
-    needs: build_all_platforms_flag
+    needs: determine_build_scope
     # Condition to run the job:
-    # 1. If it's a push event (not workflow_dispatch), or
+    # 1. If it's a push event (e.g., tag push), or
     # 2. If 'include_windows' input is true, or
-    # 3. If 'should_build_all' is true (no specific platform selected for manual dispatch).
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_windows || needs.build_all_platforms_flag.outputs.should_build_all == 'true' }}
+    # 3. If no specific platform was selected for manual dispatch (meaning all should be built).
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_windows || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -193,12 +193,12 @@ jobs:
         path: Pix2d_win-x64-${{ env.VERSION }}-portable.zip
 
   build_linux:
-    needs: build_all_platforms_flag
+    needs: determine_build_scope
     # Condition to run the job:
-    # 1. If it's a push event (not workflow_dispatch), or
+    # 1. If it's a push event (e.g., tag push), or
     # 2. If 'include_linux' input is true, or
-    # 3. If 'should_build_all' is true (no specific platform selected for manual dispatch).
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_linux || needs.build_all_platforms_flag.outputs.should_build_all == 'true' }}
+    # 3. If no specific platform was selected for manual dispatch (meaning all should be built).
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_linux || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -251,12 +251,12 @@ jobs:
 
   # Dedicated job for building the WASM artifacts so they can be uploaded
   build_wasm:
-    needs: build_all_platforms_flag
+    needs: determine_build_scope
     # Condition to run the job:
-    # 1. If it's a push event (not workflow_dispatch), or
+    # 1. If it's a push event (e.g., tag push), or
     # 2. If 'include_wasm_deploy' input is true, or
-    # 3. If 'should_build_all' is true (no specific platform selected for manual dispatch).
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_wasm_deploy || needs.build_all_platforms_flag.outputs.should_build_all == 'true' }}
+    # 3. If no specific platform was selected for manual dispatch (meaning all should be built).
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_wasm_deploy || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -312,12 +312,12 @@ jobs:
   # New job for deploying WASM artifacts to app.pix2d.com
   deploy_wasm_to_gh_pages:
     runs-on: ubuntu-latest
-    needs: [build_wasm, build_all_platforms_flag] # Depends on successful WASM build and the flag for 'build_all'
+    needs: [build_wasm, determine_build_scope] # Depends on successful WASM build and the flag for 'build_all'
     # Condition to run the job:
-    # 1. If it's a push event (not workflow_dispatch), or
+    # 1. If it's a push event (e.g., tag push), or
     # 2. If 'include_wasm_deploy' input is true, or
-    # 3. If 'should_build_all' is true (no specific platform selected for manual dispatch).
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_wasm_deploy || needs.build_all_platforms_flag.outputs.should_build_all == 'true' }}
+    # 3. If no specific platform was selected for manual dispatch (meaning all should be built).
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_wasm_deploy || !needs.determine_build_scope.outputs.any_platform_included }}
     permissions:
       contents: write # Required for pushing to another repository
 
@@ -366,10 +366,11 @@ jobs:
         shopt -u extglob
       shell: bash
 
-    - name: Copy WASM build to target repository
+    - name: Copy WASM build contents to target repository root
+      # The WASM build outputs files into a 'wwwroot' subdirectory.
+      # This step copies the *contents* of 'wwwroot' directly into the root of the target repository.
       run: |
-        # Copy the contents of the built WASM folder to the root of the target repository
-        cp -r wasm_build/* app.pix2d.com_repo/
+        cp -r wasm_build/wwwroot/* app.pix2d.com_repo/
       shell: bash
 
     - name: Commit and Push to app.pix2d.com
