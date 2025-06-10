@@ -11,7 +11,7 @@ public class SKBitmapRef
     {
         }
 
-    public SKBitmapRef(SKBitmap sourceObject, IDataStorage dataStorage)
+    public SKBitmapRef(SKBitmap sourceObject, IDataStorage? dataStorage)
     {
             Id = Guid.NewGuid() + ".png";
 

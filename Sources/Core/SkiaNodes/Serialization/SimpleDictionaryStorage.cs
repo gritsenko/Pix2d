@@ -1,30 +1,23 @@
-﻿using System.Collections.Generic;
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace SkiaNodes.Serialization;
 
-public class SimpleDictionaryStorage : IDataStorage
+public class SimpleDictionaryStorage(IDictionary<string, SKBitmap>? data = null) : IDataStorage
 {
-    private readonly IDictionary<string, SKBitmap> _data;
-
-    public SimpleDictionaryStorage(IDictionary<string, SKBitmap> data = null)
-    {
-            _data = data ?? new Dictionary<string, SKBitmap>();
-        }
+    private readonly IDictionary<string, SKBitmap> _data = data ?? new Dictionary<string, SKBitmap>();
 
     public void SetEntry(string id, SKBitmap data)
     {
-            _data[id] = data;
-        }
+        _data[id] = data;
+    }
 
     public SKBitmap GetEntry(string id)
     {
-            return _data.TryGetValue(id, out SKBitmap data) ? data : null;
-        }
+        return _data.TryGetValue(id, out SKBitmap data) ? data : null;
+    }
 
-    public IDictionary<string, SKBitmap> GetDataEnries()
+    public IDictionary<string, SKBitmap> GetDataEntries()
     {
-            return _data;
-        }
-
+        return _data;
+    }
 }

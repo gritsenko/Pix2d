@@ -5,8 +5,8 @@
 		<WasmMainJSPath>AppBundle/main.js</WasmMainJSPath>
 		<OutputType>Exe</OutputType>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<!--<TrimMode>partial</TrimMode>
-		<EnableTrimAnalyzer>true</EnableTrimAnalyzer>-->
+		<TrimMode>link</TrimMode>
+		<EnableTrimAnalyzer>true</EnableTrimAnalyzer>
 	<!--<WasmEnableThreads>false</WasmEnableThreads>-->
 	</PropertyGroup>
 	<ItemGroup>

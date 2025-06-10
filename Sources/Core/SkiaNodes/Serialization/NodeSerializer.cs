@@ -6,7 +6,7 @@ namespace SkiaNodes.Serialization;
 
 public class NodeSerializer : IDisposable
 {
-    SimpleDictionaryStorage dataStorage = new();
+    private SimpleDictionaryStorage _dataStorage = new();
     private static TypeNameAssemblyExcludingSerializationBinder? _assemblyBinderInstance;
     public static Assembly[] ExtraAssemblies { get; set; } = [];
 
@@ -14,7 +14,7 @@ public class NodeSerializer : IDisposable
     {
         JsonConverter[] converters =
         [
-            new SKBitmapConverter() {DataStorage = dataStorage},
+            new SKBitmapConverter() {DataStorage = _dataStorage},
             new SKColorConverter(),
             new NodeCollectionConverter()
         ];
@@ -24,7 +24,7 @@ public class NodeSerializer : IDisposable
 
     public IDictionary<string, SKBitmap> GetDataEntries()
     {
-        return dataStorage.GetDataEnries();
+        return _dataStorage.GetDataEntries();
     }
 
     private static JsonSerializerSettings GetJsonSettings(params JsonConverter[] converters)
@@ -45,22 +45,29 @@ public class NodeSerializer : IDisposable
 
     public void Dispose()
     {
-        dataStorage = null;
     }
 
     public static T Deserialize<T>(string json, IDictionary<string, SKBitmap> images)
     {
-        JsonConverter[] converters =
-        [
-            new SKBitmapConverter() {DataStorage = new SimpleDictionaryStorage(images)},
-            new SKColorConverter(),
-            new SKSizeConverter()
-            //new NodeCollectionConverter()
-        ];
-            
-        var node = JsonConvert.DeserializeObject<T>(json, GetJsonSettings(converters));
-        return (T)node;
+        try
+        {
+            JsonConverter[] converters =
+            [
+                new SKBitmapConverter() { DataStorage = new SimpleDictionaryStorage(images) },
+                new SKColorConverter(),
+                new SKSizeConverter()
+                //new NodeCollectionConverter()
+            ];
+
+            var node = JsonConvert.DeserializeObject<T>(json, GetJsonSettings(converters));
+            return (T)node;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Failed to deserialize node of type {typeof(T).Name} (exception: {ex.Message}) from JSON: {json}", ex);
+        }
     }
+
     public static SKNode Deserialize(Type type, string json, IDictionary<string, SKBitmap> images)
     {
         JsonConverter[] converters =

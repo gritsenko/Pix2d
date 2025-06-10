@@ -20,7 +20,7 @@ public class ProjectUnpacker
 
         await using var fileStream = await file.OpenRead();
         if (!fileStream.CanRead || fileStream.Length < 1 || fileStream.Position < 0)
-            throw new Exception($"Can't read file {file.Path} with size of {fileStream.Length}!");
+            throw new Exception($"Can't read file stream {file.Path} with size of {fileStream.Length}! [CanRead: {fileStream.CanRead}, Stream pos: {fileStream.Position}]");
 
         try
         {
@@ -34,7 +34,7 @@ public class ProjectUnpacker
             {
                 await using var imageEntryStream = imageZipEntry.Open();
                 using var ms = new MemoryStream();
-                //если читаем напрямую из zip entry то картинка не догружается
+                //if we're reading from zip entry image isn't fully loaded
                 await imageEntryStream.CopyToAsync(ms);
                 ms.Seek(0, SeekOrigin.Begin);
 
@@ -61,7 +61,7 @@ public class ProjectUnpacker
         catch (Exception ex)
         {
             throw new Exception(
-                $"Can't read file {file.Path} with size of {fileStream.Length}! \nError while unpack: {ex.Message}",
+                $"Can't read file {file.Path} with size of {fileStream.Length}!  \nException while unpack: {ex.Message}",
                 ex);
 
         }

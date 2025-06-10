@@ -6,7 +6,7 @@ namespace SkiaNodes.Serialization;
 
 public partial class SKBitmapConverter : JsonConverter
 {
-    public IDataStorage DataStorage { get; set; }
+    public IDataStorage? DataStorage { get; set; }
 
     public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
     {
