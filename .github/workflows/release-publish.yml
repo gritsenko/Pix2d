@@ -40,15 +40,28 @@ jobs:
   determine_build_scope:
     runs-on: ubuntu-latest
     outputs:
-      any_platform_included: ${{ github.event.inputs.include_android || github.event.inputs.include_windows || github.event.inputs.include_linux || github.event.inputs.include_wasm_deploy }}
+      any_platform_included: ${{ steps.set_output.outputs.any_platform_included }}
     steps:
-      - name: Log input values and output
+      - name: Log input values and determine output
+        id: set_output # Add an ID to reference outputs from this step
         run: |
           echo "Input include_android: ${{ github.event.inputs.include_android }}"
           echo "Input include_windows: ${{ github.event.inputs.include_windows }}"
           echo "Input include_linux: ${{ github.event.inputs.include_linux }}"
           echo "Input include_wasm_deploy: ${{ github.event.inputs.include_wasm_deploy }}"
-          echo "any_platform_included=${{ github.event.inputs.include_android || github.event.inputs.include_windows || github.event.inputs.include_linux || github.event.inputs.include_wasm_deploy }}" >> $GITHUB_OUTPUT
+
+          # Calculate the boolean value for any_platform_included
+          # Using bash logic for robustness in evaluating boolean inputs
+          ANY_INCLUDED=false
+          if [[ "${{ github.event.inputs.include_android }}" == "true" || \
+                "${{ github.event.inputs.include_windows }}" == "true" || \
+                "${{ github.event.inputs.include_linux }}" == "true" || \
+                "${{ github.event.inputs.include_wasm_deploy }}" == "true" ]]; then
+            ANY_INCLUDED=true
+          fi
+
+          echo "Calculated any_platform_included: $ANY_INCLUDED"
+          echo "any_platform_included=$ANY_INCLUDED" >> $GITHUB_OUTPUT
 
   build_android:
     needs: determine_build_scope
