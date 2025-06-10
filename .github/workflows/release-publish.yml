@@ -42,8 +42,13 @@ jobs:
     outputs:
       any_platform_included: ${{ github.event.inputs.include_android || github.event.inputs.include_windows || github.event.inputs.include_linux || github.event.inputs.include_wasm_deploy }}
     steps:
-      - name: Set 'any_platform_included' output
-        run: echo "any_platform_included=${{ github.event.inputs.include_android || github.event.inputs.include_windows || github.event.inputs.include_linux || github.event.inputs.include_wasm_deploy }}" >> $GITHUB_OUTPUT
+      - name: Log input values and output
+        run: |
+          echo "Input include_android: ${{ github.event.inputs.include_android }}"
+          echo "Input include_windows: ${{ github.event.inputs.include_windows }}"
+          echo "Input include_linux: ${{ github.event.inputs.include_linux }}"
+          echo "Input include_wasm_deploy: ${{ github.event.inputs.include_wasm_deploy }}"
+          echo "any_platform_included=${{ github.event.inputs.include_android || github.event.inputs.include_windows || github.event.inputs.include_linux || github.event.inputs.include_wasm_deploy }}" >> $GITHUB_OUTPUT
 
   build_android:
     needs: determine_build_scope
@@ -265,6 +270,9 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0.x
+
+    - name: Install WASM workload
+      run: dotnet workload install wasm-tools # Add this step to ensure wasm-tools are updated
 
     - name: Get Version
       id: version
