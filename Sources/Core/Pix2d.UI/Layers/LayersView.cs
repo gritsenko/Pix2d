@@ -18,7 +18,6 @@ using Pix2d.Operations;
 using Pix2d.Plugins.Sprite.Operations.Layers;
 using Pix2d.Operations.Effects;
 using Pix2d.Plugins.Sprite.Operations.Effects;
-using Pix2d.Plugins.Sprite.Commands;
 using Pix2d.Abstract.Commands;
 
 namespace Pix2d.UI.Layers;
@@ -144,7 +143,7 @@ public class LayersView : ComponentBase
 
     private void OnOperationInvoked(OperationInvokedMessage operation)
     {
-        if (operation.Operation is AddLayerOperation or DeleteLayerOperation or ReorderLayersOperation)
+        if (operation.Operation is AddLayerOperation or DeleteLayerOperation or ReorderLayersOperation or MergeLayerOperation)
         {
             //drag and drop reorder - skip reloading
             if (_reorderingStarted) return;

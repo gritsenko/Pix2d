@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Pix2d.Abstract.Operations;
+﻿using Pix2d.Abstract.Operations;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
 using SkiaNodes;
@@ -17,8 +14,8 @@ public class MergeLayerOperation : DeleteNodesOperation, ISpriteEditorOperation
     private byte[][] _mergeTargetLayerDatas;
     private Pix2dSprite.Layer _targetLayer;
 
-    public HashSet<int> AffectedLayerIndexes { get; } = [];
-    public HashSet<int> AffectedFrameIndexes { get; }
+    public HashSet<int> AffectedLayerIndexes { get; }
+    public HashSet<int> AffectedFrameIndexes { get; } = [];
 
     public MergeLayerOperation(IEnumerable<SKNode> nodes) : base(nodes)
     {
@@ -26,6 +23,9 @@ public class MergeLayerOperation : DeleteNodesOperation, ISpriteEditorOperation
         _oldIndex = _mergedLayer.Index;
         _newIndex = Math.Max(0, _mergedLayer.Index - 1);
         _parent = _mergedLayer.Parent as Pix2dSprite;
+
+        AffectedLayerIndexes = [_oldIndex, _newIndex];
+        AffectedFrameIndexes = [_parent.CurrentFrameIndex];
 
         _targetLayer = _parent.Nodes[_newIndex] as Pix2dSprite.Layer;
         _mergeTargetLayerDatas = _targetLayer.Nodes.OfType<BitmapNode>().Select(x => x.GetData()).ToArray();
