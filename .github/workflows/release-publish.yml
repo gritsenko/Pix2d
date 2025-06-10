@@ -1,35 +1,57 @@
-name: Multi-Platform Release
+﻿name: Multi-Platform Release
 
 on:
   workflow_dispatch:
     inputs:
-      skip_android:
-        description: 'Skip Android build'
+      include_android:
+        description: 'Include Android build'
         type: boolean
         required: false
         default: false
-      skip_windows:
-        description: 'Skip Windows build'
+      include_windows:
+        description: 'Include Windows build'
         type: boolean
         required: false
         default: false
-      skip_linux:
-        description: 'Skip Linux build'
+      include_linux:
+        description: 'Include Linux build'
+        type: boolean
+        required: false
+        default: false
+      include_wasm_deploy:
+        description: 'Include WASM deployment to app.pix2d.com'
         type: boolean
         required: false
         default: false
   push:
-    tags:        
+    tags:
       - 'v*'
 
 env:
-  Android_Project_Path: Sources/Heads/Pix2d.Android/Pix2d.Android.csproj
-  Desktop_Project_Path: Sources/Heads/Pix2d.Desktop/Pix2d.Desktop.csproj
-  Output_Path: ./build-output
+  ANDROID_PROJECT_PATH: Sources/Heads/Pix2d.Android/Pix2d.Android.csproj
+  DESKTOP_PROJECT_PATH: Sources/Heads/Pix2d.Desktop/Pix2d.Desktop.csproj
+  BROWSER_PROJECT_PATH: Sources/Heads/Pix2d.Browser/Pix2d.Browser.csproj
+  OUTPUT_PATH: ./build-output
+  WASM_OUTPUT_DIR_NAME: wasm # Directory name for WASM build within OUTPUT_PATH
 
 jobs:
+  # This variable determines if all platforms should be built if no specific platform is selected for manual dispatch.
+  # It's true if all 'include' inputs are false during a workflow_dispatch event.
+  build_all_platforms_flag:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build_all: ${{ github.event_name == 'workflow_dispatch' && !github.event.inputs.include_android && !github.event.inputs.include_windows && !github.event.inputs.include_linux && !github.event.inputs.include_wasm_deploy }}
+    steps:
+      - name: Set should_build_all output
+        run: echo "should_build_all=${{ github.event_name == 'workflow_dispatch' && !github.event.inputs.include_android && !github.event.inputs.include_windows && !github.event.inputs.include_linux && !github.event.inputs.include_wasm_deploy }}" >> $GITHUB_OUTPUT
+
   build_android:
-    # if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.skip_android }}
+    needs: build_all_platforms_flag
+    # Condition to run the job:
+    # 1. If it's a push event (not workflow_dispatch), or
+    # 2. If 'include_android' input is true, or
+    # 3. If 'should_build_all' is true (no specific platform selected for manual dispatch).
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_android || needs.build_all_platforms_flag.outputs.should_build_all == 'true' }}
     runs-on: windows-latest
     permissions:
       contents: write
@@ -64,18 +86,18 @@ jobs:
         Write-Host "Using version: $cleanVersion"
 
     - name: Restore dependencies
-      run: dotnet restore $env:Android_Project_Path --property WarningLevel=0
+      run: dotnet restore ${{ env.ANDROID_PROJECT_PATH }} --property WarningLevel=0
 
     - name: Build
-      run: dotnet build --no-restore $env:Android_Project_Path --property WarningLevel=0 -p:Version=${{ env.VERSION }}
+      run: dotnet build --no-restore ${{ env.ANDROID_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }}
 
     - name: Test
-      run: dotnet test --no-build --verbosity normal $env:Android_Project_Path
+      run: dotnet dotnet test --no-build --verbosity normal ${{ env.ANDROID_PROJECT_PATH }}
 
     - name: Clean output directory
       run: |
-        if (Test-Path $env:Output_Path) {
-          Remove-Item -Recurse -Force $env:Output_Path
+        if (Test-Path ${{ env.OUTPUT_PATH }}) {
+          Remove-Item -Recurse -Force ${{ env.OUTPUT_PATH }}
         }
 
     - name: Publish for Android
@@ -94,14 +116,14 @@ jobs:
           -p:AndroidSigningStorePass=$env:ANDROID_KEYSTORE_PASSWORD `
           -p:AndroidSigningKeyAlias=$env:ANDROID_KEY_ALIAS `
           -p:AndroidSigningKeyPass=$env:ANDROID_KEY_PASSWORD `
-          -o $env:Output_Path $env:Android_Project_Path `
+          -o ${{ env.OUTPUT_PATH }} ${{ env.ANDROID_PROJECT_PATH }} `
           --property WarningLevel=0
 
     - name: Rename Artifacts
       shell: pwsh
       run: |
         $version = $env:VERSION
-        cd $env:Output_Path
+        cd ${{ env.OUTPUT_PATH }}
         Get-ChildItem -Filter *-Signed.* | Where-Object {
             $_.Extension -in '.apk', '.aab'
         } | Rename-Item -NewName {
@@ -112,10 +134,15 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: android
-        path: ${{ env.Output_Path }}/pix2d_v${{ env.VERSION }}.*
+        path: ${{ env.OUTPUT_PATH }}/pix2d_v${{ env.VERSION }}.*
 
   build_windows:
-    # if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.skip_windows }}
+    needs: build_all_platforms_flag
+    # Condition to run the job:
+    # 1. If it's a push event (not workflow_dispatch), or
+    # 2. If 'include_windows' input is true, or
+    # 3. If 'should_build_all' is true (no specific platform selected for manual dispatch).
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_windows || needs.build_all_platforms_flag.outputs.should_build_all == 'true' }}
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -147,16 +174,16 @@ jobs:
         Write-Host "Using version: $cleanVersion"
 
     - name: Restore dependencies
-      run: dotnet restore $env:Desktop_Project_Path --property WarningLevel=0
+      run: dotnet restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0
 
     - name: Build
-      run: dotnet build --no-restore $env:Desktop_Project_Path --property WarningLevel=0 -p:Version=${{ env.VERSION }}
+      run: dotnet build --no-restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }}
 
     - name: Publish for Windows
       shell: pwsh
       run: |
         $OutputDir = "./publish-windows"
-        dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o $OutputDir $env:Desktop_Project_Path
+        dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o $OutputDir ${{ env.DESKTOP_PROJECT_PATH }}
         Compress-Archive -Path "$OutputDir/*" -DestinationPath "Pix2d_win-x64-$env:VERSION-portable.zip"
 
     - name: Upload Windows Artifact
@@ -166,7 +193,12 @@ jobs:
         path: Pix2d_win-x64-${{ env.VERSION }}-portable.zip
 
   build_linux:
-    # if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.skip_linux }}
+    needs: build_all_platforms_flag
+    # Condition to run the job:
+    # 1. If it's a push event (not workflow_dispatch), or
+    # 2. If 'include_linux' input is true, or
+    # 3. If 'should_build_all' is true (no specific platform selected for manual dispatch).
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_linux || needs.build_all_platforms_flag.outputs.should_build_all == 'true' }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -198,17 +230,17 @@ jobs:
         echo "Using version: $clean_version"
 
     - name: Restore dependencies
-      run: dotnet restore $Desktop_Project_Path --property WarningLevel=0
+      run: dotnet restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0
 
     - name: Build
-      run: dotnet build --no-restore $Desktop_Project_Path --property WarningLevel=0 -p:Version=${{ env.VERSION }}
+      run: dotnet build --no-restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }}
 
     - name: Publish for Linux
       shell: bash
       run: |
         OutputDir="./publish-linux"
         dotnet publish -c Release -r linux-x64 --self-contained true \
-          -p:PublishSingleFile=true -o "$OutputDir" "$Desktop_Project_Path"
+          -p:PublishSingleFile=true -o "$OutputDir" "$DESKTOP_PROJECT_PATH"
         tar -czvf "Pix2d_linux-x64.$VERSION.tar.gz" -C "$OutputDir" .
 
     - name: Upload Linux Artifact
@@ -217,9 +249,144 @@ jobs:
         name: linux-desktop
         path: Pix2d_linux-x64-${{ env.VERSION }}.tar.gz
 
+  # Dedicated job for building the WASM artifacts so they can be uploaded
+  build_wasm:
+    needs: build_all_platforms_flag
+    # Condition to run the job:
+    # 1. If it's a push event (not workflow_dispatch), or
+    # 2. If 'include_wasm_deploy' input is true, or
+    # 3. If 'should_build_all' is true (no specific platform selected for manual dispatch).
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_wasm_deploy || needs.build_all_platforms_flag.outputs.should_build_all == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Get Version
+      id: version
+      shell: bash
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            version=$(echo "$GITHUB_REF" | sed 's/refs\/tags\/v//')
+            echo "Using version from git tag: $version"
+        else
+            version="0.0.0"
+            echo "Using default version for manual run: $version"
+        fi
+
+        clean_version=$(echo "$version" | tr -cd '0-9.')
+        if [[ ! "$clean_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: $clean_version"
+            exit 1
+        fi
+
+        echo "VERSION=$clean_version" >> $GITHUB_ENV
+        echo "Using version: $clean_version"
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.BROWSER_PROJECT_PATH }} --property WarningLevel=0
+
+    - name: Build
+      run: dotnet build --no-restore ${{ env.BROWSER_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }}
+
+    - name: Publish for WASM
+      shell: bash
+      run: |
+        # Define the output directory for the WASM build
+        # This will create a 'wasm' subdirectory within the general OUTPUT_PATH
+        OutputDir="${{ env.OUTPUT_PATH }}/${{ env.WASM_OUTPUT_DIR_NAME }}"
+        mkdir -p "$OutputDir" # Ensure the directory exists
+        dotnet publish -c Release -f net9.0-browser -o "$OutputDir" "$BROWSER_PROJECT_PATH" \
+          --property WarningLevel=0
+
+    - name: Upload WASM Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: browser-wasm # Name for the WASM artifact
+        path: ${{ env.OUTPUT_PATH }}/${{ env.WASM_OUTPUT_DIR_NAME }} # Path to the published WASM directory
+
+  # New job for deploying WASM artifacts to app.pix2d.com
+  deploy_wasm_to_gh_pages:
+    runs-on: ubuntu-latest
+    needs: [build_wasm, build_all_platforms_flag] # Depends on successful WASM build and the flag for 'build_all'
+    # Condition to run the job:
+    # 1. If it's a push event (not workflow_dispatch), or
+    # 2. If 'include_wasm_deploy' input is true, or
+    # 3. If 'should_build_all' is true (no specific platform selected for manual dispatch).
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.include_wasm_deploy || needs.build_all_platforms_flag.outputs.should_build_all == 'true' }}
+    permissions:
+      contents: write # Required for pushing to another repository
+
+    steps:
+    - name: Download WASM Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: browser-wasm # Download the artifact that was uploaded in build_wasm
+        path: wasm_build # Path where WASM files will be downloaded
+
+    - name: Get Version
+      id: version # Duplicate version retrieval as this is a separate job
+      shell: bash
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            version=$(echo "$GITHUB_REF" | sed 's/refs\/tags\/v//')
+            echo "Using version from git tag: $version"
+        else
+            version="0.0.0"
+            echo "Using default version for manual run: $version"
+        fi
+
+        clean_version=$(echo "$version" | tr -cd '0-9.')
+        if [[ ! "$clean_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: $clean_version"
+            exit 1
+        fi
+
+        echo "VERSION=$clean_version" >> $GITHUB_ENV
+        echo "Using version: $clean_version"
+
+    - name: Checkout app.pix2d.com repository
+      uses: actions/checkout@v4
+      with:
+        repository: gritsenko/app.pix2d.com # Target repository
+        token: ${{ secrets.APP_PIX2D_COM_REPO_TOKEN }} # Token for writing
+        path: app.pix2d.com_repo # Path where the repository will be cloned
+
+    - name: Clean existing files in target repo
+      run: |
+        # Remove all content from the target repository, except for the .git folder
+        # This is important so old files do not remain and GitHub Pages do not cache them
+        cd app.pix2d.com_repo
+        shopt -s extglob
+        rm -rf !(.git)
+        shopt -u extglob
+      shell: bash
+
+    - name: Copy WASM build to target repository
+      run: |
+        # Copy the contents of the built WASM folder to the root of the target repository
+        cp -r wasm_build/* app.pix2d.com_repo/
+      shell: bash
+
+    - name: Commit and Push to app.pix2d.com
+      run: |
+        cd app.pix2d.com_repo
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "Deploy Pix2D WASM build v${{ env.VERSION }}" || echo "No changes to commit"
+        git push
+      shell: bash
+
   create_release:
     runs-on: ubuntu-latest
-    needs: [build_android, build_windows, build_linux]
+    # Depends on all build and deploy jobs
+    needs: [build_android, build_windows, build_linux, deploy_wasm_to_gh_pages]
+    # Only run if a tag is pushed
     if: startsWith(github.ref, 'refs/tags/')
     steps:
     - name: Download all artifacts
@@ -247,8 +414,20 @@ jobs:
         generate_release_notes: true
         draft: false
         prerelease: false
+        # Add link to the online version in the release body
+        body: |
+          🎉 Pix2D v${{ steps.extract_version.outputs.version }} released!
+
+          You can try the online version of Pix2D here: [https://app.pix2d.com](https://app.pix2d.com)
+
+          This release includes:
+          (Generated release notes will go here automatically)
+
         files: |
           artifacts/android/pix2d_v${{ steps.extract_version.outputs.version }}.apk
           artifacts/android/pix2d_v${{ steps.extract_version.outputs.version }}.aab
           artifacts/windows-desktop/Pix2d_win-x64-${{ steps.extract_version.outputs.version }}-portable.zip
           artifacts/linux-desktop/Pix2d_linux-x64-${{ steps.extract_version.outputs.version }}.tar.gz
+          # The WASM artifact is deployed directly to app.pix2d.com, so it's usually not attached as a separate file to the release.
+          # If you also need it attached to the release, uncomment the line below:
+          # artifacts/browser-wasm
