@@ -9,7 +9,7 @@
 		<PackageProjectUrl>https://pix2d.com</PackageProjectUrl>
 		<Platforms>AnyCPU;x86;x64;ARM64</Platforms>
 		<PublishSingleFile>true</PublishSingleFile>
-		<SelfContained>true</SelfContained>
+		<SelfContained>false</SelfContained>
 		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
 		<RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
 		<UseSubFolderForOutputDirDuringMultiPlatformBuild>false</UseSubFolderForOutputDirDuringMultiPlatformBuild>
@@ -18,7 +18,7 @@
 		<IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-		<PublishTrimmed>true</PublishTrimmed>
+		<PublishTrimmed>false</PublishTrimmed>
 		<TrimMode>link</TrimMode>
 		<EnableTrimAnalyzer>true</EnableTrimAnalyzer>
 	</PropertyGroup>
