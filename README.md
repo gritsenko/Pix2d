@@ -96,4 +96,38 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 - Special thanks to our community
 
 ---
+
+# Running Pix2D on macOS
+
+Pix2D for macOS is distributed as an unsigned and unnotarized app bundle. Due to Apple security policies, you may see a warning when launching the app for the first time:
+
+> "Pix2D.app is damaged and can’t be opened. You should move it to the Bin."
+
+This is a standard Gatekeeper message for unsigned apps. Pix2D is open source and does not contain malware.
+
+## How to Run Pix2D on macOS
+
+**Option 1: Right-click to Open**
+1. Download and extract the DMG.
+2. Drag `Pix2D.app` to your `Applications` folder.
+3. Right-click (or Control-click) on `Pix2D.app` and choose **Open**.
+4. In the dialog, click **Open** again. You only need to do this the first time.
+
+**Option 2: Remove Quarantine Attribute (Terminal)**
+1. Open Terminal.
+2. Run:
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Pix2D.app
+   ```
+3. Now you can launch Pix2D normally from Applications.
+
+---
+
+**Why this happens:**
+
+Apple requires a paid Developer ID and notarization for apps to run without warnings. Pix2D is open source and not notarized to keep it free for everyone. See [Apple’s documentation](https://support.apple.com/en-us/HT202491) for more info.
+
+If you have questions or issues, please open an issue on GitHub!
+
+---
 Made with ❤️ by the Pix2D Team
