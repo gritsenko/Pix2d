@@ -517,13 +517,11 @@ jobs:
             version="0.0.0"
             echo "Using default version for manual run: $version"
         fi
-
         clean_version=$(echo "$version" | tr -cd '0-9.')
         if [[ ! "$clean_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::Invalid version format: $clean_version"
             exit 1
         fi
-
         echo "VERSION=$clean_version" >> $GITHUB_ENV
         echo "Using version: $clean_version"
 
@@ -531,22 +529,25 @@ jobs:
       run: dotnet restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0
 
     - name: Build
-      run: dotnet build --no-restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }}
+      run: dotnet publish --no-restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }} -c Release -r osx-x64 --self-contained true -o publish-macos-intel
 
-    - name: Publish for macOS (Intel)
-      shell: bash
+    - name: Convert PNG to ICNS
       run: |
-        OutputDir="./publish-macos-intel"
-        dotnet publish -c Release -r osx-x64 --self-contained true \
-          -p:PublishSingleFile=true -o "$OutputDir" "$DESKTOP_PROJECT_PATH"
-        mkdir -p artifacts/macos-intel
-        hdiutil create -volname "Pix2D" -srcfolder "$OutputDir" -ov -format UDZO "artifacts/macos-intel/Pix2d_macOS-x64-$VERSION.dmg"
+        bash Sources/Heads/Pix2d.Desktop/convert-png-to-icns.sh "DesignAssets/Artboard 1 – 4.png" Sources/Heads/Pix2d.Desktop/Pix2d.icns
 
-    - name: Upload macOS Intel Artifact
+    - name: Bundle as .app
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/macos-app-bundle.sh publish-macos-intel ${{ env.VERSION }}
+
+    - name: Create DMG
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/make-dmg.sh Pix2D.app ${{ env.VERSION }}
+
+    - name: Upload macOS Artifact
       uses: actions/upload-artifact@v4
       with:
         name: macos-intel
-        path: artifacts/macos-intel/Pix2d_macOS-x64-${{ env.VERSION }}.dmg
+        path: Pix2d_macOS-${{ env.VERSION }}.dmg
 
   build_macos_arm:
     needs: determine_build_scope
@@ -574,13 +575,11 @@ jobs:
             version="0.0.0"
             echo "Using default version for manual run: $version"
         fi
-
         clean_version=$(echo "$version" | tr -cd '0-9.')
         if [[ ! "$clean_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::Invalid version format: $clean_version"
             exit 1
         fi
-
         echo "VERSION=$clean_version" >> $GITHUB_ENV
         echo "Using version: $clean_version"
 
@@ -588,19 +587,22 @@ jobs:
       run: dotnet restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0
 
     - name: Build
-      run: dotnet build --no-restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }}
+      run: dotnet publish --no-restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }} -c Release -r osx-arm64 --self-contained true -o publish-macos-arm
 
-    - name: Publish for macOS (Apple Silicon)
-      shell: bash
+    - name: Convert PNG to ICNS
       run: |
-        OutputDir="./publish-macos-arm"
-        dotnet publish -c Release -r osx-arm64 --self-contained true \
-          -p:PublishSingleFile=true -o "$OutputDir" "$DESKTOP_PROJECT_PATH"
-        mkdir -p artifacts/macos-arm
-        hdiutil create -volname "Pix2D" -srcfolder "$OutputDir" -ov -format UDZO "artifacts/macos-arm/Pix2d_macOS-arm64-$VERSION.dmg"
+        bash Sources/Heads/Pix2d.Desktop/convert-png-to-icns.sh "DesignAssets/Artboard 1 – 4.png" Sources/Heads/Pix2d.Desktop/Pix2d.icns
 
-    - name: Upload macOS ARM Artifact
+    - name: Bundle as .app
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/macos-app-bundle.sh publish-macos-arm ${{ env.VERSION }}
+
+    - name: Create DMG
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/make-dmg.sh Pix2D.app ${{ env.VERSION }}
+
+    - name: Upload macOS Artifact
       uses: actions/upload-artifact@v4
       with:
         name: macos-arm
-        path: artifacts/macos-arm/Pix2d_macOS-arm64-${{ env.VERSION }}.dmg
+        path: Pix2d_macOS-${{ env.VERSION }}.dmg

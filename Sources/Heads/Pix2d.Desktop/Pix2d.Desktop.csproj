@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<OutputType>exe</OutputType>
+		<OutputType>WinExe</OutputType>
 		<TargetFramework>net9.0</TargetFramework>
 		<ApplicationIcon>app.ico</ApplicationIcon>
 		<StartupObject />
