@@ -16,6 +16,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_GlobalItems", "_GlobalItems", "{408E1C7B-5DCA-4EE5-877B-72D3E772901C}"
 	ProjectSection(SolutionItems) = preProject
 		Directory.Build.props = Directory.Build.props
+		..\.github\workflows\dotnet-desktop-winstore.yml = ..\.github\workflows\dotnet-desktop-winstore.yml
 		nuget.config = nuget.config
 		..\.github\workflows\release-publish.yml = ..\.github\workflows\release-publish.yml
 		..\TODO.md = ..\TODO.md

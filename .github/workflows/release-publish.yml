@@ -274,7 +274,7 @@ jobs:
         dotnet publish -c Release -r linux-x64 --self-contained true \
           -p:PublishSingleFile=true -o "$OutputDir" "$DESKTOP_PROJECT_PATH"
         mkdir -p artifacts/linux-desktop
-        tar -czvf "artifacts/linux-desktop/Pix2d_linux-x64.$VERSION.tar.gz" -C "$OutputDir" .
+        tar -czvf "artifacts/linux-desktop/Pix2d_linux-x64-$VERSION.tar.gz" -C "$OutputDir" .
 
     - name: Upload Linux Artifact
       uses: actions/upload-artifact@v4
