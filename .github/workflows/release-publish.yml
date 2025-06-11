@@ -28,7 +28,7 @@ on:
       - 'v*'
 
 env:
-  ANDROID_PROJECT_PATH: Sources/Heads/Pix2d.Android/Pix2d.Android.csproj
+  ANDROID_PROJECT_PATH: Sources/Heads/Pix2d.Droid/Pix2d.Droid.csproj
   DESKTOP_PROJECT_PATH: Sources/Heads/Pix2d.Desktop/Pix2d.Desktop.csproj
   BROWSER_PROJECT_PATH: Sources/Heads/Pix2d.Browser/Pix2d.Browser.csproj
   OUTPUT_PATH: ./build-output
@@ -69,7 +69,7 @@ jobs:
     # 1. If it's a push event (e.g., tag push), or
     # 2. If 'include_android' input is true, or
     # 3. If no specific platform was selected for manual dispatch (meaning all should be built).
-    if: ${{ github.event_name == 'push' || github.event.inputs.include_android || !needs.determine_build_scope.outputs.any_platform_included }}
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_android == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: windows-latest
     permissions:
       contents: write
@@ -160,7 +160,7 @@ jobs:
     # 1. If it's a push event (e.g., tag push), or
     # 2. If 'include_windows' input is true, or
     # 3. If no specific platform was selected for manual dispatch (meaning all should be built).
-    if: ${{ github.event_name == 'push' || github.event.inputs.include_windows || !needs.determine_build_scope.outputs.any_platform_included }}
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_windows == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -216,7 +216,7 @@ jobs:
     # 1. If it's a push event (e.g., tag push), or
     # 2. If 'include_linux' input is true, or
     # 3. If no specific platform was selected for manual dispatch (meaning all should be built).
-    if: ${{ github.event_name == 'push' || github.event.inputs.include_linux || !needs.determine_build_scope.outputs.any_platform_included }}
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_linux == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -274,7 +274,7 @@ jobs:
     # 1. If it's a push event (e.g., tag push), or
     # 2. If 'include_wasm_deploy' input is true, or
     # 3. If no specific platform was selected for manual dispatch (meaning all should be built).
-    if: ${{ github.event_name == 'push' || github.event.inputs.include_wasm_deploy || !needs.determine_build_scope.outputs.any_platform_included }}
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_wasm_deploy  == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
