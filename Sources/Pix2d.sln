@@ -17,6 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_GlobalItems", "_GlobalItem
 	ProjectSection(SolutionItems) = preProject
 		Directory.Build.props = Directory.Build.props
 		nuget.config = nuget.config
+		..\.github\workflows\release-publish.yml = ..\.github\workflows\release-publish.yml
 		..\TODO.md = ..\TODO.md
 	EndProjectSection
 EndProject

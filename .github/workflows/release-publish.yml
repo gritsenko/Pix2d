@@ -23,6 +23,11 @@ on:
         type: boolean
         required: false
         default: false
+      version:
+        description: 'Version (e.g. 3.3.3) for manual run'
+        type: string
+        required: false
+        default: ''
   push:
     tags:
       - 'v*'
@@ -89,6 +94,9 @@ jobs:
         if ($env:GITHUB_EVENT_NAME -eq 'push') {
             $version = $env:GITHUB_REF -replace 'refs/tags/v',''
             Write-Host "Using version from git tag: $version"
+        } elseif ("${{ github.event.inputs.version }}") {
+            $version = "${{ github.event.inputs.version }}"
+            Write-Host "Using version from manual input: $version"
         } else {
             $version = '0.0.0'
             Write-Host "Using default version for manual run: $version"
@@ -259,13 +267,14 @@ jobs:
         OutputDir="./publish-linux"
         dotnet publish -c Release -r linux-x64 --self-contained true \
           -p:PublishSingleFile=true -o "$OutputDir" "$DESKTOP_PROJECT_PATH"
-        tar -czvf "Pix2d_linux-x64.$VERSION.tar.gz" -C "$OutputDir" .
+        mkdir -p artifacts/linux-desktop
+        tar -czvf "artifacts/linux-desktop/Pix2d_linux-x64.$VERSION.tar.gz" -C "$OutputDir" .
 
     - name: Upload Linux Artifact
       uses: actions/upload-artifact@v4
       with:
         name: linux-desktop
-        path: Pix2d_linux-x64-${{ env.VERSION }}.tar.gz
+        path: artifacts/linux-desktop/Pix2d_linux-x64-${{ env.VERSION }}.tar.gz
 
   # Dedicated job for building the WASM artifacts so they can be uploaded
   build_wasm:
