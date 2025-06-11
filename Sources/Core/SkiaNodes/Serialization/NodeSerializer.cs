@@ -39,7 +39,17 @@ public class NodeSerializer : IDisposable
             Formatting = Formatting.Indented,
             SerializationBinder = _assemblyBinderInstance
         };
+        settings.Error = (sender, args) =>
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(args.CurrentObject?.ToString() ?? "null");
+            Console.WriteLine(args.ErrorContext.Path);
+            Console.WriteLine($"ex: {args.ErrorContext.Error.Message}");
+            Console.WriteLine($"ex: {args.ErrorContext.Error.StackTrace}");
+            Console.WriteLine($"oo:{args.ErrorContext.OriginalObject}, {args.ErrorContext.Member}");
 
+            Console.ForegroundColor = ConsoleColor.Gray;
+        };
         return settings;
     }
 

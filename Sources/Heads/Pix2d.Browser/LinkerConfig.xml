@@ -11,7 +11,7 @@
 	<assembly fullname="Pix2d.Plugins.OpenCv" preserve="all" />
 	<assembly fullname="Pix2d.Plugins.PngCompress" preserve="all" />
 
-	<assembly fullname="Newtonsoft.Json">
+	<assembly fullname="Newtonsoft.Json" preserve="all">
 		<type fullname="Newtonsoft.Json.Linq.JObject" preserve="all" />
 		<type fullname="Newtonsoft.Json.JsonConvert" preserve="all" />
 		<type fullname="Newtonsoft.Json.JsonSerializer" preserve="all" />

@@ -8,7 +8,6 @@
 	<assembly fullname="Pix2d.Plugins.Psd" preserve="all" />
 	<assembly fullname="Pix2d.Plugins.PixelText" preserve="all" />
 	<assembly fullname="Pix2d.Plugins.Ai" preserve="all" />
-	<assembly fullname="Pix2d.Plugins.OpenCv" preserve="all" />
 	<assembly fullname="Pix2d.Plugins.PngCompress" preserve="all" />
 
 	<assembly fullname="Newtonsoft.Json">
@@ -23,6 +22,7 @@
 	<assembly fullname="SkiaNodes" preserve="all">
 		<type fullname="SkiaNodes.Serialization.TypeNameAssemblyExcludingSerializationBinder" preserve="all" />
 		<type fullname="SkiaNodes.SKNode" preserve="all" />
+		<type fullname="SkiaNodes.SKNode+NodeCollection" preserve="all" />
 		<type fullname="SkiaNodes.Serialization.SKBitmapRef" preserve="all" />
 	</assembly>
 
