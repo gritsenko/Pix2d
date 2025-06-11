@@ -55,11 +55,19 @@ jobs:
       shell: pwsh
       run: Remove-Item -Path "$env:WAP_PROJECT_DIR/certificate.pfx" -Force
 
+    - name: Zip AppPackages output
+      shell: pwsh
+      run: |
+        $source = "${{ env.WAP_PROJECT_DIR }}/AppPackages"
+        $destination = "${{ env.WAP_PROJECT_DIR }}/msix-package.zip"
+        if (Test-Path $destination) { Remove-Item $destination -Force }
+        Compress-Archive -Path "$source\*" -DestinationPath $destination
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: msix-package
-        path: ${{ env.WAP_PROJECT_DIR }}/AppPackages
+        path: ${{ env.WAP_PROJECT_DIR }}/msix-package.zip
         retention-days: 7
 
   upload-to-store:
