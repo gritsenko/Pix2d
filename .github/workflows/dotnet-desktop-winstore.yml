@@ -107,9 +107,10 @@ jobs:
     
         Import-Module StoreBroker -Force
     
-        $packagePath = Get-ChildItem -Path ./artifacts -Filter *msix-package.zip -Recurse -ErrorAction Stop | Select-Object -First 1
-        if (-not $packagePath) { throw "MSIX package not found" }
-    
+        # Find the .msixupload file (not the zip)
+        $packagePath = Get-ChildItem -Path ./artifacts -Filter *.msixupload -Recurse -ErrorAction Stop | Select-Object -First 1
+        if (-not $packagePath) { throw ".msixupload package not found" }
+
         try {
             $secureSecret = ConvertTo-SecureString $env:CLIENT_SECRET -AsPlainText -Force
             $credential = New-Object System.Management.Automation.PSCredential($env:CLIENT_ID, $secureSecret)
@@ -129,8 +130,13 @@ jobs:
             Write-Host "Adding package to submission..."
             Set-SubmissionPackage -PackagePath $packagePath.FullName -UploadUrl $uploadUrl
             
-            Write-Host "Completing submission..."
-            Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id
+            # Conditionally complete submission unless running manually
+            if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
+                Write-Host "Skipping Complete-ApplicationSubmission because this run was triggered manually (workflow_dispatch). Review the submission in Partner Center."
+            } else {
+                Write-Host "Completing submission..."
+                Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id
+            }
             
             Write-Host "Success!"
         }
