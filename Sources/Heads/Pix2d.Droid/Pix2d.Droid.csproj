@@ -20,8 +20,10 @@
 		<AndroidSigningKeyAlias>Pix2d</AndroidSigningKeyAlias>
 		<AndroidSigningKeyPass>file:C:\tmp\pass.txt</AndroidSigningKeyPass>
 		<AndroidSigningStorePass>file:C:\tmp\pass.txt</AndroidSigningStorePass>
-		<AndroidVersionCode>$(ApplicationVersion)</AndroidVersionCode>
-  		<AndroidVersionName>$(ApplicationDisplayVersion)</AndroidVersionName>
+	</PropertyGroup>
+	<PropertyGroup>
+		<AndroidVersionCode>$(Pix2dAndroidVersion)</AndroidVersionCode>
+		<AndroidVersionName>$(Pix2dVersion)</AndroidVersionName>
 	</PropertyGroup>
 	<ItemGroup>
 		<Compile Remove="Logging\AppCenterLoggerTarget.cs" />
