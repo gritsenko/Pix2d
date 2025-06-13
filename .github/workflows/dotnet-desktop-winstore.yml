@@ -118,7 +118,12 @@ jobs:
             Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential
 
             Write-Host "Creating new submission..."
-            $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID -Force
+            try {
+              $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID
+            } catch {
+              Write-Error "Cannot create submission. Check if there's an in-progress submission created manually via the Partner Center."
+              throw
+            }
             
             # Check if fileUploadUrl exists
             if (-not $submission.fileUploadUrl) {
