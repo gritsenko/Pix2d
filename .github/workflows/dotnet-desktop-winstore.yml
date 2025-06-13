@@ -104,6 +104,9 @@ jobs:
         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
         PRODUCT_ID: ${{ secrets.PRODUCT_ID }}
       run: |
+        # Add this line for verbose PowerShell output
+        $VerbosePreference = "Continue"
+
         # install StoreBroker if needed
         if (-not (Get-Module -ListAvailable -Name StoreBroker)) {
             Install-PackageProvider -Name NuGet -Force
@@ -117,17 +120,21 @@ jobs:
         if (-not $packagePath) { throw ".msixupload package not found" }
 
         try {
-            $secureSecret = ConvertTo-SecureString $env:CLIENT_ID -AsPlainText -Force # Use CLIENT_ID here as username
+            $secureSecret = ConvertTo-SecureString $env:CLIENT_SECRET -AsPlainText -Force # Corrected: Use CLIENT_SECRET here
             $credential = New-Object System.Management.Automation.PSCredential($env:CLIENT_ID, $secureSecret) # Corrected: using CLIENT_ID for username
 
             Write-Host "Authenticating..."
-            Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential
+            # Add -Verbose to this command too
+            Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential -Verbose
 
             Write-Host "Creating new submission..."
             try {
-              $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID
+              # Add -Verbose to this command
+              $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID -Verbose
             } catch {
               Write-Error "Cannot create submission. Check if there's an in-progress submission created manually via the Partner Center."
+              # Also write the full error for more details
+              Write-Error $_.Exception.ToString()
               throw
             }
 
