@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.VisualBasic;
+using Newtonsoft.Json;
 using Pix2d.Abstract.Platform;
 using System.Globalization;
 
@@ -34,15 +35,23 @@ public class LocalizationService : ILocalizationService
         await fileService.SaveTextToFileWithDialogAsync(stringsJson, [".json"], defaultFileName: "strings");
     }
 
-    public LocalizationService(AppState appState, ISettingsService settingsService)
+    public LocalizationService(AppState appState, ISettingsService settingsService, Func<string> getStringsProviderFunc = null)
     {
         _appState = appState;
         _settingsService = settingsService;
 
-        using var stream = ResourceManager.GetAsset("/Assets/strings.json");
-        using var sr = new StreamReader(stream);
-        var strings = sr.ReadToEnd();
-        _strings = JsonConvert.DeserializeObject<List<LocalizationDictionary>>(strings);
+        //using in tests
+        if (getStringsProviderFunc != null)
+        {
+            _strings = JsonConvert.DeserializeObject<List<LocalizationDictionary>>(getStringsProviderFunc());
+        }
+        else
+        {
+            using var stream = ResourceManager.GetAsset("/Assets/strings.json");
+            using var sr = new StreamReader(stream);
+            var strings = sr.ReadToEnd();
+            _strings = JsonConvert.DeserializeObject<List<LocalizationDictionary>>(strings);
+        }
 
         if (!_strings.Any())
         {
@@ -55,8 +64,9 @@ public class LocalizationService : ILocalizationService
         _appState.Locale = currentLocale;
 
         _currentStrings =
-            _strings.FirstOrDefault(x => x.Locale.Equals(currentLocale, StringComparison.InvariantCultureIgnoreCase));
-
+            _strings.FirstOrDefault(x => x.Locale.Equals(currentLocale, StringComparison.InvariantCultureIgnoreCase))
+            ?? _strings.FirstOrDefault(x => x.Locale.Equals("en", StringComparison.InvariantCultureIgnoreCase))
+            ?? _strings.First(); // fallback to first available if "en" is missing
     }
 
     public void SetLocale(string locale)

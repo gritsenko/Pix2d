@@ -10,6 +10,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <AvaloniaXaml Remove="Services\**" />
+      <Compile Remove="Services\**" />
+      <EmbeddedResource Remove="Services\**" />
+      <None Remove="Services\**" />
+    </ItemGroup>
+
+    <ItemGroup>
       <None Remove="TestData\import.gif" />
     </ItemGroup>
 
@@ -35,10 +42,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\Core\Pix2d.Core\Pix2d.Core.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Services\" />
     </ItemGroup>
 
 </Project>
