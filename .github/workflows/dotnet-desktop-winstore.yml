@@ -79,18 +79,23 @@ jobs:
       with:
         name: msix-package
         path: ./artifacts
-  
+
+    - name: Unzip downloaded package
+      shell: pwsh
+      run: |
+        Expand-Archive -Path ./artifacts/msix-package.zip -DestinationPath ./artifacts -Force
+
     - name: Setup PowerShell environment
       shell: pwsh
       run: |
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-        
+
         Install-Module -Name StoreBroker -Force -AllowClobber -Scope AllUsers
-        
+
         Import-Module StoreBroker -Force
-        
+
         Get-Command -Module StoreBroker
-  
+
     - name: Upload to Microsoft Store
       shell: pwsh
       env:
@@ -104,17 +109,17 @@ jobs:
             Install-PackageProvider -Name NuGet -Force
             Install-Module -Name StoreBroker -Force -AllowClobber
         }
-    
+
         Import-Module StoreBroker -Force
-    
+
         # Find the .msixupload file (not the zip)
         $packagePath = Get-ChildItem -Path ./artifacts -Filter *.msixupload -Recurse -ErrorAction Stop | Select-Object -First 1
         if (-not $packagePath) { throw ".msixupload package not found" }
 
         try {
-            $secureSecret = ConvertTo-SecureString $env:CLIENT_SECRET -AsPlainText -Force
-            $credential = New-Object System.Management.Automation.PSCredential($env:CLIENT_ID, $secureSecret)
-            
+            $secureSecret = ConvertTo-SecureString $env:CLIENT_ID -AsPlainText -Force # Use CLIENT_ID here as username
+            $credential = New-Object System.Management.Automation.PSCredential($env:CLIENT_ID, $secureSecret) # Corrected: using CLIENT_ID for username
+
             Write-Host "Authenticating..."
             Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential
 
@@ -125,16 +130,16 @@ jobs:
               Write-Error "Cannot create submission. Check if there's an in-progress submission created manually via the Partner Center."
               throw
             }
-            
+
             # Check if fileUploadUrl exists
             if (-not $submission.fileUploadUrl) {
                 throw "fileUploadUrl is empty. Cannot proceed with uploading the package."
             }
-            $uploadUrl = $submission.fileUploadUrl 
-            
+            $uploadUrl = $submission.fileUploadUrl
+
             Write-Host "Adding package to submission..."
             Set-SubmissionPackage -PackagePath $packagePath.FullName -UploadUrl $uploadUrl
-            
+
             # Conditionally complete submission unless running manually
             if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
                 Write-Host "Skipping Complete-ApplicationSubmission because this run was triggered manually (workflow_dispatch). Review the submission in Partner Center."
@@ -142,7 +147,7 @@ jobs:
                 Write-Host "Completing submission..."
                 Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id
             }
-            
+
             Write-Host "Success!"
         }
         catch {
