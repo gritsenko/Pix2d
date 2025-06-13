@@ -2,8 +2,8 @@
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
 		<AvaloniaVersion>11.3.1</AvaloniaVersion>
-		<Pix2dAndroidVersion>73</Pix2dAndroidVersion>
-		<Pix2dVersion>3.3.3</Pix2dVersion>
+		<Pix2dAndroidVersion>74</Pix2dAndroidVersion>
+		<Pix2dVersion>3.3.4</Pix2dVersion>
 		<Platforms>AnyCPU;x86;x64;ARM64</Platforms>
 
 		<!--Used by microsoft store bridge project-->
