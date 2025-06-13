@@ -21,6 +21,10 @@
 		<AndroidSigningKeyPass>file:C:\tmp\pass.txt</AndroidSigningKeyPass>
 		<AndroidSigningStorePass>file:C:\tmp\pass.txt</AndroidSigningStorePass>
 	</PropertyGroup>
+	<PropertyGroup>
+		<AndroidVersionCode>$(Pix2dAndroidVersion)</AndroidVersionCode>
+		<AndroidVersionName>$(Pix2dVersion)</AndroidVersionName>
+	</PropertyGroup>
 	<ItemGroup>
 		<Compile Remove="Logging\AppCenterLoggerTarget.cs" />
 		<Compile Remove="Services\AndroidFileService.cs" />

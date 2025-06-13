@@ -28,6 +28,16 @@ on:
         type: string
         required: false
         default: ''
+      include_macos_intel:
+        description: 'Include macOS (Intel) build'
+        type: boolean
+        required: false
+        default: false
+      include_macos_arm:
+        description: 'Include macOS (Apple Silicon) build'
+        type: boolean
+        required: false
+        default: false
   push:
     tags:
       - 'v*'
@@ -54,6 +64,8 @@ jobs:
           echo "Input include_windows: ${{ github.event.inputs.include_windows }}"
           echo "Input include_linux: ${{ github.event.inputs.include_linux }}"
           echo "Input include_wasm_deploy: ${{ github.event.inputs.include_wasm_deploy }}"
+          echo "Input include_macos_intel: ${{ github.event.inputs.include_macos_intel }}"
+          echo "Input include_macos_arm: ${{ github.event.inputs.include_macos_arm }}"
 
           # Calculate the boolean value for any_platform_included
           # Using bash logic for robustness in evaluating boolean inputs
@@ -61,7 +73,9 @@ jobs:
           if [[ "${{ github.event.inputs.include_android }}" == "true" || \
                 "${{ github.event.inputs.include_windows }}" == "true" || \
                 "${{ github.event.inputs.include_linux }}" == "true" || \
-                "${{ github.event.inputs.include_wasm_deploy }}" == "true" ]]; then
+                "${{ github.event.inputs.include_wasm_deploy }}" == "true" || \
+                "${{ github.event.inputs.include_macos_intel }}" == "true" || \
+                "${{ github.event.inputs.include_macos_arm }}" == "true" ]]; then
             ANY_INCLUDED=true
           fi
 
@@ -428,7 +442,7 @@ jobs:
   create_release:
     runs-on: ubuntu-latest
     # Depends on all build and deploy jobs
-    needs: [build_android, build_windows, build_linux, deploy_wasm_to_gh_pages]
+    needs: [build_android, build_windows, build_linux, build_macos_intel, build_macos_arm, deploy_wasm_to_gh_pages]
     # Only run if a tag is pushed
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -471,6 +485,124 @@ jobs:
           artifacts/android/pix2d_v${{ steps.extract_version.outputs.version }}.aab
           artifacts/windows-desktop/Pix2d_win-x64-${{ steps.extract_version.outputs.version }}-portable.zip
           artifacts/linux-desktop/Pix2d_linux-x64-${{ steps.extract_version.outputs.version }}.tar.gz
+          artifacts/macos-intel/Pix2d_macOS-x64-${{ steps.extract_version.outputs.version }}.dmg
+          artifacts/macos-arm/Pix2d_macOS-arm64-${{ steps.extract_version.outputs.version }}.dmg
           # The WASM artifact is deployed directly to app.pix2d.com, so it's usually not attached as a separate file to the release.
           # If you also need it attached to the release, uncomment the line below:
           # artifacts/browser-wasm
+
+  build_macos_intel:
+    needs: determine_build_scope
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_macos_intel == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Get Version
+      id: version
+      shell: bash
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            version=$(echo "$GITHUB_REF" | sed 's/refs\/tags\/v//')
+            echo "Using version from git tag: $version"
+        elif [ -n "${{ github.event.inputs.version }}" ]; then
+            version="${{ github.event.inputs.version }}"
+            echo "Using version from manual input: $version"
+        else
+            version="0.0.0"
+            echo "Using default version for manual run: $version"
+        fi
+        clean_version=$(echo "$version" | tr -cd '0-9.')
+        if [[ ! "$clean_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: $clean_version"
+            exit 1
+        fi
+        echo "VERSION=$clean_version" >> $GITHUB_ENV
+        echo "Using version: $clean_version"
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0
+
+    - name: Build
+      run: dotnet publish --no-restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }} -c Release -r osx-x64 --self-contained true -o publish-macos-intel
+
+    - name: Convert PNG to ICNS
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/convert-png-to-icns.sh "DesignAssets/Artboard 1 – 4.png" Sources/Heads/Pix2d.Desktop/Pix2d.icns
+
+    - name: Bundle as .app
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/macos-app-bundle.sh publish-macos-intel ${{ env.VERSION }}
+
+    - name: Create DMG
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/make-dmg.sh Pix2D.app ${{ env.VERSION }}
+
+    - name: Upload macOS Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-intel
+        path: Pix2d_macOS-${{ env.VERSION }}.dmg
+
+  build_macos_arm:
+    needs: determine_build_scope
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_macos_arm == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Get Version
+      id: version
+      shell: bash
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            version=$(echo "$GITHUB_REF" | sed 's/refs\/tags\/v//')
+            echo "Using version from git tag: $version"
+        elif [ -n "${{ github.event.inputs.version }}" ]; then
+            version="${{ github.event.inputs.version }}"
+            echo "Using version from manual input: $version"
+        else
+            version="0.0.0"
+            echo "Using default version for manual run: $version"
+        fi
+        clean_version=$(echo "$version" | tr -cd '0-9.')
+        if [[ ! "$clean_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: $clean_version"
+            exit 1
+        fi
+        echo "VERSION=$clean_version" >> $GITHUB_ENV
+        echo "Using version: $clean_version"
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0
+
+    - name: Build
+      run: dotnet publish --no-restore ${{ env.DESKTOP_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }} -c Release -r osx-arm64 --self-contained true -o publish-macos-arm
+
+    - name: Convert PNG to ICNS
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/convert-png-to-icns.sh "DesignAssets/Artboard 1 – 4.png" Sources/Heads/Pix2d.Desktop/Pix2d.icns
+
+    - name: Bundle as .app
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/macos-app-bundle.sh publish-macos-arm ${{ env.VERSION }}
+
+    - name: Create DMG
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/make-dmg.sh Pix2D.app ${{ env.VERSION }}
+
+    - name: Upload macOS Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-arm
+        path: Pix2d_macOS-${{ env.VERSION }}.dmg
