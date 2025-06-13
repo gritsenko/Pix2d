@@ -66,17 +66,36 @@ jobs:
       shell: pwsh
       run: |
         $manifestPath = "$env:WAP_PROJECT_DIR/Package.appxmanifest"
-        Write-Host "Patching manifest at $manifestPath with version ${{ env.APP_VERSION }}"
+        $newVersion = "${{ env.APP_VERSION }}"
+        Write-Host "Patching manifest at $manifestPath with version $newVersion"
 
-        # Read the entire file content as a raw string
-        $originalContent = [System.IO.File]::ReadAllText($manifestPath)
+        try {
+            # Load the XML document
+            [xml]$manifest = New-Object System.Xml.XmlDocument
+            $manifest.Load($manifestPath)
 
-        # Perform the replacement. Use backticks for escaping quotes within the string.
-        $newContent = $originalContent -replace 'Version="[^"]*"', "Version=`"${{ env.APP_VERSION }}`""
+            # Find the Identity element and update its Version attribute
+            $identityNode = $manifest.SelectSingleNode("//*[local-name()='Package']/*[local-name()='Identity']")
+            if ($identityNode -ne $null -and $identityNode.Attributes['Version'] -ne $null) {
+                $identityNode.Attributes['Version'].Value = $newVersion
+                Write-Host "Updated Version attribute to: $($identityNode.Attributes['Version'].Value)"
+            } else {
+                throw "Could not find 'Identity' element or 'Version' attribute in Package.appxmanifest."
+            }
 
-        # Write the content back using UTF8 encoding without a Byte Order Mark (BOM)
-        [System.IO.File]::WriteAllText($manifestPath, $newContent, (New-Object System.Text.UTF8Encoding($false)))
-        Write-Host "Manifest patched successfully."
+            # Save the XML document back, preserving original encoding and formatting if possible.
+            # Using Save() without explicit encoding usually preserves the original.
+            # However, for explicit UTF-8 without BOM (common for AppxManifest):
+            $xmlWriter = New-Object System.Xml.XmlTextWriter($manifestPath, (New-Object System.Text.UTF8Encoding($false)))
+            $xmlWriter.Formatting = [System.Xml.Formatting]::Indented # Keep indentation
+            $manifest.Save($xmlWriter)
+            $xmlWriter.Close() # Close the writer to flush contents
+            Write-Host "Manifest patched and saved successfully."
+        } catch {
+            Write-Error "Failed to patch Package.appxmanifest: $_"
+            Write-Error $_.Exception.ToString()
+            exit 1
+        }
 
     - name: Restore NuGet packages
       run: msbuild $env:WAP_PROJECT_PATH /t:Restore /p:Configuration=$env:CONFIGURATION /p:IsWAPHeadProject=true
