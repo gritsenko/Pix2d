@@ -66,7 +66,17 @@ jobs:
       shell: pwsh
       run: |
         $manifestPath = "$env:WAP_PROJECT_DIR/Package.appxmanifest"
-        (Get-Content $manifestPath) -replace 'Version="[^"]*"', 'Version="${{ env.APP_VERSION }}"' | Set-Content $manifestPath
+        Write-Host "Patching manifest at $manifestPath with version ${{ env.APP_VERSION }}"
+
+        # Read the entire file content as a raw string
+        $originalContent = [System.IO.File]::ReadAllText($manifestPath)
+
+        # Perform the replacement. Use backticks for escaping quotes within the string.
+        $newContent = $originalContent -replace 'Version="[^"]*"', "Version=`"${{ env.APP_VERSION }}`""
+
+        # Write the content back using UTF8 encoding without a Byte Order Mark (BOM)
+        [System.IO.File]::WriteAllText($manifestPath, $newContent, (New-Object System.Text.UTF8Encoding($false)))
+        Write-Host "Manifest patched successfully."
 
     - name: Restore NuGet packages
       run: msbuild $env:WAP_PROJECT_PATH /t:Restore /p:Configuration=$env:CONFIGURATION /p:IsWAPHeadProject=true
@@ -156,6 +166,7 @@ jobs:
         if (-not $packagePath) { throw ".msixupload package not found" }
 
         try {
+            # Use CLIENT_SECRET to create secure string for credential
             $secureSecret = ConvertTo-SecureString $env:CLIENT_SECRET -AsPlainText -Force
             $credential = New-Object System.Management.Automation.PSCredential($env:CLIENT_ID, $secureSecret)
 
