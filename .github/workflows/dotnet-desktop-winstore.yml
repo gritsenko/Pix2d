@@ -2,6 +2,11 @@
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'App version (format: 3.3.3.0)'
+        required: false
+        default: ''
   push:
     tags:
       - 'v*'
@@ -28,6 +33,40 @@ jobs:
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2.0.0
+
+    - name: Determine App Version
+      id: get_version
+      shell: pwsh
+      run: |
+        # Default version
+        $version = ""
+
+        # If triggered by tag, extract version from tag (e.g., v3.3.3 -> 3.3.3.0)
+        if ($env:GITHUB_REF -like 'refs/tags/v*') {
+          $tag = $env:GITHUB_REF -replace 'refs/tags/v', ''
+          if ($tag -match '^\d+\.\d+\.\d+$') {
+            $version = "$tag.0"
+          }
+        }
+
+        # If triggered manually and input is provided, use it
+        if ("${{ github.event_name }}" -eq "workflow_dispatch" -and "${{ github.event.inputs.version }}") {
+          $version = "${{ github.event.inputs.version }}"
+        }
+
+        # Fallback if still empty
+        if (-not $version) {
+          $version = "0.0.0.0"
+        }
+
+        echo "Using version: $version"
+        echo "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+    - name: Patch AppxManifest version
+      shell: pwsh
+      run: |
+        $manifestPath = "$env:WAP_PROJECT_DIR/Package.appxmanifest"
+        (Get-Content $manifestPath) -replace 'Version="[^"]*"', 'Version="${{ env.APP_VERSION }}"' | Set-Content $manifestPath
 
     - name: Restore NuGet packages
       run: msbuild $env:WAP_PROJECT_PATH /t:Restore /p:Configuration=$env:CONFIGURATION /p:IsWAPHeadProject=true
@@ -104,10 +143,8 @@ jobs:
         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
         PRODUCT_ID: ${{ secrets.PRODUCT_ID }}
       run: |
-        # Add this line for verbose PowerShell output
         $VerbosePreference = "Continue"
 
-        # install StoreBroker if needed
         if (-not (Get-Module -ListAvailable -Name StoreBroker)) {
             Install-PackageProvider -Name NuGet -Force
             Install-Module -Name StoreBroker -Force -AllowClobber
@@ -115,30 +152,25 @@ jobs:
 
         Import-Module StoreBroker -Force
 
-        # Find the .msixupload file (not the zip)
         $packagePath = Get-ChildItem -Path ./artifacts -Filter *.msixupload -Recurse -ErrorAction Stop | Select-Object -First 1
         if (-not $packagePath) { throw ".msixupload package not found" }
 
         try {
-            $secureSecret = ConvertTo-SecureString $env:CLIENT_SECRET -AsPlainText -Force # Corrected: Use CLIENT_SECRET here
-            $credential = New-Object System.Management.Automation.PSCredential($env:CLIENT_ID, $secureSecret) # Corrected: using CLIENT_ID for username
+            $secureSecret = ConvertTo-SecureString $env:CLIENT_SECRET -AsPlainText -Force
+            $credential = New-Object System.Management.Automation.PSCredential($env:CLIENT_ID, $secureSecret)
 
             Write-Host "Authenticating..."
-            # Add -Verbose to this command too
             Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential -Verbose
 
             Write-Host "Creating new submission..."
             try {
-              # Add -Verbose to this command
               $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID -Verbose
             } catch {
               Write-Error "Cannot create submission. Check if there's an in-progress submission created manually via the Partner Center."
-              # Also write the full error for more details
               Write-Error $_.Exception.ToString()
               throw
             }
 
-            # Check if fileUploadUrl exists
             if (-not $submission.fileUploadUrl) {
                 throw "fileUploadUrl is empty. Cannot proceed with uploading the package."
             }
@@ -147,7 +179,6 @@ jobs:
             Write-Host "Adding package to submission..."
             Set-SubmissionPackage -PackagePath $packagePath.FullName -UploadUrl $uploadUrl
 
-            # Conditionally complete submission unless running manually
             if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
                 Write-Host "Skipping Complete-ApplicationSubmission because this run was triggered manually (workflow_dispatch). Review the submission in Partner Center."
             } else {
