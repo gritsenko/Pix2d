@@ -193,6 +193,7 @@ jobs:
             Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential -Verbose
 
             Write-Host "Creating new submission..."
+            $submission = $null # Initialize submission variable
             try {
               $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID -Verbose
             } catch {
@@ -207,13 +208,30 @@ jobs:
             $uploadUrl = $submission.fileUploadUrl
 
             Write-Host "Adding package to submission..."
-            Set-SubmissionPackage -PackagePath $packagePath.FullName -UploadUrl $uploadUrl
+            Set-SubmissionPackage -PackagePath $packagePath.FullName -UploadUrl $uploadUrl -Verbose
+
+            # --- NEW DEBUGGING STEP ---
+            Write-Host "--- Verifying Submission Packages after upload ---"
+            $currentSubmission = Get-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
+            if ($currentSubmission -and $currentSubmission.ApplicationPackages) {
+                Write-Host "Found $($currentSubmission.ApplicationPackages.Count) packages in the submission."
+                $currentSubmission.ApplicationPackages | ForEach-Object {
+                    Write-Host "  Package File Name: $($_.FileName)"
+                    Write-Host "  Package Status: $($_.FileStatus)"
+                    # You can add more properties to inspect if needed
+                }
+            } else {
+                Write-Host "No application packages found in the submission object or submission not retrieved."
+            }
+            Write-Host "------------------------------------------------"
+            # --- END NEW DEBUGGING STEP ---
+
 
             if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
                 Write-Host "Skipping Complete-ApplicationSubmission because this run was triggered manually (workflow_dispatch). Review the submission in Partner Center."
             } else {
                 Write-Host "Completing submission..."
-                Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id
+                Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
             }
 
             Write-Host "Success!"
