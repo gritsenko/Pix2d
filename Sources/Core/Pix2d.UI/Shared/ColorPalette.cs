@@ -102,6 +102,8 @@ public class ColorPalette : LocalizedComponentBase
 
     #endregion
 
+    public event EventHandler<EventArgs>? ColorSelected;
+
     protected override object Build() =>
         new Grid()
             .Children(
@@ -160,7 +162,8 @@ public class ColorPalette : LocalizedComponentBase
 
     private void OnColorItemClicked(SKColor itemVm)
     {
-        SelectColorCommand?.Execute(itemVm);
+        //SelectColorCommand?.Execute(itemVm);
+        ColorSelected?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnColorsSet(ref IList<SKColor> colors)
@@ -201,4 +204,5 @@ public class ColorPalette : LocalizedComponentBase
         colors.Add(SKColor.Empty);
         return colors;
     }
+
 }

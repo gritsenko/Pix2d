@@ -66,6 +66,7 @@ public class ColorPickerView : LocalizedComponentBase
                                                 new ColorPalette().Row(1)
                                                     .Margin(-6, 0)
                                                     .Colors(() => RecentColors)
+                                                    .OnColorSelected()
                                                     .SelectColorCommand(() => SetColorCommand),
                                                 new TextBlock()
                                                     .Text(L("Custom colors")),
