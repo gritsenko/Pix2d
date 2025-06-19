@@ -6,7 +6,7 @@ public class AppButton : ViewBase
 {
     public const string IconControlName = "app-button-icon";
     public const string LabelControlName = "app-button-label";
-    public event EventHandler Click;
+    public event Action? Click;
 
     public static readonly DirectProperty<AppButton, string> LabelProperty
         = AvaloniaProperty.RegisterDirect<AppButton, string>(nameof(Label), o => o.Label, (o, v) => o.Label = v);
@@ -73,7 +73,7 @@ public class AppButton : ViewBase
             .VerticalContentAlignment(VerticalAlignment.Stretch)
             .Padding(0)
             .Margin(0)
-            .OnClick(args => Click?.Invoke(this, args))
+            .OnClick(_ => Click?.Invoke())
             .Content(
                 new Border()
                     .Child(

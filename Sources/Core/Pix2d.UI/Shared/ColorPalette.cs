@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
-using System.Windows.Input;
 using Avalonia.Interactivity;
 using Pix2d.Common.Extensions;
 using Pix2d.UI.Resources;
@@ -43,34 +42,6 @@ public class ColorPalette : LocalizedComponentBase
     }
 
     /// <summary>
-    /// Select color command
-    /// </summary>
-    public static readonly DirectProperty<ColorPalette, ICommand?> SelectColorCommandProperty
-        = AvaloniaProperty.RegisterDirect<ColorPalette, ICommand?>(nameof(SelectColorCommand), o => o.SelectColorCommand, (o, v) => o.SelectColorCommand = v);
-
-    private ICommand? _selectColorCommand;
-
-    public ICommand? SelectColorCommand
-    {
-        get => _selectColorCommand;
-        set => SetAndRaise(SelectColorCommandProperty, ref _selectColorCommand, value);
-    }
-
-    /// <summary>
-    /// Add Color Command
-    /// </summary>
-    public static readonly DirectProperty<ColorPalette, ICommand?> AddColorCommandProperty
-        = AvaloniaProperty.RegisterDirect<ColorPalette, ICommand?>(nameof(AddColorCommand), o => o.AddColorCommand, (o, v) => o.AddColorCommand = v);
-
-    private ICommand? _addColorCommand;
-    public ICommand? AddColorCommand
-    {
-        get => _addColorCommand;
-        set => SetAndRaise(AddColorCommandProperty, ref _addColorCommand, value);
-    }
-
-
-    /// <summary>
     /// Can add color
     /// </summary>
     public static readonly DirectProperty<ColorPalette, bool> CanAddColorProperty
@@ -86,23 +57,12 @@ public class ColorPalette : LocalizedComponentBase
             OnColorsSet(ref _colors);
         }
     }
-
-    /// <summary>
-    /// Remove Color Command
-    /// </summary>
-    public static readonly DirectProperty<ColorPalette, ICommand?> RemoveColorCommandProperty
-        = AvaloniaProperty.RegisterDirect<ColorPalette, ICommand?>(nameof(RemoveColorCommand), o => o.RemoveColorCommand, (o, v) => o.RemoveColorCommand = v);
-
-    private ICommand? _removeColorCommand;
-    public ICommand? RemoveColorCommand
-    {
-        get => _removeColorCommand;
-        set => SetAndRaise(RemoveColorCommandProperty, ref _removeColorCommand, value);
-    }
-
+    
     #endregion
 
-    public event EventHandler<EventArgs>? ColorSelected;
+    public event Action<SKColor>? ColorSelected;
+    public event Action<SKColor>? ColorAdded;
+    public event Action<SKColor>? ColorRemoved;
 
     protected override object Build() =>
         new Grid()
@@ -114,7 +74,8 @@ public class ColorPalette : LocalizedComponentBase
                     .ItemTemplate(new FuncDataTemplate<SKColor>((itemVm, _) =>
                             itemVm == SKColor.Empty
                                 ? new Button() //ADD COLOR BUTTON
-                                    .Background(ColorToAddProperty, BindingMode.OneWay, StaticResources.Converters.SKColorToBrushConverter, this)
+                                    .Background(ColorToAddProperty, BindingMode.OneWay,
+                                        StaticResources.Converters.SKColorToBrushConverter, this)
                                     .OnClick(OnAddColorClicked)
                                     .Margin(6)
                                     .Width(32)
@@ -137,12 +98,15 @@ public class ColorPalette : LocalizedComponentBase
                                     .Height(32)
                                     .CornerRadius(32)
                                     .Margin(6)
-                                    .With(b =>
-                                    {
-                                        var flyout = new MenuFlyout() { Placement = PlacementMode.Bottom };
-                                        flyout.AddItem(L("Delete color")(), RemoveColorCommand!, itemVm);
-                                        b.ContextFlyout = flyout;
-                                    })
+                                    .ContextFlyout(
+                                        new MenuFlyout()
+                                            .Placement(PlacementMode.Bottom)
+                                            .ItemsSource(new[]{
+                                                new MenuItem()
+                                                    .Header("Delete color")
+                                                    .OnClick(_ => ColorRemoved?.Invoke(itemVm))
+                                                })
+                                    )
                         )
                     )
 
@@ -152,19 +116,9 @@ public class ColorPalette : LocalizedComponentBase
 
     private IList<SKColor>? _sourceColorsCollection;
 
-    private void OnAddColorClicked(RoutedEventArgs obj)
-    {
-        if (AddColorCommand?.CanExecute(ColorToAdd) == true)
-        {
-            AddColorCommand?.Execute(ColorToAdd);
-        }
-    }
+    private void OnAddColorClicked(RoutedEventArgs obj) => ColorAdded?.Invoke(ColorToAdd);
 
-    private void OnColorItemClicked(SKColor itemVm)
-    {
-        //SelectColorCommand?.Execute(itemVm);
-        ColorSelected?.Invoke(this, EventArgs.Empty);
-    }
+    private void OnColorItemClicked(SKColor newColor) => ColorSelected?.Invoke(newColor);
 
     private void OnColorsSet(ref IList<SKColor> colors)
     {

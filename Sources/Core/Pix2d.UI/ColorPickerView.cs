@@ -1,7 +1,5 @@
 ﻿using System.Collections.ObjectModel;
-using System.Windows.Input;
 using Avalonia.Input;
-using Mvvm;
 using Pix2d.Common.Extensions;
 using Pix2d.Messages;
 using Pix2d.UI.Shared;
@@ -19,9 +17,9 @@ public class ColorPickerView : LocalizedComponentBase
         return new Grid().Width(236)
             .Rows("140, Auto, *")
             .Children(
-                new Pix2dColorPicker()
-                    .Margin(10)
-                    .Color(() => SelectedColor, v => SelectedColor = v),
+                //new Pix2dColorPicker()
+                //    .Margin(10)
+                //    .Color(() => SelectedColor, v => SelectedColor = v),
 
                 //new Grid().Row(1)
                 //    .Cols("Auto, Auto, *")
@@ -63,21 +61,25 @@ public class ColorPickerView : LocalizedComponentBase
                                             .Children(
                                                 new TextBlock()
                                                     .Text(L("Recent colors")),
+                                                
                                                 new ColorPalette().Row(1)
                                                     .Margin(-6, 0)
                                                     .Colors(() => RecentColors)
-                                                    .OnColorSelected()
-                                                    .SelectColorCommand(() => SetColorCommand),
+                                                    .OnColorSelected(c => SelectedColor = c),
+                                                
                                                 new TextBlock()
                                                     .Text(L("Custom colors")),
+                                                
                                                 new ColorPalette().Row(1)
                                                     .Margin(-6, 0)
                                                     .Colors(() => CustomColors)
                                                     .CanAddColor(true)
-                                                    .AddColorCommand(() => OnAddColorCommand)
-                                                    .RemoveColorCommand(() => OnRemoveColorCommand)
+                                                    .OnColorAdded(c =>
+                                                        PaletteService.InsertColor(nameof(PaletteService.CustomPalette),
+                                                            c, -1))
+                                                    .OnColorRemoved(OnColorRemoved)
                                                     .ColorToAdd(() => SelectedColor)
-                                                    .SelectColorCommand(() => SetColorCommand)
+                                                    .OnColorSelected(c => SelectedColor = c)
                                             )
                                     ),
                                 new TabItem() //HEX EDITOR
@@ -100,20 +102,13 @@ public class ColorPickerView : LocalizedComponentBase
                                     .Content(
                                         new StackPanel()
                                             .Children(
-                                                new SliderEx()
-                                                    .Label(L("Hue"))
-                                                    .Minimum(0)
-                                                    .Maximum(360)
+                                                new SliderEx().Label(L("Hue")).Minimum(0).Maximum(360)
                                                     .Value(() => HsvHPart, v => HsvHPart = (float)v),
-                                                new SliderEx()
-                                                    .Label(L("Saturation"))
-                                                    .Minimum(0)
-                                                    .Maximum(100)
+
+                                                new SliderEx().Label(L("Saturation")).Minimum(0).Maximum(100)
                                                     .Value(() => HsvSPart, v => HsvSPart = (float)v),
-                                                new SliderEx()
-                                                    .Label(L("Value"))
-                                                    .Minimum(0)
-                                                    .Maximum(100)
+
+                                                new SliderEx().Label(L("Value")).Minimum(0).Maximum(100)
                                                     .Value(() => HsvVPart, v => HsvVPart = (float)v)
                                             )
                                     ),
@@ -144,7 +139,7 @@ public class ColorPickerView : LocalizedComponentBase
                     )
             );
     }
-
+    
     [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private IPaletteService PaletteService { get; set; } = null!;
@@ -175,15 +170,12 @@ public class ColorPickerView : LocalizedComponentBase
         get => AppState.SpriteEditorState.CurrentColor;
         set
         {
-            DrawingService.SetCurrentColor(value);
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(SelectedColorBrush));
-            UpdateEditors();
-            StateHasChanged();
+            //DrawingService.SetCurrentColor(value);
+            //OnPropertyChanged();
+            //UpdateEditors();
+            //StateHasChanged();
         }
     }
-
-    public Brush SelectedColorBrush => SelectedColor.ToBrush();
 
     public ColorPickerColorType ColorType { get; set; }
 
@@ -192,6 +184,8 @@ public class ColorPickerView : LocalizedComponentBase
         get => (int)ColorType;
         set
         {
+            if ((int)ColorType == value) return; // Prevent recursion
+
             ColorType = (ColorPickerColorType)value;
             UpdateEditors();
         }
@@ -301,26 +295,6 @@ public class ColorPickerView : LocalizedComponentBase
 
     public bool IsEyedropperSelected => AppState?.ToolsState.CurrentToolKey == "EyedropperTool";
 
-    public ICommand OnAddColorCommand => new RelayCommand<SKColor>((c) =>
-    {
-        PaletteService.InsertColor(nameof(PaletteService.CustomPalette), c, -1);
-    });
-
-    public ICommand OnRemoveColorCommand => new RelayCommand<SKColor>((c) =>
-    {
-        if (c == default)
-        {
-            c = SelectedColor;
-        }
-
-        if (c != default)
-        {
-            PaletteService.RemoveColor(nameof(PaletteService.CustomPalette), c);
-        }
-    });
-
-    public ICommand SetColorCommand => new RelayCommand<SKColor>(c => { SelectedColor = c; }, c => true);
-
     protected override void OnAfterInitialized()
     {
         LoadColors();
@@ -331,6 +305,18 @@ public class ColorPickerView : LocalizedComponentBase
         Messenger.Register<CurrentToolChangedMessage>(this, OnCurrentToolChanged);
 
         PaletteService.PaletteChanged += PaletteService_PaletteChanged;
+    }
+    private void OnColorRemoved(SKColor c)
+    {
+        if (c == default)
+        {
+            c = SelectedColor;
+        }
+
+        if (c != default)
+        {
+            PaletteService.RemoveColor(nameof(PaletteService.CustomPalette), c);
+        }
     }
 
     private void OnDrawingStateColorChanged()
