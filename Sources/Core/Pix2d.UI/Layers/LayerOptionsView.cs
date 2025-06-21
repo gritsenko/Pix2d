@@ -191,6 +191,8 @@ public class LayerOptionsView : LocalizedComponentBase
         set
         {
             if (Layer == null) return;
+            if (Math.Abs(value / 100 - Layer.Opacity) < 0.01) return;
+
             SpriteEditor?.SetOpacity((float)Math.Round(value / 100, 2));
             OnLayerUpdated();
         }

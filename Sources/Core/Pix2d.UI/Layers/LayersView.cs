@@ -219,6 +219,9 @@ public class LayersView : ComponentBase
 
     private SKBitmap PreviewProvider(LayerItemViewModel frameVm)
     {
+        if (_editor == null)
+            return null;
+
         var sprite = _editor.CurrentSprite;
         var pw = 100;
         var bitmap = new SKBitmap(new SKImageInfo(pw, pw, Pix2DAppSettings.ColorType));
