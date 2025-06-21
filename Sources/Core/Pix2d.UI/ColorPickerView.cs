@@ -17,9 +17,9 @@ public class ColorPickerView : LocalizedComponentBase
         return new Grid().Width(236)
             .Rows("140, Auto, *")
             .Children(
-                //new Pix2dColorPicker()
-                //    .Margin(10)
-                //    .Color(() => SelectedColor, v => SelectedColor = v),
+                new Pix2dColorPicker()
+                    .Margin(10)
+                    .Color(() => SelectedColor, v => SelectedColor = v),
 
                 //new Grid().Row(1)
                 //    .Cols("Auto, Auto, *")
@@ -47,7 +47,6 @@ public class ColorPickerView : LocalizedComponentBase
                 new Border().Row(2)
                     .Margin(8, 8, 8, 16)
                     .MinHeight(100)
-                    //.IsVisible(@vm.EditorMode)
                     .Child(
                         new TabControl()
                             .SelectedIndex(() => ColorTypeIndex, v => ColorTypeIndex = v)
@@ -170,10 +169,10 @@ public class ColorPickerView : LocalizedComponentBase
         get => AppState.SpriteEditorState.CurrentColor;
         set
         {
-            //DrawingService.SetCurrentColor(value);
-            //OnPropertyChanged();
+            DrawingService.SetCurrentColor(value);
+            OnPropertyChanged();
             //UpdateEditors();
-            //StateHasChanged();
+            StateHasChanged();
         }
     }
 
