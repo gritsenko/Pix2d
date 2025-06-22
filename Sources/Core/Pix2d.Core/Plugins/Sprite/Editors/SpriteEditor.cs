@@ -42,6 +42,8 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
     private readonly IMessenger _messenger;
     private readonly IOperationService _operationService;
 
+    private readonly Timer _timer;
+    private readonly SpriteEditorState _editorState;
 
     public Pix2dSprite.Layer SelectedLayer => CurrentSprite?.SelectedLayer;
 
@@ -59,19 +61,19 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
         _messenger.Register<ProjectCloseMessage>(this, OnProjectClose);
 
-        _context = SynchronizationContext.Current;
 
         _timer = new Timer(OnTick, this, -1, -1);
-        _projectState = state.CurrentProject;
-        state.SpriteEditorState.WatchFor(x => x.ShowOnionSkin, () =>
+        _editorState = state.SpriteEditorState;
+
+        _editorState.WatchFor(x => x.ShowOnionSkin, () =>
         {
-            CurrentSprite.OnionSkinSettings.IsEnabled = state.SpriteEditorState.ShowOnionSkin;
+            CurrentSprite.OnionSkinSettings.IsEnabled = _editorState.ShowOnionSkin;
             _viewPortRefreshService.Refresh();
         });
 
-        state.SpriteEditorState.WatchFor(x => x.FrameRate, () =>
+        _editorState.WatchFor(x => x.FrameRate, () =>
         {
-            CurrentSprite.FrameRate = state.SpriteEditorState.FrameRate;
+            CurrentSprite.FrameRate = _editorState.FrameRate;
 
             if(IsPlaying)
                 _timer.Change(1000 / FrameRate, 1000 / FrameRate);
@@ -423,14 +425,11 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     #region animation
 
-    private Timer _timer;
-    private SynchronizationContext _context;
-    private readonly ProjectState _projectState;
 
     public bool IsPlaying
     {
-        get => _projectState.IsAnimationPlaying;
-        private set => _projectState.IsAnimationPlaying = value;
+        get => _editorState.IsPlayingAnimation;
+        private set => _editorState.IsPlayingAnimation = value;
     }
 
     public int CurrentFrameIndex => CurrentSprite.CurrentFrameIndex;

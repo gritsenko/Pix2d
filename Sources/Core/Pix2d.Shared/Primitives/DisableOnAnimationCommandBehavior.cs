@@ -11,12 +11,12 @@ public class DisableOnAnimationCommandBehavior : ICommandBehaviour
     public DisableOnAnimationCommandBehavior(AppState appState)
     {
         _appState = appState;
-        _appState.CurrentProject.WatchFor(x => x.IsAnimationPlaying, OnAnimationPlayingChanged);
+        _appState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, OnAnimationPlayingChanged);
     }
 
     private void OnAnimationPlayingChanged()
     {
-        var canExecute = !_appState.CurrentProject.IsAnimationPlaying;
+        var canExecute = !_appState.SpriteEditorState.IsPlayingAnimation;
         foreach (var command in _commands) 
             command.SetCanExecute(canExecute);
     }

@@ -1,6 +1,5 @@
 ﻿using Avalonia.Interactivity;
 using Avalonia.Styling;
-using Pix2d.Abstract.Commands;
 using Pix2d.Command;
 using Pix2d.Plugins.Sprite.Commands;
 using Pix2d.UI.Resources;
@@ -23,17 +22,17 @@ public class ActionsBarView : LocalizedComponentBase
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
     private EditCommands EditCommands => CommandService.GetCommandList<EditCommands>()!;
 
-    private bool IsAnimationPlaying => AppState.CurrentProject.IsAnimationPlaying;
+    private bool IsAnimationPlaying => AppState.SpriteEditorState.IsPlayingAnimation;
 
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
-        AppState.CurrentProject.WatchFor(x => x.IsAnimationPlaying, StateHasChanged);
+        AppState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, StateHasChanged);
     }
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
-        AppState.CurrentProject.Unwatch(x => x.IsAnimationPlaying, StateHasChanged);
+        AppState.SpriteEditorState.Unwatch(x => x.IsPlayingAnimation, StateHasChanged);
     }
 
     protected override StyleGroup BuildStyles() =>

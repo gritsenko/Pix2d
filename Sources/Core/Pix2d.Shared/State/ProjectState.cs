@@ -54,12 +54,11 @@ public class ProjectState : StateBase
     public ViewPortState ViewPortState { get; set; } = new();
     #region Not serializable
 
-    public bool IsProcessing { get; set; }
     public SessionInfo LastSessionInfo { get; set; }
-    public bool IsAnimationPlaying { 
-        get => Get<bool>();
-        set => Set(value);
-    }
+    //public bool IsAnimationPlaying { 
+    //    get => Get<bool>();
+    //    set => Set(value);
+    //}
 
     #endregion
 }

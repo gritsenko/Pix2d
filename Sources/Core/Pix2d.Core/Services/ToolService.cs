@@ -9,7 +9,6 @@ namespace Pix2d.Services;
 
 public class ToolService : IToolService
 {
-    private readonly IMessenger _messenger;
     private readonly AppState _appState;
     private readonly Func<Type, object> _activatorFactoryFunc;
     private ToolsState ToolsState => _appState.ToolsState;
@@ -18,12 +17,12 @@ public class ToolService : IToolService
 
     public ToolService(IMessenger messenger, AppState appState, Func<Type, object> activatorFactoryFunc)
     {
-        _messenger = messenger;
         _appState = appState;
         _activatorFactoryFunc = activatorFactoryFunc;
         messenger.Register<ProjectLoadedMessage>(this, _ => ActivateDefaultTool());
+        _appState.WatchFor(x => x.CurrentProject, ActivateDefaultTool);
         _appState.CurrentProject.WatchFor(x => x.CurrentContextType, ActivateDefaultTool);
-        _appState.CurrentProject.WatchFor(x => x.IsAnimationPlaying, OnAnimationStateChanged);
+        _appState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, OnAnimationStateChanged);
         RegisterTool<ObjectManipulationTool>(EditContextType.General);
     }
 
@@ -37,11 +36,8 @@ public class ToolService : IToolService
 
         var oldTool = GetToolStateByKey(ToolsState.CurrentToolKey);
         oldTool?.ToolInstance?.Deactivate();
-        ToolsState.CurrentToolKey = tool.Name;
         tool.ToolInstance?.Activate();
-
-        if (tool.ToolInstance != null)
-            _messenger.Send(new CurrentToolChangedMessage(tool.ToolInstance));
+        ToolsState.CurrentToolKey = tool.Name;
     }
 
     public void ActivateTool<TTool>()
@@ -66,7 +62,7 @@ public class ToolService : IToolService
     {
         var tool = GetToolStateByKey(ToolsState.CurrentToolKey);
 
-        if (!_appState.CurrentProject.IsAnimationPlaying || tool?.EnabledDuringAnimation == true)
+        if (!_appState.SpriteEditorState.IsPlayingAnimation || tool?.EnabledDuringAnimation == true)
             return;
 
         ActivateDefaultTool();

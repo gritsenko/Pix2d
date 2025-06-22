@@ -18,7 +18,7 @@ public class ToolItemGroupView : LocalizedComponentBase
             .CornerRadius(StaticResources.Measures.ToolItemCornerRadius)
             .HorizontalContentAlignment(HorizontalAlignment.Stretch)
             .VerticalContentAlignment(VerticalAlignment.Stretch)
-            .IsEnabled(() => !AppState.CurrentProject.IsAnimationPlaying || (ActiveItem?.EnabledDuringAnimation == true))
+            .IsEnabled(() => !AppState.SpriteEditorState.IsPlayingAnimation || (ActiveItem?.EnabledDuringAnimation == true))
             .Content(
                 new Border()
                     .CornerRadius(StaticResources.Measures.ToolItemCornerRadius)

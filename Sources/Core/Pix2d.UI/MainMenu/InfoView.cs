@@ -48,10 +48,10 @@ public class InfoView : LocalizedComponentBase
                 new Grid().Rows("32,32").Cols("*,Auto").Width(256).Margin(new Thickness(0, 16)).Children(
                     new TextBlock().Text("Current project").VerticalAlignment(VerticalAlignment.Center),
 
-                    new StackPanel().Col(1).Orientation(Orientation.Horizontal)._Children(new()
-                    {
-                        new TextBlock().Col(1).Text(() => AppState.CurrentProject.Title)
+                    new StackPanel().Col(1).Orientation(Orientation.Horizontal)._Children([
+                        new TextBlock().Col(1).Text(() => AppState.CurrentProject?.Title ?? "No project")
                             .VerticalAlignment(VerticalAlignment.Center),
+
 
                         new AppButton()
                             .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
@@ -60,7 +60,7 @@ public class InfoView : LocalizedComponentBase
                             .Width(24).Height(24).Content("\xE70F")
                             .Label("")
                             .Command(FileCommands.Rename)
-                    })
+                    ])
 
                     //new TextBlock().Row(1).Text(L("License")),
 

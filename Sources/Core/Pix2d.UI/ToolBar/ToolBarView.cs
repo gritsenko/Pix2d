@@ -2,7 +2,6 @@
 using Avalonia.Styling;
 using Pix2d.Command;
 using Pix2d.Common.Extensions;
-using Pix2d.Messages;
 using Pix2d.Primitives;
 using Pix2d.UI.BrushSettings;
 using Pix2d.UI.Resources;

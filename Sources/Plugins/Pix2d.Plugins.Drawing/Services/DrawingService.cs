@@ -62,11 +62,11 @@ public class DrawingService : IDrawingService
 
         SetNewDrawingLayer(new DrawingLayerNode() { AspectSnapper = snappingService });
 
-        messenger.Register<CurrentToolChangedMessage>(this, OnCurrentToolChanged);
         messenger.Register<ProjectCloseMessage>(this, OnProjectClose);
         messenger.Register<ProjectLoadedMessage>(this, m => UpdateFromDesignerState());
         messenger.Register<CanvasSizeChangedMessage>(this, msg => UpdateDrawingTarget());
         messenger.Register<OperationInvokedMessage>(this, msg => OnOperationInvoked(msg));
+        _appState.ToolsState.WatchFor(x => x.CurrentToolKey, OnCurrentToolChanged);
         SpriteEditorState.WatchFor(x => x.CurrentBrushSettings, OnBrushChanged);
         SpriteEditorState.WatchFor(x => x.CurrentColor, OnColorChanged);
         SpriteEditorState.WatchFor(x => x.IsPixelPerfectDrawingModeEnabled, OnPixelPerfectModeChanged);
@@ -101,9 +101,10 @@ public class DrawingService : IDrawingService
         Refresh();
     }
 
-    private void OnCurrentToolChanged(CurrentToolChangedMessage message)
+    private void OnCurrentToolChanged()
     {
-        SetDrawingMode(message.NewTool is IDrawingTool);
+        var currentTool = _appState.ToolsState.CurrentTool?.ToolInstance;
+        SetDrawingMode(currentTool is IDrawingTool);
     }
 
     private void SetNewDrawingLayer(IDrawingLayer newDrawingLayer)

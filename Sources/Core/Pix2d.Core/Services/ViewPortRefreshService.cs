@@ -23,9 +23,6 @@ public class ViewPortRefreshService : IViewPortRefreshService
 
         _appState.CurrentProject.ViewPortState.WatchFor(x => x.ShowGrid, Refresh);
         _appState.CurrentProject.ViewPortState.WatchFor(x => x.GridSpacing, Refresh);
-
-        //CoreServices.SnappingService.GridToggled += (sender, args) => Refresh();
-        //CoreServices.SnappingService.GridCellSizeChanged += (sender, args) => Refresh();
     }
 
 

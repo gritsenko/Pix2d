@@ -23,7 +23,7 @@ public class ToolItemView : LocalizedComponentBase
             // todo: update BindClass in avalonia markup with expression binding
             //.BindClass(IsSelected, "selected", bindingSource: this)
             .OnClick(OnButtonClicked)
-            .IsEnabled(() => !AppState.CurrentProject.IsAnimationPlaying || ToolState.EnabledDuringAnimation)
+            .IsEnabled(() => !AppState.SpriteEditorState.IsPlayingAnimation || ToolState.EnabledDuringAnimation)
             .HorizontalContentAlignment(HorizontalAlignment.Stretch)
             .VerticalContentAlignment(VerticalAlignment.Stretch)
             .ClipToBounds(true)
@@ -68,7 +68,7 @@ public class ToolItemView : LocalizedComponentBase
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
-        AppState.CurrentProject.WatchFor(x => x.IsAnimationPlaying, StateHasChanged);
+        AppState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, StateHasChanged);
         AppState.ToolsState.WatchFor(x => x.CurrentToolKey, UpdateIsSelected);
 
         UpdateIsSelected();
@@ -87,7 +87,7 @@ public class ToolItemView : LocalizedComponentBase
     protected override void OnUnloaded(RoutedEventArgs e)
     {
         base.OnUnloaded(e);
-        AppState.CurrentProject.Unwatch(x => x.IsAnimationPlaying, StateHasChanged);
+        AppState.SpriteEditorState.Unwatch(x => x.IsPlayingAnimation, StateHasChanged);
         AppState.ToolsState.Unwatch(x => x.CurrentToolKey, UpdateIsSelected);
     }
 

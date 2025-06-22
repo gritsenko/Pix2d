@@ -34,10 +34,14 @@ public class AppState : StateBase
     public Pix2DAppSettings Settings { get; set; } = new();
     public UiState UiState { get; set; } = new();
 
-    public List<ProjectState> LoadedProjects { get; set; } = new();
+    public List<ProjectState> LoadedProjects { get; set; } = [];
 
-    public virtual ProjectState CurrentProject { get; set; } = new();
-    
+    public virtual ProjectState CurrentProject
+    {
+        get => Get<ProjectState>(new ProjectState());
+        set => Set(value);
+    }
+
     public SelectionState SelectionState { get; set; } = new();
 
     public ToolsState ToolsState { get; set; } = new();

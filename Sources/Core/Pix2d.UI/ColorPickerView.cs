@@ -1,9 +1,10 @@
-﻿using System.Collections.ObjectModel;
-using Avalonia.Input;
+﻿using Avalonia.Input;
 using Pix2d.Common.Extensions;
 using Pix2d.Messages;
+using Pix2d.State;
 using Pix2d.UI.Shared;
 using SkiaSharp;
+using System.Collections.ObjectModel;
 
 namespace Pix2d.UI;
 
@@ -298,10 +299,9 @@ public class ColorPickerView : LocalizedComponentBase
     {
         LoadColors();
 
+        AppState.ToolsState.WatchFor(x=>x.CurrentToolKey, StateHasChanged);
         AppState.SpriteEditorState.WatchFor(x => x.CurrentColor, OnDrawingStateColorChanged);
-
         Messenger.Register<DrawingServiceOnDrawnMessage>(this, DrawingServiceDrawn);
-        Messenger.Register<CurrentToolChangedMessage>(this, OnCurrentToolChanged);
 
         PaletteService.PaletteChanged += PaletteService_PaletteChanged;
     }
@@ -362,12 +362,7 @@ public class ColorPickerView : LocalizedComponentBase
         }
     }
 
-    private void OnCurrentToolChanged(CurrentToolChangedMessage obj)
-    {
-        OnPropertyChanged(nameof(IsEyedropperSelected));
-    }
-
-    private void PaletteService_PaletteChanged(object sender, Primitives.Palette.PaletteChangedEventArgs e)
+    private void PaletteService_PaletteChanged(object? sender, Primitives.Palette.PaletteChangedEventArgs e)
     {
         LoadColors(e.PaletteName);
     }
