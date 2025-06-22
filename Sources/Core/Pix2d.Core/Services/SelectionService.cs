@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Pix2d.Abstract.Operations;
+﻿using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Selection;
+using Pix2d.Abstract.Services;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
+using Pix2d.Selection;
 using SkiaNodes;
 using SkiaNodes.Abstract;
 using SkiaNodes.Common;
@@ -15,11 +14,12 @@ namespace Pix2d.Services;
 
 public class SelectionService : ISelectionService
 {
-    private ISceneService SceneService { get; }
-    public ISnappingService SnappingService { get; }
-    public IMessenger Messenger { get; }
-    public AppState AppState { get; }
-    protected ProjectState ProjectState => AppState.CurrentProject;
+    private readonly IOperationService _operationService;
+    private readonly ISceneService _sceneService;
+    private readonly ISnappingService _snappingService;
+    private readonly IMessenger _messenger;
+    private readonly AppState _appState;
+    private ProjectState ProjectState => _appState.CurrentProject;
 
     public INodesSelection Selection
     {
@@ -27,7 +27,7 @@ public class SelectionService : ISelectionService
         private set => ProjectState.Selection = value;
     }
 
-    private SKNode Scene => SceneService.GetCurrentScene();
+    private SKNode Scene => _sceneService.GetCurrentScene();
 
     private IReadOnlyList<SKNode> SelectedNodes => Selection?.Nodes ?? Enumerable.Empty<SKNode>().ToArray();
     public bool HasSelectedNodes => SelectedNodes.Any();
@@ -35,14 +35,15 @@ public class SelectionService : ISelectionService
 
     public GroupNode ActiveGroup { get; set; }
 
-    public SelectionService(ISceneService sceneService, ISnappingService snappingService, IMessenger messenger, AppState appState)
+    public SelectionService(ISceneService sceneService, ISnappingService snappingService, IMessenger messenger, AppState appState, IOperationService operationService)
     {
-        SceneService = sceneService;
-        SnappingService = snappingService;
-        Messenger = messenger;
-        AppState = appState;
+        _operationService = operationService;
+        _sceneService = sceneService;
+        _snappingService = snappingService;
+        _messenger = messenger;
+        _appState = appState;
 
-        Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
+        _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
     }
 
     private void OnOperationInvoked(OperationInvokedMessage obj)
@@ -95,7 +96,7 @@ public class SelectionService : ISelectionService
             return;
         }
 
-        Select(new[] { nodeToSelect }, addToSelection);
+        Select([nodeToSelect], addToSelection);
     }
 
     private IEnumerable<SKNode> FilterGroups(IEnumerable<SKNode> nodes)
@@ -171,7 +172,7 @@ public class SelectionService : ISelectionService
             return container;
         }
 
-        var containers = SceneService.GetCurrentSceneContainers<DrawingContainerBaseNode>();
+        var containers = _sceneService.GetCurrentSceneContainers<DrawingContainerBaseNode>();
         if (containers?.Count == 1)
         {
             return containers[0];
@@ -203,7 +204,7 @@ public class SelectionService : ISelectionService
             Selection.Dispose();
         }
 
-        Selection = new NodesSelection(selectedNodes, OnSelectionInvalidated, AspectLockProviderFunc);
+        Selection = new NodesSelection(selectedNodes, OnSelectionInvalidated, AspectLockProviderFunc, _operationService);
 
         OnSelectionUpdated();
     }
@@ -211,7 +212,7 @@ public class SelectionService : ISelectionService
 
     private bool AspectLockProviderFunc(SKNode[] nodes)
     {
-        if (SnappingService.IsAspectLocked)
+        if (_snappingService.IsAspectLocked)
             return true;
 
         if (nodes.Length == 1 && nodes[0].DesignerState.LockAspect.HasValue)
@@ -235,6 +236,6 @@ public class SelectionService : ISelectionService
 
     protected virtual void OnSelectionUpdated()
     {
-        Messenger.Send(new NodesSelectedMessage());
+        _messenger.Send(new NodesSelectedMessage());
     }
 }

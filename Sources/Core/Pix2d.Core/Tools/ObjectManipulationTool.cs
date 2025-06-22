@@ -82,7 +82,6 @@ public class ObjectManipulationTool : BaseTool
 
         if (SelectionService.HasSelectedNodes && SelectionService.Selection.NodesCount == 1)
         {
-            throw new NotImplementedException("rewrite this tool");
             //if (EditService.FrameEditorNode is FrameEditorNode editor)
             //{
             //    editor?.ActivateMoveThumb();

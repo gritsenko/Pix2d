@@ -1,4 +1,6 @@
 ﻿#nullable enable
+using Pix2d.Abstract.Selection;
+using Pix2d.Abstract.Services;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
 using Pix2d.Primitives.Edit;
@@ -7,7 +9,7 @@ using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 
-namespace Pix2d.Abstract.Selection;
+namespace Pix2d.Selection;
 
 public class NodesSelection : INodesSelection
 {
@@ -16,6 +18,7 @@ public class NodesSelection : INodesSelection
     public event EventHandler Invalidated;
 
     private readonly Action _onInvalidatedCallback;
+    private readonly IOperationService? _operationService;
     private TransformOperation _editOperation;
 
     public bool GenerateOperations { get; set; } = true;
@@ -124,13 +127,14 @@ public class NodesSelection : INodesSelection
     public SKNode Frame { get; set; }
 
 
-    public NodesSelection(
-        IEnumerable<SKNode> selectedNodes,
+    public NodesSelection(IEnumerable<SKNode> selectedNodes,
         Action onInvalidatedCallback,
-        Func<SKNode[], bool>? aspectLockProviderFunc = null)
+        Func<SKNode[], bool>? aspectLockProviderFunc = null, 
+        IOperationService? operationService = null)
     {
         AspectLockProviderFunc = aspectLockProviderFunc;
         _onInvalidatedCallback = onInvalidatedCallback;
+        _operationService = operationService;
         Nodes = selectedNodes.ToArray();
 
         SubscrubeToNodeEvents(Nodes);
@@ -280,7 +284,6 @@ public class NodesSelection : INodesSelection
         if (reparentMode == NodeReparentMode.None)
             return;
 
-        throw new NotImplementedException("It's general mode operation, not implemented yet");
         //var artboards = SceneService.GetCurrentSceneContainers<ArtboardNode>();
         //var scene = SceneService.GetCurrentScene();
 
@@ -384,7 +387,7 @@ public class NodesSelection : INodesSelection
             node.RemoveFromParent();
         }
 
-        Nodes = new SKNode[0];
+        Nodes = [];
         Invalidate();
     }
 
@@ -530,8 +533,7 @@ public class NodesSelection : INodesSelection
 
         InvalidateGroups();
         _editOperation.SetFinalData();
-        //_editOperation.PushToHistory();
-        throw new NotImplementedException("You must pass operation service to selection");
+        _operationService?.PushOperations(_editOperation);
     }
 
     private void InvalidateGroups()

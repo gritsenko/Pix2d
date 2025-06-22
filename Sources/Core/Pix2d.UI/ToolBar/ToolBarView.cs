@@ -162,8 +162,8 @@ public class ToolBarView : ComponentBase
         _toolsStackPanel.Children.Clear();
 
         var groupItems = new List<ToolItemGroupView>();
-
-        foreach (var tool in AppState.ToolsState.Tools.Where(x => x.Context == AppState.CurrentProject.CurrentContextType))
+        var tools = AppState.ToolsState.Tools.Where(x => x.Context == AppState.CurrentProject.CurrentContextType);
+        foreach (var tool in tools)
         {
             var toolItemView = new ToolItemView(tool);
             if (string.IsNullOrWhiteSpace(tool.GroupName))

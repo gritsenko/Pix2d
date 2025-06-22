@@ -9,6 +9,7 @@ using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Plugins.Drawing.PixelSelectors;
 using Pix2d.Primitives.Drawing;
 using Pix2d.Primitives.Edit;
+using Pix2d.Selection;
 using Pix2d.Services;
 using SkiaNodes;
 using SkiaNodes.Extensions;

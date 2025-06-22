@@ -5,6 +5,7 @@ using Pix2d.InteractiveNodes.Thumbs;
 using Pix2d.InteractiveNodes.Thumbs.Resize;
 using Pix2d.Operations;
 using Pix2d.Primitives.Edit;
+using Pix2d.Selection;
 using Pix2d.Services;
 using SkiaNodes;
 using SkiaNodes.Interactive;

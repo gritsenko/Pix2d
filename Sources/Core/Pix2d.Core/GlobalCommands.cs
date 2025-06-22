@@ -19,8 +19,8 @@ public class GlobalCommands : CommandsListBase
     public Pix2dCommand SwitchToFullMode
         => GetCommand(() =>
         {
-            AppState.CurrentProject.CurrentContextType = EditContextType.General;
             ServiceProvider.GetRequiredService<IEditService>().ApplyCurrentEdit();
+            AppState.CurrentProject.CurrentContextType = EditContextType.General;
         }, "SwitchToFullMode", new CommandShortcut(VirtualKeys.F12, KeyModifier.Ctrl), EditContextType.Sprite);
 
     public Pix2dCommand SwitchTo3dMode
