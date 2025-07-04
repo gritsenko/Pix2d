@@ -10,23 +10,48 @@ namespace Pix2d.UI;
 
 public class AppMenuView : LocalizedComponentBase
 {
-    protected Style AppMenuStyle => new(s => s.OfType<MenuItem>())
-    {
-        Setters =
+    protected override StyleGroup? BuildStyles() =>
+    [
+        new Style<MenuItem>(s => s.OfType<MenuItem>())
         {
-            new Setter(MenuItem.HeaderProperty, new Binding("Header")),
-            new Setter(MenuItem.ItemsSourceProperty, new Binding("MenuItems")),
-            new Setter(MenuItem.CommandProperty, new Binding("Command"))
-        }
-    };
+            Setters =
+            {
+                //new Setter(MenuItem.HeaderProperty, new Binding("Header")),
+                new Setter(MenuItem.ItemsSourceProperty, new Binding("MenuItems")),
+                new Setter(MenuItem.CommandProperty, new Binding("Command")),
+                new Setter(MenuItem.HeaderTemplateProperty, new FuncDataTemplate<AppMenuItemViewModel>((item, _) =>
+                    new FuncView<AppMenuItemViewModel>(item, vm =>
+                        new Grid()
+                            .Cols("*, Auto")
+                            .Children([
+                        new TextBlock()
+                            .Text(() => item.Header)
+                            .FontSize(14)
+                            .Foreground(Colors.White.ToBrush())
+                            .Padding(2, 0, 2, 0),
+
+                        new TextBlock()
+                            .Col(1)
+                            .IsVisible(()=>!string.IsNullOrWhiteSpace(item.Shortcut))
+                            .Text(() => item.Shortcut)
+                            .TextAlignment(TextAlignment.Right)
+                            .FontSize(14)
+                            .Foreground(Colors.LightGray.ToBrush())
+                            .MinWidth(100)
+                            .Padding(2, 0, 0, 0)
+
+                        ])
+                    )))
+            }
+        },
+    ];
 
     protected override object Build() =>
         new Menu()
             .Background(StaticResources.Brushes.MainBackgroundBrush)
             .Foreground(Colors.White.ToBrush())
             .Padding(4)
-            .ItemsSource(() => MenuItems)
-            .Styles(AppMenuStyle);
+            .ItemsSource(() => MenuItems);
 
 
     [Inject] private ICommandService CommandService { get; set; } = null!;
@@ -64,7 +89,7 @@ public class AppMenuView : LocalizedComponentBase
         {
             var topGroup = pix2dCommand.Groups[0];
 
-            if (!items.TryGetValue(topGroup, out var item)) 
+            if (!items.TryGetValue(topGroup, out var item))
                 item = AddItem(topGroup);
 
             if (pix2dCommand.Groups.Length < 2)
