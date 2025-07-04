@@ -26,7 +26,8 @@ public class AppMenuView : LocalizedComponentBase
                             .Children([
                         new TextBlock()
                             .Text(() => item.Header)
-                            .FontSize(14)
+                            .FontSize(12)
+                            .FontWeight(FontWeight.Regular)
                             .Foreground(Colors.White.ToBrush())
                             .Padding(2, 0, 2, 0),
 
