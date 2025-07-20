@@ -269,7 +269,8 @@ public class MainView : LocalizedComponentBase
         AddHandler(DragDrop.DragLeaveEvent, OnDragLeave);
 
         DialogService.SetPanelsContainer(_panelsContainer);
-        AppState.UiState.WatchFor(x => x.ShowRatePrompt, StateHasChanged);
+        AppState.UiState.WatchFor(x => x.ShowRatePrompt, StateHasChanged);  
+        //AppState.UiState.Watch(StateHasChanged);
         AppState.CurrentProject.WatchFor(x => x.CurrentContextType, StateHasChanged);
 
         StateHasChanged();
