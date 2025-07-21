@@ -20,8 +20,7 @@ public class ToolItemView : LocalizedComponentBase
             .Ref(out _button)
             .ToolTip(L(_toolState?.ToolTip)())
             .Classes("toolbar-button")
-            // todo: update BindClass in avalonia markup with expression binding
-            //.BindClass(IsSelected, "selected", bindingSource: this)
+            .BindClass(() => IsSelected, "selected")
             .OnClick(OnButtonClicked)
             .IsEnabled(() => !AppState.SpriteEditorState.IsPlayingAnimation || ToolState.EnabledDuringAnimation)
             .HorizontalContentAlignment(HorizontalAlignment.Stretch)

@@ -3,7 +3,6 @@ using Pix2d.Abstract;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Abstract.Selection;
-using Pix2d.Abstract.State;
 using Pix2d.Primitives;
 using SkiaNodes;
 using SkiaNodes.Extensions;

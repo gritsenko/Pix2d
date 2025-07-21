@@ -140,7 +140,6 @@ public class ExportView : ComponentBase
 
     [Inject] IPlatformStuffService PlatformStuffService { get; set; } = null!;
     [Inject] AppState AppState { get; set; } = null!;
-    [Inject] IMessenger Messenger { get; set; } = null!;
 
     [Inject] private ICommandService CommandService { get; set; } = null!;
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
@@ -194,12 +193,12 @@ public class ExportView : ComponentBase
     protected override void OnAfterInitialized()
     {
         SelectedExporterInfo = Exporters.First();
-        Messenger.Register<StateChangedMessage>(this, msg => msg.OnPropertyChanged<UiState>(x => x.ShowExportDialog,
+        AppState.UiState.WatchFor(x => x.ShowExportDialog,
             () =>
             {
                 if (AppState.UiState.ShowExportDialog)
                     UpdatePreview();
-            }));
+            });
 
         AppState.UiState.WatchFor(x => x.PreferredExportFormat,
             () => SelectExporter(AppState.UiState.PreferredExportFormat));

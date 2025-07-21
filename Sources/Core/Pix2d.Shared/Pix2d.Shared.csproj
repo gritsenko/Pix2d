@@ -27,4 +27,8 @@
 		<ProjectReference Include="..\Pix2d.Infrastructure\Pix2d.Infrastructure.csproj" />
 		<ProjectReference Include="..\SkiaNodes\SkiaNodes.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+		<Using Include="Pix2d.Abstract.State" />
+	</ItemGroup>
+
 </Project>

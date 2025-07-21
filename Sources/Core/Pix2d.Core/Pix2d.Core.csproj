@@ -95,4 +95,9 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Pix2d.Shared\Pix2d.Shared.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Pix2d.Abstract.State" />
+	</ItemGroup>
+
 </Project>

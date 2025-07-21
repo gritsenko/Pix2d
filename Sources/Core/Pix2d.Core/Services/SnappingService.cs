@@ -23,8 +23,8 @@ public class SnappingService : ISnappingService
         AppState = appState;
 
         Messenger.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
-        Messenger.Register<StateChangedMessage>(this, msg => msg.OnPropertyChanged<ViewPortState>(x => x.ShowGrid, UpdateContainersGrids));
-        Messenger.Register<StateChangedMessage>(this, msg => msg.OnPropertyChanged<ViewPortState>(x => x.GridSpacing, UpdateContainersGrids));
+        AppState.CurrentProject.ViewPortState.WatchFor(x => x.ShowGrid, UpdateContainersGrids);
+        AppState.CurrentProject.ViewPortState.WatchFor(x => x.GridSpacing, UpdateContainersGrids);
     }
 
     private void OnProjectLoaded(ProjectLoadedMessage obj)

@@ -1,11 +1,18 @@
-﻿using System;
-using System.Linq.Expressions;
-using Pix2d.Abstract.State;
+﻿using System.Linq.Expressions;
 
-namespace Pix2d.State;
+namespace Pix2d.Abstract.State;
 
-public static class StateBaseExtensions
+public static class StateExtensions
 {
+    public static void Watch<TState>(this TState state, Action onStatePropertyChanged) where TState : StateBase
+    {
+        state.AddGlobalWatcher(onStatePropertyChanged);
+    }
+    public static void Unwatch<TState>(this TState state, Action onStatePropertyChanged) where TState : StateBase
+    {
+        state.AddGlobalWatcher(onStatePropertyChanged);
+    }
+
     public static void WatchFor<TState, TValue>(this TState state, Expression<Func<TState, TValue>> propertyGetter,
         Action onStatePropertyChanged) where TState : StateBase
     {
@@ -22,4 +29,5 @@ public static class StateBaseExtensions
 
         state.RemoveWatcher(propName, onStatePropertyChanged);
     }
+
 }

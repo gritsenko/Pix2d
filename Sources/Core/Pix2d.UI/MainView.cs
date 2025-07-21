@@ -105,7 +105,7 @@ public class MainView : LocalizedComponentBase
                     .Margin(0, 0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin),
 
                 new RatePromptView().Col(1).Row(2)
-                    .IsVisible(() => AppState.UiState.ShowRatePrompt),
+                    .IsVisible(() => UiState.ShowRatePrompt),
 
                 new InfoPanelView().Col(0).Row(3).ColSpan(2)
                     .Margin(StaticResources.Measures.PanelMargin)
@@ -121,12 +121,12 @@ public class MainView : LocalizedComponentBase
                     .Margin(StaticResources.Measures.PanelMargin)
                     .Children(
                         new ActionsBarView()
-                            .IsVisible(UiState.ShowExtraTools, bindingSource: UiState)
+                            .IsVisible(() => UiState.ShowExtraTools)
                             .HorizontalAlignment(HorizontalAlignment.Center)
                             .VerticalAlignment(VerticalAlignment.Top),
 
                         //new ClipboardActionsView().Row(1)
-                        //    .IsVisible(UiState.ShowClipboardBar, bindingSource: UiState)
+                        //    .IsVisible(UiState.ShowClipboardBar)
                         //    .HorizontalAlignment(HorizontalAlignment.Center)
                         //    .VerticalAlignment(VerticalAlignment.Top),
 
@@ -151,10 +151,10 @@ public class MainView : LocalizedComponentBase
                     .Col(0).Row(4).Name("timeLine")
                     .ColSpan(3)
                     .VerticalAlignment(VerticalAlignment.Bottom)
-                    .BindClass(UiState.ShowTimeline, "shown", bindingSource: UiState),
+                    .BindClass(() => UiState.ShowTimeline, "shown"),
 
                 new LayersView().Col(2).Row(2)
-                    .IsVisible(UiState.ShowLayers, bindingSource: UiState)
+                    .IsVisible(() => UiState.ShowLayers)
                     .HorizontalAlignment(HorizontalAlignment.Right),
 
                 //new Border().Col(1).Row(2).Background(Colors.BurlyWood.ToBrush()),
@@ -167,14 +167,14 @@ public class MainView : LocalizedComponentBase
                             .Header(L("Color"))
                             .Canvas_Top(10)
                             .Canvas_Left(10)
-                            .IsOpen(UiState.ShowColorEditor, BindingMode.TwoWay, bindingSource: UiState)
+                            .IsOpen(() => UiState.ShowColorEditor, v => UiState.ShowColorEditor = v)
                             .CloseButtonCommand(ViewCommands.ToggleColorEditorCommand)
                             .ShowPinButton(true)
                             .Content(new ColorPickerView()),
 
                         new PopupView().Name("BrushSettings")
                             .Header(L("Brush"))
-                            .IsOpen(UiState.ShowBrushSettings, BindingMode.TwoWay, bindingSource: UiState)
+                            .IsOpen(() => UiState.ShowBrushSettings, v => UiState.ShowBrushSettings = v)
                             .CloseButtonCommand(ViewCommands.ToggleBrushSettingsCommand)
                             .Width(258)
                             .ShowPinButton(true)
@@ -182,7 +182,7 @@ public class MainView : LocalizedComponentBase
 
                         new PopupView().Name("ArtworkPreview")
                             .Header(L("Preview"))
-                            .IsOpen(UiState.ShowPreviewPanel, bindingSource: UiState)
+                            .IsOpen(() => UiState.ShowPreviewPanel)
                             .CloseButtonCommand(ViewCommands.TogglePreviewPanelCommand)
                             .Canvas_Top(40)
                             .Canvas_Right(100)
@@ -190,7 +190,7 @@ public class MainView : LocalizedComponentBase
 
                         new PopupView()
                             .Header(L("Image/Canvas size"))
-                            .IsOpen(UiState.ShowCanvasResizePanel, bindingSource: UiState)
+                            .IsOpen(() => UiState.ShowCanvasResizePanel)
                             .CloseButtonCommand(ViewCommands.ToggleCanvasSizePanelCommand)
                             .Width(220)
                             .Canvas_Top(100)
@@ -200,7 +200,7 @@ public class MainView : LocalizedComponentBase
 
                         new PopupView()
                             .Header(L("Layer options"))
-                            .IsOpen(UiState.ShowLayerProperties, bindingSource: UiState)
+                            .IsOpen(() => UiState.ShowLayerProperties)
                             .CloseButtonCommand(ViewCommands.HideLayerOptionsCommand)
                             .Width(300)
                             .Canvas_Top(40)
@@ -211,26 +211,26 @@ public class MainView : LocalizedComponentBase
 
                 new ToolGroupContainerView()
                     .Col(1).Row(2)
-                    .IsVisible(UiState.ShowToolGroup, bindingSource: UiState)
+                    .IsVisible(() => UiState.ShowToolGroup)
                     .Margin(left: 8, top: 120)
                     .MinWidth(40)
                     .MinHeight(40)
                     .HorizontalAlignment(HorizontalAlignment.Left)
                     .VerticalAlignment(VerticalAlignment.Top),
 
-                new ExportView().ColSpan(3).RowSpan(5).IsVisible(UiState.ShowExportDialog, bindingSource: UiState),
+                new ExportView().ColSpan(3).RowSpan(5).IsVisible(() => UiState.ShowExportDialog),
 
                 new Border().Name("MainMenuContainer") //MAIN MENU
                     .Col(0).ColSpan(3)
                     .Row(0).RowSpan(5)
-                    .IsVisible(UiState.ShowMenu, bindingSource: UiState)
+                    .IsVisible(() => UiState.ShowMenu)
                     .Child(
                         new MainMenuView()),
 
                 new Border().Name("LoadingOverlay")
                     .Col(0).ColSpan(3)
                     .Row(0).RowSpan(4)
-                    .IsVisible(AppState.IsBusy, bindingSource: AppState)
+                    .IsVisible(() => AppState.IsBusy)
                     .Background(StaticResources.Brushes.ModalOverlayBrush)
                     .Child(
                         new TextBlock()
@@ -270,8 +270,9 @@ public class MainView : LocalizedComponentBase
 
         DialogService.SetPanelsContainer(_panelsContainer);
         AppState.UiState.WatchFor(x => x.ShowRatePrompt, StateHasChanged);  
-        //AppState.UiState.Watch(StateHasChanged);
         AppState.CurrentProject.WatchFor(x => x.CurrentContextType, StateHasChanged);
+        AppState.WatchFor(x=>x.IsBusy, StateHasChanged);
+        AppState.UiState.Watch(StateHasChanged);
 
         StateHasChanged();
     }

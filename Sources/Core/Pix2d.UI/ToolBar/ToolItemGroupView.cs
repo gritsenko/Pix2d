@@ -12,7 +12,7 @@ public class ToolItemGroupView : LocalizedComponentBase
     protected override object Build() =>
         new Button()
             .Classes("toolbar-button")
-            .BindClass(IsSelected, "selected", bindingSource: this)
+            .BindClass(() => IsSelected, "selected")
             .OnClick(OnButtonClicked)
             .ClipToBounds(true)
             .CornerRadius(StaticResources.Measures.ToolItemCornerRadius)

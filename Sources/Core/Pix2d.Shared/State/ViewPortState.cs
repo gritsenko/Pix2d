@@ -1,5 +1,4 @@
-﻿using Pix2d.Abstract.State;
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace Pix2d.State;
 

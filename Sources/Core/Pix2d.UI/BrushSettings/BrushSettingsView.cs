@@ -7,10 +7,6 @@ namespace Pix2d.UI.BrushSettings;
 
 public class BrushSettingsView : LocalizedComponentBase
 {
-    [Inject] private AppState AppState { get; set; } = null!;
-
-    private SpriteEditorState DrawingState => AppState.SpriteEditorState;
-
     public BrushSettingsView()
     {
         DrawingState.WatchFor(x => x.CurrentBrushSettings, UpdateSliders);
@@ -46,8 +42,8 @@ public class BrushSettingsView : LocalizedComponentBase
                             .MinHeight(72)
                             .BorderThickness(0)
                             .Padding(0)
-                            .ItemsSource(DrawingState.BrushPresets, bindingSource: DrawingState)
-                            .SelectedItem(CurrentPixelBrushPreset, BindingMode.TwoWay, bindingSource: this)
+                            .ItemsSource(() => DrawingState.BrushPresets)
+                            .SelectedItem(() => CurrentPixelBrushPreset, v => CurrentPixelBrushPreset = (Primitives.Drawing.BrushSettings)v)
                             .ItemsPanel(StaticResources.Templates.WrapPanelTemplate)
                             .ItemTemplate((Primitives.Drawing.BrushSettings itemVm) =>
                                 new BrushItemView()
@@ -75,19 +71,23 @@ public class BrushSettingsView : LocalizedComponentBase
                             .Row(4),
 
                         new ToggleSwitch()
-                            .IsChecked(DrawingState.IsPixelPerfectDrawingModeEnabled, BindingMode.TwoWay, bindingSource: DrawingState)
+                            .IsChecked(() => DrawingState.IsPixelPerfectDrawingModeEnabled,  v => DrawingState.IsPixelPerfectDrawingModeEnabled = (bool)v!)
                             .Content(L("Pixel perfect mode"))
                             .Row(5)
                     ));
+    [Inject] private AppState AppState { get; set; } = null!;
 
-    public Pix2d.Primitives.Drawing.BrushSettings CurrentPixelBrushPreset
+    private SpriteEditorState DrawingState => AppState.SpriteEditorState;
+
+
+    public Pix2d.Primitives.Drawing.BrushSettings? CurrentPixelBrushPreset
     {
         get => DrawingState.CurrentPixelBrushPreset;
         set
         {
             DrawingState.CurrentPixelBrushPreset = value;
 
-            if (value != null)
+            if (value?.Brush != null)
             {
                 DrawingState.CurrentBrushSettings = value.Clone();
                 OnPropertyChanged();
@@ -137,6 +137,12 @@ public class BrushSettingsView : LocalizedComponentBase
             DrawingState.CurrentBrushSettings = brush;
             OnPropertyChanged();
         }
+    }
+
+    protected override void OnAfterInitialized()
+    {
+        DrawingState.WatchFor(x => x.BrushPresets, StateHasChanged);
+        DrawingState.WatchFor(x => x.IsPixelPerfectDrawingModeEnabled, StateHasChanged);
     }
 
     private void UpdateSliders()

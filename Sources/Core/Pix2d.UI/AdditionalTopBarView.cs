@@ -50,26 +50,17 @@ public class AdditionalTopBarView : LocalizedComponentBase
                             .Content("\xe900")
                     )
             );
-    [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private ISettingsService SettingsService { get; set; } = null!;
 
     protected override void OnAfterInitialized()
     {
-        Messenger.Register<StateChangedMessage>(this, msg =>
-        {
-            if (msg.PropertyName
-               is nameof(AppState.CurrentProject.ViewPortState.ShowGrid)
-               or nameof(AppState.UiState.ShowPreviewPanel)
-               or nameof(AppState.UiState.ShowLayers)
-               or nameof(AppState.CurrentProject.CurrentContextType)
-               )
-                StateHasChanged();
-
-            if (msg.PropertyName is nameof(AppState.UiState.ShowLayers))
-            {
-                SettingsService.Set(nameof(AppState.UiState.ShowLayers), AppState.UiState.ShowLayers);
-            }
+        AppState.CurrentProject.ViewPortState.WatchFor(x => x.ShowGrid, StateHasChanged);
+        AppState.CurrentProject.WatchFor(x => x.CurrentContextType, StateHasChanged);
+        AppState.UiState.WatchFor(x => x.ShowPreviewPanel, StateHasChanged);
+        AppState.UiState.WatchFor(x => x.ShowLayers, () => {
+            StateHasChanged();
+            SettingsService.Set(nameof(AppState.UiState.ShowLayers), AppState.UiState.ShowLayers);
         });
     }
 }

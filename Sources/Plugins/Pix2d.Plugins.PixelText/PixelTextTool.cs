@@ -3,6 +3,7 @@ using Pix2d.Abstract;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Services;
+using Pix2d.Abstract.State;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;

@@ -1,6 +1,4 @@
-﻿using Pix2d.Abstract.State;
-
-namespace Pix2d.State;
+﻿namespace Pix2d.State;
 
 public class ToolsState : StateBase
 {

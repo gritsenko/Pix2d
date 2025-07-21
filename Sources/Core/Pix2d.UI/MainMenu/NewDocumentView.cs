@@ -66,9 +66,10 @@ public class NewDocumentView : LocalizedComponentBase
         new FuncDataTemplate<T>((itemVm, ns) => new TextBlock().Text(func(itemVm)));
 
 
-    [Inject] private IProjectService ProjectService { get; set; }
-    [Inject] private IViewPortService ViewPortService { get; set; }
+    [Inject] private IProjectService ProjectService { get; set; } = null!;
+    [Inject] private IViewPortService ViewPortService { get; set; } = null!;
     [Inject] private ICommandService CommandService { get; set; } = null!;
+    [Inject] private AppState AppState { get; set; } = null!;
 
 
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
@@ -114,7 +115,7 @@ public class NewDocumentView : LocalizedComponentBase
 
     protected override void OnAfterInitialized()
     {
-        Messenger.Default.Register<StateChangedMessage>(this, msg => msg.OnPropertyChanged<UiState>(state => state.ShowMenu, Reset));
+        AppState.UiState.WatchFor(x => x.ShowMenu, Reset);
 
         Load();
     }
