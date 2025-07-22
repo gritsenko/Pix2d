@@ -85,9 +85,9 @@ public class ExportView : ComponentBase
                                             .Children(
                                                 new TextBlock().Text("Export type"),
                                                 new ComboBox()
-                                                    .ItemTemplate<ExporterInfo>(item => new TextBlock().Text(item.Name))
+                                                    .ItemTemplate<ExporterInfo>(item => new TextBlock().Text(item?.Name ?? ""))
                                                     .ItemsSource(Exporters)
-                                                    .SelectedItem(Bind(SelectedExporterInfo, BindingMode.TwoWay)),
+                                                    .SelectedItem(() => SelectedExporterInfo, v => SelectedExporterInfo = (ExporterInfo)v),
                                                 new ContentControl()
                                                     .Ref(out _exporterSettingsControl),
                                                 new SliderEx()
@@ -172,6 +172,7 @@ public class ExportView : ComponentBase
                 UpdateSettingsControl(_selectedExporterInfo);
                 UpdatePreview();
                 OnPropertyChanged();
+                StateHasChanged();
             }
         }
     }
