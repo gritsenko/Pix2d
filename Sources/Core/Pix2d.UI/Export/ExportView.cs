@@ -1,12 +1,8 @@
-﻿using System.Windows.Input;
-using Avalonia.Interactivity;
+﻿using Avalonia.Interactivity;
 using Avalonia.Styling;
-using Mvvm;
 using Pix2d.Abstract.Export;
-using Pix2d.Abstract.UI;
 using Pix2d.Common;
 using Pix2d.Infrastructure.Tasks;
-using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
@@ -14,6 +10,7 @@ using Pix2d.UI.Styles;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 using Pix2d.Command;
+using Pix2d.Plugins.PngFormat.Exporters;
 
 namespace Pix2d.UI.Export;
 
@@ -85,9 +82,11 @@ public class ExportView : ComponentBase
                                             .Children(
                                                 new TextBlock().Text("Export type"),
                                                 new ComboBox()
-                                                    .ItemTemplate<ExporterInfo>(item => new TextBlock().Text(item?.Name ?? ""))
+                                                    .ItemTemplate<ExporterInfo>(item =>
+                                                        new TextBlock().Text(item?.Name ?? ""))
                                                     .ItemsSource(Exporters)
-                                                    .SelectedItem(() => SelectedExporterInfo, v => SelectedExporterInfo = (ExporterInfo)v),
+                                                    .SelectedItem(() => SelectedExporterInfo,
+                                                        v => SelectedExporterInfo = (ExporterInfo)v),
                                                 new ContentControl()
                                                     .Ref(out _exporterSettingsControl),
                                                 new SliderEx()
@@ -95,7 +94,7 @@ public class ExportView : ComponentBase
                                                     .Units("x")
                                                     .Minimum(1)
                                                     .Maximum(20)
-                                                    .Value(Scale, BindingMode.TwoWay, bindingSource: this)
+                                                    .Value(() => Scale, v => Scale = (double)v!)
                                             )
                                     ),
                                 new Grid().ColSpan(2).Row(1)
@@ -131,8 +130,8 @@ public class ExportView : ComponentBase
                                             .Width(110)
                                             .Command(ViewCommands.HideExportDialogCommand)
                                     )
-                            //new ExportProWarningView()
-                            // .IsVisible(() => !AppState.IsPro)
+                                //new ExportProWarningView()
+                                // .IsVisible(() => !AppState.IsPro)
                             )
                     ));
 
@@ -177,19 +176,9 @@ public class ExportView : ComponentBase
         }
     }
 
-    private void UpdateSettingsControl(ExporterInfo exporterInfo)
-    {
-        //if (selectedExporter is SpritesheetImageExporter spritesheetImageExporter)
-        //    _exporterSettingsControl.Content = new SpritesheetExportSettingsView().Exporter(spritesheetImageExporter);
-        //else if (selectedExporter is SpritePngSequenceExporter pngSequenceExporter)
-        //    _exporterSettingsControl.Content = new SpritePngSequenceExporterSettingsView().Exporter(pngSequenceExporter);
-        //else
-        //    _exporterSettingsControl.Content = null;
-    }
+    private SKBitmapObservable Preview { get; } = new();
 
-    public SKBitmapObservable Preview { get; } = new();
-
-    public IReadOnlyList<ExporterInfo> Exporters => ExportService.RegisteredExporters;
+    private IReadOnlyList<ExporterInfo> Exporters => ExportService.RegisteredExporters;
 
     protected override void OnAfterInitialized()
     {
@@ -205,14 +194,25 @@ public class ExportView : ComponentBase
             () => SelectExporter(AppState.UiState.PreferredExportFormat));
     }
 
+    private void UpdateSettingsControl(ExporterInfo exporterInfo)
+    {
+        if (exporterInfo.ExporterType == typeof(SpritesheetImageExporter))
+            _exporterSettingsControl.Content = new SpritesheetExportSettingsView();
+        else if (exporterInfo.ExporterType == typeof(SpritePngSequenceExporter))
+            _exporterSettingsControl.Content = new SpritePngSequenceExporterSettingsView();
+        else
+            _exporterSettingsControl.Content = null;
+    }
+
     private async void OnExportCommandExecute()
     {
         try
         {
             using var uiBlocker = new UiBlocker("Exporting...");
-            Logger.LogEventWithParams("Exporting image", new Dictionary<string, string?> {
-                        { "Exporter", SelectedExporterInfo.Name}
-                    });
+            Logger.LogEventWithParams("Exporting image", new Dictionary<string, string?>
+            {
+                { "Exporter", SelectedExporterInfo.Name }
+            });
 
             var nodesToExport = ExportService.GetNodesToExport(Scale);
             await ExportService.ExportNodesAsync(nodesToExport, Scale, SelectedExporterInfo);

@@ -16,11 +16,11 @@ namespace Pix2d.Views.Text;
 
 public class TextBarView : ComponentBase
 {
-
     protected override object Build() =>
         new StackPanel()
             .Orientation(Orientation.Horizontal)
-            .Children(new Control[] {
+            .Children(new Control[]
+            {
                 new Button() //ENTER TEXT FLYOUT
                     .With(ButtonStyle)
                     .With(b =>
@@ -31,12 +31,12 @@ public class TextBarView : ComponentBase
 
                         flyout.Content = new Grid()
                             .Children(
-                            new TextBox()
-                                .Watermark("Enter text")
-                                .Text(Bind(Text))
-                                .VerticalAlignment(VerticalAlignment.Center)
-                                .AcceptsReturn(false)
-                                .MinWidth(150)
+                                new TextBox()
+                                    .Watermark("Enter text")
+                                    .Text(() => Text, v => Text = (string)v!)
+                                    .VerticalAlignment(VerticalAlignment.Center)
+                                    .AcceptsReturn(false)
+                                    .MinWidth(150)
                             );
                     })
                     .Content("\xF741"),
@@ -52,7 +52,7 @@ public class TextBarView : ComponentBase
                                 .Children(new Control[]
                                     {
                                         new TextBlock()
-                                            .Margin(8,0)
+                                            .Margin(8, 0)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .Text("Font"),
 
@@ -60,12 +60,12 @@ public class TextBarView : ComponentBase
                                             .Width(180)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .ItemsSource(Fonts)
-                                            .SelectedItem(Bind(SelectedFont, BindingMode.TwoWay))
-                                            .ItemTemplate(
-                                                (FontItemViewModel item) => new TextBlock().Width(150).Text(item?.Name ?? "")),
+                                            .SelectedItem(() => SelectedFont, v => SelectedFont = (FontItemViewModel?)v)
+                                            .ItemTemplate((FontItemViewModel item) =>
+                                                new TextBlock().Width(150).Text(item?.Name ?? "")),
 
                                         new TextBlock()
-                                            .Margin(8,0)
+                                            .Margin(8, 0)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .Text("Font size"),
 
@@ -73,30 +73,29 @@ public class TextBarView : ComponentBase
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
                                             .Increment(1)
-                                            .Value(FontSize, BindingMode.TwoWay),
+                                            .Value(() => FontSize, v => FontSize = (int)v!),
 
                                         new ToggleButton()
                                             .With(ButtonStyle)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .Content("\xE8DD")
-                                            .IsChecked(IsBold, BindingMode.TwoWay),
+                                            .IsChecked(() => IsBold, v => IsBold = (bool)v!),
 
                                         new ToggleButton()
                                             .With(ButtonStyle)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .Content("\xE8DB")
-                                            .IsChecked(IsItalic, BindingMode.TwoWay),
+                                            .IsChecked(() => IsItalic, v => IsItalic = (bool)v!),
 
                                         new ToggleButton()
                                             .With(ButtonStyle)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .Content("\xE8D2")
-                                            .IsChecked(IsAliased, BindingMode.TwoWay),
+                                            .IsChecked(() => IsAliased, v => IsAliased = (bool)v!),
                                     }
                                 )
                             );
                         b.Click += (s, e) => flyout.ShowAt(b);
-
                     })
                     .Content("\xE8D2"),
 
@@ -127,10 +126,14 @@ public class TextBarView : ComponentBase
             b.ToolTip(pc.Tooltip);
         }
     }
+
     [Inject] public IFontService FontService { get; set; } = null!;
     [Inject] public AppState AppState { get; set; } = null!;
 
-    private PixelTextTool? _pixelTextTool = null!;
+    private PixelTextTool _pixelTextTool => AppState.ToolsState.Tools
+        .FirstOrDefault(x => x.ToolType == typeof(PixelTextTool))
+        .ToolInstance as PixelTextTool;
+
     public string Text
     {
         get => _pixelTextTool?.Text ?? "";
@@ -164,7 +167,8 @@ public class TextBarView : ComponentBase
 
     public FontItemViewModel? SelectedFont
     {
-        get => Fonts.FirstOrDefault(x => x.Name.Equals(_pixelTextTool?.SelectedFont, StringComparison.InvariantCultureIgnoreCase));
+        get => Fonts.FirstOrDefault(x =>
+            x.Name.Equals(_pixelTextTool?.SelectedFont, StringComparison.InvariantCultureIgnoreCase));
         set
         {
             _pixelTextTool.SelectedFont = value?.Name ?? "";
@@ -193,13 +197,12 @@ public class TextBarView : ComponentBase
 
     public ObservableCollection<FontItemViewModel> Fonts { get; set; } = new();
 
-    protected override async void OnAfterInitialized()
+    protected override void OnAfterInitialized()
     {
-        _pixelTextTool = AppState.ToolsState.Tools.FirstOrDefault(x => x.ToolType == typeof(PixelTextTool)).ToolInstance as PixelTextTool;
-        await LoadFonts();
+        LoadFonts();
     }
 
-    private async Task LoadFonts()
+    private async void LoadFonts()
     {
         var fonts = await FontService.GetAvailableFontNamesAsync();
         foreach (string font in fonts)
@@ -223,13 +226,8 @@ public class TextBarView : ComponentBase
         }
     }
 
-    public class FontItemViewModel
+    public class FontItemViewModel(string fontName)
     {
-        public FontItemViewModel(string fontName)
-        {
-            Name = fontName;
-        }
-
-        public string Name { get; set; }
+        public string Name { get; set; } = fontName;
     }
 }

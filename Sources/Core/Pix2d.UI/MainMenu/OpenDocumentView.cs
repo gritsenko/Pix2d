@@ -57,7 +57,7 @@ public class OpenDocumentView : LocalizedComponentBase
                             .Text(L("Recent projects")),
                         
                         new ItemsControl()
-                            .ItemsSource(Bind(RecentProjects))
+                            .ItemsSource(() => RecentProjects)
                             .ItemsPanel(new WrapPanel())
                             .ItemTemplate(new FuncDataTemplate<PreloadedProject>((vm, _) => new ProjectItem(vm)))
 

@@ -6,7 +6,6 @@ namespace Pix2d.UI;
 
 public partial class RatePromptView : ComponentBase
 {
-
     protected override object Build() =>
         new StackPanel()
             .HorizontalAlignment(HorizontalAlignment.Center)
@@ -19,18 +18,16 @@ public partial class RatePromptView : ComponentBase
                     .MaxWidth(220)
                     .FontSize(12)
                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
-                    .Text(()=>RatePromptMessage)
+                    .Text(() => RatePromptMessage)
                     .Margin(16, 4, 16, 4)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .TextWrapping(TextWrapping.Wrap),
-
                 new Button()
                     .FontSize(16)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .Command(WindowCommands.RateAppCommand)
-                    .Content(Bind(RatePromptButtonText))
+                    .Content(() => RatePromptButtonText)
                     .Background("#FFDB7B06".ToColor().ToBrush()),
-                
                 new Button()
                     .FontSize(14)
                     .VerticalAlignment(VerticalAlignment.Center)
@@ -43,6 +40,6 @@ public partial class RatePromptView : ComponentBase
     [Inject] private IReviewService? ReviewService { get; set; } = null!;
     [Inject] private ICommandService CommandService { get; set; } = null!;
     private WindowCommands WindowCommands => CommandService.GetCommandList<WindowCommands>()!;
-    public string? RatePromptMessage => ReviewService?.GetPromptMessage() ?? "Rate please";
-    public string RatePromptButtonText => ReviewService?.GetPromptButtonText() ?? "Yes";
+    private string RatePromptMessage => ReviewService?.GetPromptMessage() ?? "Rate please";
+    private string RatePromptButtonText => ReviewService?.GetPromptButtonText() ?? "Yes";
 }

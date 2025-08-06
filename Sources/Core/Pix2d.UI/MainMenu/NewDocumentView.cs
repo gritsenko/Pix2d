@@ -33,16 +33,16 @@ public class NewDocumentView : LocalizedComponentBase
                             .DataTemplates(
                                 GetTextTemplate<SizePreset>(x => x?.Title ?? "")
                             )
-                            .Margin(0, 8, 0, 0)
+                            .Margin(top: 8)
                             .MaxWidth(300)
                             .ItemsSource(AvailablePresets)
-                            .SelectedItem(Bind(SelectedPreset, BindingMode.TwoWay)),
+                            .SelectedItem(() => SelectedPreset, v => SelectedPreset = (SizePreset)v),
 
                         new SliderEx().Label(L("Width")).Width(200).Units("px").Minimum(1).Maximum(1024)
-                            .Value(ArtworkWidth, BindingMode.TwoWay, bindingSource: this),
+                            .Value(() => ArtworkWidth, v => ArtworkWidth = (int)v),
 
                         new SliderEx().Label(L("Height")).Width(200).Units("px").Minimum(1).Maximum(1024)
-                            .Value(ArtworkHeight, BindingMode.TwoWay, bindingSource: this),
+                            .Value(()=>ArtworkHeight, v=> ArtworkHeight = (int)v),
 
                         new Button()
                             .Classes("btn")

@@ -11,10 +11,9 @@ public class SpritePngSequenceExporterSettingsView : ComponentBase, IExportSetti
             .Children(
                 new TextBlock()
                     .Text("File Name Prefix"),
-
                 new TextBox()
                     .Watermark("Frame_")
-                    .Text(Bind(Title, BindingMode.TwoWay))
+                    .Text(() => Title, v => Title = v!)
             ); // exporter options
 
     public string Title

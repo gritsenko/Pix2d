@@ -5,6 +5,7 @@ namespace Pix2d.UI.MainMenu;
 public class MainMenuItemView : ComponentBase
 {
     public const string SelectedClass = "selected";
+
     protected override object Build() =>
         new Button()
             .FontSize(16)
@@ -17,7 +18,7 @@ public class MainMenuItemView : ComponentBase
                             .VerticalAlignment(VerticalAlignment.Center)
                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
                             //.IsVisible(!itemVm.IsSplitter)
-                            .Text(Bind(Icon)),
+                            .Text(() => Icon),
                         new TextBlock().Col(1)
                             .VerticalAlignment(VerticalAlignment.Center)
                             .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
@@ -26,8 +27,7 @@ public class MainMenuItemView : ComponentBase
             )
             .Padding(8, 8, 8, 8)
             .HorizontalContentAlignment(HorizontalAlignment.Left)
-            .OnClick(_ => { OnClicked(this); })
-            .CommandParameter(this);
+            .OnClick(_ => { OnClick(this); });
 
     private bool _isSelected;
     public event EventHandler<MainMenuItemView>? Clicked;
@@ -49,6 +49,7 @@ public class MainMenuItemView : ComponentBase
             {
                 this.Classes.Remove(SelectedClass);
             }
+
             _isSelected = value;
         }
     }
@@ -56,7 +57,7 @@ public class MainMenuItemView : ComponentBase
     public string Header { get; set; } = "null!";
     public string Icon { get; set; } = "";
 
-    protected virtual void OnClicked(MainMenuItemView e)
+    private void OnClick(MainMenuItemView e)
     {
         Clicked?.Invoke(this, e);
     }

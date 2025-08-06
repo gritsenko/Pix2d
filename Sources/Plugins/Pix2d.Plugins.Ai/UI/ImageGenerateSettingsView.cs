@@ -14,7 +14,7 @@ public class ImageGenerateSettingsView : LocalizedComponentBase
             .Children(
                 new TextBox()
                     .Watermark(L("Enter text"))
-                    .Text(Bind(Text))
+                    .Text(()=>Text, v => Text = (string)v!)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .AcceptsReturn(false)
                     .MinWidth(150),

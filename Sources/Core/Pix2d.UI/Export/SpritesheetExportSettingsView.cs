@@ -18,7 +18,7 @@ public class SpritesheetExportSettingsView : ComponentBase, IExportSettingsViewB
                     .Minimum(1)
                     .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
                     .Increment(1)
-                    .Value(Bind(MaxColumns, BindingMode.TwoWay))
+                    .Value(()=>MaxColumns, v => MaxColumns = (int)v!)
             ); // exporter options
 
     public int MaxColumns
