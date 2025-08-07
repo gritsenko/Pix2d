@@ -52,6 +52,20 @@ public class ExportService(
         }
     }
 
+    public async Task ExportNodesAsync(IEnumerable<SKNode> nodesToRender, double scale, IExporter exporter)
+    {
+        try
+        {
+            await exporter.ExportAsync(nodesToRender, scale);
+            Messenger.Send<ProjectExportedMessage>(null!);
+        } 
+        catch (Exception e)
+        {
+            dialogService.Alert("There's nothing to Export!", "Export");
+            Logger.Log(e.Message);
+        }
+    }
+
     public async Task ExportNodesToFileAsync(IFileContentSource fileContentSource, IEnumerable<SKNode> nodesToRender,
         double scale)
     {

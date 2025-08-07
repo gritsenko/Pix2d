@@ -25,6 +25,15 @@ public interface IExportService
     Task ExportNodesAsync(IEnumerable<SKNode> nodesToRender, double scale, ExporterInfo exporterInfo);
 
     /// <summary>
+    /// Exports a collection of SKNode objects using a pre-configured exporter instance.
+    /// </summary>
+    /// <param name="nodesToRender">The collection of nodes to be rendered for export.</param>
+    /// <param name="scale">The scaling factor to apply during rendering for export.</param>
+    /// <param name="exporter">The pre-configured exporter instance to use.</param>
+    /// <returns>A Task representing the asynchronous export operation.</returns>
+    Task ExportNodesAsync(IEnumerable<SKNode> nodesToRender, double scale, IExporter exporter);
+
+    /// <summary>
     /// Exports a collection of SKNode objects to a specific file path using a default or inferred exporter.
     /// </summary>
     /// <param name="fileContentSource">The target file content source to write the exported data to.</param>

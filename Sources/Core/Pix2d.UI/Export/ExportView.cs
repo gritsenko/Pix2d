@@ -147,6 +147,7 @@ public class ExportView : ComponentBase
 
     private double _scale = 1;
     private ContentControl _exporterSettingsControl;
+    private IExporter? _configuredExporter;
 
     public double Scale
     {
@@ -196,12 +197,26 @@ public class ExportView : ComponentBase
 
     private void UpdateSettingsControl(ExporterInfo exporterInfo)
     {
+        // Create a temporary exporter instance for configuration
+        _configuredExporter = exporterInfo.CreateInstanceFunc();
+        
         if (exporterInfo.ExporterType == typeof(SpritesheetImageExporter))
-            _exporterSettingsControl.Content = new SpritesheetExportSettingsView();
+        {
+            var settingsView = new SpritesheetExportSettingsView();
+            settingsView.Exporter = (SpritesheetImageExporter)_configuredExporter;
+            _exporterSettingsControl.Content = settingsView;
+        }
         else if (exporterInfo.ExporterType == typeof(SpritePngSequenceExporter))
-            _exporterSettingsControl.Content = new SpritePngSequenceExporterSettingsView();
+        {
+            var settingsView = new SpritePngSequenceExporterSettingsView();
+            settingsView.Exporter = (SpritePngSequenceExporter)_configuredExporter;
+            _exporterSettingsControl.Content = settingsView;
+        }
         else
+        {
+            _configuredExporter = null;
             _exporterSettingsControl.Content = null;
+        }
     }
 
     private async void OnExportCommandExecute()
@@ -215,7 +230,17 @@ public class ExportView : ComponentBase
             });
 
             var nodesToExport = ExportService.GetNodesToExport(Scale);
-            await ExportService.ExportNodesAsync(nodesToExport, Scale, SelectedExporterInfo);
+            
+            // Use configured exporter if available, otherwise use the standard approach
+            if (_configuredExporter != null)
+            {
+                await ExportService.ExportNodesAsync(nodesToExport, Scale, _configuredExporter);
+            }
+            else
+            {
+                await ExportService.ExportNodesAsync(nodesToExport, Scale, SelectedExporterInfo);
+            }
+            
             ViewCommands.HideExportDialogCommand.Execute();
         }
         catch (Exception ex)
