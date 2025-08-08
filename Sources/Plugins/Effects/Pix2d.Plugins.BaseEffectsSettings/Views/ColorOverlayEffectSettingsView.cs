@@ -13,13 +13,13 @@ public class ColorOverlayEffectSettingsView(ColorOverlayEffect e, Action onEffec
                 .Children(
                     new TextBlock().Col(0).Text("Color"),
                     new ColorPickerButton().Col(1)
-                        .Color(() => effect.Color, v => UpdateEffect(() => effect.Color = v))
+                        .Color(() => effect?.Color ?? default, v => UpdateEffect(() => { if (effect != null) effect.Color = v; }))
                 ),
             new SliderEx()
                 .Minimum(0)
                 .Maximum(255)
                 .Label("Opacity")
                 .Units("%")
-                .Value(() => effect.Opacity, v => UpdateEffect(() => effect.Opacity = (float)v))
+                .Value(() => effect?.Opacity ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Opacity = (float)v; }))
         );
 }

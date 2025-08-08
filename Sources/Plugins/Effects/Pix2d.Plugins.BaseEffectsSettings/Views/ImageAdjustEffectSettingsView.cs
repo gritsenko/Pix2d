@@ -14,16 +14,16 @@ public class ImageAdjustEffectSettingsView(ImageAdjustEffect e, Action onEffectU
             new Slider()
                 .Minimum(-180)
                 .Maximum(180)
-                .Value(() => effect.Hue, v => UpdateEffect(() => effect.Hue = (float)v)),
+                .Value(() => effect?.Hue ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Hue = (float)v; })),
             new TextBlock().Text("Brightness"),
             new Slider()
                 .Minimum(-100)
                 .Maximum(100)
-                .Value(() => effect.Lightness, v => UpdateEffect(() => effect.Lightness = (float)v)),
+                .Value(() => effect?.Lightness ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Lightness = (float)v; })),
             new TextBlock().Text("Saturation"),
             new Slider()
                 .Minimum(-100)
                 .Maximum(100)
-                .Value(() => effect.Saturation, v => UpdateEffect(() => effect.Saturation = (float)v))
+                .Value(() => effect?.Saturation ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Saturation = (float)v; }))
         );
 }

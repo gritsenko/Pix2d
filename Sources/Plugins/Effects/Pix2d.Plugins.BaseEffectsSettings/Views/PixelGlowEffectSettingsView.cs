@@ -15,7 +15,7 @@ public class PixelGlowEffectSettingsView(PixelGlowEffect e, Action onEffectUpdat
                 .Minimum(-10)
                 .SmallChange(1)
                 .LargeChange(3)
-                .Value(() => effect.Radius, v => UpdateEffect(() => effect.Radius = (float)v)),
+                .Value(() => effect?.Radius ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Radius = (float)v; })),
 
             new TextBlock().Text("Blur amount"),
             new Slider()
@@ -23,7 +23,7 @@ public class PixelGlowEffectSettingsView(PixelGlowEffect e, Action onEffectUpdat
                 .Minimum(0)
                 .SmallChange(0.1)
                 .LargeChange(3)
-                .Value(() => effect.Blur, v => UpdateEffect(() => effect.Blur = (float)v)),
+                .Value(() => effect?.Blur ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Blur = (float)v; })),
 
             new TextBlock().Text("Opacity"),
             new Slider()
@@ -31,6 +31,6 @@ public class PixelGlowEffectSettingsView(PixelGlowEffect e, Action onEffectUpdat
                 .Minimum(0)
                 .SmallChange(1)
                 .LargeChange(5)
-                .Value(() => effect.Opacity, v => UpdateEffect(() => effect.Opacity = (int)v))
+                .Value(() => effect?.Opacity ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Opacity = (int)v; }))
         );
 }

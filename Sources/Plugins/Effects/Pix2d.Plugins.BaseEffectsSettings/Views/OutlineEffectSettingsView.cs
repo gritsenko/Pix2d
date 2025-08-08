@@ -13,13 +13,13 @@ public class OutlineEffectSettingsView(OutlineEffect e, Action onEffectUpdated) 
                 .Children(
                     new TextBlock().Col(0).Text("Color"),
                     new ColorPickerButton().Col(1)
-                        .Color(() => effect.Color, v => UpdateEffect(()=> effect.Color = v))
+                        .Color(() => effect?.Color ?? default, v => UpdateEffect(() => { if (effect != null) effect.Color = v; }))
                 ),
 
             new SliderEx()
                 .Minimum(1)
                 .Maximum(20)
                 .Label(L("Thickness"))
-                .Value(() => effect.Radius, v => UpdateEffect(() => effect.Radius = (float)v))
+                .Value(() => effect?.Radius ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Radius = (float)v; }))
         );
 }

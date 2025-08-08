@@ -32,8 +32,8 @@ public class PixelTextTool(
 {
     private TextNode _textNode = new TextNode();
     private SKPoint _selectionPosition;
-    private string _text;
-    private string _selectedFont;
+    private string _text = string.Empty;
+    private string _selectedFont = string.Empty;
     private float _fontSize = 14;
     private bool _isBold;
     private bool _isItalic;
@@ -118,7 +118,7 @@ public class PixelTextTool(
         messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
     }
 
-    private void DrawingLayer_SelectionRemoved(object sender, EventArgs e)
+    private void DrawingLayer_SelectionRemoved(object? sender, EventArgs e)
     {
         _text = "";
     }
@@ -137,7 +137,7 @@ public class PixelTextTool(
         }
     }
 
-    private void DrawingLayerOnSelectionTransformed(object sender, EventArgs e)
+    private void DrawingLayerOnSelectionTransformed(object? sender, EventArgs e)
     {
         _selectionPosition = DrawingLayer.GetSelectionLayer().Position;
     }
@@ -183,7 +183,7 @@ public class PixelTextTool(
         viewPortRefreshService.Refresh();
     }
 
-    private SKBitmap BuildTextBitmap()
+    private SKBitmap? BuildTextBitmap()
     {
         var color = appState.SpriteEditorState.CurrentColor;
 
@@ -211,7 +211,7 @@ public class PixelTextTool(
         return bitmap;
     }
 
-    private void DrawingLayerOnPixelsBeforeSelected(object sender, EventArgs e)
+    private void DrawingLayerOnPixelsBeforeSelected(object? sender, EventArgs e)
     {
     }
 

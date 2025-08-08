@@ -15,6 +15,6 @@ public class PixelBlurEffectSettingsView(PixelBlurEffect e, Action onEffectUpdat
                 .Minimum(0)
                 .SmallChange(0.1)
                 .LargeChange(3)
-                .Value(() => effect.Blur, v => UpdateEffect(()=> effect.Blur = (float)v))
+                .Value(() => effect?.Blur ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Blur = (float)v; }))
         );
 }

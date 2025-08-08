@@ -7,9 +7,9 @@ namespace Pix2d.Services;
 
 public class SnappingService : ISnappingService
 {
-    public ISceneService SceneService { get; }
-    public IMessenger Messenger { get; }
-    public AppState AppState { get; }
+    private ISceneService SceneService { get; }
+    private IMessenger Messenger { get; }
+    private AppState AppState { get; }
     public bool IsAspectLocked => ForceAspectLock || SKInput.Current.GetModifiers().HasFlag(KeyModifier.Shift);
 
     public bool ForceAspectLock { get; set; }
