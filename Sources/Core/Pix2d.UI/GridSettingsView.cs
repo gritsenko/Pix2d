@@ -22,7 +22,7 @@ public class GridSettingsView : LocalizedComponentBase
                             .Cols("*,*,*")
                             .Children(
                                 new NumericUpDown()
-                                    .Value(GridCellSizeWidth, BindingMode.TwoWay, bindingSource: this),
+                                    .Value(() => GridCellSizeWidth, v => GridCellSizeWidth = (int)v!),
 
                                 new TextBlock().Col(1)
                                     .VerticalAlignment(VerticalAlignment.Center)
@@ -30,14 +30,14 @@ public class GridSettingsView : LocalizedComponentBase
                                     .Text("✕"),
 
                                 new NumericUpDown().Col(2)
-                                    .Value(GridCellSizeHeight, BindingMode.TwoWay, bindingSource: this)
+                                    .Value(() => GridCellSizeHeight, v => GridCellSizeHeight = (int)v!)
                             ),
                         new TextBlock()
                             .Margin(0, 8, 0, 0)
                             .Text(L("Show grid")),
 
                         new ToggleSwitch().Margin(0, 8, 0, 0)
-                            .IsChecked(ShowGrid, BindingMode.TwoWay, bindingSource: this)
+                            .IsChecked(() => ShowGrid, v => ShowGrid = (bool)v!)
                     ) //stack panel childern
                 );
 

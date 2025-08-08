@@ -13,7 +13,10 @@ public class SnappingService : ISnappingService
     public bool IsAspectLocked => ForceAspectLock || SKInput.Current.GetModifiers().HasFlag(KeyModifier.Shift);
 
     public bool ForceAspectLock { get; set; }
-    public bool DrawFromCenterLocked => ForceDrawFromCenterAspectLock || SKInput.Current.GetModifiers().HasFlag(KeyModifier.Ctrl);
+
+    public bool DrawFromCenterLocked =>
+        ForceDrawFromCenterAspectLock || SKInput.Current.GetModifiers().HasFlag(KeyModifier.Ctrl);
+
     public bool ForceDrawFromCenterAspectLock { get; set; }
 
     public SnappingService(ISceneService sceneService, IMessenger messenger, AppState appState)
@@ -34,7 +37,9 @@ public class SnappingService : ISnappingService
 
     private void UpdateContainersGrids()
     {
-        var containerBaseNodes = SceneService.GetCurrentSceneContainers<DrawingContainerBaseNode>().ToArray();
+        var containerBaseNodes =
+            SceneService.GetCurrentSceneContainers<DrawingContainerBaseNode>()?.ToArray() ??
+            [];
 
         foreach (var containerBaseNode in containerBaseNodes)
         {
