@@ -1,7 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿#nullable enable
+using System.Diagnostics.CodeAnalysis;
 using Avalonia.LogicalTree;
 
-namespace Pix2d.UI.Shared;
+namespace Pix2d.UI;
 
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties |
                             DynamicallyAccessedMemberTypes.NonPublicProperties |

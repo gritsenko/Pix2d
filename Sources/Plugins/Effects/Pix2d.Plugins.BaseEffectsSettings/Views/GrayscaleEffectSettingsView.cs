@@ -2,7 +2,7 @@
 using Avalonia.Markup.Declarative;
 using Pix2d.Abstract.Services;
 using Pix2d.Effects;
-using Pix2d.UI.Shared;
+using Pix2d.UI;
 
 namespace Pix2d.Plugins.BaseEffects.Views;
 

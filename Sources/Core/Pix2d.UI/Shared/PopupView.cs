@@ -171,8 +171,8 @@ public class PopupView : ComponentBase
                                     .Width(44)
                                     .Height(44)
                                     .IsVisible(@ShowPinButtonProperty, BindingMode.OneWay)
-                                    .IsChecked(IsPinned, BindingMode.TwoWay, bindingSource: this)
-                                    .Content(IsPinned, BindingMode.OneWay, bindingSource: this)
+                                    .IsChecked(() => IsPinned, v => IsPinned = v ?? false)
+                                    .Content(() => IsPinned)
                                     .ContentTemplate(new FuncDataTemplate<bool>((v, _) =>
                                         new TextBlock()
                                             .FontFamily(StaticResources.Fonts.IconFontSegoe)

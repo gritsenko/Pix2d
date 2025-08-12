@@ -55,19 +55,19 @@ public class BrushSettingsView : LocalizedComponentBase
                             .Label(L("Size"))
                             .Units("px")
                             .Minimum(1)
-                            .Value(BrushScale, BindingMode.TwoWay, bindingSource: this)
+                            .Value(() => BrushScale, v => BrushScale = (float)v)
                             .Row(2),
 
                         new SliderEx()
                             .Label(L("Opacity"))
                             .Units("%")
-                            .Value(BrushOpacity, BindingMode.TwoWay, bindingSource: this)
+                            .Value(() => BrushOpacity, v => BrushOpacity = (float)v)
                             .Row(3),
 
                         new SliderEx()
                             .Label(L("Spacing"))
                             .Units("px")
-                            .Value(BrushSpacing, BindingMode.TwoWay, bindingSource: this)
+                            .Value(() => BrushSpacing, v=> BrushSpacing = (float)v)
                             .Row(4),
 
                         new ToggleSwitch()

@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace Pix2d.UI.Shared;
 
-public class ColorPickerButton : ViewBase
+public class ColorPickerButton : ComponentBase
 {
     public static readonly DirectProperty<ColorPickerButton, SKColor> ColorProperty
         = AvaloniaProperty.RegisterDirect<ColorPickerButton, SKColor>(nameof(Color), o => o.Color, (o, v) => o.Color = v);
@@ -18,7 +18,7 @@ public class ColorPickerButton : ViewBase
         new Button()
             .Width(30)
             .Height(20)
-            .Background(Color, new FuncValueConverter<SKColor, IBrush>(v => v.ToBrush()), BindingMode.OneWay, this)
+            .Background(() => Color.ToBrush())
             .BorderThickness(1)
             .BorderBrush(Brushes.Gray)
             .Flyout(
@@ -26,7 +26,7 @@ public class ColorPickerButton : ViewBase
                     .Content(
                         new Pix2dColorPicker().Row(1)
                             .Margin(10)
-                            .Color(Color, BindingMode.TwoWay, bindingSource: this)
+                            .Color(() => Color, v => Color = v)
                             .Margin(0, 8)
                             .Width(200)
                             .Height(140)

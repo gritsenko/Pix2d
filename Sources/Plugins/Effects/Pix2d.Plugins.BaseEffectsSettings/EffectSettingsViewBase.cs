@@ -1,5 +1,5 @@
 ﻿using Pix2d.Abstract.Services;
-using Pix2d.UI.Shared;
+using Pix2d.UI;
 using SkiaNodes;
 
 namespace Pix2d.Plugins.BaseEffects;

@@ -1,5 +1,4 @@
-﻿using Avalonia.Data;
-using Pix2d.Plugins.Drawing.Tools;
+﻿using Pix2d.Plugins.Drawing.Tools;
 
 namespace Pix2d.Plugins.Drawing.UI;
 
@@ -12,7 +11,7 @@ public class FillToolSettingsView: ComponentBase
                 new ToggleSwitch()
                     .OnContent("Erase mode: On")
                     .OffContent("Erase mode: Off")
-                    .IsChecked(EraseMode, BindingMode.TwoWay)
+                    .IsChecked(() => EraseMode, v => EraseMode = v ?? false)
             );
 
     public bool EraseMode

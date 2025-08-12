@@ -1,7 +1,7 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Markup.Declarative;
-using Pix2d.UI.Shared;
+using Pix2d.UI;
 
 namespace Pix2d.Plugins.Ai.UI;
 
