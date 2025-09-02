@@ -48,12 +48,12 @@
 		<AndroidResource Include="res\xml\file_associations.xml" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia.Android" Version="11.3.3" />
-		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.3" />
+		<PackageReference Include="Avalonia.Android" Version="11.3.4" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.4" />
 		<PackageReference Include="Microsoft.Maui.Essentials" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
-		<PackageReference Update="Microsoft.Maui.Essentials" Version="9.0.90" />
-		<PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.16" />
+		<PackageReference Update="Microsoft.Maui.Essentials" Version="9.0.100" />
+		<PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.17" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\Core\Pix2d.Core\Pix2d.Core.csproj" />
