@@ -106,26 +106,23 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
     private void ApplyChanges(IDrawingTarget target, List<DiffBlock> changes, bool reverse = false)
     {
         var data = target.GetData();
-        var pixels = MemoryMarshal.Cast<byte, int>(data);
+        var pixels = MemoryMarshal.Cast<byte, int>(data.AsSpan());
 
         var index = 0;
         foreach (var diffBlock in changes)
         {
-            var p0 = diffBlock.OldColor;
-            var p1 = diffBlock.NewColor;
-            if (p0 != p1)
+            if (diffBlock.OldColor != diffBlock.NewColor)
             {
+                var val = reverse ? diffBlock.OldColor : diffBlock.NewColor;
+                var len = diffBlock.Len;
 
-                var val = reverse ? p0 : p1;
-
-                for (var i = 0; i < diffBlock.Len; i++)
+                for (var i = 0; i < len; i++)
                 {
                     pixels[index + i] = val;
                 }
             }
             index += diffBlock.Len;
         }
-
 
         target.SetData(data);
     }
