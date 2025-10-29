@@ -7,11 +7,6 @@ namespace Pix2d.UI.BrushSettings;
 
 public class BrushSettingsView : LocalizedComponentBase
 {
-    public BrushSettingsView()
-    {
-        DrawingState.WatchFor(x => x.CurrentBrushSettings, UpdateSliders);
-    }
-
     protected override StyleGroup? BuildStyles() => [
         new Style<ListBoxItem>(s => s.OfType<ListBoxItem>())
             .Background(StaticResources.Brushes.BrushItemBrush)
@@ -143,6 +138,7 @@ public class BrushSettingsView : LocalizedComponentBase
     {
         DrawingState.WatchFor(x => x.BrushPresets, StateHasChanged);
         DrawingState.WatchFor(x => x.IsPixelPerfectDrawingModeEnabled, StateHasChanged);
+        DrawingState.WatchFor(x => x.CurrentBrushSettings, UpdateSliders);
     }
 
     private void UpdateSliders()

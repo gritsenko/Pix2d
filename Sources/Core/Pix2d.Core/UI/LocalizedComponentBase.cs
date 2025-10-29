@@ -1,6 +1,7 @@
 ﻿#nullable enable
-using System.Diagnostics.CodeAnalysis;
 using Avalonia.LogicalTree;
+using Avalonia.Markup.Declarative;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Pix2d.UI;
 
@@ -24,15 +25,15 @@ public abstract class LocalizedComponentBase : ComponentBase
         return () => LocalizationService[inputString];
     }
 
-    protected override void OnAttachedToLogicalTree(LogicalTreeAttachmentEventArgs e)
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        base.OnAttachedToLogicalTree(e);
+        base.OnAttachedToVisualTree(e);
         AppState.WatchFor(x => x.Locale, OnLocaleChanged);
     }
 
-    protected override void OnDetachedFromLogicalTree(LogicalTreeAttachmentEventArgs e)
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        base.OnDetachedFromLogicalTree(e);
+        base.OnDetachedFromVisualTree(e);
         AppState.Unwatch(x => x.Locale, OnLocaleChanged);
     }
 

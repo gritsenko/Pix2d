@@ -3,7 +3,6 @@ using Avalonia.Interactivity;
 using Pix2d.Abstract.Tools;
 using Pix2d.Common.Extensions;
 using Pix2d.UI.Resources;
-using Pix2d.UI.Shared;
 
 namespace Pix2d.UI.ToolBar;
 
@@ -26,6 +25,7 @@ public class ToolItemGroupView : LocalizedComponentBase
                     .Child(
                         new Grid()
                             .Ref(out _gridContainer)
+                            .ToolTip(() => ActiveItem?.ToolTip ?? GroupName)
                             .Children(
                                 new ContentControl()
                                     .Name("tool-item-border")

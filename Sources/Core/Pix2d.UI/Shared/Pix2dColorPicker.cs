@@ -147,8 +147,12 @@ public class Pix2dColorPicker : ViewBase
     private SKColor _colHue;
     private double _tickHeight => _hueSlider.Bounds.Height / 360;
 
+    private bool _isInitialized;
+
     protected override void OnAfterInitialized()
     {
+        _isInitialized = true;
+
         _colorThumb.RenderTransform = new TranslateTransform();
         _hueThumb.RenderTransform = new TranslateTransform();
 
@@ -188,6 +192,9 @@ public class Pix2dColorPicker : ViewBase
 
     private void UpdateHueThumb()
     {
+        if (!_isInitialized)
+            return;
+
         var y = _hue * _tickHeight;
         if (!double.IsNaN(y))
             ((TranslateTransform)_hueThumb.RenderTransform).Y = y;
@@ -210,6 +217,9 @@ public class Pix2dColorPicker : ViewBase
 
     private void UpdateThumb()
     {
+        if (!_isInitialized) 
+            return;
+
         var x = _sat * SquareSize.Width;
         var y = (1 - _val) * SquareSize.Height;
 

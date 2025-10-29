@@ -74,6 +74,9 @@ public class SKImageView : ViewBase
             newBitmap = null;
         }
 
+        if (_imageControl == null)
+            return;
+
         _imageControl.Source = newBitmap?.ToBitmap();
     }
 
@@ -84,6 +87,9 @@ public class SKImageView : ViewBase
 
     private void UpdateBackground(bool show)
     {
+        if (_border == null)
+            return;
+
         if (show)
         {
             _border.Background = StaticResources.Brushes.CheckerTilesBrush;

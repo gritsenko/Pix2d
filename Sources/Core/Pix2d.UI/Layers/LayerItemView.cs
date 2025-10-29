@@ -12,7 +12,7 @@ public class LayerItemView(LayerItemViewModel viewModel) : ComponentBase<LayerIt
     private static IControlTemplate buttonTemplate =
         new FuncControlTemplate<Button>((button, scope) => new ContentPresenter() { Content = button.Content, Background = StaticResources.Brushes.CheckerTilesBrush});
 
-    protected override object Build(LayerItemViewModel vm)
+    protected override object Build(LayerItemViewModel? vm)
     {
         vm.Invalidated += StateHasChanged;
 

@@ -52,6 +52,7 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<EditorApp>()
             .UsePlatformDetect()
+            .UseViewInitializationStrategy(ViewInitializationStrategy.Immediate)
             //.UseManagedSystemDialogs()
             .LogToTrace();
 

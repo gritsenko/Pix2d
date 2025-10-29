@@ -26,14 +26,9 @@
 		<None Remove="Assets\checker.png" />
 		<None Remove="Assets\ColorThumb.png" />
 		<None Remove="Assets\essentials.png" />
-		<None Remove="Assets\Fonts\icons.ttf" />
 		<None Remove="Assets\Fonts\pix2d.ttf" />
 		<None Remove="Assets\Fonts\segmdl2.ttf" />
-		<None Remove="Assets\Fonts\Segoe Fluent Icons.ttf" />
 		<None Remove="Assets\Fonts\v3\pix2d-icons-v3.ttf" />
-		<None Remove="Assets\Fonts\v3\ProtoMono-Light.ttf" />
-		<None Remove="Assets\Fonts\v3\ProtoMono-Regular.ttf" />
-		<None Remove="Assets\Fonts\v3\ProtoMono-SemiBold.ttf" />
 		<None Remove="Assets\Fonts\v31\zed-mono-extended.ttf" />
 		<None Remove="Assets\Fonts\v31\zed-mono-extendedbold.ttf" />
 		<None Remove="Assets\Fonts\v31\zed-mono-extendedbolditalic.ttf" />
@@ -52,18 +47,13 @@
 	<ItemGroup>
 		<AvaloniaResource Include="Assets\app1.png" />
 		<AvaloniaResource Include="Assets\checker.png" />
-		<AvaloniaResource Include="Assets\Fonts\icons.ttf" />
 		<AvaloniaResource Include="Assets\Fonts\pix2d.ttf" />
 		<AvaloniaResource Include="Assets\Fonts\segmdl2.ttf" />
 		<AvaloniaResource Include="Assets\BackgroundTile100.png" />
 		<AvaloniaResource Include="Assets\BackgroundTile60.png" />
 		<AvaloniaResource Include="Assets\ColorThumb.png" />
 		<AvaloniaResource Include="Assets\essentials.png" />
-		<AvaloniaResource Include="Assets\Fonts\Segoe Fluent Icons.ttf" />
 		<AvaloniaResource Include="Assets\Fonts\v3\pix2d-icons-v3.ttf" />
-		<AvaloniaResource Include="Assets\Fonts\v3\ProtoMono-Light.ttf" />
-		<AvaloniaResource Include="Assets\Fonts\v3\ProtoMono-Regular.ttf" />
-		<AvaloniaResource Include="Assets\Fonts\v3\ProtoMono-SemiBold.ttf" />
 		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extended.ttf" />
 		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extendedbold.ttf" />
 		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extendedbolditalic.ttf" />
@@ -82,11 +72,11 @@
 		<EmbeddedResource Include="Assets\teapot.bin" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia" Version="11.3.4" />
-		<PackageReference Include="Avalonia.Markup.Declarative" Version="11.3.4-beta01" />
-		<PackageReference Include="Avalonia.Skia" Version="11.3.4" />
-		<PackageReference Include="Avalonia.Themes.Simple" Version="11.3.4" />
-		<PackageReference Include="Xaml.Behaviors" Version="11.3.2" />
+		<PackageReference Include="Avalonia" Version="11.3.8" />
+		<PackageReference Include="Avalonia.Markup.Declarative" Version="11.3.7-beta05" />
+		<PackageReference Include="Avalonia.Skia" Version="11.3.8" />
+		<PackageReference Include="Avalonia.Themes.Simple" Version="11.3.8" />
+		<PackageReference Include="Xaml.Behaviors" Version="11.3.6.6" />
 	</ItemGroup>
 	<!--<ItemGroup>
 		<ProjectReference Include="..\..\AvaloniaMarkupDeclarative\Avalonia.Markup.Declarative\Avalonia.Markup.Declarative.csproj" />

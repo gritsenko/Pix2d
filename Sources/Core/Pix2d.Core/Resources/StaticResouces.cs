@@ -58,8 +58,8 @@ public static class StaticResources
         public static Brush ButtonActiveBrush { get; } = Colors.ButtonActiveColor.ToBrush();
         public static Brush ButtonSolidBrush { get; set; } = Colors.MainBackgroundColor.ToBrush();
         public static Brush LinkHighlightBrush { get; } = Colors.MyLinkHighlightColor.ToBrush();
-        public static Brush CheckerTilesBrush { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap) {TileMode = TileMode.Tile, Stretch = Stretch.Uniform, Transform = new ScaleTransform(0.2,0.2)};
-        public static Brush CheckerTilesBrushNoScale { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap) { TileMode = TileMode.FlipXY, DestinationRect = new RelativeRect(0, 0, 100, 100, RelativeUnit.Absolute)};
+        public static Brush CheckerTilesBrush { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap) { TileMode = TileMode.Tile, Stretch = Stretch.Uniform, Transform = new ScaleTransform(0.2, 0.2) };
+        public static Brush CheckerTilesBrushNoScale { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap) { TileMode = TileMode.FlipXY, DestinationRect = new RelativeRect(0, 0, 100, 100, RelativeUnit.Absolute) };
         public static Brush ActionsBarBackground { get; set; } = "#444E59".ToColor().ToBrush();
         public static Brush ModalOverlayBrush { get; set; } = Colors.ModalOverlayColor.ToBrush();
         public static Brush SelectedToggleButtonBrush { get; set; } = Colors.BrushButtonColor.ToBrush();
@@ -70,30 +70,16 @@ public static class StaticResources
 
     public static class Fonts
     {
-        public static FontFamily TextArticlesFontFamily =>
-            new FontFamily("Segoe UI");
+        public static FontFamily TextArticlesFontFamily { get; } = new FontFamily("Segoe UI");
 
-        public static FontFamily IconFontSegoe { get; } =
-            new FontFamily(ResourceManager.GetEmbeddedResourceURI("/Assets/Fonts/"), "segmdl2.ttf#Segoe MDL2 Assets");
+        public static FontFamily IconFontSegoe { get; } = new FontFamily("avares://Pix2d.Core/Assets/Fonts#Segoe MDL2 Assets");
 
-        public static FontFamily Pix2dThemeFontFamily { get; } =
-            new FontFamily(ResourceManager.GetEmbeddedResourceURI("/Assets/Fonts/"), "pix2d.ttf#pix2d");
+        public static FontFamily Pix2dThemeFontFamily { get; } = new FontFamily("avares://Pix2d.Core/Assets/Fonts#pix2d");
 
-        public static FontFamily IconsThemeFontFamily { get; } =
-            new FontFamily(ResourceManager.GetEmbeddedResourceURI("/Assets/Fonts/"), "icons.ttf#icons");
-        //public static FontFamily FluentIcons { get; } = 
-        //    new FontFamily(new Uri("avares://Pix2d.Core/Assets/Fonts/"), "Segoe Fluent Icons.ttf#Segoe Fluent Icons");
-
-        //v3 font without cyrillic
-        //public static FontFamily DefaultTextFontFamily { get; } =
-        //    new FontFamily(ResourceManager.GetEmbeddedResourceURI("/Assets/Fonts/v3/"), "ProtoMono-Regular.ttf#Proto Mono");
-        
         //v3_1 font with cyrillic
-        public static FontFamily DefaultTextFontFamily =>
-            new FontFamily(ResourceManager.GetEmbeddedResourceURI("/Assets/Fonts/v31/"), "zed-mono-extended.ttf#Zed Mono");
+        public static FontFamily DefaultTextFontFamily { get; } = new FontFamily("avares://Pix2d.Core/Assets/Fonts/v31#Zed Mono");
 
-        public static FontFamily Pix2dIconFontFamilyV3 { get; } =
-            new FontFamily(ResourceManager.GetEmbeddedResourceURI("/Assets/Fonts/v3/"), "pix2d-icons-v3.ttf#pix2d-icons-v3");
+        public static FontFamily Pix2dIconFontFamilyV3 { get; } = new FontFamily("avares://Pix2d.Core/Assets/Fonts/v3#pix2d-icons-v3");
 
     }
 
@@ -149,7 +135,7 @@ public static class StaticResources
 
     public static Bitmap CheckerTilesBitmap { get; set; } =
         new(ResourceManager.GetAsset("/Assets/checker.png"));
-    
+
     public static SKBitmap WatermarkBitmap { get; set; } =
         SKBitmap.Decode(ResourceManager.GetAsset("/Assets/Watermark.png"));
 
