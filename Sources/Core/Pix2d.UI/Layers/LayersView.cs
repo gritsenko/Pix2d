@@ -207,8 +207,7 @@ public class LayersView : ComponentBase
                 PreviewProvider = PreviewProvider
             }).ToList();
 
-            Layers.Clear();
-            Layers.AddRange(layers);
+            Layers.ReloadItems(layers);
             UpdateSelectedLayerIndex();
         }
         finally

@@ -55,6 +55,7 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
     {
         return base.CustomizeAppBuilder(builder)
             .UseServiceProvider(_bootstrapper.GetServiceProvider())
+            .UseViewInitializationStrategy(ViewInitializationStrategy.Immediate)
             .WithInterFont();
     }
 

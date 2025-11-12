@@ -104,25 +104,18 @@ public class TimeLineView : LocalizedComponentBase
 
     private void ReloadFrames(SpriteEditor? editor)
     {
-        Debug.WriteLine($"Reloading frames:{editor}");
-        Frames.Clear();
-
-        if (editor == null)
+        if (editor != null)
         {
-            StateHasChanged();
-            return;
+            var cnt = _editor?.FramesCount ?? 1;
+
+            var frames = Enumerable
+                .Range(0, cnt)
+                .Select(_ => new AnimationFrameViewModel { PreviewProvider = PreviewProvider });
+            Frames.ReloadItems(frames);
+
+            AppState.SpriteEditorState.CurrentFrameIndex = _editor?.CurrentFrameIndex ?? 0;
+            AppState.SpriteEditorState.FramesCount = Frames.Count;
         }
-
-        var cnt = _editor?.FramesCount ?? 1;
-        
-        var frames = Enumerable
-            .Range(0, cnt)
-            .Select(_ => new AnimationFrameViewModel { PreviewProvider = PreviewProvider });
-        Frames.AddRange(frames);
-
-        AppState.SpriteEditorState.CurrentFrameIndex = _editor?.CurrentFrameIndex ?? 0;
-        AppState.SpriteEditorState.FramesCount = Frames.Count;
-
         StateHasChanged();
     }
 
