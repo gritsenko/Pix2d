@@ -37,6 +37,21 @@ public class SkiaCanvas : Control
 
     public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
+    
+    // Safe area insets (e.g., notch, status bar)
+    private Thickness _safeAreaInsets = new Thickness(0);
+    public Thickness SafeAreaInsets
+    {
+        get => _safeAreaInsets;
+        set
+        {
+            if (_safeAreaInsets != value)
+            {
+                _safeAreaInsets = value;
+                OnSizeChanged();
+            }
+        }
+    }
 
     public SkiaCanvas(IServiceProvider serviceProvider)
     {
@@ -395,8 +410,8 @@ public class SkiaCanvas : Control
 
     private SKSize GetViewPortSize()
     {
-        var w = (int)(Bounds.Width); // * (SystemScaleFactor / ViewPortScaleFactor));
-        var h = (int)(Bounds.Height); // * (SystemScaleFactor / ViewPortScaleFactor));
+        var w = (int)(Bounds.Width - _safeAreaInsets.Left - _safeAreaInsets.Right);
+        var h = (int)(Bounds.Height - _safeAreaInsets.Top - _safeAreaInsets.Bottom);
         return new SKSize(w, h);
     }
 
@@ -424,6 +439,16 @@ public class SkiaCanvas : Control
                 canvas.Save();
 
                 canvas.Clear(_bgColor);
+                
+                // Apply safe area offset
+                if (parent._safeAreaInsets.Top > 0 || parent._safeAreaInsets.Left > 0)
+                {
+                    canvas.Translate(
+                        (float)(parent._safeAreaInsets.Left * parent.ViewPort?.ScaleFactor ?? 1), 
+                        (float)(parent._safeAreaInsets.Top * parent.ViewPort?.ScaleFactor ?? 1)
+                    );
+                }
+                
                 if (parent is { _rootNode: not null, ViewPort: not null })
                 {
                     if (_lastTransform != context.CurrentTransform)

@@ -1,4 +1,4 @@
-﻿using Android.App;
+﻿﻿using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
@@ -6,12 +6,15 @@ using Android.Views;
 using AndroidX.Core.View;
 using Avalonia;
 using Avalonia.Android;
+using Avalonia.Controls;
+using Avalonia.LogicalTree;
 using Avalonia.Markup.Declarative;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.UI;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Pix2d.Droid;
@@ -70,6 +73,7 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
             app.UpdateTopLevelFromHostView();
 
         HideSystemUI();
+        SetupWindowInsetsListener();
 
         _appCreated = true;
     }
@@ -115,6 +119,80 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
         }
 
         // if (SupportActionBar != null) SupportActionBar.Hide();
+    }
+
+    private void SetupWindowInsetsListener()
+    {
+        if (Window?.DecorView != null)
+        {
+            ViewCompat.SetOnApplyWindowInsetsListener(Window.DecorView, new WindowInsetsListener(this));
+        }
+    }
+
+    private class WindowInsetsListener : Java.Lang.Object, IOnApplyWindowInsetsListener
+    {
+        private readonly MainActivity _activity;
+
+        public WindowInsetsListener(MainActivity activity)
+        {
+            _activity = activity;
+        }
+
+        public WindowInsetsCompat OnApplyWindowInsets(Android.Views.View v, WindowInsetsCompat insets)
+        {
+            var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
+            var displayCutout = insets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
+            
+            // Combine system bars and display cutout insets
+            var topInset = Math.Max((int)systemBars.Top, (int)displayCutout.Top);
+            var leftInset = Math.Max((int)systemBars.Left, (int)displayCutout.Left);
+            var rightInset = Math.Max((int)systemBars.Right, (int)displayCutout.Right);
+            var bottomInset = Math.Max((int)systemBars.Bottom, (int)displayCutout.Bottom);
+            
+            _activity.ApplySafeAreaInsets(leftInset, topInset, rightInset, bottomInset);
+            
+            return insets;
+        }
+    }
+
+    private void ApplySafeAreaInsets(int left, int top, int right, int bottom)
+    {
+        if (Avalonia.Application.Current is EditorApp app)
+        {
+            // Convert Android pixels to Avalonia device-independent pixels
+            var density = Resources?.DisplayMetrics?.Density ?? 1f;
+            var safeAreaInsets = new Thickness(
+                left / density,
+                top / density,
+                right / density,
+                bottom / density
+            );
+
+            // Find the SkiaCanvas and set the safe area insets
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                var skiaCanvas = FindSkiaCanvas(app.HostView);
+                if (skiaCanvas != null)
+                {
+                    skiaCanvas.SafeAreaInsets = safeAreaInsets;
+                    System.Diagnostics.Debug.WriteLine($"Applied SafeAreaInsets: L={safeAreaInsets.Left}, T={safeAreaInsets.Top}, R={safeAreaInsets.Right}, B={safeAreaInsets.Bottom}");
+                }
+            });
+        }
+    }
+
+    private static SkiaCanvas? FindSkiaCanvas(Visual? visual)
+    {
+        if (visual == null) return null;
+        if (visual is SkiaCanvas canvas) return canvas;
+        
+        foreach (var child in visual.GetLogicalChildren().OfType<Visual>())
+        {
+            var result = FindSkiaCanvas(child);
+            if (result != null) return result;
+        }
+        
+        return null;
     }
 
     public override void OnWindowFocusChanged(bool hasFocus)
