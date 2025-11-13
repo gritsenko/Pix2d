@@ -1,8 +1,8 @@
-﻿using System.Diagnostics;
-using Avalonia.Animation;
+﻿using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Media.Transformation;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
@@ -19,6 +19,8 @@ using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using Pix2d.UI.Styles;
 using Pix2d.UI.ToolBar;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Pix2d.UI;
 
@@ -91,10 +93,9 @@ public class MainView : LocalizedComponentBase
                     .ColSpan(3).RowSpan(5)
                     .Child(new OpenGlView()),
 
-#if DEBUG
-                new AppMenuView().ColSpan(3),
-#endif
-                new TopBarView().Row(1).ColSpan(3)
+                new AppMenuView().Ref(out _appMenuView).IsVisible(false).ColSpan(3),
+
+                new TopBarView().Ref(out _topBarView).Row(1).ColSpan(3)
                     .Margin(0, 0, 0, 1),
 
                 new ToolBarView()
@@ -246,12 +247,17 @@ public class MainView : LocalizedComponentBase
 
     private Canvas _panelsContainer = null!;
     private Grid _rootGrid = null!;
+    private AppMenuView _appMenuView = null!;
+    private TopBarView _topBarView = null!;
+
     [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private IProjectService ProjectService { get; set; } = null!;
     [Inject] private IImportService ImportService { get; set; } = null!;
     [Inject] private ICommandService CommandService { get; set; } = null!;
+    [Inject] private IPlatformStuffService PlatformStuffService { get; set; } = null!;
+
     private UiState UiState => AppState.UiState;
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
 
@@ -269,9 +275,9 @@ public class MainView : LocalizedComponentBase
         AddHandler(DragDrop.DragLeaveEvent, OnDragLeave);
 
         DialogService.SetPanelsContainer(_panelsContainer);
-        AppState.UiState.WatchFor(x => x.ShowRatePrompt, StateHasChanged);  
+        AppState.UiState.WatchFor(x => x.ShowRatePrompt, StateHasChanged);
         AppState.CurrentProject.WatchFor(x => x.CurrentContextType, StateHasChanged);
-        AppState.WatchFor(x=>x.IsBusy, StateHasChanged);
+        AppState.WatchFor(x => x.IsBusy, StateHasChanged);
         AppState.UiState.Watch(StateHasChanged);
 
         StateHasChanged();
@@ -326,4 +332,43 @@ public class MainView : LocalizedComponentBase
             await ImportService.ImportAsync([fileSource], importTarget);
         }
     }
+
+    private void ApplySafeAreaMargin()
+    {
+        // Runtime platform detection for Android
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")))
+        {
+            if (_topBarView is not null)
+            {
+                // Try to get safe area insets from SkiaCanvas if available
+                var skiaCanvas = FindSkiaCanvas(this);
+                if (skiaCanvas is SkiaCanvas canvas)
+                {
+                    var safeAreaInsets = canvas.SafeAreaInsets;
+                    var currentMargin = _topBarView.Margin;
+                    _topBarView.Margin = new Thickness(
+                        currentMargin.Left,
+                        safeAreaInsets.Top,
+                        currentMargin.Right,
+                        currentMargin.Bottom
+                    );
+                }
+            }
+        }
+    }
+
+    private static SkiaCanvas? FindSkiaCanvas(Visual? visual)
+    {
+        if (visual == null) return null;
+        if (visual is SkiaCanvas canvas) return canvas;
+
+        foreach (var child in visual.GetLogicalChildren().OfType<Visual>())
+        {
+            var result = FindSkiaCanvas(child);
+            if (result != null) return result;
+        }
+
+        return null;
+    }
+
 }

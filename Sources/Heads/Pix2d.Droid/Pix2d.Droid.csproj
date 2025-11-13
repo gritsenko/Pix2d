@@ -25,6 +25,7 @@
 		<AndroidVersionCode>$(Pix2dAndroidVersion)</AndroidVersionCode>
 		<AndroidVersionName>$(Pix2dVersion)</AndroidVersionName>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
 	<ItemGroup>
 		<Compile Remove="Logging\AppCenterLoggerTarget.cs" />
 		<Compile Remove="Services\AndroidFileService.cs" />

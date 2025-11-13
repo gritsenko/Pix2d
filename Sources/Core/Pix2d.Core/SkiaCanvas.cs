@@ -48,6 +48,8 @@ public class SkiaCanvas : Control
             if (_safeAreaInsets != value)
             {
                 _safeAreaInsets = value;
+                // Apply margin to the SkiaCanvas itself
+                Margin = value;
                 OnSizeChanged();
             }
         }
@@ -410,8 +412,9 @@ public class SkiaCanvas : Control
 
     private SKSize GetViewPortSize()
     {
-        var w = (int)(Bounds.Width - _safeAreaInsets.Left - _safeAreaInsets.Right);
-        var h = (int)(Bounds.Height - _safeAreaInsets.Top - _safeAreaInsets.Bottom);
+        // Insets are now applied via Margin, so we use full bounds
+        var w = (int)Bounds.Width;
+        var h = (int)Bounds.Height;
         return new SKSize(w, h);
     }
 
@@ -439,15 +442,6 @@ public class SkiaCanvas : Control
                 canvas.Save();
 
                 canvas.Clear(_bgColor);
-                
-                // Apply safe area offset
-                if (parent._safeAreaInsets.Top > 0 || parent._safeAreaInsets.Left > 0)
-                {
-                    canvas.Translate(
-                        (float)(parent._safeAreaInsets.Left * parent.ViewPort?.ScaleFactor ?? 1), 
-                        (float)(parent._safeAreaInsets.Top * parent.ViewPort?.ScaleFactor ?? 1)
-                    );
-                }
                 
                 if (parent is { _rootNode: not null, ViewPort: not null })
                 {

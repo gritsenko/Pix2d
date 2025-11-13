@@ -161,38 +161,24 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
         {
             // Convert Android pixels to Avalonia device-independent pixels
             var density = Resources?.DisplayMetrics?.Density ?? 1f;
-            var safeAreaInsets = new Thickness(
+            var safeAreaMargin = new Thickness(
                 left / density,
                 top / density,
                 right / density,
                 bottom / density
             );
 
-            // Find the SkiaCanvas and set the safe area insets
+            // Apply margin to the HostView to offset its position once
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                var skiaCanvas = FindSkiaCanvas(app.HostView);
-                if (skiaCanvas != null)
+                var hostView = app.HostView;
+                if (hostView != null)
                 {
-                    skiaCanvas.SafeAreaInsets = safeAreaInsets;
-                    System.Diagnostics.Debug.WriteLine($"Applied SafeAreaInsets: L={safeAreaInsets.Left}, T={safeAreaInsets.Top}, R={safeAreaInsets.Right}, B={safeAreaInsets.Bottom}");
+                    //hostView.Margin = safeAreaMargin;
+                    System.Diagnostics.Debug.WriteLine($"Applied SafeAreaMargin to HostView: L={safeAreaMargin.Left}, T={safeAreaMargin.Top}, R={safeAreaMargin.Right}, B={safeAreaMargin.Bottom}");
                 }
             });
         }
-    }
-
-    private static SkiaCanvas? FindSkiaCanvas(Visual? visual)
-    {
-        if (visual == null) return null;
-        if (visual is SkiaCanvas canvas) return canvas;
-        
-        foreach (var child in visual.GetLogicalChildren().OfType<Visual>())
-        {
-            var result = FindSkiaCanvas(child);
-            if (result != null) return result;
-        }
-        
-        return null;
     }
 
     public override void OnWindowFocusChanged(bool hasFocus)
