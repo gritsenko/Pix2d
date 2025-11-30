@@ -45,9 +45,7 @@ public class ColorPickerView : LocalizedComponentBase
                 //            .Padding(0)
                 //            .Content("\xE9E9")
                 //    ),
-                new Border().Row(2)
-                    .Margin(8, 8, 8, 16)
-                    .MinHeight(100)
+                new Border().Row(2).Margin(8, 8, 8, 16).MinHeight(100)
                     .Child(
                         new TabControl()
                             .SelectedIndex(() => ColorTypeIndex, v => ColorTypeIndex = v)
@@ -56,27 +54,25 @@ public class ColorPickerView : LocalizedComponentBase
                                     .Foreground(Brushes.White)
                                     .Header(L("List"))
                                     .Content(
-                                        new StackPanel().Row(2)
+                                        new StackPanel()
                                             .IsVisible(() => !EditorMode)
                                             .Children(
                                                 new TextBlock()
                                                     .Text(L("Recent colors")),
-                                                
-                                                new ColorPalette().Row(1)
+
+                                                new ColorPalette()
                                                     .Margin(-6, 0)
                                                     .Colors(() => RecentColors)
                                                     .OnColorSelected(c => SelectedColor = c),
-                                                
+
                                                 new TextBlock()
                                                     .Text(L("Custom colors")),
-                                                
-                                                new ColorPalette().Row(1)
+
+                                                new ColorPalette()
                                                     .Margin(-6, 0)
-                                                    .Colors(() => CustomColors)
                                                     .CanAddColor(true)
-                                                    .OnColorAdded(c =>
-                                                        PaletteService.InsertColor(nameof(PaletteService.CustomPalette),
-                                                            c, -1))
+                                                    .Colors(() => CustomColors)
+                                                    .OnColorAdded(c => PaletteService.InsertColor(nameof(PaletteService.CustomPalette), c, -1))
                                                     .OnColorRemoved(OnColorRemoved)
                                                     .ColorToAdd(() => SelectedColor)
                                                     .OnColorSelected(c => SelectedColor = c)
@@ -139,7 +135,7 @@ public class ColorPickerView : LocalizedComponentBase
                     )
             );
     }
-    
+
     [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private IPaletteService PaletteService { get; set; } = null!;
@@ -299,7 +295,7 @@ public class ColorPickerView : LocalizedComponentBase
     {
         LoadColors();
 
-        AppState.ToolsState.WatchFor(x=>x.CurrentToolKey, StateHasChanged);
+        AppState.ToolsState.WatchFor(x => x.CurrentToolKey, StateHasChanged);
         AppState.SpriteEditorState.WatchFor(x => x.CurrentColor, OnDrawingStateColorChanged);
         Messenger.Register<DrawingServiceOnDrawnMessage>(this, DrawingServiceDrawn);
 

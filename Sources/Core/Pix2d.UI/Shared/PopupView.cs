@@ -166,11 +166,11 @@ public class PopupView : ComponentBase
                                     .VerticalAlignment(VerticalAlignment.Center)
                                     .FontSize(16)
                                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
-                                    .Text(@HeaderProperty, BindingMode.OneWay),
+                                    .Text(() => Header),
                                 new ToggleButton().Col(1) // pin button
                                     .Width(44)
                                     .Height(44)
-                                    .IsVisible(@ShowPinButtonProperty, BindingMode.OneWay)
+                                    .IsVisible(() => ShowPinButton)
                                     .IsChecked(() => IsPinned, v => IsPinned = v ?? false)
                                     .Content(() => IsPinned)
                                     .ContentTemplate(new FuncDataTemplate<bool>((v, _) =>

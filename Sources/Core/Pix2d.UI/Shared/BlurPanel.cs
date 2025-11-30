@@ -23,7 +23,7 @@ public class BlurPanel : ViewBase
     }
 
     protected override object Build() =>
-        new Border()
+        new Border().Name("BlurPanelBorder")
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .CornerRadius(StaticResources.Measures.PanelCornerRadius)
             .BorderBrush(StaticResources.Brushes.PanelsBorderBrush)

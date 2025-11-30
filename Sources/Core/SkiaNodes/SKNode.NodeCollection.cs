@@ -53,7 +53,10 @@ public partial class SKNode
 
             try
             {
-                _nodes.Remove(node);
+                lock (_nodes)
+                {
+                    _nodes.Remove(node);
+                }
                 node.Parent = null;
                 hostNode.OnChildrenRemoved(node.Yield());
                 return true;

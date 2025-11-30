@@ -72,7 +72,7 @@ public class SKNodeRenderer
     private static void RenderChildren(SKNode parent, in RenderContext rc)
     {
         foreach (var child in parent.Nodes.AsSpan())
-            if (child.IsVisible)
+            if (child is { IsVisible: true })
                 _render(child, rc);
     }
 
@@ -80,7 +80,7 @@ public class SKNodeRenderer
     {
         if (!node.HasAdornerLayer
             || !rc.ViewPort.Settings.RenderAdorners
-            || !node.AdornerLayer.Nodes.Any())
+            || !(node.AdornerLayer?.Nodes.Any() ?? false))
             return;
 
         rc.Canvas.Save();
