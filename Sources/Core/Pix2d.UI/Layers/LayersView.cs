@@ -234,12 +234,20 @@ public class LayersView : ComponentBase
 
     private void ItemClicked(LayerItemViewModel itemVm)
     {
-        if (_editor.SelectedLayer == itemVm.SourceNode)
+        var oldSelectedLayer = _editor.SelectedLayer;
+        if (oldSelectedLayer == itemVm.SourceNode)
         {
             ViewCommands.ToggleLayerOptionsCommand.Execute();
         }
 
         _editor?.SelectLayer(itemVm.SourceNode);
+        
+        if (oldSelectedLayer != null && oldSelectedLayer != itemVm.SourceNode)
+        {
+             Layers.FirstOrDefault(x => x.SourceNode == oldSelectedLayer)?.Invalidate();
+        }
+        itemVm.Invalidate();
+
         UpdateSelectedLayerIndex();
         StateHasChanged();
     }
@@ -274,7 +282,7 @@ public class LayerItemViewModel
     public Func<LayerItemViewModel, SKBitmap> PreviewProvider { get; set; }
 
     public Pix2dSprite.Layer SourceNode { get; set; }
-    public bool IsSelected { get; set; }
+    public bool IsSelected => _editor?.SelectedLayer == SourceNode;
     public Action? Invalidated { get; set; }
 
     public void Invalidate()

@@ -49,17 +49,22 @@ public class LayerItemView(LayerItemViewModel viewModel) : ComponentBase<LayerIt
                                     .OnClick(_ => UpdateState(vm.ToggleLayerVisibility))
                                     .Foreground(() => vm.SourceNode.IsVisible ? Brushes.White : Brushes.LightGray)
                                     .Content("\xe92a"),
-                                new Button()
+                                new Button().Name("LockTransparentPixelsButton")
                                     .Row(1)
                                     .FontFamily(StaticResources.Fonts.Pix2dThemeFontFamily)
                                     .FontSize(18)
+                                    .IsVisible(() => vm.IsSelected || vm.SourceNode.LockTransparentPixels)
                                     .OnClick(_ =>
                                     {
+                                        if (!vm.IsSelected)
+                                        {
+                                            LeftPointerPressed?.Invoke();
+                                        }
                                         vm.SourceNode.LockTransparentPixels = !vm.SourceNode.LockTransparentPixels;
                                         StateHasChanged();
                                     })
                                     .Foreground(() =>
-                                        vm.SourceNode.LockTransparentPixels ? Brushes.White : Brushes.LightGray)
+                                        vm.SourceNode.LockTransparentPixels ? Brushes.White : Brushes.Gray)
                                     .Content("\xe901"),
                                 new Button()
                                     .Row(3)
