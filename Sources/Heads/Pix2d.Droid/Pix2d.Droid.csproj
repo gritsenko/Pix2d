@@ -49,11 +49,11 @@
 		<AndroidResource Include="res\xml\file_associations.xml" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia.Android" Version="11.3.8" />
-		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.8" />
+		<PackageReference Include="Avalonia.Android" Version="11.3.9" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.9" />
 		<PackageReference Include="Microsoft.Maui.Essentials" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
-		<PackageReference Update="Microsoft.Maui.Essentials" Version="10.0.10" />
+		<PackageReference Update="Microsoft.Maui.Essentials" Version="10.0.11" />
 		<PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.17" />
 	</ItemGroup>
 	<ItemGroup>
