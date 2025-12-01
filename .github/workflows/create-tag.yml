@@ -11,12 +11,12 @@ jobs:
   create-tag:
     name: Create Git Tag
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Required to push tags
       
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }} # Use the PAT to trigger subsequent workflows
 
       - name: Extract version from Directory.Build.props
         id: get_version
