@@ -1,10 +1,12 @@
 ﻿#nullable enable
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Pix2d.Abstract.Services;
 using Pix2d.UI.Resources;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -31,6 +33,13 @@ public class SkiaCanvas : Control
     //pinch gesture stuff
     bool _isPinching = false;
     private readonly ZoomPanGestureRecognizer _pinchRecognizer = new();
+
+    public static readonly RoutedEvent<RoutedEventArgs> UndoGestureEvent = RoutedEvent.Register<SkiaCanvas, RoutedEventArgs>("UndoGesture", RoutingStrategies.Bubble);
+    public static readonly RoutedEvent<RoutedEventArgs> RedoGestureEvent = RoutedEvent.Register<SkiaCanvas, RoutedEventArgs>("RedoGesture", RoutingStrategies.Bubble);
+
+    private readonly MultiFingerGestureRecognizer _undoGesture = new() { FingersCount = 2, TapCount = 2, RoutedEventToRaise = UndoGestureEvent };
+    // TODO: 3-finger gesture doesn't work reliably on Android/Windows - need alternative approach
+    //private readonly MultiFingerGestureRecognizer _redoGesture = new() { FingersCount = 3, TapCount = 2, RoutedEventToRaise = RedoGestureEvent };
     private double _oldScale;
     private SKPoint _oldVpPos;
     private readonly IViewPortService _viewPortService;
@@ -69,7 +78,13 @@ public class SkiaCanvas : Control
         PointerReleased += OnPointerReleased;
         PointerWheelChanged += OnPointerWheelChanged;
 
+        GestureRecognizers.Add(_undoGesture);
+        //GestureRecognizers.Add(_redoGesture); // TODO: 3-finger gesture doesn't work reliably
         GestureRecognizers.Add(_pinchRecognizer);
+
+        AddHandler(UndoGestureEvent, OnUndoGesture);
+        //AddHandler(RedoGestureEvent, OnRedoGesture); // TODO: 3-finger gesture doesn't work reliably
+
         AddHandler(Gestures.PinchEvent, OnPinch);
         AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
 
@@ -343,6 +358,18 @@ public class SkiaCanvas : Control
 
         Input.SetPointerMoved(ToSKPoint(pos), props.IsLeftButtonPressed, ToModifiers(e.KeyModifiers),
             pointerType == PointerType.Touch);
+    }
+
+    private void OnUndoGesture(object? sender, RoutedEventArgs e)
+    {
+        _serviceProvider.GetRequiredService<IOperationService>().Undo();
+        e.Handled = true;
+    }
+
+    private void OnRedoGesture(object? sender, RoutedEventArgs e)
+    {
+        _serviceProvider.GetRequiredService<IOperationService>().Redo();
+        e.Handled = true;
     }
 
     private void OnPinch(object? sender, PinchEventArgs e)
