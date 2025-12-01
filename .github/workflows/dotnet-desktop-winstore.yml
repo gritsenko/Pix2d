@@ -98,7 +98,12 @@ jobs:
         }
 
     - name: Restore NuGet packages
-      run: msbuild $env:WAP_PROJECT_PATH /t:Restore /p:Configuration=$env:CONFIGURATION /p:IsWAPHeadProject=true /p:AppxBundlePlatforms="x86|x64|arm64"
+      # Явно указываем восстановить для x86 и x64, чтобы OnnxRuntime распаковался корректно
+      run: |
+        dotnet restore $env:SOLUTION_NAME -r win-x86
+        dotnet restore $env:SOLUTION_NAME -r win-x64
+        dotnet restore $env:SOLUTION_NAME -r win-arm64
+        msbuild $env:WAP_PROJECT_PATH /t:Restore /p:Configuration=$env:CONFIGURATION /p:IsWAPHeadProject=true /p:AppxBundlePlatforms="x86|x64|arm64"
 
     - name: Decode signing certificate
       shell: pwsh
