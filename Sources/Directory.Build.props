@@ -2,7 +2,7 @@
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
 		<Pix2dAndroidVersion>76</Pix2dAndroidVersion>
-		<Pix2dVersion>3.3.6</Pix2dVersion>
+		<Pix2dVersion>3.3.7</Pix2dVersion>
 		<Platforms>AnyCPU;x86;x64;ARM64</Platforms>
 
 		<!--Used by microsoft store bridge project-->
