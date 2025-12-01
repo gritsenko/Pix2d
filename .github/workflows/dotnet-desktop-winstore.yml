@@ -98,7 +98,7 @@ jobs:
         }
 
     - name: Restore NuGet packages
-      run: msbuild $env:WAP_PROJECT_PATH /t:Restore /p:Configuration=$env:CONFIGURATION /p:IsWAPHeadProject=true
+      run: msbuild $env:WAP_PROJECT_PATH /t:Restore /p:Configuration=$env:CONFIGURATION /p:IsWAPHeadProject=true /p:AppxBundlePlatforms="x86|x64|arm64"
 
     - name: Decode signing certificate
       shell: pwsh
