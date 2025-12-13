@@ -53,6 +53,8 @@ public static class StaticResources
         public static IImmutableBrush MainMenuBackgroundBrush { get; } = Colors.MainMenuBackgroundColor.ToBrush().ToImmutable();
         public static Brush SelectedItemBrush { get; } = Colors.SelectedItemColor.ToBrush();
         public static Brush AccentBrush { get; } = SelectedToolBrush;//Colors.MyAccentColor.ToBrush();
+        public static Brush AccentButtonBrush { get; } = "#E5B407".ToColor().ToBrush();
+
         public static Brush ButtonBackgroundBrush { get; } = Colors.ButtonBackgroundColor.ToBrush();
         public static Brush ButtonHoverBrush { get; } = Colors.ButtonHoverColor.ToBrush();
         public static Brush ButtonActiveBrush { get; } = Colors.ButtonActiveColor.ToBrush();

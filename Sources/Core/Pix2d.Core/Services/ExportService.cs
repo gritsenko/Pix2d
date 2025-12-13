@@ -44,7 +44,11 @@ public class ExportService(
 
             await exporter.ExportAsync(nodesToRender, scale);
             Messenger.Send<ProjectExportedMessage>(null!);
-        } 
+        }
+        catch (OperationCanceledException)
+        {
+            // User cancelled the operation, do nothing
+        }
         catch (Exception e)
         {
             dialogService.Alert("There's nothing to Export!", "Export");
@@ -58,7 +62,7 @@ public class ExportService(
         {
             await exporter.ExportAsync(nodesToRender, scale);
             Messenger.Send<ProjectExportedMessage>(null!);
-        } 
+        }
         catch (Exception e)
         {
             dialogService.Alert("There's nothing to Export!", "Export");

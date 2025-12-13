@@ -97,17 +97,29 @@ public class ExportView : ComponentBase
                                                     .Value(() => Scale, v => Scale = (double)v!)
                                             )
                                     ),
-                                new Grid().ColSpan(2).Row(1)
-                                    .Rows("Auto,Auto")
-                                    .Cols("*,Auto,Auto")
+                                new StackPanel().ColSpan(2).Row(1)
+                                    .Orientation(Orientation.Horizontal)
+                                    .HorizontalAlignment(HorizontalAlignment.Right)
                                     .VerticalAlignment(VerticalAlignment.Bottom)
                                     .Children(
-                                        new Button().Row(0).Col(1).ColSpan(2)
+                                        new Button()
+                                            .Classes("btn")
+                                            .Content("Save")
+                                            .Width(110)
+                                            .Margin(0, 0, 20, 0)
+                                            .Foreground(Brushes.White)
+                                            .Background(StaticResources.Brushes.AccentButtonBrush)
+                                            .OnClick(_ => OnExportCommandExecute()),
+                                        new Button()
+                                            .Classes("btn")
+                                            .Content("Cancel")
+                                            .Width(110)
+                                            .Command(ViewCommands.HideExportDialogCommand),
+                                        new Button()
                                             .Classes("btn")
                                             .HorizontalAlignment(HorizontalAlignment.Center)
                                             .Width(110)
-                                            .Background(StaticResources.Brushes.SelectedItemBrush)
-                                            .Margin(new Thickness(0, 10))
+                                            .Margin(0, 0, 20, 0)
                                             .IsVisible(PlatformStuffService.CanShare)
                                             .Content(new StackPanel().Orientation(Orientation.Horizontal).Children(
                                                 new TextBlock()
@@ -116,22 +128,10 @@ public class ExportView : ComponentBase
                                                     .Text("\xE72D"),
                                                 new TextBlock().Text("Share"))
                                             )
-                                            .OnClick(Share),
-                                        new Button().Row(1).Col(1)
-                                            .Classes("btn")
-                                            .Content("Save")
-                                            .Width(110)
-                                            .Margin(0, 0, 20, 0)
-                                            .Background(StaticResources.Brushes.BrushButtonBrush)
-                                            .OnClick(_ => OnExportCommandExecute()),
-                                        new Button().Row(1).Col(2)
-                                            .Classes("btn")
-                                            .Content("Cancel")
-                                            .Width(110)
-                                            .Command(ViewCommands.HideExportDialogCommand)
+                                            .OnClick(Share)
                                     )
-                                //new ExportProWarningView()
-                                // .IsVisible(() => !AppState.IsPro)
+                            //new ExportProWarningView()
+                            // .IsVisible(() => !AppState.IsPro)
                             )
                     ));
 
@@ -199,7 +199,7 @@ public class ExportView : ComponentBase
     {
         // Create a temporary exporter instance for configuration
         _configuredExporter = exporterInfo.CreateInstanceFunc();
-        
+
         if (exporterInfo.ExporterType == typeof(SpritesheetImageExporter))
         {
             var settingsView = new SpritesheetExportSettingsView();
@@ -230,7 +230,7 @@ public class ExportView : ComponentBase
             });
 
             var nodesToExport = ExportService.GetNodesToExport(Scale);
-            
+
             // Use configured exporter if available, otherwise use the standard approach
             if (_configuredExporter != null)
             {
@@ -240,7 +240,7 @@ public class ExportView : ComponentBase
             {
                 await ExportService.ExportNodesAsync(nodesToExport, Scale, SelectedExporterInfo);
             }
-            
+
             ViewCommands.HideExportDialogCommand.Execute();
         }
         catch (Exception ex)
@@ -277,14 +277,21 @@ public class ExportView : ComponentBase
 
     private void Share(RoutedEventArgs _)
     {
-        //var exporter = SelectedExporter as IStreamExporter ?? Exporters.OfType<IStreamExporter>().FirstOrDefault();
-        //if (exporter == null)
-        //{
-        //    Logger.Log("Could not find suitable exporter.");
-        //    return;
-        //}
+        var exporter = SelectedExporterInfo ?? Exporters.FirstOrDefault();
+        if (exporter == null)
+        {
+            Logger.Log("Could not find suitable exporter.");
+            return;
+        }
+        var instance = exporter.CreateInstanceFunc() as IStreamExporter;
 
-        //PlatformStuffService.Share(exporter, Scale);
+        if (instance == null)
+        {
+            Logger.Log("This exporter can not be used to share");
+            return;
+        }
+
+        PlatformStuffService.Share(instance, Scale);
         ViewCommands.HideExportDialogCommand.Execute();
     }
 }
