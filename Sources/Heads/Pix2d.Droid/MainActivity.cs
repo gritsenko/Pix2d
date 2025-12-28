@@ -1,4 +1,4 @@
-﻿﻿using Android.App;
+using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
@@ -41,6 +41,9 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
     private bool _appCreated = false;
     private readonly AndroidPix2dBootstrapper _bootstrapper;
     private static readonly ServiceCollection ServiceCollection = [];
+
+    private static long _lastLifecycleSaveTicks;
+    private static int _lifecycleSaveInFlight;
 
     public MainActivity()
     {
@@ -225,6 +228,83 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
         catch
         {
             // just suppress any error logging exceptions
+        }
+    }
+
+    protected override void OnPause()
+    {
+        base.OnPause();
+        SaveSessionSafely(critical: true);
+    }
+
+    protected override void OnStop()
+    {
+        base.OnStop();
+        SaveSessionSafely(critical: true);
+    }
+
+    protected override void OnDestroy()
+    {
+        SaveSessionSafely(critical: true);
+        base.OnDestroy();
+    }
+
+    private void SaveSessionSafely(bool critical)
+    {
+        try
+        {
+            // OnPause -> OnStop -> OnDestroy can happen back-to-back. Don’t queue multiple saves.
+            if (System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 1) == 1)
+                return;
+
+            var now = DateTime.UtcNow.Ticks;
+            var last = System.Threading.Interlocked.Read(ref _lastLifecycleSaveTicks);
+
+            // Throttle to at most once per 2 seconds.
+            if (last != 0 && new TimeSpan(now - last) < TimeSpan.FromSeconds(2))
+            {
+                System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);
+                return;
+            }
+
+            System.Threading.Interlocked.Exchange(ref _lastLifecycleSaveTicks, now);
+
+            if (EditorApp.Pix2dBootstrapper?.GetServiceProvider() is not { } sp)
+            {
+                System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);
+                return;
+            }
+
+            var sessionService = sp.GetService<Pix2d.Abstract.Services.ISessionService>();
+            if (sessionService is null)
+            {
+                System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);
+                return;
+            }
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    if (critical)
+                        await sessionService.ForceSaveAsync(TimeSpan.FromSeconds(3));
+                    else
+                        await sessionService.TrySaveSessionAsync();
+                }
+                catch (Exception ex)
+                {
+                    Android.Util.Log.Error("Pix2d", $"Failed to save session: {ex}");
+                }
+                finally
+                {
+                    System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);
+            Android.Util.Log.Error("Pix2d", $"Error in SaveSessionSafely: {ex}");
         }
     }
 }

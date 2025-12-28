@@ -1,8 +1,10 @@
-﻿namespace Pix2d.Abstract.Services;
+namespace Pix2d.Abstract.Services;
 
 public interface ISessionService
 {
-    Task TrySaveSessionAsync();
+    Task TrySaveSessionAsync(bool criticalSave = false);
         
     Task TryLoadSessionAsync();
+
+    Task ForceSaveAsync(TimeSpan timeout);
 }

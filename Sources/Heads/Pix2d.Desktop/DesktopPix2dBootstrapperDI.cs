@@ -10,6 +10,7 @@ using Pix2d.Plugins.Drawing;
 using Pix2d.Plugins.PixelText;
 using Pix2d.Plugins.PngCompress;
 using Pix2d.Services;
+using System;
 using System.Threading.Tasks;
 
 namespace Pix2d.Desktop;
@@ -49,7 +50,7 @@ public class DesktopPix2dBootstrapperDI : Pix2dBootstrapperDI // Inherits: Pix2d
     public override bool OnAppClosing()
     {
         var sessionService = GetServiceProvider().GetRequiredService<ISessionService>();
-        Task.Run(() => sessionService.TrySaveSessionAsync()).GetAwaiter().GetResult();
+        Task.Run(() => sessionService.ForceSaveAsync(TimeSpan.FromSeconds(5))).GetAwaiter().GetResult();
         return true;
     }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -25,7 +25,7 @@ public class AndroidPix2dBootstrapper : Pix2dBootstrapperDI
         return new Pix2DAppSettings
         {
             AppMode = Pix2DAppMode.SpriteEditor,
-            AutoSaveInterval = TimeSpan.FromSeconds(60),
+            AutoSaveInterval = TimeSpan.FromSeconds(30),
             StartupDocument = startupDoc,
             UseInternalFolder = true,
         };

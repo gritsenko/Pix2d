@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Primitives;
@@ -19,12 +19,15 @@ public sealed class SessionService(
     private readonly CancellationTokenSource _cts = new();
     private PeriodicTimer? _autoSaveTimer;
     private Task? _autoSaveTask;
+    private DateTime _lastSaveTime = DateTime.MinValue;
 
     private ProjectState ProjectState => appState.CurrentProject;
     private IWriteDestinationFolder? _sessionFolder;
 
     public async ValueTask DisposeAsync()
     {
+        StopAutoSave();
+
         await _cts.CancelAsync();
 
         if (_autoSaveTask is not null)
@@ -32,65 +35,57 @@ public sealed class SessionService(
             await _autoSaveTask;
         }
 
-        _autoSaveTimer?.Dispose();
         _cts.Dispose();
         _saveLock.Dispose();
     }
 
     public void StartAutoSave()
     {
-        var period = appState.Settings.AutoSaveInterval;
-        _autoSaveTimer?.Dispose();
+        StopAutoSave();
 
+        var period = appState.Settings.AutoSaveInterval;
         _autoSaveTimer = new PeriodicTimer(period);
-        _autoSaveTask = RunAutoSaveLoopAsync();
+        _autoSaveTask = RunAutoSaveLoopAsync(_autoSaveTimer);
     }
 
-    private async Task RunAutoSaveLoopAsync()
+    private void StopAutoSave()
+    {
+        _autoSaveTimer?.Dispose();
+        _autoSaveTimer = null;
+        _autoSaveTask = null;
+    }
+
+    private async Task RunAutoSaveLoopAsync(PeriodicTimer timer)
     {
         try
         {
-            while (await _autoSaveTimer!.WaitForNextTickAsync(_cts.Token))
+            while (await timer.WaitForNextTickAsync(_cts.Token))
             {
                 await TrySaveSessionAsync();
             }
         }
         catch (OperationCanceledException) { /* Normal shutdown */ }
+        catch (ObjectDisposedException) { /* Timer disposed during restart/shutdown */ }
         catch (Exception e)
         {
             Logger.LogException(e);
         }
     }
 
-    public async Task TrySaveSessionAsync()
+    public async Task TrySaveSessionAsync(bool criticalSave = false)
     {
-        if (appState.IsBusy || !await _saveLock.WaitAsync(0))
+        if (!await _saveLock.WaitAsync(criticalSave ? TimeSpan.FromSeconds(5) : TimeSpan.Zero))
+        {
+            if (criticalSave)
+            {
+                Logger.Log($"Critical save blocked: app busy or lock held");
+            }
             return;
+        }
 
         try
         {
-            if (!ProjectState.HasUnsavedChanges &&
-                ProjectState.LastSessionInfo?.ProjectPath == ProjectState.File?.Path)
-            {
-                Debug.WriteLine("No changes");
-                return;
-            }
-
-            SessionLogger.OpLog("Saving session");
-
-            var sessionInfo = new SessionInfo
-            {
-                ProjectPath = ProjectState.File?.Path ?? ProjectState.LastSessionInfo?.ProjectPath,
-                LoadFromSessionFolder = ProjectState.HasUnsavedChanges
-            };
-
-            if (ProjectState.HasUnsavedChanges)
-            {
-                var file = await GetSessionFileToWriteAsync();
-                await ProjectPacker.WriteProjectAsync(file, appState.CurrentProject.SceneNode);
-            }
-
-            settingsService.Set("session", sessionInfo);
+            await TrySaveSessionAsyncInternal(forceWriteToSessionFolder: false);
         }
         catch (Exception ex)
         {
@@ -138,7 +133,7 @@ public sealed class SessionService(
         }
     }
 
-    private async ValueTask<IWriteDestinationFolder> GetSessionFolderAsync() => 
+    private async ValueTask<IWriteDestinationFolder> GetSessionFolderAsync() =>
         _sessionFolder ??= await fileService.GetLocalFolderAsync("Sessions");
 
     private async Task<IFileContentSource> GetSessionFileToReadAsync()
@@ -157,5 +152,61 @@ public sealed class SessionService(
     {
         settingsService.Set<SessionInfo>("session", null);
         ProjectState.LastSessionInfo = null;
+    }
+
+    public async Task ForceSaveAsync(TimeSpan timeout)
+    {
+        var cts = new CancellationTokenSource(timeout);
+
+        try
+        {
+            await _saveLock.WaitAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.Log("Force save timed out after " + timeout.TotalSeconds + " seconds");
+            return;
+        }
+
+        try
+        {
+            await TrySaveSessionAsyncInternal(forceWriteToSessionFolder: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
+    }
+
+    private async Task TrySaveSessionAsyncInternal(bool forceWriteToSessionFolder)
+    {
+        if (!ProjectState.HasUnsavedChanges &&
+            ProjectState.LastSessionInfo?.ProjectPath == ProjectState.File?.Path &&
+            !forceWriteToSessionFolder)
+        {
+            Debug.WriteLine("No changes");
+            return;
+        }
+
+        SessionLogger.OpLog(forceWriteToSessionFolder ? "Force saving session" : "Saving session");
+
+        var sessionInfo = new SessionInfo
+        {
+            ProjectPath = ProjectState.File?.Path ?? ProjectState.LastSessionInfo?.ProjectPath,
+            LoadFromSessionFolder = forceWriteToSessionFolder || ProjectState.HasUnsavedChanges
+        };
+
+        if (sessionInfo.LoadFromSessionFolder)
+        {
+            var file = await GetSessionFileToWriteAsync();
+            await ProjectPacker.WriteProjectAsync(file, appState.CurrentProject.SceneNode);
+        }
+
+        settingsService.Set("session", sessionInfo);
+        _lastSaveTime = DateTime.UtcNow;
     }
 }
