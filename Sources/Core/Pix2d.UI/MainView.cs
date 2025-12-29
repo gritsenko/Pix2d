@@ -159,7 +159,7 @@ public class MainView : LocalizedComponentBase
                     .HorizontalAlignment(HorizontalAlignment.Right),
 
                 //new Border().Col(1).Row(2).Background(Colors.BurlyWood.ToBrush()),
-                new Canvas().Col(1).Row(2).Name("PopupContainer")
+                new Canvas().Col(1).Row(2).ColSpan(2).Name("PopupContainer")
                     .Ref(out _panelsContainer)
                     .Children(new Control[]
                     {
@@ -205,7 +205,7 @@ public class MainView : LocalizedComponentBase
                             .CloseButtonCommand(ViewCommands.HideLayerOptionsCommand)
                             .Width(300)
                             .Canvas_Top(40)
-                            .Canvas_Right(100)
+                            .Canvas_Right(120)
                             .Content(new LayerOptionsView())
 
                     }),
