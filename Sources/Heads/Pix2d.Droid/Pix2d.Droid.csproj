@@ -6,7 +6,6 @@
 		<!--<UseMauiEssentials>true</UseMauiEssentials>-->
 		<AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
 		<EnableAvaloniaXamlCompilation>false</EnableAvaloniaXamlCompilation>
-		<Platforms>AnyCPU</Platforms>
 		<SupportedOSPlatformVersion>25</SupportedOSPlatformVersion>
 		<ApplicationTitle>Pix2d</ApplicationTitle>
 		<ApplicationId>com.pix2d.pix2dapp</ApplicationId>

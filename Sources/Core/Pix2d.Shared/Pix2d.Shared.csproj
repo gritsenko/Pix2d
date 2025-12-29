@@ -6,7 +6,6 @@
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<Nullable>disable</Nullable>
-		<Platforms>AnyCPU;x86;x64;ARM64</Platforms>
 	</PropertyGroup>
 	<ItemGroup>
 		<Compile Remove="Abstract\Platform\**" />

@@ -5,7 +5,6 @@
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<Nullable>disable</Nullable>
-		<Platforms>AnyCPU;x86;x64;ARM64</Platforms>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Version>$(Pix2dVersion)</Version>
 	</PropertyGroup>

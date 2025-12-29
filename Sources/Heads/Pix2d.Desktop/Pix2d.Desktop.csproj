@@ -7,11 +7,11 @@
 		<AssemblyName>Pix2d</AssemblyName>
 		<Version>$(Pix2dVersion)</Version>
 		<PackageProjectUrl>https://pix2d.com</PackageProjectUrl>
-		<Platforms>AnyCPU;x86;x64;ARM64</Platforms>
+    
 		<PublishSingleFile>true</PublishSingleFile>
 		<SelfContained>false</SelfContained>
 		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-		<RuntimeIdentifiers>win-x86;win-x64;win-arm64;osx-arm64;osx-x64;linux-x64;linux-arm64;</RuntimeIdentifiers>
+		<RuntimeIdentifiers>win-x64;win-arm64;osx-arm64;osx-x64;linux-x64;linux-arm64;</RuntimeIdentifiers>
 		<UseSubFolderForOutputDirDuringMultiPlatformBuild>false</UseSubFolderForOutputDirDuringMultiPlatformBuild>
 		<IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
 		<IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX>
@@ -54,10 +54,7 @@
 	<PropertyGroup Condition="'$(Configuration)'=='Release'">
 		<RunAOTCompilation>true</RunAOTCompilation>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-		<PlatformTarget>x86</PlatformTarget>
-		<RuntimeIdentifier>win-x86</RuntimeIdentifier>
-	</PropertyGroup>
+	<!-- Removed x86 platform support -->
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
 		<PlatformTarget>x64</PlatformTarget>
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
