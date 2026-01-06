@@ -101,6 +101,13 @@ jobs:
       with:
         dotnet-version: 9.0.x
 
+    - name: Install Android workload
+      shell: pwsh
+      run: |
+        dotnet --info
+        dotnet workload restore ${{ env.ANDROID_PROJECT_PATH }}
+        dotnet workload install android
+
     - name: Get Version
       id: version
       shell: pwsh
