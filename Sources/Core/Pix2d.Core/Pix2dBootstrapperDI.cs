@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Tools;
-using Pix2d.Abstract.Services;
 using Pix2d.Services;
 using Pix2d.CommonNodes;
 using Pix2d.Infrastructure;
@@ -72,8 +71,6 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
 
         services.AddSingleton<SpriteEditor>(); //Depends on: IDrawingService, IViewPortRefreshService, IMessenger, AppState, IOperationService
         services.AddSingleton<IEditService, EditService>(); // Depends on: IViewPortRefreshService, IViewPortService, ISelectionService, AppState, IMessenger, SpriteEditor
-
-        services.AddSingleton<IObjectCreationService, ObjectCreationService>(); // Depends on: ISelectionService, ISceneService
 
         services.AddSingleton<IExportService, ExportService>(); // Depends on: AppState, IMessenger, IPlatformStuffService
 

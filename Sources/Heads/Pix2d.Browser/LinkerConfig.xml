@@ -1,4 +1,5 @@
 ﻿<linker>
+	<assembly fullname="Avalonia.Markup.Declarative" preserve="all" />
 	<assembly fullname="Pix2d.Browser" preserve="all" />
 	<assembly fullname="Pix2d.Core" preserve="all" />
 	<assembly fullname="Pix2d.Infrastructure" preserve="all" />

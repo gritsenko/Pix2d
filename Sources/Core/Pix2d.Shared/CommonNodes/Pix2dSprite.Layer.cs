@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Newtonsoft.Json;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -38,6 +38,8 @@ public class LayerFrameMeta
 
 public partial class Pix2dSprite
 {
+    public int LayersCount => Nodes.Count;
+
     public class Layer : SKNode
     {
         private int CurrentFrameIndex { get; set; }
@@ -63,12 +65,12 @@ public partial class Pix2dSprite
 
         public Layer Copy()
         {
-            var copy = this.Clone();
+            var copy = this.Clone() as Layer ?? throw new InvalidOperationException("Clone did not return a Layer");
             for (var i = 0; i < Nodes.Count; i++)
             {
-                if (copy.Nodes[i] is SpriteNode sprite)
+                if (i < copy.Nodes.Count && copy.Nodes[i] is SpriteNode sprite)
                 {
-                    sprite.Bitmap = sprite.Bitmap.Copy();
+                    sprite.Bitmap = sprite.Bitmap?.Copy();
                 }
             }
 
@@ -94,7 +96,11 @@ public partial class Pix2dSprite
 
             if (Frames.Count == 0 && Nodes.Count > 0)
             {
-                for (var i = 0; i < Nodes.Count; i++) InsertFrameFromBitmapNode(i, (BitmapNode)Nodes[i]);
+                for (var i = 0; i < Nodes.Count; i++)
+                {
+                    if (Nodes[i] is BitmapNode bitmapNode)
+                        InsertFrameFromBitmapNode(i, bitmapNode);
+                }
             }
         }
 
@@ -152,7 +158,7 @@ public partial class Pix2dSprite
         {
             var sprite = GetSpriteByFrame(index);
 
-            if (data == null)
+            if (data == null || sprite == null)
             {
                 ClearFrame(index);
                 return;
@@ -226,7 +232,7 @@ public partial class Pix2dSprite
                     continue;
 
                 var destNode = GetSpriteByFrame(i);
-                destNode.MergeFrom(srcNode, sourceLayer.Opacity);
+                destNode?.MergeFrom(srcNode, sourceLayer.Opacity);
             }
         }
 
@@ -381,8 +387,11 @@ public partial class Pix2dSprite
             if (HasFrameUniqueSprite(frame))
             {
                 var sprite = GetSpriteByFrame(frame);
-                onSpriteDeletedAction?.Invoke(sprite);
-                sprite.RemoveFromParent();
+                if (sprite != null)
+                {
+                    onSpriteDeletedAction?.Invoke(sprite);
+                    sprite.RemoveFromParent();
+                }
             }
             else
             {

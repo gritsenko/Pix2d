@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Pix2d.Abstract.Selection;
 using Pix2d.Selection;
 using SkiaNodes;
@@ -7,24 +7,25 @@ using SkiaSharp;
 
 namespace Pix2d.InteractiveNodes.Thumbs;
 
-public class RotateThumbNode : NodeManipulateThumbBase, IViewPortBindable
+    public class RotateThumbNode : NodeManipulateThumbBase, IViewPortBindable
 {
     public SKColor StrokeColor = SKColor.Parse("#ff4384de");
     private SKPoint _initialThumbPos;
-    private Dictionary<SKNode, SKPoint> _initialTargetsPos;
-    private ViewPort _bindedViewPort;
+    private Dictionary<SKNode, SKPoint>? _initialTargetsPos;
+    private ViewPort? _bindedViewPort;
     private SKPoint _borderMidPoint;
 
-    public Func<bool> AngleLockProviderFunc { get; set; }
+    public Func<bool>? AngleLockProviderFunc { get; set; }
 
     public RotateThumbNode()
     {
         Size = new SKSize(24, 24);
         PivotPosition = new SKPoint(12, 12);
+        _initialThumbPos = GetGlobalPosition();
 
-        DragStarted += OnDragStarted;
-        DragDelta += OnDragDelta;
-        DragComplete += OnDragComplete;
+        DragStarted += OnDragStarted!;
+        DragDelta += OnDragDelta!;
+        DragComplete += OnDragComplete!;
 
     }
 
@@ -32,12 +33,12 @@ public class RotateThumbNode : NodeManipulateThumbBase, IViewPortBindable
     {
         _initialThumbPos = GetGlobalPosition();
 
-        _initialTargetsPos = TargetSelection.Nodes.ToDictionary(x => x, x => x.GetGlobalPosition());
+        _initialTargetsPos = TargetSelection.Nodes.ToDictionary(x => x, x => x.GetGlobalPosition())!;
     }
 
     private void OnDragComplete(object sender, DragCompletedEventArgs e)
     {
-        _initialTargetsPos = null;
+        _initialTargetsPos = null!;
     }
 
     private void OnDragDelta(object sender, DragDeltaEventArgs e)
@@ -50,9 +51,10 @@ public class RotateThumbNode : NodeManipulateThumbBase, IViewPortBindable
         var newPos = _initialThumbPos + delta;
 
         var frame = TargetSelection.Frame;
+        if (frame == null) return;
         var centerPoint = frame.GetGlobalTransform().MapPoint(new SKPoint(frame.Size.Width / 2f, frame.Size.Height / 2f));
 
-        var angle = (float) ( Math.Atan2(newPos.X - centerPoint.X, newPos.Y - centerPoint.Y) * (180 / Math.PI) );
+        var angle = (float)(Math.Atan2(newPos.X - centerPoint.X, newPos.Y - centerPoint.Y) * (180 / Math.PI));
 
         if (AngleLockProviderFunc?.Invoke() == true)
         {
@@ -68,10 +70,11 @@ public class RotateThumbNode : NodeManipulateThumbBase, IViewPortBindable
 
     protected override void AdjustDimensionsToTargets(NodesSelection? selection)
     {
-        if(selection == null || _bindedViewPort == null)
+        if (selection == null || _bindedViewPort == null)
             return;
 
         var frame = selection.Frame;
+        if (frame == null) return;
         var x0 = frame.Size.Width / 2f;
         var midPoint = new SKPoint(x0, -_bindedViewPort.PixelsToWorld(64));
         Position = frame.GetGlobalTransform().MapPoint(midPoint);

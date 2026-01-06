@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 using System.Reflection;
 
 namespace Mvvm;
 
 public class WeakAction<T> : WeakAction, IExecuteWithObject
 {
-    private Action<T> _staticAction;
+    private Action<T>? _staticAction;
 
-    public override string MethodName => _staticAction != null ? _staticAction.GetMethodInfo().Name : Method.Name;
+    public override string MethodName => _staticAction != null ? _staticAction.GetMethodInfo().Name : Method?.Name ?? string.Empty;
 
     public override bool IsAlive
     {
@@ -19,13 +19,15 @@ public class WeakAction<T> : WeakAction, IExecuteWithObject
                 return false;
             }
 
-            if (_staticAction == null) return Reference.IsAlive;
+            if (_staticAction == null) return Reference!.IsAlive;
             return Reference == null || Reference.IsAlive;
         }
     }
 
+    object IExecuteWithObject.Target => Target ?? new object();
+
     public WeakAction(Action<T> action)
-        : this(action?.Target, action)
+        : this(action.Target!, action)
     {
     }
 
@@ -48,7 +50,7 @@ public class WeakAction<T> : WeakAction, IExecuteWithObject
 
     public new void Execute()
     {
-        Execute(default(T));
+        Execute(default!);
     }
 
     public void Execute(T parameter)
@@ -68,10 +70,10 @@ public class WeakAction<T> : WeakAction, IExecuteWithObject
         {
             Method.Invoke(
                 actionTarget,
-                new object[]
+                new object?[]
                 {
                     parameter
-                });
+                }!);
         }
     }
 

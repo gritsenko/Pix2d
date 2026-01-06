@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 
 namespace Mvvm;
@@ -6,14 +6,14 @@ namespace Mvvm;
 [Obsolete]
 public class RelayCommand<T> : IRelayCommand
 {
-    public string LogEventName;
+    public string? LogEventName;
     private readonly WeakAction<T> _execute;
-    private readonly WeakFunc<T, bool> _canExecute;
+    private readonly WeakFunc<T, bool>? _canExecute;
 
-    public event EventHandler CanExecuteChanged;
+    public event EventHandler? CanExecuteChanged;
 
     public RelayCommand(Action<T> execute)
-        : this(execute, null)
+        : this(execute, null!)
     {
     }
 
@@ -38,7 +38,7 @@ public class RelayCommand<T> : IRelayCommand
         handler?.Invoke(this, EventArgs.Empty);
     }
 
-    public bool CanExecute(object parameter)
+    public bool CanExecute(object? parameter)
     {
         if (_canExecute == null)
         {
@@ -46,14 +46,14 @@ public class RelayCommand<T> : IRelayCommand
         }
 
         if (parameter == null && typeof(T).GetTypeInfo().IsValueType)
-        {
-            return _canExecute.Execute(default(T));
-        }
+            {
+                return _canExecute!.Execute(default(T)!);
+            }
 
-        return _canExecute.Execute((T)parameter);
+        return _canExecute!.Execute((T)parameter!);
     }
 
-    public virtual void Execute(object parameter)
+    public virtual void Execute(object? parameter)
     {
         var val = parameter;
 
@@ -62,15 +62,15 @@ public class RelayCommand<T> : IRelayCommand
         //    Logger.Log("Command: " + LogEventName);
         //}
 
-        if (CanExecute(val))
+        if (CanExecute(val!))
         {
             if (val == null && typeof(T).GetTypeInfo().IsValueType)
             {
-                _execute.Execute(default(T));
+                _execute.Execute(default(T)!);
             }
             else
             {
-                _execute.Execute((T)val);
+                _execute.Execute((T)val!);
             }
         }
     }

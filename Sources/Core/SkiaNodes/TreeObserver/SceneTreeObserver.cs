@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SkiaNodes.TreeObserver;
@@ -7,8 +7,8 @@ public class SceneTreeObserver
 {
     private static readonly Dictionary<SKNode, HashSet<Action<StructureChangedEventArgs>>> _subscribers = new Dictionary<SKNode, HashSet<Action<StructureChangedEventArgs>>>();
 
-    public static event EventHandler<NodesAddedEventArgs> NodesAdded;
-    public static event EventHandler<NodesRemovedEventArgs> NodesRemoved;
+    public static event EventHandler<NodesAddedEventArgs>? NodesAdded;
+    public static event EventHandler<NodesRemovedEventArgs>? NodesRemoved;
 
     public static void OnNodesAdded(SKNode addedTo, IEnumerable<SKNode> addedNodes)
     {
@@ -32,7 +32,7 @@ public class SceneTreeObserver
             {
                 var subscribedNode = subscriber.Key;
 
-                if (subscribedNode == changedNode || changedNode.IsDescendantOf(subscribedNode))
+                if (changedNode != null && (subscribedNode == changedNode || changedNode.IsDescendantOf(subscribedNode)))
                 foreach (var callback in subscriber.Value)
                 {
                     callback?.Invoke(e);

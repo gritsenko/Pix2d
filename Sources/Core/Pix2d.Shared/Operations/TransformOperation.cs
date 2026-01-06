@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Pix2d.Primitives.Operations;
 using SkiaNodes;
 
@@ -47,6 +47,7 @@ public class TransformOperation : EditOperationBase
 
     public override IEnumerable<SKNode> GetEditedNodes()
     {
+        if (_initialStates == null) return Array.Empty<SKNode>();
         return _initialStates.Select(x => x.TargetNode);
     }
 

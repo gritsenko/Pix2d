@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 using System.Reflection;
 
 namespace Mvvm;
 
 public class WeakFunc<T, TResult> : WeakFunc<TResult>
 {
-    private Func<T, TResult> _staticFunc;
+    private Func<T, TResult>? _staticFunc;
 
-    public override string MethodName => _staticFunc != null ? _staticFunc.GetMethodInfo().Name : Method.Name;
+    public override string MethodName => _staticFunc != null ? _staticFunc.GetMethodInfo().Name : Method?.Name ?? string.Empty;
     public override bool IsAlive
     {
         get
@@ -18,13 +18,13 @@ public class WeakFunc<T, TResult> : WeakFunc<TResult>
                 return false;
             }
 
-            if (_staticFunc == null) return Reference.IsAlive;
+            if (_staticFunc == null) return Reference!.IsAlive;
             return Reference == null || Reference.IsAlive;
         }
     }
 
     public WeakFunc(Func<T, TResult> func)
-        : this(func?.Target, func)
+        : this(func.Target!, func)
     {
     }
 
@@ -47,7 +47,7 @@ public class WeakFunc<T, TResult> : WeakFunc<TResult>
 
     public new TResult Execute()
     {
-        return Execute(default(T));
+        return Execute(default!);
     }
 
     public TResult Execute(T parameter)
@@ -59,26 +59,26 @@ public class WeakFunc<T, TResult> : WeakFunc<TResult>
 
         var funcTarget = FuncTarget;
 
-        if (!IsAlive) return default(TResult);
+        if (!IsAlive) return default!;
         if (Method != null
             && FuncReference != null
             && funcTarget != null)
         {
-            return (TResult) Method.Invoke(
+            return (TResult) Method!.Invoke(
                 funcTarget,
-                new object[]
+                new object?[]
                 {
-                    parameter
-                });
+                    parameter!
+                }!)!;
         }
 
-        return default(TResult);
+        return default!;
     }
 
     public object ExecuteWithObject(object parameter)
     {
-        var parameterCasted = (T)parameter;
-        return Execute(parameterCasted);
+        var parameterCasted = (T)parameter!;
+        return Execute(parameterCasted)!;
     }
     public new void MarkForDeletion()
     {

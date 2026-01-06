@@ -191,6 +191,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void DeleteLayer(Pix2dSprite.Layer layerToDelete = null)
     {
+        if (CurrentSprite.LayersCount <= 1) 
+            return;
+
         var layer = layerToDelete ?? SelectedLayer;
         var operation = new DeleteLayerOperation(layer.Yield());
         _operationService.InvokeAndPushOperations(operation);

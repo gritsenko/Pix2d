@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Pix2d.Abstract;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -39,7 +39,7 @@ public class ProjectState : StateBase
 
     public SKNode? FrameEditorNode { get; set; }
 
-    public INodesSelection Selection { get; set; }
+    public INodesSelection Selection { get; set; } = null!;
 
     public SKSize SelectionSize => HasSelection ? Selection.Bounds.Size : (SceneNode?.GetChildrenBounds().Size ?? SKSize.Empty);
     public bool HasSelection => Selection?.Nodes?.Any() == true;
@@ -53,7 +53,7 @@ public class ProjectState : StateBase
     public ViewPortState ViewPortState { get; set; } = new();
     #region Not serializable
 
-    public SessionInfo LastSessionInfo { get; set; }
+    public SessionInfo LastSessionInfo { get; set; } = new();
     //public bool IsAnimationPlaying { 
     //    get => Get<bool>();
     //    set => Set(value);

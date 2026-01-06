@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using SkiaNodes.Extensions;
 
 namespace SkiaNodes;
@@ -13,7 +13,7 @@ public class GroupNode : SKNode, IGroupNode
             this.Size = rect.Size;
 
             var oldPos = this.Position;
-            this.Position = Parent.GetLocalPosition(rect.Location);
+            this.Position = Parent?.GetLocalPosition(rect.Location) ?? rect.Location;
 
             foreach(var node in Nodes)
             {

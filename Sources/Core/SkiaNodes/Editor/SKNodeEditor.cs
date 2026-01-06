@@ -1,8 +1,8 @@
-﻿namespace SkiaNodes.Editor;
+namespace SkiaNodes.Editor;
 
 public class SkNodesEditor
 {
-    private SKNode[] _selectedNodes;
+    private SKNode[] _selectedNodes = [];
 
 
     /// <summary>

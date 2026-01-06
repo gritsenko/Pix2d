@@ -1,4 +1,4 @@
-﻿using SkiaNodes.Render;
+using SkiaNodes.Render;
 using SkiaNodes.Serialization;
 using SkiaSharp;
 using System.Diagnostics;
@@ -28,29 +28,29 @@ public static class SKNodeExtensions
         return rect;
     }
 
-    public static SKNode GetTopNode(this IEnumerable<SKNode> nodes)
+    public static SKNode? GetTopNode(this IEnumerable<SKNode>? nodes)
     {
         return nodes?.LastOrDefault();
     }
 
-    public static SKNode GetBottomNode(this IEnumerable<SKNode> nodes)
+    public static SKNode? GetBottomNode(this IEnumerable<SKNode>? nodes)
     {
         return nodes?.FirstOrDefault();
     }
 
-    public static SKNode GetTopNode(this IEnumerable<SKNode> nodes, Func<SKNode, bool> condition)
+    public static SKNode? GetTopNode(this IEnumerable<SKNode>? nodes, Func<SKNode, bool> condition)
     {
         return nodes?.LastOrDefault(condition);
     }
 
-    public static SKNode GetBottomNode(this IEnumerable<SKNode> nodes, Func<SKNode, bool> condition)
+    public static SKNode? GetBottomNode(this IEnumerable<SKNode>? nodes, Func<SKNode, bool> condition)
     {
         return nodes?.FirstOrDefault(condition);
     }
 
-    public static IEnumerable<SKNode> GetParents(this IEnumerable<SKNode> nodes)
+    public static IEnumerable<SKNode?> GetParents(this IEnumerable<SKNode>? nodes)
     {
-        return nodes.Select(selectedNode => selectedNode.Parent).Distinct();
+        return nodes?.Select(selectedNode => selectedNode.Parent).Distinct() ?? [];
     }
 
     public static IEnumerable<SKNode> GetParentsChain(this SKNode node)
@@ -91,11 +91,15 @@ public static class SKNodeExtensions
                 yield return curNode;
 
             for (var i = curNode.Nodes.Count - 1; i >= 0; i--)
-                toProcess.Push(curNode.Nodes[i]);
+            {
+                var childNode = curNode.Nodes[i];
+                if (childNode != null)
+                    toProcess.Push(childNode);
+            }
         }
     }
 
-    public static SKNode FindChildByName(this SKNode parent, string childName)
+    public static SKNode? FindChildByName(this SKNode parent, string childName)
     {
         return parent.GetVisibleDescendants(x => x.Name == childName).FirstOrDefault();
     }
@@ -107,7 +111,7 @@ public static class SKNodeExtensions
     /// <param name="includeAdorners">add adorner layer and it's nodes to result</param>
     /// <param name="includeSelf">include this node in result enumeration</param>
     /// <returns></returns>
-    public static IEnumerable<SKNode> GetVisibleDescendants(this SKNode node, Func<SKNode, bool> filterCondition = null,
+    public static IEnumerable<SKNode> GetVisibleDescendants(this SKNode node, Func<SKNode, bool>? filterCondition = null,
         bool includeAdorners = true, bool includeSelf = false)
     {
         var toProcess = new Stack<SKNode>();
@@ -115,7 +119,11 @@ public static class SKNodeExtensions
         void PushNode(SKNode n)
         {
             if (includeAdorners && n.HasAdornerLayer)
-                toProcess.Push(n.AdornerLayer);
+            {
+                var adornerLayer = n.AdornerLayer;
+                if (adornerLayer != null)
+                    toProcess.Push(adornerLayer);
+            }
 
             toProcess.Push(n);
         }
@@ -137,7 +145,7 @@ public static class SKNodeExtensions
                 var curChild = curNode.Nodes[i];
                 if (curChild == null)
                 {
-                    // This means that the node structure was changed in race condition and we probably want to skip
+                    // This means that node structure was changed in race condition and we probably want to skip
                     // this frame. Otherwise something terrible might happen.
 #if DEBUG
                     Debugger.Break();
@@ -145,8 +153,10 @@ public static class SKNodeExtensions
                         yield break;
 #endif
                 }
-
-                PushNode(curChild);
+                else
+                {
+                    PushNode(curChild);
+                }
             }
         }
     }
@@ -156,7 +166,7 @@ public static class SKNodeExtensions
     /// </summary>
     /// <param name="node">Node to clone</param>
     /// <returns></returns>
-    public static TNode Clone<TNode>(this TNode node) where TNode : SKNode
+    public static TNode? Clone<TNode>(this TNode node) where TNode : SKNode
     {
         using var serializer = new NodeSerializer();
         var nodeDef = serializer.Serialize(node);

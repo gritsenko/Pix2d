@@ -12,43 +12,37 @@ public class ObservableObject : INotifyPropertyChanged
     protected void RunInUiThread(Action action)
     {
         if (_notificationContext != null)
-            _notificationContext.Post(_ => action(), null);
+            _notificationContext.Post(_ => action(), null!);
         else
             action?.Invoke();
     }
 
-    protected T Get<T>(T defaultValue = default(T), [CallerMemberName] string propertyName = null)
+    protected T Get<T>(T? defaultValue = default, [CallerMemberName] string propertyName = null!)
     {
-        if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
-
-        object value;
+        object? value;
 
         if (_propertyBackingDictionary.TryGetValue(propertyName, out value))
         {
-            return (T)value;
+            return (T)value!;
         }
 
-        _propertyBackingDictionary[propertyName] = defaultValue;
-        return defaultValue;
+        _propertyBackingDictionary[propertyName] = defaultValue!;
+        return defaultValue!;
     }
 
-    protected virtual bool Set<T>(T newValue, bool forceNotifyPropertyChanged = false, [CallerMemberName] string propertyName = null)
+    protected virtual bool Set<T>(T? newValue, bool forceNotifyPropertyChanged = false, [CallerMemberName] string propertyName = null!)
     {
-        if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
-
         if (EqualityComparer<T>.Default.Equals(newValue, Get(default(T), propertyName))
             && !forceNotifyPropertyChanged) return false;
 
-        _propertyBackingDictionary[propertyName] = newValue;
+        _propertyBackingDictionary[propertyName] = newValue!;
         OnPropertyChanged(propertyName);
         return true;
 
     }
 
-    public virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    public virtual void OnPropertyChanged([CallerMemberName] string propertyName = null!)
     {
-        if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
-
         var propertyChanged = PropertyChanged;
         if (propertyChanged == null) return;
 

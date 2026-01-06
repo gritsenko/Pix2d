@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using SkiaNodes.Interactive;
 using SkiaSharp;
@@ -11,13 +11,13 @@ public partial class SKNode : IInteractive
     protected SKPoint EndPos;
     protected SKPoint DistanceToPointer;
 
-    public event EventHandler Clicked;
-    public event EventHandler<PointerActionEventArgs> DoubleClicked;
-    public event EventHandler<PointerActionEventArgs> PointerPressed;
-    public event EventHandler<PointerActionEventArgs> PointerReleased;
-    public event EventHandler<PointerActionEventArgs> PointerMoved;
-    public event EventHandler PointerEntered;
-    public event EventHandler PointerExited;
+    public event EventHandler? Clicked;
+    public event EventHandler<PointerActionEventArgs>? DoubleClicked;
+    public event EventHandler<PointerActionEventArgs>? PointerPressed;
+    public event EventHandler<PointerActionEventArgs>? PointerReleased;
+    public event EventHandler<PointerActionEventArgs>? PointerMoved;
+    public event EventHandler? PointerEntered;
+    public event EventHandler? PointerExited;
 
     private int _distanceMoved = 0;
 

@@ -1,10 +1,10 @@
-﻿namespace Mvvm.Messaging;
+namespace Mvvm.Messaging;
 
 public class MessageBase
 {
     public MessageBase()
     {
-        }
+    }
 
     public MessageBase(object sender)
     {
@@ -17,13 +17,13 @@ public class MessageBase
             Target = target;
         }
 
-    public object Sender
+    public object? Sender
     {
         get;
         protected set;
     }
 
-    public object Target
+    public object? Target
     {
         get;
         protected set;

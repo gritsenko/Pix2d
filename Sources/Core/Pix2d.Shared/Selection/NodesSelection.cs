@@ -1,9 +1,8 @@
-﻿#nullable enable
+#nullable enable
 using Pix2d.Abstract.Selection;
 using Pix2d.Abstract.Services;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
-using Pix2d.Primitives.Edit;
 using Pix2d.Primitives.Selection;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -13,13 +12,13 @@ namespace Pix2d.Selection;
 
 public class NodesSelection : INodesSelection
 {
-    public Func<SKNode[], bool> AspectLockProviderFunc { get; }
+    public Func<SKNode[], bool>? AspectLockProviderFunc { get; }
 
-    public event EventHandler Invalidated;
+    public event EventHandler? Invalidated;
 
     private readonly Action _onInvalidatedCallback;
     private readonly IOperationService? _operationService;
-    private TransformOperation _editOperation;
+    private TransformOperation? _editOperation;
 
     public bool GenerateOperations { get; set; } = true;
 
@@ -29,31 +28,31 @@ public class NodesSelection : INodesSelection
 
     public float X
     {
-        get => Frame.Position.X;
+        get => Frame?.Position.X ?? 0;
         set => SetPosition(new SKPoint(value, Y));
     }
 
     public float Y
     {
-        get => Frame.Position.Y;
+        get => Frame?.Position.Y ?? 0;
         set => SetPosition(new SKPoint(X, value));
     }
 
     public float Width
     {
-        get => Frame.Size.Width;
+        get => Frame?.Size.Width ?? 0;
         set => SetSize(value, GetNewHeight(value, LockAspect));
     }
 
     public float Height
     {
-        get => Frame.Size.Height;
+        get => Frame?.Size.Height ?? 0;
         set => SetSize(GetNewWidth(value, LockAspect), value);
     }
 
     public float Rotation
     {
-        get => Frame.Rotation;
+        get => Frame?.Rotation ?? 0;
         set => SetRotation(value);
     }
 
@@ -95,12 +94,16 @@ public class NodesSelection : INodesSelection
 
     public bool LockAspect => AspectLockProviderFunc?.Invoke(Nodes) ?? false;
 
-    public string Path { get; set; }
+    public string Path { get; set; } = string.Empty;
 
     public NodeExportMode ExportMode
     {
         get => Nodes?.Any() == true ? Nodes[0].DesignerState.ExportSettings.ExportMode : NodeExportMode.Export;
-        set => Nodes[0].DesignerState.ExportSettings.ExportMode = value;
+        set
+        {
+            if (Nodes?.Any() == true)
+                Nodes[0].DesignerState.ExportSettings.ExportMode = value;
+        }
     }
 
     public float ExportScale
@@ -124,15 +127,15 @@ public class NodesSelection : INodesSelection
     }
 
     public int NodesCount => Nodes.Length;
-    public SKNode Frame { get; set; }
+    public SKNode? Frame { get; set; }
 
 
     public NodesSelection(IEnumerable<SKNode> selectedNodes,
         Action onInvalidatedCallback,
-        Func<SKNode[], bool>? aspectLockProviderFunc = null, 
+        Func<SKNode[], bool>? aspectLockProviderFunc = null,
         IOperationService? operationService = null)
     {
-        AspectLockProviderFunc = aspectLockProviderFunc;
+        AspectLockProviderFunc = aspectLockProviderFunc ?? ((SKNode[] _) => false);
         _onInvalidatedCallback = onInvalidatedCallback;
         _operationService = operationService;
         Nodes = selectedNodes.ToArray();
@@ -144,6 +147,7 @@ public class NodesSelection : INodesSelection
 
     public void SetPosition(SKPoint newPos)
     {
+        if (Frame == null) return;
         var delta = newPos - Frame.Position;
         if (delta == SKPoint.Empty)
             return;
@@ -158,6 +162,7 @@ public class NodesSelection : INodesSelection
 
     public void SetPivotPosition(SKPoint newPos)
     {
+        if (Frame == null) return;
         var delta = newPos - Frame.PivotPosition;
         if (delta == SKPoint.Empty) return;
 
@@ -174,7 +179,8 @@ public class NodesSelection : INodesSelection
 
     public void SetSize(float newW, float newH)
     {
-        var delta = new SKPoint(newW - Width, newH - Height);
+        if (Frame == null) return;
+        var delta = new SKPoint(newW - Frame.Size.Width, newH - Frame.Size.Height);
 
         Frame.Size = new SKSize(newW, newH);
 
@@ -186,6 +192,7 @@ public class NodesSelection : INodesSelection
 
     public void SetRotation(float angleDegrees)
     {
+        if (Frame == null) return;
         var delta = angleDegrees - Frame.Rotation;
 
         Frame.Rotation = angleDegrees;
@@ -248,10 +255,13 @@ public class NodesSelection : INodesSelection
             return;
 
         Frame = new SKNode() { Name = "Selection frame" };
-        Frame.Size = LocalBounds.Size;
-        Frame.PivotPosition = new SKPoint(Frame.Size.Width / 2, Frame.Size.Height / 2);
-        Frame.Position = new SKPoint(LocalBounds.MidX, LocalBounds.MidY);
-        Frame.Rotation = 0;
+        if (Frame != null)
+        {
+            Frame.Size = LocalBounds.Size;
+            Frame.PivotPosition = new SKPoint(Frame.Size.Width / 2, Frame.Size.Height / 2);
+            Frame.Position = new SKPoint(LocalBounds.MidX, LocalBounds.MidY);
+            Frame.Rotation = 0;
+        }
     }
 
     private void UpdatePath()
@@ -271,64 +281,6 @@ public class NodesSelection : INodesSelection
         }
     }
 
-    private void SetNodesDirty()
-    {
-        foreach (var node in Nodes)
-        {
-            node.SetDirty();
-        }
-    }
-
-    public void UpdateParents(NodeReparentMode reparentMode)
-    {
-        if (reparentMode == NodeReparentMode.None)
-            return;
-
-        //var artboards = SceneService.GetCurrentSceneContainers<ArtboardNode>();
-        //var scene = SceneService.GetCurrentScene();
-
-        //if (reparentMode == NodeReparentMode.Overflow)
-        //{
-        //    foreach (var node in Nodes)
-        //    {
-        //        ReparentIfOverflow(node, artboards, scene);
-        //    }
-        //}
-    }
-
-    private static bool ReparentIfOverflow(SKNode node, IList<ArtboardNode> artboards, SKNode scene)
-    {
-        if (node is ArtboardNode)
-            return false;
-
-        if (node.Parent is IGroupNode)
-            return false;
-
-        var nodeBounds = node.GetBoundingBox();
-
-        foreach (var artboard in artboards)
-        {
-            var artboardBounds = artboard.GetBoundingBox();
-            if (artboardBounds.IntersectsWithInclusive(nodeBounds) || artboardBounds.Contains(nodeBounds))
-            {
-                if (node.Parent != artboard)
-                {
-                    artboard.Nodes.Add(node, true);
-                }
-
-                return true;
-            }
-        }
-
-        if (node.Parent != scene)
-        {
-            scene.Nodes.Add(node);
-            return true;
-        }
-
-        return false;
-    }
-
     public void SendBackward()
     {
         foreach (var node in Nodes.OrderBy(x => x.Index))
@@ -337,11 +289,13 @@ public class NodesSelection : INodesSelection
             var index = node.Index;
 
             var prevNodeIndex = index - 1;
-            if (prevNodeIndex < 0)
+            if (prevNodeIndex < 0 || parent == null)
             {
                 return;
             }
             var prevNode = parent.Nodes[prevNodeIndex];
+            if (prevNode == null) return;
+
             node.RemoveFromParent();
 
             var newIndex = prevNode.Index;
@@ -353,7 +307,8 @@ public class NodesSelection : INodesSelection
 
     public bool CanBringForward(SKNode node)
     {
-        return node.Index + 1 < node.Parent.Nodes.Count;
+        var parent = node.Parent;
+        return parent != null && node.Index + 1 < parent.Nodes.Count;
     }
 
     public void BringForward()
@@ -366,11 +321,13 @@ public class NodesSelection : INodesSelection
             var parent = node.Parent;
             var index = node.Index;
 
-            if (node.Index >= parent.Nodes.Count)
+            if (parent == null || node.Index >= parent.Nodes.Count)
                 return;
 
             var nextNodeIndex = index + 1;
             var nextNode = parent.Nodes[nextNodeIndex];
+            if (nextNode == null) return;
+
             node.RemoveFromParent();
 
             var newIndex = nextNode.Index + 1;
@@ -388,35 +345,6 @@ public class NodesSelection : INodesSelection
         }
 
         Nodes = [];
-        Invalidate();
-    }
-
-    public void Duplicate()
-    {
-        var listNewNodes = new SKNode[Nodes.Length];
-
-        for (var i = 0; i < Nodes.Length; i++)
-        {
-            var node = Nodes[i];
-            var newNode = node.Clone();
-            listNewNodes[i] = newNode;
-
-            if (node is ArtboardNode)
-            {
-                newNode.Position = new SKPoint(node.Position.X + node.Size.Width + 30, node.Position.Y);
-
-                throw new NotImplementedException("It's general mode operation, not implemented yet");
-
-                //SceneService.GetCurrentScene().Nodes.Insert(node.Index + 1, newNode, true);
-
-                newNode.SetDirty();
-                continue;
-            }
-
-            node.Parent.Nodes.Insert(node.Index + 1, newNode);
-        }
-
-        Nodes = listNewNodes.ToArray();
         Invalidate();
     }
 
@@ -532,7 +460,7 @@ public class NodesSelection : INodesSelection
             return;
 
         InvalidateGroups();
-        _editOperation.SetFinalData();
+        _editOperation?.SetFinalData();
         _operationService?.PushOperations(_editOperation);
     }
 
@@ -551,11 +479,11 @@ public class NodesSelection : INodesSelection
     {
         foreach (var node in nodes.ToArray())
         {
-            node.NodeInvalidated += Node_NodeInvalidated;
+            node.NodeInvalidated += Node_NodeInvalidated!;
         }
     }
 
-    private void Node_NodeInvalidated(object sender, EventArgs e)
+    private void Node_NodeInvalidated(object? sender, EventArgs e)
     {
         //Invalidate();
     }
@@ -564,7 +492,7 @@ public class NodesSelection : INodesSelection
     {
         foreach (var node in nodes.ToArray())
         {
-            node.NodeInvalidated -= Node_NodeInvalidated;
+            node.NodeInvalidated -= Node_NodeInvalidated!;
         }
     }
 

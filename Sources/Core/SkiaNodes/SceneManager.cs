@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SkiaNodes.Abstract;
@@ -9,14 +9,14 @@ namespace SkiaNodes;
 public class SceneManager
 {
     private SKNode _root = new RootNode() {Name = "Root node", IsInteractive = true};
-    private SKNode _scene;
-    private static SceneManager _instance;
+    private SKNode? _scene;
+    private static SceneManager? _instance;
 
     public static SceneManager Current => _instance ??= new SceneManager();
 
-    public event EventHandler SceneCreated;
-    public event EventHandler SceneRemoved;
-    public event EventHandler<StructureChangedEventArgs> SceneStructureChanged;
+    public event EventHandler? SceneCreated;
+    public event EventHandler? SceneRemoved;
+    public event EventHandler<StructureChangedEventArgs>? SceneStructureChanged;
 
 
     public void SetScene(SKNode scene)
@@ -46,13 +46,14 @@ public class SceneManager
         where TContainer : IContainerNode
     {
             var cs = GetCurrentScene();
-            return cs?.Nodes.OfType<TContainer>().ToList();
+            return cs?.Nodes.OfType<TContainer>().ToList() ?? new List<TContainer>();
         }
 
     private void OnSceneCreated()
     {
             SceneTreeObserver.Clear();
-            SceneTreeObserver.SubscribeToStructureChanges(_scene, OnSceneStructureChangedCallback);
+            if (_scene != null)
+                SceneTreeObserver.SubscribeToStructureChanges(_scene, OnSceneStructureChangedCallback);
             SceneCreated?.Invoke(this, EventArgs.Empty);
         }
 
@@ -68,7 +69,7 @@ public class SceneManager
             SceneStructureChanged?.Invoke(this, e);
         }
 
-    public SKNode GetCurrentScene()
+    public SKNode? GetCurrentScene()
     {
             return _scene;
         }

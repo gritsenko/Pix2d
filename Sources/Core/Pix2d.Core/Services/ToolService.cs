@@ -3,7 +3,6 @@ using System.Reflection;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
 using Pix2d.Resources;
-using Pix2d.Tools;
 
 namespace Pix2d.Services;
 
@@ -23,7 +22,6 @@ public class ToolService : IToolService
         _appState.WatchFor(x => x.CurrentProject, ActivateDefaultTool);
         _appState.CurrentProject.WatchFor(x => x.CurrentContextType, ActivateDefaultTool);
         _appState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, OnAnimationStateChanged);
-        RegisterTool<ObjectManipulationTool>(EditContextType.General);
     }
 
     public void ActivateTool(string key)

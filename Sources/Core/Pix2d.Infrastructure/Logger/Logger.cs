@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -25,7 +25,7 @@ public class Logger
 
     public static void Log(string message, params object[] args)
     {
-        _instance.AddLogEntry(null, message, args);
+        _instance.AddLogEntry(null!, message, args);
     }
 
     public static void Trace(string message, [CallerFilePath] string? callerFilePath = null, [CallerMemberName] string? callerMemberName = null)
@@ -41,12 +41,12 @@ public class Logger
             loggerTarget.OnLogged(entry);
     }
 
-    private void AddLogEntry(Exception ex, string message, object[]? args = default, string eventId = "unidentified_event")
+    private void AddLogEntry(Exception? ex, string message, object[]? args = default, string? eventId = null)
     {
-        var entry = new LogEntry(message, args)
+        var entry = new LogEntry(message, args ?? Array.Empty<object>())
         {
             Exception = ex,
-            EventId = eventId,
+            EventId = eventId ?? "unidentified_event",
             Level = ex != null ? LogLevel.Error : LogLevel.Info
         };
 
@@ -58,7 +58,7 @@ public class Logger
 
     public static void LogEventWithParams(string eventName, IDictionary<string, string?>? extraParams, IDictionary<string, double>? metrics = null)
     {
-        var entry = new LogEntry(eventName) { IsEvent = true, ExtraParams = extraParams, Metrics = metrics };
+        var entry = new LogEntry(eventName) { IsEvent = true, ExtraParams = extraParams?.ToDictionary(x => x.Key, x => x.Value ?? string.Empty), Metrics = metrics };
 
         foreach (var loggerTarget in _instance._targets)
             loggerTarget.OnLogged(entry);
@@ -81,6 +81,7 @@ public class LogEntry
     public LogEntry(string message, params object[] args)
     {
         Time = DateTime.Now;
+        EventId = string.Empty;
 
         if (args == null || args.Length == 0)
         {

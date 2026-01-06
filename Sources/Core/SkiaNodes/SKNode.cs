@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using SkiaNodes.Extensions;
 using SkiaNodes.TreeObserver;
 using SkiaSharp;
@@ -25,8 +25,8 @@ public partial class SKNode
     private Guid _id;
 
 
-    public event EventHandler NodeInvalidated;
-    public event EventHandler SizeChanged;
+    public event EventHandler? NodeInvalidated;
+    public event EventHandler? SizeChanged;
 
     public string Name { get; set; } = "New node";
 
