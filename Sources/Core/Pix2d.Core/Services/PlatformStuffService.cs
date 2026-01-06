@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Common.FileSystem;
+using Pix2d.UI;
 using SkiaNodes.Interactive;
 
 namespace Pix2d.Services;
@@ -62,7 +63,7 @@ public class PlatformStuffService : IPlatformStuffService
             await projectService.OpenFilesAsync([fileSource]);
         });
     }
-    
+
     public void OpenUrlInBrowser(string url)
     {
         //System.Diagnostics.Process.Start(url);

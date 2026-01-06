@@ -26,6 +26,7 @@ public class HostView : ComponentBase
 
     private TextBlock _textBlock;
     private ProgressBar _progressBar;
+
     public void LoadMainView(Type mainViewType, IServiceProvider serviceProvider)
     {
         Dispatcher.UIThread.InvokeAsync(() =>
@@ -36,7 +37,7 @@ public class HostView : ComponentBase
                     throw new Exception("Can't load main view!");
 
                 mainLayoutView.ViewInitialized += () => UpdateCanvas(mainLayoutView, serviceProvider);
-                
+
                 Child = mainLayoutView;
                 UpdateCanvas(mainLayoutView, serviceProvider);
             }
@@ -61,6 +62,21 @@ public class HostView : ComponentBase
 
         if (container is Decorator dec)
             dec.Child = new SkiaCanvas(serviceProvider);
+    }
+
+    public void SetUiScale(double scale)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (Child == null)
+                throw new Exception("HostView Child is null");
+
+            var layoutTransformControl = Child
+                .GetLogicalDescendants()
+                .OfType<LayoutTransformControl>()
+                .FirstOrDefault(x => x.Name == "LayoutTransformControl");
+            layoutTransformControl.LayoutTransform = new Avalonia.Media.ScaleTransform(scale, scale);
+        });
     }
 
 }

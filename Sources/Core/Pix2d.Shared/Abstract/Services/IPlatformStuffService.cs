@@ -89,4 +89,6 @@ public interface IPlatformStuffService
     /// </summary>
     /// <returns>A Task representing the asynchronous operation.</returns>
     Task OpenAppDataFolder();
+
+
 }

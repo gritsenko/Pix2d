@@ -23,6 +23,13 @@ public class AppState : StateBase
         set => Set(value);
     }
 
+    public double UiScale
+    {
+        get => Get<double>(1.0); 
+        set => Set(value);
+    }
+
+
     public LicenseType LicenseType
     {
         get => Get<LicenseType>(LicenseType.Essentials);

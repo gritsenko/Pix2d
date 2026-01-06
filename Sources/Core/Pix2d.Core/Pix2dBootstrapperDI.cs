@@ -2,6 +2,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Tools;
+using Pix2d.Abstract.Services;
+using Pix2d.Services;
 using Pix2d.CommonNodes;
 using Pix2d.Infrastructure;
 using Pix2d.Infrastructure.Tasks;
@@ -13,7 +15,6 @@ using Pix2d.Plugins.ImageFormats.SvgFormat;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Primitives;
-using Pix2d.Services;
 using Pix2d.Services.Project;
 using SkiaNodes.Serialization;
 using System.Reflection;
@@ -89,6 +90,9 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         //services.AddSingleton<ReviewService>();
 
         services.AddSingleton<DisableOnAnimationCommandBehavior>(); // Depends on: AppState
+
+        // UI scaling service
+        services.AddSingleton<IUiScaleService, AvaloniaUiScaleService>();
 
         LoadPlugins();
     }

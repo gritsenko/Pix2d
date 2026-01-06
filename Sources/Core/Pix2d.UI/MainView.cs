@@ -1,5 +1,6 @@
 ﻿using Avalonia.Animation;
 using Avalonia.Animation.Easings;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -70,185 +71,185 @@ public class MainView : LocalizedComponentBase
     ];
 
     protected override object Build() =>
-        new Grid()
-            .Ref(out _rootGrid)
-            .BindClass(() => Bounds.Width > 500, nameof(VisualStates.Wide))
-            .BindClass(() => Bounds.Width <= 500, nameof(VisualStates.Narrow))
-            .Cols("Auto, *, Auto")
-            .Rows("Auto, Auto, *, Auto, Auto")
-            .Children([
-                new Border().Col(0).Row(0)
-                    .ColSpan(3).RowSpan(5)
-                    .With(self =>
-                    {
-                        self.AddHandler(PointerPressedEvent, (_, e) =>
-                        {
-                            if (e.Source is StyledElement element) Messenger.Send(new WindowClickedMessage(element));
-                        }, RoutingStrategies.Tunnel);
-                    })
-                    .Name("Pix2dCanvasContainer"),
+        new Grid().Name("RootGrid").Children(
+            new Border()
+                .Name("Pix2dCanvasContainer")
+                .OnPointerPressed((e) => { 
+                    if (e.Source is StyledElement element) Messenger.Send(new WindowClickedMessage(element)); 
+                }, RoutingStrategies.Tunnel),
 
-                new Border().Col(0).Row(0)
-                    .IsVisible(() => AppState.CurrentProject.CurrentContextType == EditContextType.General3d)
-                    .ColSpan(3).RowSpan(5)
-                    .Child(new OpenGlView()),
+            new LayoutTransformControl()
+                .Ref(out _layoutTransformControl)
+                .Name("LayoutTransformControl")
+                .Child(
 
-                new AppMenuView().Ref(out _appMenuView).IsVisible(false).ColSpan(3),
+                    new Grid()
+                        .Name("UiGrid")
+                        .Ref(out _rootGrid)
+                        .BindClass(() => Bounds.Width > 500, nameof(VisualStates.Wide))
+                        .BindClass(() => Bounds.Width <= 500, nameof(VisualStates.Narrow))
+                        .Cols("Auto, *, Auto")
+                        .Rows("Auto, Auto, *, Auto, Auto")
+                        .Children([
+                            new AppMenuView().Ref(out _appMenuView).IsVisible(false).ColSpan(3),
 
-                new TopBarView().Ref(out _topBarView).Row(1).ColSpan(3)
-                    .Margin(0, 0, 0, 1),
+                            new TopBarView().Ref(out _topBarView).Row(1).ColSpan(3)
+                                .Margin(0, 0, 0, 1),
 
-                new ToolBarView()
-                    .HorizontalAlignment(HorizontalAlignment.Left)
-                    .VerticalAlignment(VerticalAlignment.Center),
+                            new ToolBarView()
+                                .HorizontalAlignment(HorizontalAlignment.Left)
+                                .VerticalAlignment(VerticalAlignment.Center),
 
-                new AdditionalTopBarView().Col(2).Row(3)
-                    .Margin(0, 0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin),
+                            new AdditionalTopBarView().Col(2).Row(3)
+                                .Margin(0, 0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin),
 
-                new RatePromptView().Col(1).Row(2)
-                    .IsVisible(() => UiState.ShowRatePrompt),
+                            new RatePromptView().Col(1).Row(2)
+                                .IsVisible(() => UiState.ShowRatePrompt),
 
-                new InfoPanelView().Col(0).Row(3).ColSpan(2)
-                    .Margin(StaticResources.Measures.PanelMargin)
-                    .HorizontalAlignment(HorizontalAlignment.Left)
-                    .VerticalAlignment(VerticalAlignment.Bottom),
+                            new InfoPanelView().Col(0).Row(3).ColSpan(2)
+                                .Margin(StaticResources.Measures.PanelMargin)
+                                .HorizontalAlignment(HorizontalAlignment.Left)
+                                .VerticalAlignment(VerticalAlignment.Bottom),
 
-                new ZoomPanelView().Col(0).ColSpan(3).Row(3)
-                    .Margin(StaticResources.Measures.PanelMargin)
-                    .HorizontalAlignment(HorizontalAlignment.Center),
+                            new ZoomPanelView().Col(0).ColSpan(3).Row(3)
+                                .Margin(StaticResources.Measures.PanelMargin)
+                                .HorizontalAlignment(HorizontalAlignment.Center),
 
 
-                new Grid().Col(0).ColSpan(3).Row(2).Rows("auto,auto")
-                    .Margin(StaticResources.Measures.PanelMargin)
-                    .Children(
-                        new ActionsBarView()
-                            .IsVisible(() => UiState.ShowExtraTools)
-                            .HorizontalAlignment(HorizontalAlignment.Center)
-                            .VerticalAlignment(VerticalAlignment.Top),
+                            new Grid().Col(0).ColSpan(3).Row(2).Rows("auto,auto")
+                                .Margin(StaticResources.Measures.PanelMargin)
+                                .Children(
+                                    new ActionsBarView()
+                                        .IsVisible(() => UiState.ShowExtraTools)
+                                        .HorizontalAlignment(HorizontalAlignment.Center)
+                                        .VerticalAlignment(VerticalAlignment.Top),
 
-                        //new ClipboardActionsView().Row(1)
-                        //    .IsVisible(UiState.ShowClipboardBar)
-                        //    .HorizontalAlignment(HorizontalAlignment.Center)
-                        //    .VerticalAlignment(VerticalAlignment.Top),
+                                    //new ClipboardActionsView().Row(1)
+                                    //    .IsVisible(UiState.ShowClipboardBar)
+                                    //    .HorizontalAlignment(HorizontalAlignment.Center)
+                                    //    .VerticalAlignment(VerticalAlignment.Top),
 
-                        new TopToolUiContainer().Row(1)
-                            //.IsVisible(() => UiState.TopToolUi != null)
-                            .HorizontalAlignment(HorizontalAlignment.Center)
-                            .VerticalAlignment(VerticalAlignment.Top)
-                    ),
+                                    new TopToolUiContainer().Row(1)
+                                        //.IsVisible(() => UiState.TopToolUi != null)
+                                        .HorizontalAlignment(HorizontalAlignment.Center)
+                                        .VerticalAlignment(VerticalAlignment.Top)
+                                ),
 
-                new TimeLineView()
-                    {
-                        Transitions = new Transitions
-                        {
-                            new TransformOperationsTransition()
-                            {
-                                Property = TimeLineView.RenderTransformProperty,
-                                Duration = TimeSpan.FromSeconds(0.3),
-                                Easing = new BackEaseOut()
-                            }
-                        }
-                    }
-                    .Col(0).Row(4).Name("timeLine")
-                    .ColSpan(3)
-                    .VerticalAlignment(VerticalAlignment.Bottom)
-                    .BindClass(() => UiState.ShowTimeline, "shown"),
+                            new TimeLineView()
+                                {
+                                    Transitions = new Transitions
+                                    {
+                                        new TransformOperationsTransition()
+                                        {
+                                            Property = TimeLineView.RenderTransformProperty,
+                                            Duration = TimeSpan.FromSeconds(0.3),
+                                            Easing = new BackEaseOut()
+                                        }
+                                    }
+                                }
+                                .Col(0).Row(4).Name("timeLine")
+                                .ColSpan(3)
+                                .VerticalAlignment(VerticalAlignment.Bottom)
+                                .BindClass(() => UiState.ShowTimeline, "shown"),
 
-                new LayersView().Col(2).Row(2)
-                    .IsVisible(() => UiState.ShowLayers)
-                    .HorizontalAlignment(HorizontalAlignment.Right),
+                            new LayersView().Col(2).Row(2)
+                                .IsVisible(() => UiState.ShowLayers)
+                                .HorizontalAlignment(HorizontalAlignment.Right),
 
-                //new Border().Col(1).Row(2).Background(Colors.BurlyWood.ToBrush()),
-                new Canvas().Col(1).Row(2).ColSpan(2).Name("PopupContainer")
-                    .Ref(out _panelsContainer)
-                    .Children(new Control[]
-                    {
+                            //new Border().Col(1).Row(2).Background(Colors.BurlyWood.ToBrush()),
+                            new Canvas().Col(1).Row(2).ColSpan(2).Name("PopupContainer")
+                                .Ref(out _panelsContainer)
+                                .Children(new Control[]
+                                {
 
-                        new PopupView().Name("ColorPicker")
-                            .Header(L("Color"))
-                            .Canvas_Top(10)
-                            .Canvas_Left(10)
-                            .IsOpen(() => UiState.ShowColorEditor, v => UiState.ShowColorEditor = v)
-                            .CloseButtonCommand(ViewCommands.ToggleColorEditorCommand)
-                            .ShowPinButton(true)
-                            .Content(new ColorPickerView()),
+                                    new PopupView().Name("ColorPicker")
+                                        .Header(L("Color"))
+                                        .Canvas_Top(10)
+                                        .Canvas_Left(10)
+                                        .IsOpen(() => UiState.ShowColorEditor, v => UiState.ShowColorEditor = v)
+                                        .CloseButtonCommand(ViewCommands.ToggleColorEditorCommand)
+                                        .ShowPinButton(true)
+                                        .Content(new ColorPickerView()),
 
-                        new PopupView().Name("BrushSettings")
-                            .Header(L("Brush"))
-                            .IsOpen(() => UiState.ShowBrushSettings, v => UiState.ShowBrushSettings = v)
-                            .CloseButtonCommand(ViewCommands.ToggleBrushSettingsCommand)
-                            .Width(258)
-                            .ShowPinButton(true)
-                            .Content(new BrushSettingsView()),
+                                    new PopupView().Name("BrushSettings")
+                                        .Header(L("Brush"))
+                                        .IsOpen(() => UiState.ShowBrushSettings, v => UiState.ShowBrushSettings = v)
+                                        .CloseButtonCommand(ViewCommands.ToggleBrushSettingsCommand)
+                                        .Width(258)
+                                        .ShowPinButton(true)
+                                        .Content(new BrushSettingsView()),
 
-                        new PopupView().Name("ArtworkPreview")
-                            .Header(L("Preview"))
-                            .IsOpen(() => UiState.ShowPreviewPanel)
-                            .CloseButtonCommand(ViewCommands.TogglePreviewPanelCommand)
-                            .Canvas_Top(40)
-                            .Canvas_Right(100)
-                            .Content(new ArtworkPreviewView()),
+                                    new PopupView().Name("ArtworkPreview")
+                                        .Header(L("Preview"))
+                                        .IsOpen(() => UiState.ShowPreviewPanel)
+                                        .CloseButtonCommand(ViewCommands.TogglePreviewPanelCommand)
+                                        .Canvas_Top(40)
+                                        .Canvas_Right(100)
+                                        .Content(new ArtworkPreviewView()),
 
-                        new PopupView()
-                            .Header(L("Image/Canvas size"))
-                            .IsOpen(() => UiState.ShowCanvasResizePanel)
-                            .CloseButtonCommand(ViewCommands.ToggleCanvasSizePanelCommand)
-                            .Width(220)
-                            .Canvas_Top(100)
-                            .Canvas_Right(100)
-                            .Content(new ResizeCanvasView().Ref(out var resizeCanvasView))
-                            .OnShow(() => resizeCanvasView.UpdateData()),
+                                    new PopupView()
+                                        .Header(L("Image/Canvas size"))
+                                        .IsOpen(() => UiState.ShowCanvasResizePanel)
+                                        .CloseButtonCommand(ViewCommands.ToggleCanvasSizePanelCommand)
+                                        .Width(220)
+                                        .Canvas_Top(100)
+                                        .Canvas_Right(100)
+                                        .Content(new ResizeCanvasView().Ref(out var resizeCanvasView))
+                                        .OnShow(() => resizeCanvasView.UpdateData()),
 
-                        new PopupView()
-                            .Header(L("Layer options"))
-                            .IsOpen(() => UiState.ShowLayerProperties)
-                            .CloseButtonCommand(ViewCommands.HideLayerOptionsCommand)
-                            .Width(300)
-                            .Canvas_Top(40)
-                            .Canvas_Right(120)
-                            .Content(new LayerOptionsView())
+                                    new PopupView()
+                                        .Header(L("Layer options"))
+                                        .IsOpen(() => UiState.ShowLayerProperties)
+                                        .CloseButtonCommand(ViewCommands.HideLayerOptionsCommand)
+                                        .Width(300)
+                                        .Canvas_Top(40)
+                                        .Canvas_Right(120)
+                                        .Content(new LayerOptionsView())
 
-                    }),
+                                }),
 
-                new ToolGroupContainerView()
-                    .Col(1).Row(2)
-                    .IsVisible(() => UiState.ShowToolGroup)
-                    .Margin(left: 8, top: 120)
-                    .MinWidth(40)
-                    .MinHeight(40)
-                    .HorizontalAlignment(HorizontalAlignment.Left)
-                    .VerticalAlignment(VerticalAlignment.Top),
+                            new ToolGroupContainerView()
+                                .Col(1).Row(2)
+                                .IsVisible(() => UiState.ShowToolGroup)
+                                .Margin(left: 8, top: 120)
+                                .MinWidth(40)
+                                .MinHeight(40)
+                                .HorizontalAlignment(HorizontalAlignment.Left)
+                                .VerticalAlignment(VerticalAlignment.Top),
 
-                new ExportView().ColSpan(3).RowSpan(5).IsVisible(() => UiState.ShowExportDialog),
+                            new ExportView().ColSpan(3).RowSpan(5).IsVisible(() => UiState.ShowExportDialog),
 
-                new Border().Name("MainMenuContainer") //MAIN MENU
-                    .Col(0).ColSpan(3)
-                    .Row(0).RowSpan(5)
-                    .IsVisible(() => UiState.ShowMenu)
-                    .Child(
-                        new MainMenuView()),
+                            new Border().Name("MainMenuContainer") //MAIN MENU
+                                .Col(0).ColSpan(3)
+                                .Row(0).RowSpan(5)
+                                .IsVisible(() => UiState.ShowMenu)
+                                .Child(
+                                    new MainMenuView()),
 
-                new Border().Name("LoadingOverlay")
-                    .Col(0).ColSpan(3)
-                    .Row(0).RowSpan(4)
-                    .IsVisible(() => AppState.IsBusy)
-                    .Background(StaticResources.Brushes.ModalOverlayBrush)
-                    .Child(
-                        new TextBlock()
-                            .Text(L("Working..."))
-                            .VerticalAlignment(VerticalAlignment.Center)
-                            .HorizontalAlignment(HorizontalAlignment.Center)
-                    ),
+                            new Border().Name("LoadingOverlay")
+                                .Col(0).ColSpan(3)
+                                .Row(0).RowSpan(4)
+                                .IsVisible(() => AppState.IsBusy)
+                                .Background(StaticResources.Brushes.ModalOverlayBrush)
+                                .Child(
+                                    new TextBlock()
+                                        .Text(L("Working..."))
+                                        .VerticalAlignment(VerticalAlignment.Center)
+                                        .HorizontalAlignment(HorizontalAlignment.Center)
+                                ),
 
-                new DialogContainer()
-                    .Col(0).ColSpan(3)
-                    .Row(0).RowSpan(5)
-            ]);
+                            new DialogContainer()
+                                .Col(0).ColSpan(3)
+                                .Row(0).RowSpan(5)
+                        ])
+                )
+            );
 
     private Canvas _panelsContainer = null!;
     private Grid _rootGrid = null!;
     private AppMenuView _appMenuView = null!;
     private TopBarView _topBarView = null!;
+    private LayoutTransformControl _layoutTransformControl = null!;
 
     [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
@@ -257,6 +258,7 @@ public class MainView : LocalizedComponentBase
     [Inject] private IImportService ImportService { get; set; } = null!;
     [Inject] private ICommandService CommandService { get; set; } = null!;
     [Inject] private IPlatformStuffService PlatformStuffService { get; set; } = null!;
+    [Inject] private IUiScaleService UiScaleService { get; set; } = null!; //for initialization
 
     private UiState UiState => AppState.UiState;
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
@@ -279,6 +281,11 @@ public class MainView : LocalizedComponentBase
         AppState.CurrentProject.WatchFor(x => x.CurrentContextType, StateHasChanged);
         AppState.WatchFor(x => x.IsBusy, StateHasChanged);
         AppState.UiState.Watch(StateHasChanged);
+
+        if (AppState.UiScale != 1)
+        {
+            _layoutTransformControl.LayoutTransform = new ScaleTransform(AppState.UiScale, AppState.UiScale);
+        }
 
         StateHasChanged();
     }
