@@ -321,7 +321,7 @@ jobs:
         dotnet-version: 9.0.x
 
     - name: Install WASM workload
-      run: dotnet workload install wasm-tools # Add this step to ensure wasm-tools are updated
+      run: dotnet workload restore ${{ env.BROWSER_PROJECT_PATH }}
 
     - name: Get Version
       id: version
