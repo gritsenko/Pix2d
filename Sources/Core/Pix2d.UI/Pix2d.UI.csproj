@@ -15,7 +15,7 @@
 		<Compile Remove="Layers\LayersView.Model.cs" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia" Version="11.3.9" />
+		<PackageReference Include="Avalonia" Version="11.3.10" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Pix2d.Core\Pix2d.Core.csproj" />

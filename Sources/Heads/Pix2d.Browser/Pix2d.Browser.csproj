@@ -8,6 +8,7 @@
 		<TrimMode>link</TrimMode>
 		<EnableTrimAnalyzer>true</EnableTrimAnalyzer>
 		<PublishTrimmed>false</PublishTrimmed>
+		<WasmBuildNative>true</WasmBuildNative>
 	<!--<WasmEnableThreads>false</WasmEnableThreads>-->
 	</PropertyGroup>
 	<ItemGroup>
@@ -25,7 +26,7 @@
 		</None>
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia.Browser" Version="11.3.9" />
+		<PackageReference Include="Avalonia.Browser" Version="11.3.10" />
 		<PackageReference Include="SkiaSharp" Version="3.119.1" />
 		<PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="3.119.1" />
 		<!--<PackageReference Include="Microsoft.NET.WebAssembly.Threading" Version="9.0.0-rc.2.24473.5" />-->
@@ -40,7 +41,7 @@
 		<ProjectReference Include="../../Plugins\FormatSupport\Psd\Pix2d.Plugins.Psd\Pix2d.Plugins.Psd.csproj" />
 		<ProjectReference Include="../../Plugins\Pix2d.Plugins.OpenCv\Pix2d.Plugins.OpenCv.csproj" />
 		<ProjectReference Include="../../Plugins\Pix2d.Plugins.PngCompress\Pix2d.Plugins.PngCompress.csproj" />
-		<ProjectReference Include="..\..\Core\Pix2d.Core\Pix2d.Core.csproj" />
+		<ProjectReference Include="../../Core\Pix2d.Core\Pix2d.Core.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<Content Update="wwwroot\.gitattributes">
