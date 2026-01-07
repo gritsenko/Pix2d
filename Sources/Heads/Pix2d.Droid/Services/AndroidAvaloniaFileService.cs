@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Avalonia.Platform.Storage;
 using Mvvm.Messaging;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -16,8 +17,14 @@ public class AndroidAvaloniaFileService(
 {
     protected override IFileContentSource GetFileSource(IStorageFile? file)
     {
+        if (file == null)
+            throw new ArgumentNullException(nameof(file));
+            
         var ext = Path.GetExtension(file.Name);
         var uri = Uri.Parse(file.Path.AbsoluteUri);
+        if (uri == null)
+            throw new InvalidOperationException($"Could not parse URI from file path: {file.Path.AbsoluteUri}");
+            
         return new AndroidFileContentSource(uri, ext);
     }
 

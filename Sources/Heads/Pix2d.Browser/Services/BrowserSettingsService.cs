@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices.JavaScript;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices.JavaScript;
 using Newtonsoft.Json;
 using Pix2d.Abstract.Services;
 
@@ -21,7 +22,8 @@ internal static partial class MyLocalStorage
 
 public class BrowserSettingsService : ISettingsService
 {
-    public T? Get<T>(string key)
+    [RequiresUnreferencedCode("JSON serialization requires reflection over types that may be trimmed.")]
+    public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string key)
     {
         var strValue = MyLocalStorage.GetItem(key);
 
@@ -40,7 +42,7 @@ public class BrowserSettingsService : ISettingsService
         MyLocalStorage.SetItem(key, json);
     }
 
-    public bool TryGet<T>(string key, out T value)
+    public bool TryGet<T>(string key, out T? value)
     {
         value = default;
         try

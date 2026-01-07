@@ -26,7 +26,7 @@ public class TestSettingsService : ISettingsService
 
 public class TestPlatformStaffService : IPlatformStuffService
 {
-    public bool IsTextInputFocused => EditorApp.TopLevel.FocusManager?.GetFocusedElement() is TextBox;
+    public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;
 
     public PlatformType CurrentPlatform => PlatformType.CrossPlatformDesktop;
 

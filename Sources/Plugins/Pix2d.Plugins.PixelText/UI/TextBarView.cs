@@ -1,10 +1,9 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using Pix2d.Abstract.Platform;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Markup.Declarative;
 using Pix2d.Plugins.PixelText;
@@ -60,13 +59,13 @@ public class TextBarView : ComponentBase
                                             .Width(180)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .ItemsSource(Fonts)
-                                            .SelectedItem(() => SelectedFont, v => 
+                                            .SelectedItem(() => SelectedFont!, v => 
                                             {
                                                 if (v is FontItemViewModel font)
                                                     SelectedFont = font;
                                             })
 #pragma warning disable CS8603
-                                            .ItemTemplate((FontItemViewModel item) => CreateFontItemTemplate(item)),
+                                            .ItemTemplate((FontItemViewModel? item) => CreateFontItemTemplate(item!)),
 #pragma warning restore CS8603
 
                                         new TextBlock()
@@ -270,7 +269,7 @@ public class TextBarView : ComponentBase
         }
     }
 
-    private TextBlock CreateFontItemTemplate(FontItemViewModel item)
+    private TextBlock CreateFontItemTemplate(FontItemViewModel? item)
     {
         return new TextBlock().Width(150).Text(item?.Name ?? "")!;
     }

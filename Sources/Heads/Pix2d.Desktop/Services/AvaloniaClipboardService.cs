@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.IO;
@@ -61,7 +61,8 @@ public class AvaloniaClipboardService(
             return;
         }
         var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;
-        Clowd.Clipboard.ClipboardGdi.SetImage(bm);
+        if (bm != null)
+            Clowd.Clipboard.ClipboardGdi.SetImage(bm);
     }
     
     public override async Task<SKBitmap?> GetImageFromClipboard()
@@ -186,8 +187,8 @@ public static class BinaryStructConverter
             int size = Marshal.SizeOf(typeof(T));
             ptr = Marshal.AllocHGlobal(size);
             Marshal.Copy(bytes, 0, ptr, size);
-            object obj = Marshal.PtrToStructure(ptr, typeof(T));
-            return (T)obj;
+            object obj = Marshal.PtrToStructure(ptr, typeof(T))!;
+            return (T)obj!;
         }
         finally
         {

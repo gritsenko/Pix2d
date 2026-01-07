@@ -26,7 +26,7 @@ public class TestDialogService : IDialogService
 
     public Task<string?> ShowInputDialogAsync(string message, string title, string defaultValue = "")
     {
-        return Task.FromResult(_nextInput);
+        return Task.FromResult<string?>(_nextInput);
     }
 
     public Task<bool> ShowYesNoDialog(string message, string title, string okLabel = "Ok", string cancelLabel = "Cancel")

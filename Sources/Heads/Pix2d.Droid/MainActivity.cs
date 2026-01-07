@@ -99,25 +99,33 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
     {
         if (Build.VERSION.SdkInt >= BuildVersionCodes.R) // Android 11+
         {
-            WindowCompat.SetDecorFitsSystemWindows(Window, false);
-            var controller = WindowCompat.GetInsetsController(Window, Window.DecorView);
-            if (controller != null)
+            var window = Window;
+            if (window != null)
             {
-                controller.Hide(WindowInsetsCompat.Type.SystemBars());
-                controller.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorShowTransientBarsBySwipe;
+                WindowCompat.SetDecorFitsSystemWindows(window, false);
+                var controller = WindowCompat.GetInsetsController(window, window.DecorView);
+                if (controller != null)
+                {
+                    controller.Hide(WindowInsetsCompat.Type.SystemBars());
+                    controller.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorShowTransientBarsBySwipe;
+                }
             }
         }
         else // Старые версии (до Android 11)
         {
 #pragma warning disable CS0618 // Отключаем предупреждение об устаревшем API
-            Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
-                SystemUiFlags.ImmersiveSticky |
-                SystemUiFlags.LayoutStable |
-                SystemUiFlags.LayoutHideNavigation |
-                SystemUiFlags.LayoutFullscreen |
-                SystemUiFlags.HideNavigation |
-                SystemUiFlags.Fullscreen
-            );
+            var window = Window;
+            if (window?.DecorView != null)
+            {
+                window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
+                    SystemUiFlags.ImmersiveSticky |
+                    SystemUiFlags.LayoutStable |
+                    SystemUiFlags.LayoutHideNavigation |
+                    SystemUiFlags.LayoutFullscreen |
+                    SystemUiFlags.HideNavigation |
+                    SystemUiFlags.Fullscreen
+                );
+            }
 #pragma warning restore CS0618
         }
 
@@ -141,8 +149,11 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
             _activity = activity;
         }
 
-        public WindowInsetsCompat OnApplyWindowInsets(Android.Views.View v, WindowInsetsCompat insets)
+        public WindowInsetsCompat? OnApplyWindowInsets(Android.Views.View? v, WindowInsetsCompat? insets)
         {
+            if (v == null || insets == null)
+                return insets;
+                
             var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
             var displayCutout = insets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
             
