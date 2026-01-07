@@ -41,7 +41,9 @@ public class LayerEffectItemView : LocalizedComponentBase
                             .ToolTip(L("Delete effect")()),
 
                         new ContentControl().Row(1).Col(0).ColSpan(3)
-                            .Content(() => Model != null ? EffectsService.GetSettingsView(Model) : null)
+#pragma warning disable CS8603
+                            .Content(() => Model != null ? EffectsService.GetSettingsView(Model) : (object?)null)
+#pragma warning restore CS8603
                             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                             .Padding(5)
                     ));

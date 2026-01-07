@@ -34,7 +34,7 @@ public class AppMenuView : LocalizedComponentBase
                         new TextBlock()
                             .Col(1)
                             .IsVisible(()=>!string.IsNullOrWhiteSpace(item.Shortcut))
-                            .Text(() => item.Shortcut)
+                            .Text(() => item.Shortcut ?? "")
                             .TextAlignment(TextAlignment.Right)
                             .FontSize(14)
                             .Foreground(Colors.LightGray.ToBrush())

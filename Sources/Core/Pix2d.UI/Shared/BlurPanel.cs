@@ -63,6 +63,7 @@ public class BlurBehindRenderOperation(Rect bounds, float cornerRadius) : ICusto
         var w = (float)_bounds.Width;
         var h = (float)_bounds.Height;
 
+        /*
         if (false)
         {
             var scale = canvas.TotalMatrix.ScaleX;
@@ -92,6 +93,7 @@ public class BlurBehindRenderOperation(Rect bounds, float cornerRadius) : ICusto
             canvas.DrawRoundRect(0, 0, w, h, _cornerRadius, _cornerRadius, blurSnapPaint);
 
         }
+        */
         canvas.DrawRoundRect(0, 0, w, h, _cornerRadius, _cornerRadius, BgPaint);
         canvas.DrawRoundRect(0, 0, w, h, _cornerRadius, _cornerRadius, BorderPaint);
     }

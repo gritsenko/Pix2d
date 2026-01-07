@@ -21,8 +21,6 @@ namespace Pix2d.Plugins.Ai;
 public class ImageGenerateTool(IDrawingService drawingService, IMessenger messenger, AppState appState)
     : BaseTool, IDrawingTool
 {
-    private DrawingOperationWithDiffState _pixelSelectDrawingOperation;
-
     public IDrawingService DrawingService { get; } = drawingService;
     public IMessenger Messenger { get; } = messenger;
     public AppState AppState { get; } = appState;
@@ -31,7 +29,6 @@ public class ImageGenerateTool(IDrawingService drawingService, IMessenger messen
 
     public override async Task Activate()
     {
-        _pixelSelectDrawingOperation = null;
         DrawingLayer.SetDrawingLayerMode(BrushDrawingMode.MoveSelection);
 
         await base.Activate();

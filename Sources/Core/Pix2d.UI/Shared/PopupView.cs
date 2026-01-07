@@ -17,12 +17,12 @@ public class PopupView : ComponentBase
     /// <summary>
     /// Content Property
     /// </summary>
-    public static readonly DirectProperty<PopupView, Control> ContentProperty
-        = AvaloniaProperty.RegisterDirect<PopupView, Control>(nameof(Content), o => o.Content, (o, v) => o.Content = v);
+    public static readonly DirectProperty<PopupView, Control?> ContentProperty
+        = AvaloniaProperty.RegisterDirect<PopupView, Control?>(nameof(Content), o => o.Content, (o, v) => o.Content = v);
 
-    private Control _content = default;
+    private Control? _content = default;
 
-    public Control Content
+    public Control? Content
     {
         get => _content;
         set => SetAndRaise(ContentProperty, ref _content, value);

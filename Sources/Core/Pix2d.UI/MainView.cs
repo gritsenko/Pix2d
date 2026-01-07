@@ -305,7 +305,9 @@ public class MainView : LocalizedComponentBase
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
-        var hasFiles = e.Data.GetDataFormats().Any(x => x == "Files");
+#pragma warning disable CS0618
+        var hasFiles = e.Data?.GetDataFormats().Any(x => x == "Files") ?? false;
+#pragma warning restore CS0618
         if (hasFiles)
             e.DragEffects = DragDropEffects.Copy;
     }
@@ -316,7 +318,9 @@ public class MainView : LocalizedComponentBase
         if (e.Handled)
             return;
 
-        var data = e.Data.Get("Files");
+#pragma warning disable CS0618
+        var data = e.Data?.Get("Files");
+#pragma warning restore CS0618
 
         if (data is not IEnumerable<IStorageItem> droppedFiles)
             return;

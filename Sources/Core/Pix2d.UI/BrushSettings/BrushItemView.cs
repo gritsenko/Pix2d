@@ -10,7 +10,7 @@ public class BrushItemView : ComponentBase
 
     protected override object Build() =>
         new Border()
-            .Background(() => Preview.ToBrush().Stretch(Stretch.None))
+            .Background(() => Preview?.ToBrush() ?? StaticResources.Brushes.CheckerTilesBrush)
             .CornerRadius(StaticResources.Measures.ButtonCornerRadius)
             .Child(
                 new TextBlock()

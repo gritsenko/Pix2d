@@ -42,15 +42,19 @@ public class AvaloniaClipboardService(
         return result;
     }
 
-    private async Task PutImageIntoClipboard(SKBitmap bitmap)
+    private async Task PutImageIntoClipboard(SKBitmap? bitmap)
     {
+        if (bitmap == null || Clipboard == null)
+            return;
 
         var bytes = bitmap.Encode(SKEncodedImageFormat.Png, 100).ToArray();
+#pragma warning disable CS0618
         var dataObject = new DataObject();
         dataObject.Set("PNG", bytes);
 
         await Clipboard.ClearAsync();
         await Clipboard.SetDataObjectAsync(dataObject);
+#pragma warning restore CS0618
 
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -68,16 +72,25 @@ public class AvaloniaClipboardService(
             "image/webp"
         };
         
+        if (Clipboard == null)
+            return null;
+
         // last objects in clipboard from us
+#pragma warning disable CS0618
         var formats = await Clipboard.GetFormatsAsync();
-        foreach (var format in supportedFormats.Where(x => formats.Contains(x)))
+        if (formats != null)
         {
-            if (await Clipboard.GetDataAsync(format) is byte[] data)
+            foreach (var format in supportedFormats.Where(x => formats.Contains(x)))
             {
-                var bitmap = SKBitmap.Decode(data);
-                return bitmap;
+                var data = await Clipboard.GetDataAsync(format);
+                if (data is byte[] byteData)
+                {
+                    var bitmap = SKBitmap.Decode(byteData);
+                    return bitmap;
+                }
             }
         }
+#pragma warning restore CS0618
 
         //windows specific clipboard format
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -96,7 +109,7 @@ public class AvaloniaClipboardService(
         return null;
     }
 
-    private SKBitmap ImageFromClipboardDib(MemoryStream ms)
+    private SKBitmap? ImageFromClipboardDib(MemoryStream? ms)
     {
         //MemoryStream ms = Application.Current.Clipboard.GetData("DeviceIndependentBitmap") as MemoryStream;
         if (ms != null)

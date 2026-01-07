@@ -312,7 +312,10 @@ public class LicenseView : LocalizedComponentBase
         try
         {
             var price = LicenseService.GetFormattedPrice;
-            Price = price;
+            Price = price ?? string.Empty;
+            if (price == null)
+                return;
+            
             var match = Regex.Match(price, @"\d+(,\d+)*(\.\d+)");
 
             double val = 0;

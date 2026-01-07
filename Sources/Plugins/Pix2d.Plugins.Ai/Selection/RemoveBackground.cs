@@ -21,7 +21,7 @@ public static class RemoveBackground
     {
         SourceWidth = original.Width;
         SourceHeight = original.Height;
-        var image = original.Resize(new SKSizeI(Width, Height), SKFilterQuality.High);
+        var image = original.Resize(new SKSizeI(Width, Height), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
 
         var input = ConvertImageToFloatData(image, means, stds);
         var sw = new Stopwatch();
@@ -50,7 +50,7 @@ public static class RemoveBackground
             for (var x = 0; x < Width; x++)
                 pixels[y * Width + x] = (byte)(output[0, 0, x, y] * 255) << 24;
 
-        result = result.Resize(new SKSizeI(original.Width, original.Height), SKFilterQuality.High);
+        result = result.Resize(new SKSizeI(original.Width, original.Height), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
         return result;
     }
 

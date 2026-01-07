@@ -33,7 +33,9 @@ public class LayersView : ComponentBase
                     .Command(SpritePlugin.EditCommands.AddLayer)
                     .Content("\xE710")
                     .FontFamily(StaticResources.Fonts.IconFontSegoe),
+#pragma warning disable CS8618
                 new ListBox()
+#pragma warning restore CS8618
                     .ScrollViewer_VerticalScrollBarVisibility(ScrollBarVisibility.Hidden)
                     .Styles(new Style<ListBoxItem>()
                         .Setter(TemplatedControl.CornerRadiusProperty, new CornerRadius(7))
@@ -104,7 +106,9 @@ public class LayersView : ComponentBase
 
     private class ItemReorderInfo<TItem>
     {
+#pragma warning disable CS8618
         public TItem[] Items { get; set; }
+#pragma warning restore CS8618
 
         public int OldIndex { get; set; }
 
@@ -113,7 +117,7 @@ public class LayersView : ComponentBase
 
     private void Layers_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Remove)
+        if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
         {
             _reorderInfo = new ItemReorderInfo<LayerItemViewModel>()
             {
@@ -123,7 +127,7 @@ public class LayersView : ComponentBase
             _reorderingStarted = true;
         }
 
-        if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted)
+        if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted && _reorderInfo != null)
         {
             _reorderInfo.NewIndex = e.NewStartingIndex;
             OnLayersReordered(_reorderInfo);
@@ -138,7 +142,7 @@ public class LayersView : ComponentBase
         var oldIndex = ReverseIndex(reorderInfo.OldIndex);
         var newIndex = ReverseIndex(reorderInfo.NewIndex);
         Debug.WriteLine($"Reordered layers from {oldIndex} to {newIndex}");
-        _editor.ReorderLayers(oldIndex, newIndex);
+        _editor?.ReorderLayers(oldIndex, newIndex);
     }
 
     private void OnOperationInvoked(OperationInvokedMessage operation)
@@ -216,7 +220,7 @@ public class LayersView : ComponentBase
         }
     }
 
-    private SKBitmap PreviewProvider(LayerItemViewModel frameVm)
+    private SKBitmap? PreviewProvider(LayerItemViewModel frameVm)
     {
         if (_editor == null)
             return null;
@@ -234,7 +238,7 @@ public class LayersView : ComponentBase
 
     private void ItemClicked(LayerItemViewModel itemVm)
     {
-        var oldSelectedLayer = _editor.SelectedLayer;
+        var oldSelectedLayer = _editor?.SelectedLayer;
         if (oldSelectedLayer == itemVm.SourceNode)
         {
             ViewCommands.ToggleLayerOptionsCommand.Execute();
@@ -261,9 +265,9 @@ public class LayersView : ComponentBase
 public class LayerItemViewModel
 {
     private readonly SpriteEditor _editor;
-    private SKBitmap _preview;
+    private SKBitmap? _preview;
 
-    public SKBitmap Preview
+    public SKBitmap? Preview
     {
         get
         {
@@ -279,7 +283,7 @@ public class LayerItemViewModel
         SourceNode = sourceNode;
     }
 
-    public Func<LayerItemViewModel, SKBitmap>? PreviewProvider { get; set; }
+    public Func<LayerItemViewModel, SKBitmap?>? PreviewProvider { get; set; }
 
     public Pix2dSprite.Layer SourceNode { get; set; }
     public bool IsSelected => _editor?.SelectedLayer == SourceNode;

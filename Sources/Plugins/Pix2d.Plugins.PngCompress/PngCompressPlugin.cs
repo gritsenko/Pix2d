@@ -1,6 +1,7 @@
 using Pix2d.Abstract;
 using System.Diagnostics.CodeAnalysis;
 using Pix2d.Abstract.Services;
+using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Plugins.PngCompress.Commands;
 using Pix2d.Plugins.PngCompress.UI;
 
@@ -19,7 +20,7 @@ public class PngCompressPlugin(ICommandService commandService) : IPix2dPlugin
 
     public static PngCompressView GetPngCompressPanel()
     {
-        _panelInstance ??= new PngCompressView();
+        _panelInstance ??= new PngCompressView { Files = Array.Empty<IFileContentSource>() };
         return _panelInstance;
     }
 }

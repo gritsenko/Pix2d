@@ -9,7 +9,7 @@ public class AiPixelSelector : IPixelSelector
 {
     private SKPointI _lastSelectionPoint;
     private readonly HashSet<SKPointI> _selectionPoints = new HashSet<SKPointI>();
-    private byte[] _pixelsBuff;
+    private byte[]? _pixelsBuff;
     private int _offsetX;
     private int _offsetY;
     private int _width;
@@ -19,7 +19,7 @@ public class AiPixelSelector : IPixelSelector
     private int _imageRight;
     private int _imageBot;
     public SKSizeI SelectionSize => new SKSizeI(_width, _height);
-    public SKPath GetSelectionPath()
+    public SKPath? GetSelectionPath()
     {
         return null;
     }
@@ -110,10 +110,18 @@ public class AiPixelSelector : IPixelSelector
         //BuildSlectionPath();
     }
 
-    private void SetPixel(int x, int y) => _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] = 1;
+    private void SetPixel(int x, int y)
+    {
+        if (_pixelsBuff != null)
+            _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] = 1;
+    }
+    
     private byte GetPixel(int x, int y)
     {
         if (x < _imageLeft || y < _imageTop || x > _imageRight || y > _imageBot)
+            return 0;
+
+        if (_pixelsBuff == null)
             return 0;
 
         return _pixelsBuff[x + _offsetX + (y + _offsetY) * _width];
@@ -121,6 +129,9 @@ public class AiPixelSelector : IPixelSelector
 
     public unsafe void ClearSelectionFromBitmap(ref SKBitmap bitmap)
     {
+        if (_pixelsBuff == null)
+            return;
+
         var dest0 = (byte*)bitmap.GetPixels().ToPointer();
         var h = Math.Min(-_offsetY + _height, bitmap.Height);
         var w = Math.Min(-_offsetX + _width, bitmap.Width);
@@ -143,6 +154,9 @@ public class AiPixelSelector : IPixelSelector
         var bitmap = new SKBitmap(_width, _height, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
 
         //skip ai stuff if selection is too small
+        if (_pixelsBuff == null)
+            return bitmap;
+
         if (_width < 3 && _height < 3)
             return bitmap;
 

@@ -46,7 +46,9 @@ public class TimeLineView : LocalizedComponentBase
                     .Fill(StaticResources.Brushes.PanelsBackgroundBrush)
                     .RenderTransform(TransformOperations.Parse("translateY(60px)")),
 
+#pragma warning disable CS8618
                 new ListBox().Row(1)
+#pragma warning restore CS8618
                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                     .BorderThickness(0)
                     .ItemsPanel(new VirtualizingStackPanel().Orientation(Orientation.Horizontal))
@@ -66,8 +68,7 @@ public class TimeLineView : LocalizedComponentBase
                                 new Rectangle()
                                     .Width(52)
                                     .Height(52)
-                                    .Fill(itemVm?.Preview, bindingMode: BindingMode.OneWay, bindingSource:itemVm,
-                                        converter: StaticResources.Converters.SKBitmapToIBrushConverter)
+                                    .Fill(() => itemVm?.Preview?.ToBrush() ?? StaticResources.Brushes.CheckerTilesBrush)
                             ).AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })
                     ) //ItemTemplate
             ]);
@@ -121,7 +122,7 @@ public class TimeLineView : LocalizedComponentBase
 
     private void OnFrameChanged(object? sender, SpriteFrameChangedEvenArgs e)
     {
-        AppState.SpriteEditorState.CurrentFrameIndex = _editor.CurrentFrameIndex;
+        AppState.SpriteEditorState.CurrentFrameIndex = _editor?.CurrentFrameIndex ?? 0;
         StateHasChanged();
     }
 
@@ -155,7 +156,7 @@ public class TimeLineView : LocalizedComponentBase
     private ItemReorderInfo<AnimationFrameViewModel>? _reorderInfo;
     private void Frames_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Remove)
+        if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
         {
             _reorderInfo = new ItemReorderInfo<AnimationFrameViewModel>()
             {
@@ -165,7 +166,7 @@ public class TimeLineView : LocalizedComponentBase
             _reorderingStarted = true;
         }
 
-        if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted)
+        if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted && _reorderInfo != null)
         {
             _reorderInfo.NewIndex = e.NewStartingIndex;
             OnFramesReordered(_reorderInfo);
@@ -177,13 +178,13 @@ public class TimeLineView : LocalizedComponentBase
     private void OnFramesReordered(ItemReorderInfo<AnimationFrameViewModel> reorderInfo)
     {
         Debug.WriteLine($"Reordered frames from {reorderInfo.OldIndex} to {reorderInfo.NewIndex}");
-        _editor.ReorderFrames(reorderInfo.OldIndex, reorderInfo.NewIndex);
+        _editor?.ReorderFrames(reorderInfo.OldIndex, reorderInfo.NewIndex);
     }
 
     private SKBitmap? PreviewProvider(AnimationFrameViewModel frameVm)
     {
         var index = Frames.IndexOf(frameVm);
-        if (index < 0)
+        if (index < 0 || _editor == null)
         {
             return null;
         }
@@ -200,7 +201,9 @@ public class TimeLineView : LocalizedComponentBase
 
     private class ItemReorderInfo<TItem>
     {
+#pragma warning disable CS8618
         public TItem[] Items { get; set; }
+#pragma warning restore CS8618
 
         public int OldIndex { get; set; }
 
@@ -210,7 +213,7 @@ public class TimeLineView : LocalizedComponentBase
 
 public class AnimationFrameViewModel : ObservableObject
 {
-    private SKBitmap _preview;
+    private SKBitmap? _preview;
 
     public List<LayerFrameMeta> Layers
     {
@@ -221,7 +224,7 @@ public class AnimationFrameViewModel : ObservableObject
     public Func<AnimationFrameViewModel, SKBitmap?>? PreviewProvider { get; set; }
     public Action<AnimationFrameViewModel>? UpdatePropertiesAction { get; set; }
 
-    public SKBitmap Preview
+    public SKBitmap? Preview
     {
         get
         {

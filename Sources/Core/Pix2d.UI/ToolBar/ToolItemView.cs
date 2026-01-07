@@ -47,7 +47,7 @@ public class ToolItemView : LocalizedComponentBase
     [Inject] private IToolService ToolService { get; set; } = null!;
     [Inject] private AppState AppState { get; set; } = null!;
 
-    private Button _button;
+    private Button _button = null!;
 
     public string ToolKey => ToolState?.Name ?? "";
 

@@ -272,8 +272,11 @@ namespace Pix2d.Plugins.Psd.PsdReader
             internal void LoadPixelData(BinaryReverseReader reverseReader)
             {
                 Data = reverseReader.ReadBytes(Length);
+                
                 using (var dataReader = DataReader)
                 {
+                    if(dataReader == null) return;
+
                     ImageCompression = (ImageCompression) dataReader.ReadInt16();
                     var num = 0;
                     var depth = Layer.PsdFile.Depth;
@@ -490,6 +493,8 @@ namespace Pix2d.Plugins.Psd.PsdReader
                 channel.Data = reader.ReadBytes(channel.Length);
                 using (var dataReader = channel.DataReader)
                 {
+                    if(dataReader == null) return;
+                    
                     channel.ImageCompression = (ImageCompression) dataReader.ReadInt16();
                     var num = 0;
                     var depth = Layer.PsdFile.Depth;

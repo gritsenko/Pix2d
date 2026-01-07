@@ -41,8 +41,11 @@ public class BackgroundSelectorView : LocalizedComponentBase
                                             .IsChecked(() => AppState.SpriteEditorState.ShowBackground,
                                                 v =>
                                                 {
-                                                    AppState.SpriteEditorState.ShowBackground = v.Value;
-                                                    UpdateSprite();
+                                                    if (v.HasValue)
+                                                    {
+                                                        AppState.SpriteEditorState.ShowBackground = v.Value;
+                                                        UpdateSprite();
+                                                    }
                                                 })
                                             .Content(L("Show background"))
                                     )

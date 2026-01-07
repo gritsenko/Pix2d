@@ -30,7 +30,7 @@ public class TopToolUiContainer : ComponentBase
 
         ToolUiContent = toolUiProvider?.Invoke() as Control;
         
-        if(ToolUiContent != null)
+        if(ToolUiContent != null && currentTool != null)
             ToolUiContent.DataContext = currentTool.ToolInstance;
         
         StateHasChanged();

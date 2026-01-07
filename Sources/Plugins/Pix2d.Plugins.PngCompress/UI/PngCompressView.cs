@@ -42,7 +42,7 @@ public class PngCompressView : PopupView, IToolPanel
 
     [Inject] private IFileService FileService { get; set; } = null!;
 
-    public IFileContentSource[] Files { get; set; }
+    public required IFileContentSource[] Files { get; set; } = Array.Empty<IFileContentSource>();
 
     public int QualityMin { get; set; } = 256;
 
@@ -67,7 +67,7 @@ public class PngCompressView : PopupView, IToolPanel
     {
         var projectPath = Path.GetDirectoryName(Files[0].Path);
 
-        var compressedDir = new DirectoryInfo(Path.Combine(projectPath, $"Compressed_{QualityMin}_colors"));
+        var compressedDir = new DirectoryInfo(Path.Combine(projectPath ?? "", $"Compressed_{QualityMin}_colors"));
 
         if (compressedDir.Exists)
         {
@@ -129,7 +129,9 @@ public class PngCompressView : PopupView, IToolPanel
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
-        var hasFiles = e.Data.GetDataFormats().Any(x => x == "Files");
+#pragma warning disable CS0618
+        var hasFiles = e.Data?.GetDataFormats().Contains("Files") == true;
+#pragma warning restore CS0618
         if (hasFiles)
             e.DragEffects = DragDropEffects.Copy;
 
@@ -138,7 +140,9 @@ public class PngCompressView : PopupView, IToolPanel
 
     private async void OnDrop(object? sender, DragEventArgs e)
     {
-        var data = e.Data.Get("Files");
+#pragma warning disable CS0618
+        var data = e.Data?.Get("Files");
+#pragma warning restore CS0618
 
         if (data == null)
             return;
@@ -146,7 +150,7 @@ public class PngCompressView : PopupView, IToolPanel
         var droppedFiles = data as IEnumerable<IStorageItem>;
 
         var fileSources = new List<IFileContentSource>();
-        foreach (var storageFile in droppedFiles.OfType<IStorageFile>())
+        foreach (var storageFile in (droppedFiles ?? Enumerable.Empty<IStorageItem>()).OfType<IStorageFile>())
         {
             var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);
 
@@ -156,14 +160,16 @@ public class PngCompressView : PopupView, IToolPanel
             {
                 //await ps.OpenFilesAsync(new[] { fileSource });
                 Debug.WriteLine("Compressing file " + fileSource.Title);
-                fileSources.Add(new NetFileSource(path));
+                fileSources.Add(fileSource);
             }
         }
 
-        Files = fileSources.ToArray();
-        StateHasChanged();
-
-        CompressAssets();
+        if (fileSources.Count > 0)
+        {
+            Files = fileSources.ToArray();
+            StateHasChanged();
+            CompressAssets();
+        }
 
         e.Handled = true;
     }

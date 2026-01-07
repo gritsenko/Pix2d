@@ -29,8 +29,8 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
     private readonly IViewPortRefreshService _viewPortRefreshService;
     private SelectionState SelectionState => _appState.SelectionState;
 
-    private DrawingOperationWithFullState _pixelSelectDrawingOperation;
-    private AiPixelSelector _aiPixelSelector;
+    private DrawingOperationWithFullState? _pixelSelectDrawingOperation;
+    private AiPixelSelector? _aiPixelSelector;
 
     private IDrawingLayer DrawingLayer => _drawingService.DrawingLayer;
 
@@ -46,11 +46,14 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
         _messenger = messenger;
         _appState = appState;
         _viewPortRefreshService = viewPortRefreshService;
+        _pixelSelectDrawingOperation = null!;
+        _aiPixelSelector = null!;
     }
 
     public override async Task Activate()
     {
         _pixelSelectDrawingOperation = null;
+        _aiPixelSelector = null;
 
         DrawingLayer.SetDrawingLayerMode(BrushDrawingMode.Select);
         DrawingLayer.PixelsBeforeSelected += DrawingLayerOnPixelsBeforeSelected;
@@ -95,7 +98,11 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
             //                _pixelSelectDrawingOperation.PushToHistory();
         }
 
-        _pixelSelectDrawingOperation = new DrawingOperationWithFullState(DrawingLayer.DrawingTarget);
+        var target = DrawingLayer.DrawingTarget;
+        if (target != null)
+        {
+            _pixelSelectDrawingOperation = new DrawingOperationWithFullState(target);
+        }
     }
 
     private void ProcessSelectionBitmap(SKBitmap bitmap)
@@ -105,7 +112,7 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
         bm.CopyTo(bitmap);
     }
 
-    protected override void OnPointerMoved(object sender, PointerActionEventArgs e)
+    protected override void OnPointerMoved(object? sender, PointerActionEventArgs e)
     {
         base.OnPointerMoved(sender, e);
         if (SelectionState.IsUserSelecting)

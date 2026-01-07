@@ -80,7 +80,7 @@ public class SKImageView : ViewBase
         _imageControl.Source = newBitmap?.ToBitmap();
     }
 
-    private void BitmapOnBitmapChanged(object sender, EventArgs e)
+    private void BitmapOnBitmapChanged(object? sender, EventArgs e)
     {
         UpdateBitmapControl(_bitmap.Bitmap);
     }

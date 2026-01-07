@@ -1,3 +1,4 @@
+#pragma warning disable CS8603
 using System.Collections.ObjectModel;
 using Avalonia.Interactivity;
 using Pix2d.Command;
@@ -32,11 +33,11 @@ public class NewDocumentView : LocalizedComponentBase
                         new ComboBox()
                             .DataTemplates(
                                 GetTextTemplate<SizePreset>(x => x?.Title ?? "")
-                            )
+                            )!
                             .Margin(top: 8)
                             .MaxWidth(300)
                             .ItemsSource(AvailablePresets)
-                            .SelectedItem(() => SelectedPreset, v => SelectedPreset = (SizePreset)v),
+                            .SelectedItem(() => SelectedPreset, v => SelectedPreset = v as SizePreset),
 
                         new SliderEx().Label(L("Width")).Width(200).Units("px").Minimum(1).Maximum(1024)
                             .Value(() => ArtworkWidth, v => ArtworkWidth = (int)v),
@@ -63,7 +64,7 @@ public class NewDocumentView : LocalizedComponentBase
 
 
     private static IDataTemplate GetTextTemplate<T>(Func<T, string> func) =>
-        new FuncDataTemplate<T>((itemVm, ns) => new TextBlock().Text(func(itemVm)));
+        new FuncDataTemplate<T>((itemVm, ns) => (Control)new TextBlock().Text(func(itemVm)))!;
 
 
     [Inject] private IProjectService ProjectService { get; set; } = null!;
@@ -100,7 +101,7 @@ public class NewDocumentView : LocalizedComponentBase
 
     public ObservableCollection<SizePreset> AvailablePresets { get; set; } = [];
 
-    public SizePreset SelectedPreset
+    public SizePreset? SelectedPreset
     {
         get => _selectedPreset;
         set
