@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -8,10 +8,10 @@ namespace Pix2d.CommonNodes;
 
 public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
 {
-    private SKBitmap _bitmap;
+    private SKBitmap? _bitmap;
     protected SKRect _bitmapRect;
     protected SKRect _nodeRect;
-    private Func<SKBitmap> _substitute;
+    private Func<SKBitmap>? _substitute;
 
     public SKBitmap Bitmap
     {
@@ -146,7 +146,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
             }
             else
             {
-                    canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect, new SKPaint() { FilterQuality = SKFilterQuality.None });
+                    canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect, new SKPaint() { FilterQuality = SKFilterQuality.Low });
             }
         }
     }
@@ -196,7 +196,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     public void Crop(SKRect targetBounds)
         => ReplaceBitmap(Bitmap.Crop(targetBounds), true);
 
-    public Action FlushRequestedAction { get; set; }
+    public Action FlushRequestedAction { get; set; } = () => { };
     public bool LockTransparentPixels { get; } = false;
 
     public virtual SKBitmap GetDrawingBitmap()
@@ -206,8 +206,8 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
 
     public override void OnUnload()
     {
-        this._bitmap.Dispose();
-        this._bitmap = null;
+        _bitmap?.Dispose();
+        _bitmap = null!;
         base.OnUnload();
     }
 

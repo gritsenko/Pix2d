@@ -1,10 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<RootNamespace>Pix2d</RootNamespace>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-		<Nullable>disable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Version>$(Pix2dVersion)</Version>
 	</PropertyGroup>

@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using Mvvm;
 using Mvvm.Messaging;
 using Pix2d.Messages;
@@ -67,7 +67,7 @@ public abstract class StateBase : ObservableObject
             _globalWatchers.Remove(onAnyPropertyChanged);
     }
 
-    protected override bool Set<T>(T newValue, bool forceNotifyPropertyChanged = false, [CallerMemberName] string propertyName = null)
+    protected override bool Set<T>(T newValue, bool forceNotifyPropertyChanged = false, [CallerMemberName] string? propertyName = null)
     {
         var result = base.Set(newValue, forceNotifyPropertyChanged, propertyName);
         OnStateChanged(propertyName);

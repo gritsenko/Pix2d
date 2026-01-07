@@ -11,7 +11,7 @@ public sealed class TypeNameAssemblyExcludingSerializationBinder(Assembly[] targ
         typeName = serializedType.FullName;
     }
 
-    public Type? BindToType(string assemblyName, string typeName)
+    public Type BindToType(string? assemblyName, string typeName)
     {
         var type = targetAssemblies
             .Select(x => x.GetType(typeName))
@@ -22,6 +22,6 @@ public sealed class TypeNameAssemblyExcludingSerializationBinder(Assembly[] targ
 
         // Note: Some additional work may be required here if assembly name has been removed
         // and you are not loading a type from current assembly or one of core libraries
-        return Type.GetType(typeName);
+        return Type.GetType(typeName)!;
     }
 }

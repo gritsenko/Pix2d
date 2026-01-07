@@ -176,9 +176,9 @@ public partial class SKNode
             hostNode.OnChildrenRemoved(node.Yield());
         }
 
-        public SKNode? this[int index]
+        public SKNode this[int index]
         {
-            get => index < Count ? _nodes[index] : null;
+            get => _nodes[index];
             set
             {
                 _nodes[index] = value!;

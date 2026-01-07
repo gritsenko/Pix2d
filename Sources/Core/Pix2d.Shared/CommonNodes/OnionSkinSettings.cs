@@ -1,4 +1,6 @@
-﻿namespace Pix2d.CommonNodes;
+#nullable enable
+
+namespace Pix2d.CommonNodes;
 
 public class OnionSkinSettings
 {

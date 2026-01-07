@@ -6,8 +6,8 @@ namespace Pix2d.Effects;
 
 public class PixelBlurEffect : ISKNodeEffect
 {
-    private SKImageFilter _blurFilter;
-    private SKSurface _effectRenderCache;
+    private SKImageFilter? _blurFilter;
+    private SKSurface? _effectRenderCache;
     private SKImageInfo _cacheImageInfo;
 
     public string Name => "Blur";

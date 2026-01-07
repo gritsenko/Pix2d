@@ -6,7 +6,7 @@ namespace Pix2d.Effects;
 
 public class PixelGlowEffect : ISKNodeEffect
 {
-    private SKImageFilter _imageFilter;
+    private SKImageFilter? _imageFilter;
     public string Name => "Glow";
     public EffectType EffectType { get; } = EffectType.BackEffect;
 

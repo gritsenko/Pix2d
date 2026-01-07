@@ -271,8 +271,8 @@ public partial class SKNode
 
         using var paint = new SKPaint();
         paint.Color = BBoxColor;
-        paint.TextSize = 14;
-        canvas.DrawText($"{this.Name}[{this.GetType().Name}]", 10 * GetNestingLevel(), 20 + 20 * Index, paint);
+        using var font = new SKFont();
+        canvas.DrawText($"{this.Name}[{this.GetType().Name}]", 10 * GetNestingLevel(), 20 + 20 * Index, SKTextAlign.Left, font, paint);
     }
 
     public virtual void DrawBoundingBox(SKCanvas canvas, ViewPort vp, float thickness, SKColor color)

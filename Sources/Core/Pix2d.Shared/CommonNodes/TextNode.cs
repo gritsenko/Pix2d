@@ -1,11 +1,11 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 using SkiaSharp;
 
 namespace Pix2d.CommonNodes;
 
 public class TextNode : SKNode
 {
-    private string _text;
+    private string _text = string.Empty;
     private SKRect _bounds;
     private string _fontFamily = "Arial";
     private float _fontSize = 12;
@@ -85,10 +85,13 @@ public class TextNode : SKNode
 
     private void UpdateTextBounds()
     {
+        var font = GetFont();
         var paint = GetPaint();
         _bounds = SKRect.Empty;
-        paint.MeasureText(Text, ref _bounds);
-        var height = -paint.FontMetrics.Top + paint.FontMetrics.Bottom;
+        var bounds = new SKRect();
+        paint.MeasureText(Text, ref bounds);
+        _bounds = bounds;
+        var height = -font.Metrics.Top + font.Metrics.Bottom;
         // This adds same margin to the right of the text as to the left of the text.
         // Without this margin sometimes one pixel is lost at the right because of rounding.
         var right = _bounds.Right + _bounds.Left;
@@ -100,20 +103,21 @@ public class TextNode : SKNode
     private SKPaint GetPaint()
     {
         var paint = new SKPaint();
-        paint.TextSize = FontSize;
+        paint.Color = Color;
+        paint.IsAntialias = !Aliased;
+        return paint;
+    }
+
+    private SKFont GetFont()
+    {
         var style = new SKFontStyle(
             weight: Bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
             width: SKFontStyleWidth.Normal,
             slant: Italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
 
-        paint.TextAlign = SKTextAlign.Left;
-
-        paint.SubpixelText = !Aliased;
-        paint.IsAntialias = !Aliased;
-
-        paint.Typeface = SKTypeface.FromFamilyName(FontFamily, style);
-        paint.Color = Color;
-        return paint;
+        var font = new SKFont(SKTypeface.FromFamilyName(FontFamily, style), FontSize);
+        font.Subpixel = !Aliased;
+        return font;
     }
 
     protected override void OnDraw(SKCanvas canvas, ViewPort vp)
@@ -121,7 +125,8 @@ public class TextNode : SKNode
         if (string.IsNullOrWhiteSpace(Text))
             return;
 
+        var font = GetFont();
         var paint = GetPaint();
-        canvas.DrawText(Text, new SKPoint(-_bounds.Left, _bounds.Size.Height - paint.FontMetrics.Bottom), paint);
+        canvas.DrawText(Text, new SKPoint(-_bounds.Left, _bounds.Size.Height - font.Metrics.Bottom), SKTextAlign.Left, font, paint);
     }
 }

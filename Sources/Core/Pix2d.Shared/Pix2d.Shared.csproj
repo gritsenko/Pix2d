@@ -1,11 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<RootNamespace>Pix2d</RootNamespace>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-		<Nullable>disable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
 		<Compile Remove="Abstract\Platform\**" />

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
 using SkiaNodes;
@@ -13,9 +13,9 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
     private bool _isPlaying;
 
     [JsonIgnore]
-    public SKNodeClipMode ClipMode => SKNodeClipMode.Rect;
+    public new SKNodeClipMode ClipMode => SKNodeClipMode.Rect;
     [JsonIgnore]
-    public SKRect ClipBounds => LocalBounds;
+    public new SKRect ClipBounds => LocalBounds;
 
     [JsonIgnore]
     public bool IsPlaying
@@ -42,7 +42,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
         DesignerState.ShowChildrenInTree = false;
     }
 
-    [JsonIgnore] public Layer SelectedLayer => GetLayer(SelectedLayerIndex);
+    [JsonIgnore] public Layer SelectedLayer => GetLayer(SelectedLayerIndex) ?? throw new InvalidOperationException("Selected layer not found");
 
     public int SelectedLayerIndex { get; set; }
 
@@ -51,7 +51,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
     [JsonIgnore]
     public IEnumerable<Layer> Layers => Nodes.OfType<Layer>();
 
-    private Layer GetLayer(int index) => Nodes[index] as Layer;
+    private Layer? GetLayer(int index) => Nodes[index] as Layer;
 
     public int NextFrameIndex => (CurrentFrameIndex + 1) % GetFramesCount();
 
@@ -79,7 +79,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
     }
 
     [JsonIgnore]
-    public Action FlushRequestedAction { private get; set; }
+    public Action FlushRequestedAction { private get; set; } = () => { };
 
     public void SetData(byte[] data)
     {

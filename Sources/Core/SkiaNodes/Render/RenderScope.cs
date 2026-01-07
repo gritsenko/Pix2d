@@ -1,4 +1,4 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 
 namespace SkiaNodes.Render;
 
@@ -32,7 +32,7 @@ internal sealed class RenderScope : IDisposable
 
         // Применяем трансформации ноды
         var transform = _node.Transform;
-        _canvas.Concat(ref transform);
+        _canvas.Concat(in transform);
     }
 
     private void SetupLayer()

@@ -34,15 +34,13 @@ public partial class SKSizeConverter : JsonConverter
             if (jobject.TryGetValue("height", StringComparison.InvariantCultureIgnoreCase, out var height) && height != null && (height.Type == JTokenType.Float || height.Type == JTokenType.Integer))
             {
                 var hVal = height.Value<double>();
-                if (hVal != null)
-                    size.Height = (float)hVal;
+                size.Height = (float)hVal;
             }
 
             if (jobject.TryGetValue("width", StringComparison.InvariantCultureIgnoreCase, out var width) && width != null && (width.Type == JTokenType.Float || width.Type == JTokenType.Integer))
             {
                 var wVal = width.Value<double>();
-                if (wVal != null)
-                    size.Width = (float)wVal;
+                size.Width = (float)wVal;
             }
 
             return size;
@@ -63,7 +61,7 @@ public partial class SKSizeConverter : JsonConverter
 
     public override bool CanWrite { get; } = false;
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
         throw new NotImplementedException();
     }

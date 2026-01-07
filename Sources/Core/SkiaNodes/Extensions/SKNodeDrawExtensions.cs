@@ -1,4 +1,4 @@
-﻿using SkiaNodes.Render;
+using SkiaNodes.Render;
 using SkiaSharp;
 
 namespace SkiaNodes.Extensions;
@@ -18,8 +18,8 @@ public static class SKNodeDrawExtensions
 
         using var paint = new SKPaint();
         paint.Color = BoundingBoxColor;
-        paint.TextSize = 14;
-        canvas.DrawText($"{node.Name}[{node.GetType().Name}]", 10 * node.GetNestingLevel(), 20 + 20 * node.Index, paint);
+        using var font = new SKFont();
+        canvas.DrawText($"{node.Name}[{node.GetType().Name}]", 10 * node.GetNestingLevel(), 20 + 20 * node.Index, SKTextAlign.Left, font, paint);
     }
 
     public static void DrawBoundingBox(SKNode node, SKCanvas canvas, ViewPort vp, float thickness, SKColor color) =>

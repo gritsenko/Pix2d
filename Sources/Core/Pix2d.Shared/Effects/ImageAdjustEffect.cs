@@ -1,11 +1,11 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 using SkiaNodes.Render;
 using SkiaSharp;
 
 namespace Pix2d.Effects;
 public sealed class ImageAdjustEffect : ISKNodeEffect
 {
-    private SKColorFilter _colorFilter;
+    private SKColorFilter? _colorFilter;
 
     public string Name => "Image Adjust";
     public EffectType EffectType { get; } = EffectType.OverlayEffect;
