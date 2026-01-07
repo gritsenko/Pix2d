@@ -1,11 +1,11 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 
 namespace Pix2d.Primitives.Operations;
 
 public class SkNodeStructureState
 {
     public int NodeIndex { get; set; }
-    public SKNode Parent { get; set; }
+    public SKNode? Parent { get; set; }
 
     public SkNodeStructureState(SKNode node)
     {
@@ -15,6 +15,6 @@ public class SkNodeStructureState
 
     public void ApplyTo(SKNode node)
     {
-            Parent.Nodes.Insert(NodeIndex, node);
+            Parent?.Nodes.Insert(NodeIndex, node);
         }
 }

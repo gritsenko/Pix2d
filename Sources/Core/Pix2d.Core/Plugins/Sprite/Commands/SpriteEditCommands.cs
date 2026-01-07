@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+#nullable enable
+using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Commands;
 using Pix2d.Abstract.Platform;
 using Pix2d.CommonNodes;
@@ -16,7 +17,7 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 {
     protected override string BaseName => "Sprite.Edit";
 
-    private SpriteEditor SpriteEditor => AppState.CurrentProject.CurrentNodeEditor as SpriteEditor;
+    private SpriteEditor? SpriteEditor => AppState.CurrentProject.CurrentNodeEditor as SpriteEditor;
     private IDrawingService DrawingService => ServiceProvider.GetRequiredService<IDrawingService>();
 
     public Pix2dCommand CopyPixels =>
@@ -42,58 +43,58 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 
     public Pix2dCommand TryPaste => GetCommand(() => { ServiceProvider.GetRequiredService<IClipboardService>().TryPaste(); }, "Paste pixels", new CommandShortcut(VirtualKeys.V, KeyModifier.Ctrl), EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
-    public Pix2dCommand CropPixels =>
-        GetCommand(async () =>
-        {
-            SKBitmap selectionBitmap = null;
-            SKRect targetBounds = default;
+     public Pix2dCommand CropPixels =>
+         GetCommand(async () =>
+         {
+             SKBitmap? selectionBitmap = null;
+             SKRect targetBounds = default;
 
-            var drawingLayer = ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer;
-            var selectionLayer = drawingLayer.GetSelectionLayer();
-            if (selectionLayer is BitmapNode bmn)
-            {
-                selectionBitmap = bmn.Bitmap.Copy();
-            }
+             var drawingLayer = ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer;
+             var selectionLayer = drawingLayer.GetSelectionLayer();
+             if (selectionLayer is BitmapNode bmn && bmn.Bitmap != null)
+             {
+                 selectionBitmap = bmn.Bitmap.Copy();
+             }
 
-            targetBounds = selectionLayer?.GetBoundingBox() ?? default;
+             targetBounds = selectionLayer?.GetBoundingBox() ?? default;
 
-            drawingLayer.ApplySelection();
+             drawingLayer.ApplySelection();
 
-            if (targetBounds != default)
-            {
-                ServiceProvider.GetRequiredService<IEditService>().CropCurrentSprite(targetBounds);
+             if (targetBounds != default)
+             {
+                 ServiceProvider.GetRequiredService<IEditService>().CropCurrentSprite(targetBounds);
 
-                if (selectionBitmap != null)
-                    ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer?.SetSelectionFromExternal(selectionBitmap, SKPoint.Empty);
+                 if (selectionBitmap != null)
+                     ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer?.SetSelectionFromExternal(selectionBitmap, SKPoint.Empty);
 
-                var sp = ServiceProvider;
-                sp.GetRequiredService<IViewPortService>().ShowAll();
-                await Task.Delay(300);
-                sp.GetRequiredService<IViewPortRefreshService>().Refresh();
-            }
-        }, "Crop current sprite", new CommandShortcut(VirtualKeys.K, KeyModifier.Ctrl), EditContextType.Sprite);
+                 var sp = ServiceProvider;
+                 sp.GetRequiredService<IViewPortService>().ShowAll();
+                 await Task.Delay(300);
+                 sp.GetRequiredService<IViewPortRefreshService>().Refresh();
+             }
+         }, "Crop current sprite", new CommandShortcut(VirtualKeys.K, KeyModifier.Ctrl), EditContextType.Sprite);
 
     public Pix2dCommand FlipHorizontal =>
-        GetCommand(() => { SpriteEditor.Flip(FlipMode.Horizontal); }, "Flip Horizontal", new CommandShortcut(VirtualKeys.H, KeyModifier.Shift), EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
+        GetCommand(() => { SpriteEditor?.Flip(FlipMode.Horizontal); }, "Flip Horizontal", new CommandShortcut(VirtualKeys.H, KeyModifier.Shift), EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
     public Pix2dCommand FlipVertical =>
-        GetCommand(() => { SpriteEditor.Flip(FlipMode.Vertical); }, "Flip Vertical", new CommandShortcut(VirtualKeys.V, KeyModifier.Shift), EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
+        GetCommand(() => { SpriteEditor?.Flip(FlipMode.Vertical); }, "Flip Vertical", new CommandShortcut(VirtualKeys.V, KeyModifier.Shift), EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
-    public Pix2dCommand Rotate90 =>
-        GetCommand(() =>
-        {
-            var selectionEditor = DrawingService.GetSelectionEditor();
-            if (selectionEditor.HasSelection)
-            {
-                selectionEditor.RotateSelection(90);
-            }
-            else
-            {
-                SpriteEditor.RotateCurrentFrame();
-            }
-        }, "Rotate 90°", new CommandShortcut(VirtualKeys.R, KeyModifier.Shift), EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
+     public Pix2dCommand Rotate90 =>
+         GetCommand(() =>
+         {
+             var selectionEditor = DrawingService.GetSelectionEditor();
+             if (selectionEditor.HasSelection)
+             {
+                 selectionEditor.RotateSelection(90);
+             }
+             else
+             {
+                 SpriteEditor?.RotateCurrentFrame();
+             }
+         }, "Rotate 90°", new CommandShortcut(VirtualKeys.R, KeyModifier.Shift), EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
-    public Pix2dCommand Rotate90All => GetCommand(() => SpriteEditor.RotateSprite(), "Rotate all 90°", new CommandShortcut(VirtualKeys.R, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
+    public Pix2dCommand Rotate90All => GetCommand(() => SpriteEditor?.RotateSprite(), "Rotate all 90°", new CommandShortcut(VirtualKeys.R, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 
 
     public Pix2dCommand Clear => GetCommand(() => { ServiceProvider.GetRequiredService<IDrawingService>().ClearCurrentLayer(); },
@@ -104,21 +105,21 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
     public Pix2dCommand ApplySelection => GetCommand(() => { ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer.ApplySelection(); }, "Apply selection", new CommandShortcut(VirtualKeys.Return), EditContextType.Sprite);
 
     public Pix2dCommand SendLayerBackward =>
-        GetCommand(() => { SpriteEditor.SendLayerBackward(); }, "Send current layer backward", new CommandShortcut(VirtualKeys.OEM4, KeyModifier.Ctrl), EditContextType.Sprite);
+        GetCommand(() => { SpriteEditor?.SendLayerBackward(); }, "Send current layer backward", new CommandShortcut(VirtualKeys.OEM4, KeyModifier.Ctrl), EditContextType.Sprite);
 
     public Pix2dCommand BringLayerForward =>
-        GetCommand(() => { SpriteEditor.BringLayerForward(); }, "Bring current layer forward", new CommandShortcut(VirtualKeys.OEM6, KeyModifier.Ctrl), EditContextType.Sprite);
+        GetCommand(() => { SpriteEditor?.BringLayerForward(); }, "Bring current layer forward", new CommandShortcut(VirtualKeys.OEM6, KeyModifier.Ctrl), EditContextType.Sprite);
 
     public Pix2dCommand AddLayer =>
-        GetCommand(() => { SpriteEditor.AddEmptyLayer(); }, "Add new layer", new CommandShortcut(VirtualKeys.N, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
+        GetCommand(() => { SpriteEditor?.AddEmptyLayer(); }, "Add new layer", new CommandShortcut(VirtualKeys.N, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 
     public Pix2dCommand DeleteLayer =>
-        GetCommand(() => { SpriteEditor.DeleteLayer(); }, "Delete current layer", new CommandShortcut(VirtualKeys.Delete, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
+        GetCommand(() => { SpriteEditor?.DeleteLayer(); }, "Delete current layer", new CommandShortcut(VirtualKeys.Delete, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 
     public Pix2dCommand DuplicateLayer =>
-        GetCommand(() => { SpriteEditor.DuplicateLayer(); }, "Duplicate current layer", new CommandShortcut(VirtualKeys.D, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
+        GetCommand(() => { SpriteEditor?.DuplicateLayer(); }, "Duplicate current layer", new CommandShortcut(VirtualKeys.D, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
     public Pix2dCommand MergeLayer =>
-        GetCommand(() => { SpriteEditor.MergeDownLayer(); }, "Merge down current layer to bottom neighbor", new CommandShortcut(VirtualKeys.D, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
+        GetCommand(() => { SpriteEditor?.MergeDownLayer(); }, "Merge down current layer to bottom neighbor", new CommandShortcut(VirtualKeys.D, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 
     public Pix2dCommand FillSelectionCommand =>
         GetCommand(() =>

@@ -89,7 +89,9 @@ public class TextNode : SKNode
         var paint = GetPaint();
         _bounds = SKRect.Empty;
         var bounds = new SKRect();
+#pragma warning disable CS0618
         paint.MeasureText(Text, ref bounds);
+#pragma warning restore CS0618
         _bounds = bounds;
         var height = -font.Metrics.Top + font.Metrics.Bottom;
         // This adds same margin to the right of the text as to the left of the text.

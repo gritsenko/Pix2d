@@ -1,11 +1,11 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 
 namespace Pix2d.Operations.Effects;
 
 public class AddEffectOperation(IEnumerable<SKNode> nodes, ISKNodeEffect effect) : EditOperationBase
 {
     private readonly SKNode[] _nodes = nodes.ToArray();
-    private ISKNodeEffect[] _addedEffects;
+    private ISKNodeEffect[]? _addedEffects;
 
     public override void OnPerform()
     {

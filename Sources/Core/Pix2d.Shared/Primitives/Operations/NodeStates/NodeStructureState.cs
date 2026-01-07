@@ -1,11 +1,11 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 
 namespace Pix2d.Abstract.Operations;
 
 public class NodeStructureState
 {
     public readonly SKNode Node;
-    public readonly SKNode Parent;
+    public readonly SKNode? Parent;
     public readonly int Index;
     public readonly int NestingLevel;
 
@@ -19,6 +19,6 @@ public class NodeStructureState
 
     public virtual void RestoreNodeState()
     {
-            Parent.Nodes.Insert(Index, Node);
+            Parent?.Nodes.Insert(Index, Node);
         }
 }

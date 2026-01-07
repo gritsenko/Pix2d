@@ -1,4 +1,4 @@
-﻿namespace Pix2d.Plugins.Psd.PsdReader
+namespace Pix2d.Plugins.Psd.PsdReader
 {
     public class ImageResource
     {
@@ -6,7 +6,7 @@
 
         public string Name { get; }
 
-        public byte[] Data { get; set; }
+        public byte[] Data { get; set; } = Array.Empty<byte>();
 
         public string OSType { get; private set; }
 

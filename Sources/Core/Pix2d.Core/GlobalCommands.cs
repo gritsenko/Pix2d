@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Commands;
 using Pix2d.Abstract.Platform;
@@ -40,8 +40,8 @@ public class GlobalCommands : CommandsListBase
         => GetCommand(() =>
         {
             var selectedNodes = ServiceProvider.GetRequiredService<ISelectionService>()
-                ?.Selection?.Nodes ?? AppState.CurrentProject.SceneNode.GetVisibleDescendants()
-                .OfType<Pix2dSprite>().ToArray();
+                ?.Selection?.Nodes ?? AppState.CurrentProject.SceneNode?.GetVisibleDescendants()
+                .OfType<Pix2dSprite>().ToArray() ?? Array.Empty<Pix2dSprite>();
 
             if (selectedNodes.FirstOrDefault() is Pix2dSprite sprite)
             {

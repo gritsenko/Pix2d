@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Selection;
+using Pix2d.Abstract.Selection;
 using Pix2d.Selection;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -18,7 +18,7 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
     private SKPoint _initialThumbGlobalPos;
     protected SKMatrix _initialTargetLocalTransform;
     protected SKMatrix _initialTargetGlobalTransform;
-    public Func<bool> AspectLockProviderFunc { get; set; }
+    public Func<bool>? AspectLockProviderFunc { get; set; }
 
     public ResizeThumbSingleNode()
     {
@@ -29,21 +29,22 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
         DragDelta += MoveNodeThumb_DragDelta;
     }
 
-    private void MoveNodeThumb_DragStarted(object sender, DragStartedEventArgs e)
+    private void MoveNodeThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
-        _initialThumbLocalPos = TargetSelection.Frame.GetLocalPosition(Position);
+        var frame = TargetSelection!.Frame;
+        if (frame == null) return;
+        _initialThumbLocalPos = frame.GetLocalPosition(Position);
         _initialThumbGlobalPos = GetGlobalPosition();
-        var frame = TargetSelection.Frame;
         _initialTargetPos = frame.Position;
         _initialTargetPivotPosition = frame.PivotPosition;
         _initialTargetSize = frame.Size;
 
         _initialTargetGlobalTransform = frame.GetGlobalTransform();
         _initialTargetGlobalTransform.TryInvert(out var invertedWorldTransform);
-        _initialTargetLocalTransform = invertedWorldTransform;
+        _initialTargetLocalTransform = invertedWorldTransform!;
     }
 
-    private void MoveNodeThumb_DragDelta(object sender, DragDeltaEventArgs e)
+    private void MoveNodeThumb_DragDelta(object? sender, DragDeltaEventArgs e)
     {
         DragNode(this, _initialThumbGlobalPos, new SKPoint(e.HorizontalChange, e.VerticalChange), false);
 
@@ -91,7 +92,7 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
     protected override void AdjustDimensionsToTargets(NodesSelection selection)
     {
         var bounds = selection.Bounds;
-        Position = bounds.GetRightBottomPoint();
+        Position = bounds.GetRightBottomPoint()!;
     }
 
     protected override void OnDraw(SKCanvas canvas, ViewPort vp)

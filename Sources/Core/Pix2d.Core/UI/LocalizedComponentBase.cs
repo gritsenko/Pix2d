@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Declarative;
 using System.Diagnostics.CodeAnalysis;
@@ -11,7 +11,7 @@ namespace Pix2d.UI;
 public abstract class LocalizedComponentBase : ComponentBase
 {
     [Inject] private ILocalizationService LocalizationService { get; set; } = null!;
-    [Inject] private AppState AppState { get; set; }
+    [Inject] private AppState AppState { get; set; } = null!;
 
     /// <summary>
     /// Used for localization strings, override this in your own base component inherited from this ComponentBase
@@ -48,7 +48,7 @@ public abstract class LocalizedComponentBase : ComponentBase
 public abstract class LocalizedComponentBase<TViewModel>(TViewModel viewModel) : ComponentBase<TViewModel>(viewModel)
 {
     [Inject] private ILocalizationService LocalizationService { get; set; } = null!;
-    [Inject] private AppState AppState { get; set; }
+    [Inject] private AppState AppState { get; set; } = null!;
 
     /// <summary>
     /// Used for localization strings, override this in your own base component inherited from this ComponentBase

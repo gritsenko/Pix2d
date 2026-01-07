@@ -20,7 +20,7 @@ public class AvaloniaFolder(IStorageFolder folder) : IWriteDestinationFolder
     public async Task<IFileContentSource> GetFileSourceAsync(string name, string extension = "png", bool overwrite = false)
     {
         var file = await folder.CreateFileAsync(GetFileName(name, extension.TrimStart('.')));
-        return new AvaloniaFileSource(file);
+        return new AvaloniaFileSource(file!);
     }
 
     public Task<IFileContentSource> GetFileSourceToReadAsync(string name, string extension = "png")
@@ -30,7 +30,7 @@ public class AvaloniaFolder(IStorageFolder folder) : IWriteDestinationFolder
         {
             return Task.FromResult<IFileContentSource>(new NetFileSource(path));
         }
-        return Task.FromResult<IFileContentSource>(default);
+        return Task.FromResult<IFileContentSource>(null!);
     }
 
     public IWriteDestinationFolder GetSubfolder(string folderName)
@@ -85,10 +85,10 @@ public class AvaloniaFolder(IStorageFolder folder) : IWriteDestinationFolder
         });
     }
 
-    public Task<IEnumerable<IFileContentSource>> GetFilesAsync(string subfolderPath = default)
+    public Task<IEnumerable<IFileContentSource>> GetFilesAsync(string? subfolderPath = default)
     {
         var dirInfo =
-            new DirectoryInfo(subfolderPath == default ? Path : System.IO.Path.Combine(this.Path, subfolderPath));
+            new DirectoryInfo(subfolderPath == default ? Path : System.IO.Path.Combine(this.Path, subfolderPath!));
 
         if (!dirInfo.Exists)
             return Task.FromResult(Enumerable.Empty<IFileContentSource>());

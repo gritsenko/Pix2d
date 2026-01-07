@@ -461,7 +461,8 @@ public class NodesSelection : INodesSelection
 
         InvalidateGroups();
         _editOperation?.SetFinalData();
-        _operationService?.PushOperations(_editOperation);
+        if (_editOperation is not null)
+            _operationService?.PushOperations(_editOperation);
     }
 
     private void InvalidateGroups()

@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Import;
+using Pix2d.Abstract.Import;
 using Pix2d.Abstract.Platform.FileSystem;
 using SkiaSharp;
 
@@ -10,6 +10,8 @@ public class GifImporter : IImporter
     {
         await using var stream = await files.First().OpenRead();
         using var codec = SKCodec.Create(stream);
+        if (codec == null)
+            return;
         var info = codec.Info;
         info = new SKImageInfo(info.Width, info.Height, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
 
@@ -21,7 +23,7 @@ public class GifImporter : IImporter
             var frameBitmap = new SKBitmap(info);
 
             if (codec.GetFrameInfo(i, out _) 
-                && codec?.GetPixels(info, frameBitmap.GetPixels(), opts) == SKCodecResult.Success) 
+                && codec.GetPixels(info, frameBitmap.GetPixels(), opts) == SKCodecResult.Success) 
                 frames.Add(frameBitmap);
         }
 

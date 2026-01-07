@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
@@ -24,7 +24,7 @@ public class SkiaCanvas : Control
 
     private bool _isInitialized;
     private DateTime _initTime;
-    private ICustomDrawOperation _drawingOp;
+    private ICustomDrawOperation _drawingOp = null!;
     private Cursor? _cursor;
     private bool _isPointerPressed;
     private Point _initialPos;
@@ -42,7 +42,7 @@ public class SkiaCanvas : Control
     //private readonly MultiFingerGestureRecognizer _redoGesture = new() { FingersCount = 3, TapCount = 2, RoutedEventToRaise = RedoGestureEvent };
     private double _oldScale;
     private SKPoint _oldVpPos;
-    private readonly IViewPortService _viewPortService;
+    private readonly IViewPortService _viewPortService = null!;
 
     public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
@@ -205,10 +205,11 @@ public class SkiaCanvas : Control
         InitializeViewport();
         
         _rootNode = SKApp.SceneManager.GetRootNode() as RootNode;
-        _rootNode.ShowGrid = true;
-        Input.RootNodeProvider = () => _rootNode;
-        Input.ViewPortProvider = () => ViewPort;
-        _viewPortService.Initialize(ViewPort);
+        if (_rootNode != null)
+            _rootNode.ShowGrid = true;
+        Input.RootNodeProvider = () => _rootNode!;
+        Input.ViewPortProvider = () => ViewPort!;
+        _viewPortService.Initialize(ViewPort!);
 
         OnViewportInitialized();
     }
@@ -316,7 +317,8 @@ public class SkiaCanvas : Control
 
         if (Input.PanMode)
         {
-            _initialPan = ViewPort.Pan;
+            if (ViewPort != null)
+                _initialPan = ViewPort.Pan;
             _initialPos = position;
             //Refresh();
             return;
@@ -350,7 +352,8 @@ public class SkiaCanvas : Control
             var offsetX = pos.X - _initialPos.X;
             var offsetY = pos.Y - _initialPos.Y;
 
-            ViewPort.SetPan((float)(_initialPan.X - offsetX * ViewPort.ScaleFactor), (float)(_initialPan.Y - offsetY * ViewPort.ScaleFactor));
+            if (ViewPort != null)
+                ViewPort.SetPan((float)(_initialPan.X - offsetX * ViewPort.ScaleFactor), (float)(_initialPan.Y - offsetY * ViewPort.ScaleFactor));
             //ViewPort.ChangePan(-(float)translationDeltaX, -(float)translationDeltaY);
             //Refresh();
             return;
@@ -383,8 +386,11 @@ public class SkiaCanvas : Control
         }
 
         var deltaPan = _oldVpPos - e.ScaleOrigin.ToSKPoint();
-        ViewPort.ChangePan(deltaPan.X * ViewPort.ScaleFactor, deltaPan.Y * ViewPort.ScaleFactor);
-        ViewPort.ChangeZoom((float)(e.Scale / _oldScale), e.ScaleOrigin.ToSKPoint().Multiply(ViewPort.ScaleFactor));
+        if (ViewPort != null)
+        {
+            ViewPort.ChangePan(deltaPan.X * ViewPort.ScaleFactor, deltaPan.Y * ViewPort.ScaleFactor);
+            ViewPort.ChangeZoom((float)(e.Scale / _oldScale), e.ScaleOrigin.ToSKPoint().Multiply(ViewPort.ScaleFactor));
+        }
 
         _oldVpPos = e.ScaleOrigin.ToSKPoint();
         _oldScale = e.Scale;
@@ -400,8 +406,8 @@ public class SkiaCanvas : Control
 
 
     private SKPoint ToSKPoint(Point p) => new(
-        (float)(ViewPort.ScaleFactor * p.X),
-        (float)(ViewPort.ScaleFactor * p.Y)
+        (float)((ViewPort?.ScaleFactor ?? 1f) * p.X),
+        (float)((ViewPort?.ScaleFactor ?? 1f) * p.Y)
     );
 
 
@@ -417,7 +423,8 @@ public class SkiaCanvas : Control
         var size = GetViewPortSize();
         if (ViewPort?.Size != size)
         {
-            ViewPort.Size = size;
+            if (ViewPort != null)
+                ViewPort.Size = size;
         }
 
         if (Design.IsDesignMode)
@@ -431,7 +438,7 @@ public class SkiaCanvas : Control
     }
 
 
-    private void ViewPortOnRefreshRequested(object sender, EventArgs e)
+    private void ViewPortOnRefreshRequested(object? sender, EventArgs e)
     {
         Dispatcher.UIThread.InvokeAsync(InvalidateVisual, DispatcherPriority.Background);
         //InvalidateVisual();
@@ -451,7 +458,7 @@ public class SkiaCanvas : Control
 
         public Rect Bounds { get; } = bounds;
         public bool HitTest(Point p) => true;
-        public bool Equals(ICustomDrawOperation other) => false;
+        public bool Equals(ICustomDrawOperation? other) => false;
         private SKCanvas? _skCanvas;
         private Matrix _lastTransform;
 
@@ -463,9 +470,11 @@ public class SkiaCanvas : Control
         public void Render(ImmediateDrawingContext context)
         {
             var canvas = GetSkCanvas(context);
+            if (canvas == null)
+                return;
             try
             {
-
+ 
                 canvas.Save();
 
                 canvas.Clear(_bgColor);
@@ -485,7 +494,7 @@ public class SkiaCanvas : Control
                 }
                 canvas.Restore();
             }
-            catch (ObjectDisposedException _)
+            catch (ObjectDisposedException)
             {
                 //ignore this. nothing we can do actually
             }
@@ -493,14 +502,14 @@ public class SkiaCanvas : Control
             //    context.DrawText(Brushes.Black, new Point(), NoSkiaText.PlatformImpl);
         }
 
-        private SKCanvas GetSkCanvas(ImmediateDrawingContext context)
+        private SKCanvas? GetSkCanvas(ImmediateDrawingContext context)
         {
             if (_skCanvas?.Handle == IntPtr.Zero)
                 _skCanvas = null;
 
             return _skCanvas ??= GetCanvasFromField();
 
-            SKCanvas GetCanvasFromField()
+            SKCanvas? GetCanvasFromField()
             {
                 var leaseFeature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
                 if (leaseFeature == null)

@@ -1,0 +1,20 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  SkiaNodes -> /Users/igor.gritsenko/Projects/pix2d/Sources/Core/SkiaNodes/bin/Debug/net9.0/SkiaNodes.dll
+  Pix2d.Infrastructure -> /Users/igor.gritsenko/Projects/pix2d/Sources/Core/Pix2d.Infrastructure/bin/Debug/net9.0/Pix2d.Infrastructure.dll
+  Pix2d.Shared -> /Users/igor.gritsenko/Projects/pix2d/Sources/Core/Pix2d.Shared/bin/Debug/net9.0/Pix2d.Shared.dll
+  Pix2d.Plugins.Psd -> /Users/igor.gritsenko/Projects/pix2d/Sources/Plugins/FormatSupport/Psd/Pix2d.Plugins.Psd/bin/Debug/net9.0/Pix2d.Plugins.Psd.dll
+  Pix2d.Core -> /Users/igor.gritsenko/Projects/pix2d/Sources/Core/Pix2d.Core/bin/Debug/net9.0/Pix2d.Core.dll
+  Pix2d.UI -> /Users/igor.gritsenko/Projects/pix2d/Sources/Core/Pix2d.UI/bin/Debug/net9.0/Pix2d.UI.dll
+  Pix2d.Plugins.PixelText -> /Users/igor.gritsenko/Projects/pix2d/Sources/Plugins/Pix2d.Plugins.PixelText/bin/Debug/net9.0/Pix2d.Plugins.PixelText.dll
+  Pix2d.Plugins.BaseEffects -> /Users/igor.gritsenko/Projects/pix2d/Sources/Plugins/Effects/Pix2d.Plugins.BaseEffectsSettings/bin/Debug/net9.0/Pix2d.Plugins.BaseEffects.dll
+  Pix2d.Plugins.Drawing -> /Users/igor.gritsenko/Projects/pix2d/Sources/Plugins/Pix2d.Plugins.Drawing/bin/Debug/net9.0/Pix2d.Plugins.Drawing.dll
+  Pix2d.Plugins.Ai -> /Users/igor.gritsenko/Projects/pix2d/Sources/Plugins/Pix2d.Plugins.Ai/bin/Debug/net9.0/Pix2d.Plugins.Ai.dll
+  Pix2d.Plugins.PngCompress -> /Users/igor.gritsenko/Projects/pix2d/Sources/Plugins/Pix2d.Plugins.PngCompress/bin/Debug/net9.0/Pix2d.Plugins.PngCompress.dll
+  Pix2d.Desktop -> /Users/igor.gritsenko/Projects/pix2d/Sources/Heads/Pix2d.Desktop/bin/Debug/net9.0/Pix2d.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:04.85

@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Selection;
+using Pix2d.Abstract.Selection;
 using Pix2d.Selection;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -9,11 +9,11 @@ namespace Pix2d.InteractiveNodes.Thumbs;
 public class NodeManipulateThumbBase : ThumbNode
 {
 
-    private NodesSelection _selection;
+    private NodesSelection? _selection = null!;
 
     public bool SnapToPixels { get; set; }
 
-    public NodesSelection TargetSelection
+    public NodesSelection? TargetSelection
     {
         get => _selection;
         set
@@ -29,7 +29,8 @@ public class NodeManipulateThumbBase : ThumbNode
                 if (_selection != null)
                     _selection.Invalidated += SelectionOnInvalidated;
 
-                AdjustDimensionsToTargets(_selection);
+                if (_selection != null)
+                    AdjustDimensionsToTargets(_selection);
             }
 
         }
@@ -55,14 +56,16 @@ public class NodeManipulateThumbBase : ThumbNode
         }
     }
 
-    private void SelectionOnInvalidated(object sender, EventArgs e)
+    private void SelectionOnInvalidated(object? sender, EventArgs e)
     {
-        AdjustDimensionsToTargets(_selection);
+        if (_selection != null)
+            AdjustDimensionsToTargets(_selection);
     }
 
     public void UpdateToTargets()
     {
-        AdjustDimensionsToTargets(_selection);
+        if (_selection != null)
+            AdjustDimensionsToTargets(_selection);
     }
 
     protected override SKColor BBoxColor => _bboxColor ??= SKColors.LawnGreen;
@@ -77,12 +80,14 @@ public class NodeManipulateThumbBase : ThumbNode
 
         using var paint = new SKPaint();
         paint.Color = BBoxColor;
+#pragma warning disable CS0618
         paint.TextSize = 2;
 
 
         var pos = GetGlobalPosition();
 
         canvas.DrawText($"{this.Name}[{this.GetType().Name}]", pos.X, pos.Y, paint);
+#pragma warning restore CS0618
 
         DrawHitZone(canvas, vp, 2, SKColors.Red);
 

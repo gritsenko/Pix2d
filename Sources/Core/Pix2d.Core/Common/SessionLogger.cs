@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Pix2d.Abstract.Operations;
@@ -64,7 +64,7 @@ public class SessionLogger
     }
     public static void OpLogCommand(string? commandName = null)
     {
-        Instance.AddItemToOpLog(new OpLogItem(OperationEventType.Command, commandName));
+        Instance.AddItemToOpLog(new OpLogItem(OperationEventType.Command, commandName ?? ""));
     }
 
 }

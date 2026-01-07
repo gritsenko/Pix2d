@@ -1,4 +1,4 @@
-﻿using Avalonia.Styling;
+using Avalonia.Styling;
 using Pix2d.Abstract.UI;
 using Pix2d.UI.Resources;
 
@@ -61,7 +61,7 @@ public class UnsavedChangesDialogView : ViewBase, IDialogView<UnsavedChangesDial
                     ) //stack panel children
             );
 
-    public string Title { get; set; }
-    public Action<bool?> OnDialogClosed { get; set; }
+    public string Title { get; set; } = null!;
+    public Action<bool?> OnDialogClosed { get; set; } = null!;
     public UnsavedChangesDialogResult DialogResult { get; set; }
 }

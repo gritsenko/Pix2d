@@ -1,4 +1,4 @@
-﻿namespace Pix2d.Abstract;
+namespace Pix2d.Abstract;
 
 public class ExportImportProjectType
 {
@@ -10,7 +10,7 @@ public class ExportImportProjectType
     public static ExportImportProjectType Gif = new(".gif");
     public static ExportImportProjectType Jpeg = new(".jpg");
 
-    public string FileExtension { get; }
+    public string FileExtension { get; } = "";
     public bool IsDirectoryProject { get; }
 
     public ExportImportProjectType(string fileExtension)

@@ -39,6 +39,7 @@
 
 using System;
 
+#nullable enable
 namespace Pix2d.Common.Gif;
 
 public class NeuQuant 
@@ -390,16 +391,16 @@ public class NeuQuant
     public void Unbiasnet() 
     {
 
-			int i, j;
+        int i;
 
-			for (i = 0; i < netsize; i++) 
-			{
-				network[i][0] >>= netbiasshift;
-				network[i][1] >>= netbiasshift;
-				network[i][2] >>= netbiasshift;
-				network[i][3] = i; /* record colour no */
-			}
-		}
+        for (i = 0; i < netsize; i++) 
+        {
+            network[i][0] >>= netbiasshift;
+            network[i][1] >>= netbiasshift;
+            network[i][2] >>= netbiasshift;
+            network[i][3] = i; /* record colour no */
+        }
+    }
 	
     /* Move adjacent neurons by precomputed alpha*(1-((i-j)^2/[r]^2)) in radpower[|i-j|]
        --------------------------------------------------------------------------------- */
@@ -422,32 +423,32 @@ public class NeuQuant
 			while ((j < hi) || (k > lo)) 
 			{
 				a = radpower[m++];
-				if (j < hi) 
-				{
-					p = network[j++];
-					try 
-					{
-						p[0] -= (a * (p[0] - b)) / alpharadbias;
-						p[1] -= (a * (p[1] - g)) / alpharadbias;
-						p[2] -= (a * (p[2] - r)) / alpharadbias;
-					} 
-					catch (Exception e) 
-					{
-					} // prevents 1.3 miscompilation
-				}
-				if (k > lo) 
-				{
-					p = network[k--];
-					try 
-					{
-						p[0] -= (a * (p[0] - b)) / alpharadbias;
-						p[1] -= (a * (p[1] - g)) / alpharadbias;
-						p[2] -= (a * (p[2] - r)) / alpharadbias;
-					} 
-					catch (Exception e) 
-					{
-					}
-				}
+                if (j < hi) 
+                {
+                    p = network[j++];
+                    try 
+                    {
+                        p[0] -= (a * (p[0] - b)) / alpharadbias;
+                        p[1] -= (a * (p[1] - g)) / alpharadbias;
+                        p[2] -= (a * (p[2] - r)) / alpharadbias;
+                    } 
+                    catch (Exception)
+                    {
+                    } // prevents 1.3 miscompilation
+                }
+                if (k > lo) 
+                {
+                    p = network[k--];
+                    try 
+                    {
+                        p[0] -= (a * (p[0] - b)) / alpharadbias;
+                        p[1] -= (a * (p[1] - g)) / alpharadbias;
+                        p[2] -= (a * (p[2] - r)) / alpharadbias;
+                    } 
+                    catch (Exception)
+                    {
+                    }
+                }
 			}
 		}
 	

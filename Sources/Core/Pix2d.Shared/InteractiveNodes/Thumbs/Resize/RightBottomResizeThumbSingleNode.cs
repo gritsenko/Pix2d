@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Selection;
+using Pix2d.Abstract.Selection;
 using Pix2d.Selection;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -12,7 +12,8 @@ public class RightBottomResizeThumbSingleNode : ResizeThumbSingleNode
             // if (IsDragging)
             //     return;
             //
-            var frame = selection.Frame;
+            var frame = selection?.Frame;
+            if (frame == null) return;
             var transform = frame.GetGlobalTransform();
             Position = transform.MapPoint(frame.LocalBounds.GetRightBottomPoint());
         }
@@ -28,10 +29,10 @@ public class RightBottomResizeThumbSingleNode : ResizeThumbSingleNode
             var pivotPosition = _initialTargetPivotPosition;
             pivotPosition.Offset(delta.X / 2,  delta.Y / 2);
             
-            TargetSelection.SetPosition(_initialTargetGlobalTransform.MapPoint(position));
-            TargetSelection.SetPivotPosition(pivotPosition);
+            TargetSelection?.SetPosition(_initialTargetGlobalTransform.MapPoint(position));
+            TargetSelection?.SetPivotPosition(pivotPosition);
             
             var newSize = CalculateNewSize(initialSize, delta, lockAspect);
-            TargetSelection.SetSize(newSize.Width, newSize.Height);
+            TargetSelection?.SetSize(newSize.Width, newSize.Height);
         }
 }

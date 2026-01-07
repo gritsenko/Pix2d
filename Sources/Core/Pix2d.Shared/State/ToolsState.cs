@@ -1,10 +1,10 @@
-﻿namespace Pix2d.State;
+namespace Pix2d.State;
 
 public class ToolsState : StateBase
 {
     public List<ToolState> Tools { get; set; } = [];
 
-    public ToolState CurrentTool => Tools.FirstOrDefault(x => x.Name == CurrentToolKey);
+    public ToolState? CurrentTool => Tools.FirstOrDefault(x => x.Name == CurrentToolKey);
 
     public string CurrentToolKey
     {

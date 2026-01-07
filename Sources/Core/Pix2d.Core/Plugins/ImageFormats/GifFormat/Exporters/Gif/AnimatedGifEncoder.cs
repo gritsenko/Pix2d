@@ -5,6 +5,8 @@ using SkiaSharp;
 
 namespace Pix2d.Common.Gif;
 
+#pragma warning disable CS8625 // Fields are intentionally set to null and initialized before use
+
 public class AnimatedGifEncoder
 {
     protected int width; // image size
@@ -15,14 +17,14 @@ public class AnimatedGifEncoder
     protected int delay = 0; // frame delay (hundredths)
     protected bool started = false; // ready to output frames
     //	protected BinaryWriter bw;
-    protected MemoryStream  ms;
+    protected MemoryStream  ms = null!;
 //		protected FileStream fs;
 
-    protected SKBitmap image; // current frame
-    protected byte[] pixels; // BGR byte array from frame
-    protected byte[] indexedPixels; // converted frame indexed to palette
+    protected SKBitmap image = null!; // current frame
+    protected byte[] pixels = null!; // BGR byte array from frame
+    protected byte[] indexedPixels = null!; // converted frame indexed to palette
     protected int colorDepth; // number of bit planes
-    protected byte[] colorTab; // RGB palette
+    protected byte[] colorTab = null!; // RGB palette
     protected bool[] usedEntry = new bool[256]; // active palette entries
     protected int palSize = 7; // color table size (bits-1)
     protected int dispose = -1; // disposal code (-1 = use default)
@@ -146,7 +148,7 @@ public class AnimatedGifEncoder
             WritePixels(); // encode and write pixel data
             firstFrame = false;
         } 
-        catch (IOException e) 
+        catch (IOException) 
         {
             ok = false;
         }
@@ -173,7 +175,7 @@ public class AnimatedGifEncoder
 //					ms.Close();
             }
         } 
-        catch (IOException e) 
+        catch (IOException) 
         {
             ok = false;
         }
@@ -258,7 +260,7 @@ public class AnimatedGifEncoder
         {
             WriteString("GIF89a"); // header
         } 
-        catch (IOException e) 
+        catch (IOException) 
         {
             ok = false;
         }
@@ -278,7 +280,7 @@ public class AnimatedGifEncoder
             ok = Start(new MemoryStream(10*1024));
             closeStream = true;
         } 
-        catch (IOException e) 
+        catch (IOException) 
         {
             ok = false;
         }

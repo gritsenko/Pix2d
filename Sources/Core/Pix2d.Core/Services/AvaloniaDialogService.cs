@@ -164,7 +164,7 @@ public class AvaloniaDialogService : IDialogService
 
         public void Cancel()
         {
-            _cts.SetResult(default);
+            _cts.SetResult(default!);
             _onCloseAction();
         }
     }

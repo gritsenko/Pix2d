@@ -194,18 +194,18 @@ public class FrameEditorNode : SKNode
 
     public bool GetAspectLock()
     {
-        return _selection?.LockAspect ?? false || AspectSnapperProviderFunc?.Invoke().IsAspectLocked == true;
+        return _selection?.LockAspect ?? false || (AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked == true);
     }
     public bool GetAxisLock()
     {
-        return AspectSnapperProviderFunc?.Invoke().IsAspectLocked ?? false;
+        return AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked ?? false;
     }
 
     public void ActivateMoveThumb()
     {
         _moveThumb.OnPointerPressed(
-            new PointerActionEventArgs(PointerActionType.Pressed, SKInput.Current.Pointer,
-                SKInput.Current.GetModifiers()), 0);
+            new PointerActionEventArgs(PointerActionType.Pressed, SKInput.Current.Pointer!,
+                SKInput.Current.GetModifiers()!), 0);
     }
 
     protected virtual void OnSelectionEditStarted()

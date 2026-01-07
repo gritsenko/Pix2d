@@ -1,4 +1,4 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 using SkiaNodes.Abstract;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -78,6 +78,7 @@ public class DrawingContainerBaseNode : SKNode, IContainerNode, IClippingSource
         var cellSize = GridCellSize.Width < 1 ? 8 : GridCellSize.Width;
         var effectiveCellSize = vp.Zoom < 4 ? cellSize : 1;
 
+#pragma warning disable CS0618 // Type or member is obsolete
         using var paint = new SKPaint
         {
             Shader = SKShader.CreateBitmap(
@@ -88,6 +89,7 @@ public class DrawingContainerBaseNode : SKNode, IContainerNode, IClippingSource
             ),
             FilterQuality = SKFilterQuality.None // Critical for crisp pixels
         };
+#pragma warning restore CS0618 // Type or member is obsolete
 
         canvas.DrawRect(LocalBounds, paint);
     }

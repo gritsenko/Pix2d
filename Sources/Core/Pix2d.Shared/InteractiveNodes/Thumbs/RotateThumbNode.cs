@@ -33,7 +33,7 @@ namespace Pix2d.InteractiveNodes.Thumbs;
     {
         _initialThumbPos = GetGlobalPosition();
 
-        _initialTargetsPos = TargetSelection.Nodes.ToDictionary(x => x, x => x.GetGlobalPosition())!;
+        _initialTargetsPos = TargetSelection?.Nodes?.ToDictionary(x => x, x => x.GetGlobalPosition());
     }
 
     private void OnDragComplete(object sender, DragCompletedEventArgs e)
@@ -43,7 +43,7 @@ namespace Pix2d.InteractiveNodes.Thumbs;
 
     private void OnDragDelta(object sender, DragDeltaEventArgs e)
     {
-        if (_initialTargetsPos == null)
+        if (_initialTargetsPos == null || TargetSelection == null)
             return;
 
         var delta = new SKPoint(e.HorizontalChange, e.VerticalChange);

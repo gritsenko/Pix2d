@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text.Json;
@@ -89,7 +89,8 @@ public static class SingleInstancePipeService
                 using var sr = new StreamReader(pipe);
                 await pipe.WaitForConnectionAsync();
                 var result = await sr.ReadLineAsync();
-                MessageReceived?.Invoke(null, result);
+                if (result != null)
+                    MessageReceived?.Invoke(null, result);
             }
         }
         catch

@@ -1,14 +1,16 @@
-﻿using System.IO;
+using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
 using Pix2d.Abstract.Platform.FileSystem;
 
 namespace Pix2d.Common.FileSystem;
 
+#nullable enable
+
 public class AvaloniaFileSource : IFileContentSource
 {
     private readonly IStorageFile _storageFile;
-    private MemoryStream _dataStream;
+    private MemoryStream _dataStream = null!;
     public string Path { get; }
 
     public bool Exists => true;
@@ -69,7 +71,7 @@ public class AvaloniaFileSource : IFileContentSource
     public AvaloniaFileSource(IStorageFile storageFile)
     {
         Title = storageFile.Name;
-        Path = storageFile.TryGetLocalPath();
+        Path = storageFile.TryGetLocalPath() ?? "";
         _storageFile = storageFile;
     }
 

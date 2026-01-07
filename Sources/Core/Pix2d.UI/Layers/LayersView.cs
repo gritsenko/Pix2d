@@ -1,4 +1,4 @@
-﻿using Pix2d.Command;
+using Pix2d.Command;
 using Pix2d.Common.Behaviors;
 using Pix2d.Common.Extensions;
 using Pix2d.CommonNodes;
@@ -100,7 +100,7 @@ public class LayersView : ComponentBase
     private int ReverseIndex(int index) => Layers.Count - index - 1;
 
     private bool _reorderingStarted;
-    private ItemReorderInfo<LayerItemViewModel> _reorderInfo;
+    private ItemReorderInfo<LayerItemViewModel>? _reorderInfo;
 
     private class ItemReorderInfo<TItem>
     {
@@ -279,7 +279,7 @@ public class LayerItemViewModel
         SourceNode = sourceNode;
     }
 
-    public Func<LayerItemViewModel, SKBitmap> PreviewProvider { get; set; }
+    public Func<LayerItemViewModel, SKBitmap>? PreviewProvider { get; set; }
 
     public Pix2dSprite.Layer SourceNode { get; set; }
     public bool IsSelected => _editor?.SelectedLayer == SourceNode;

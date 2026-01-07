@@ -1,12 +1,12 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 
 namespace Pix2d.Operations;
 
 public abstract class ChangeNodePropertyOperationBase<TValue> : EditOperationBase
 {
-    private SKNode[] _nodes;
-    private TValue[] _initialValues;
-    private TValue[] _finalValues;
+    private SKNode[] _nodes = null!;
+    private TValue[] _initialValues = null!;
+    private TValue[] _finalValues = null!;
 
     protected ChangeNodePropertyOperationBase(IEnumerable<SKNode> nodes)
     {
@@ -19,11 +19,11 @@ public abstract class ChangeNodePropertyOperationBase<TValue> : EditOperationBas
     public void SetInitialData(IEnumerable<SKNode> nodes)
     {
         _nodes = nodes.ToArray();
-        _initialValues = _nodes.Select(GetValue).ToArray();
+        _initialValues = _nodes!.Select(GetValue).ToArray();
     }
     public virtual void SetFinalData()
     {
-        _finalValues = _nodes.Select(GetValue).ToArray();
+        _finalValues = _nodes!.Select(GetValue).ToArray();
     }
 
     public override void OnPerform()

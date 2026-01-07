@@ -1,4 +1,4 @@
-﻿using System.Collections.Specialized;
+using System.Collections.Specialized;
 using System.Drawing;
 
 namespace Pix2d.Plugins.Psd.PsdReader
@@ -42,11 +42,11 @@ namespace Pix2d.Plugins.Psd.PsdReader
             private set => _flags[ProtectTransBit] = value;
         }
 
-        public string Name { get; private set; }
+        public string Name { get; private set; } = string.Empty;
 
-        public BlendingRanges BlendingRangesData { get; set; }
+        public BlendingRanges BlendingRangesData { get; set; } = null!;
 
-        public Mask MaskData { get; private set; }
+        public Mask MaskData { get; private set; } = null!;
 
         public List<AdjusmentLayerInfo> AdjustmentInfo { get; private set; }
 
@@ -167,9 +167,9 @@ namespace Pix2d.Plugins.Psd.PsdReader
         {
             private Layer Layer { get; set; }
 
-            public string Key { get; private set; }
+            public string Key { get; private set; } = string.Empty;
 
-            public byte[] Data { get; private set; }
+            public byte[] Data { get; private set; } = Array.Empty<byte>();
 
             public AdjusmentLayerInfo(string key, Layer layer)
             {
@@ -205,7 +205,7 @@ namespace Pix2d.Plugins.Psd.PsdReader
         {
             public Layer Layer { get; private set; }
 
-            public byte[] Data { get; private set; }
+            public byte[] Data { get; private set; } = Array.Empty<byte>();
 
             public BlendingRanges(Layer layer)
             {
@@ -241,9 +241,9 @@ namespace Pix2d.Plugins.Psd.PsdReader
 
             public int Length { get; private set; }
 
-            public byte[] Data { get; set; }
+            public byte[] Data { get; set; } = Array.Empty<byte>();
 
-            public byte[] ImageData { get; set; }
+            public byte[] ImageData { get; set; } = Array.Empty<byte>();
 
             public ImageCompression ImageCompression { get; set; }
 
@@ -478,7 +478,7 @@ namespace Pix2d.Plugins.Psd.PsdReader
                 }
             }
 
-            public byte[] ImageData { get; set; }
+            public byte[] ImageData { get; set; } = Array.Empty<byte>();
 
             internal void LoadPixelData(BinaryReverseReader reader)
             {

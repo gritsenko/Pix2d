@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System.Runtime.CompilerServices;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -172,7 +172,8 @@ public class ProjectService : IProjectService, ISessionProjectLoader
     private async Task SaveCurrentProjectToFileAsync(IFileContentSource targetFile)
     {
         using var uiBlocker = new UiBlocker("Saving project...");
-        await ProjectPacker.WriteProjectAsync(targetFile, AppState.CurrentProject.SceneNode);
+        if (AppState.CurrentProject.SceneNode != null)
+            await ProjectPacker.WriteProjectAsync(targetFile, AppState.CurrentProject.SceneNode);
 
         ProjectState.File = targetFile;
         HasUnsavedChanges = false;

@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Selection;
+using Pix2d.Abstract.Selection;
 using Pix2d.Primitives.Edit;
 using Pix2d.Selection;
 using SkiaNodes;
@@ -14,12 +14,12 @@ public class MoveThumbNode : NodeManipulateThumbBase
     public SKColor StrokeColor = SKColor.Parse("#ff4384de");
 
     private SKPoint _initialThumbPos;
-    private Dictionary<SKNode, SKPoint> _initialTargetsPos;
+    private Dictionary<SKNode, SKPoint>? _initialTargetsPos;
     private SKPoint _initialFramePos;
 
     public bool ClickThrough { get; set; } = true;
 
-    public Func<bool> AxisLockProviderFunc { get; set; }
+    public Func<bool> AxisLockProviderFunc { get; set; } = null!;
     public AxisLockMode AxisLockMode { get; set; }
 
     public MoveThumbNode()
@@ -32,17 +32,17 @@ public class MoveThumbNode : NodeManipulateThumbBase
     protected override void AdjustDimensionsToTargets(NodesSelection selection)
     {
         var frame = selection.Frame;
-        PivotPosition = frame.PivotPosition;
-        Position = frame.Position;
-        Size = frame.Size;
+        PivotPosition = frame?.PivotPosition ?? default;
+        Position = frame?.Position ?? default;
+        Size = frame?.Size ?? default;
 
 
         Rotation = selection.Rotation;
     }
 
-    private void MoveThumbNode_DragComplete(object sender, DragCompletedEventArgs e)
+    private void MoveThumbNode_DragComplete(object? sender, DragCompletedEventArgs e)
     {
-        _initialTargetsPos = null;
+        _initialTargetsPos = new();
     }
 
     public override void OnPointerReleased(PointerActionEventArgs eventArgs)
@@ -58,15 +58,15 @@ public class MoveThumbNode : NodeManipulateThumbBase
         //}
     }
 
-    private void MoveNodeThumb_DragStarted(object sender, DragStartedEventArgs e)
+    private void MoveNodeThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
         _initialThumbPos = GetGlobalPosition();
 
-        _initialTargetsPos = TargetSelection.Nodes.ToDictionary(x => x, x => x.GetGlobalPosition());
-        _initialFramePos = TargetSelection.Frame.Position;
+        _initialTargetsPos = TargetSelection?.Nodes?.ToDictionary(x => x, x => x.GetGlobalPosition());
+        _initialFramePos = TargetSelection?.Frame?.Position ?? default;
     }
 
-    private void MoveNodeThumb_DragDelta(object sender, DragDeltaEventArgs e)
+    private void MoveNodeThumb_DragDelta(object? sender, DragDeltaEventArgs e)
     {
         if (_initialTargetsPos == null)
             return;
@@ -90,11 +90,15 @@ public class MoveThumbNode : NodeManipulateThumbBase
             AxisLockMode = AxisLockMode.None;
         }
 
-        DragNode(TargetSelection.Frame, _initialFramePos, delta, SnapToPixels);
+        if (TargetSelection?.Frame != null)
+            DragNode(TargetSelection.Frame, _initialFramePos, delta, SnapToPixels);
 
         DragNode(this, _initialThumbPos, delta, SnapToPixels);
-        foreach (var target in TargetSelection.Nodes)
-            DragNode(target, _initialTargetsPos[target], delta, SnapToPixels);
+        if (TargetSelection?.Nodes != null && _initialTargetsPos != null)
+        {
+            foreach (var target in TargetSelection.Nodes)
+                DragNode(target, _initialTargetsPos[target], delta, SnapToPixels);
+        }
     }
 
     protected override void OnDraw(SKCanvas canvas, ViewPort vp)

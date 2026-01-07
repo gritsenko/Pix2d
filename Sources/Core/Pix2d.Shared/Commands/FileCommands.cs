@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Commands;
@@ -15,7 +15,7 @@ public class FileCommands : CommandsListBase
     private void HideMainMenu()
     {
         var commandService = ServiceProvider.GetRequiredService<ICommandService>();
-        commandService.GetCommandList<ViewCommands>().HideMainMenuCommand.Execute();
+        commandService.GetCommandList<ViewCommands>()?.HideMainMenuCommand.Execute();
     }
     
     public Pix2dCommand New => GetCommand(async () =>
@@ -48,7 +48,7 @@ public class FileCommands : CommandsListBase
         AppState.UiState.PreferredExportFormat = ".png";
         ServiceProvider
             .GetRequiredService<ICommandService>()
-            .GetCommandList<ViewCommands>()
+            .GetCommandList<ViewCommands>()?
             .ShowExportDialogCommand.Execute();
     }, "Export Image...", new CommandShortcut(VirtualKeys.E, KeyModifier.Ctrl), EditContextType.All);
 
@@ -58,7 +58,7 @@ public class FileCommands : CommandsListBase
         AppState.UiState.PreferredExportFormat = ".gif";
         ServiceProvider
             .GetRequiredService<ICommandService>()
-            .GetCommandList<ViewCommands>()
+            .GetCommandList<ViewCommands>()?
             .ShowExportDialogCommand.Execute();
         //var exportVm = ViewModelService.GetViewModel<ExportPageViewModel>();
         //exportVm.SelectExporterByFileType(ExportImportProjectType.Gif);

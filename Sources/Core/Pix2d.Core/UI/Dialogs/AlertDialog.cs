@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Avalonia.Styling;
 using Pix2d.Abstract.UI;
 using Pix2d.UI.Resources;
@@ -7,6 +7,7 @@ namespace Pix2d.UI.Dialogs;
 
 public class AlertDialog : ComponentBase, IDialogView<object?>
 {
+#pragma warning disable CS0612 // Type or member is obsolete
     protected override object Build() =>
         new Grid()
             .Rows("*,48")
@@ -42,9 +43,10 @@ public class AlertDialog : ComponentBase, IDialogView<object?>
 
                     ) //stack panel children
             );
+#pragma warning restore CS0612 // Type or member is obsolete
 
-    public string Title { get; set; }
-    
+    public string Title { get; set; } = string.Empty;
+
     private string _message = "Problem!";
     public string Message
     {
@@ -55,7 +57,7 @@ public class AlertDialog : ComponentBase, IDialogView<object?>
             OnPropertyChanged();
         }
     }
-    public Action<bool?> OnDialogClosed { get; set; }
+    public Action<bool?> OnDialogClosed { get; set; } = null!;
 
     public object? DialogResult => null;
 }

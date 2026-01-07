@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Operations;
+using Pix2d.Abstract.Operations;
 using SkiaNodes;
 
 namespace Pix2d.Operations;
@@ -6,8 +6,8 @@ namespace Pix2d.Operations;
 public class CreateNodesOperation : EditOperationBase
 {
     private readonly IEnumerable<SKNode> _nodes;
-    private NodeStructureState[] _createdNodes;
-    private SKNode[] _parentsOfCreatedNodes;
+    private NodeStructureState[] _createdNodes = [];
+    private SKNode[] _parentsOfCreatedNodes = [];
 
     public override bool AffectsNodeStructure => true;
 
@@ -20,7 +20,7 @@ public class CreateNodesOperation : EditOperationBase
     {
         foreach (var createdNode in _createdNodes.OrderBy(n => n.NestingLevel).ThenBy(n => n.Index))
         {
-            createdNode.Parent.Nodes.Insert(createdNode.Index, createdNode.Node);
+            createdNode.Parent?.Nodes.Insert(createdNode.Index, createdNode.Node);
         }
     }
 
@@ -68,7 +68,7 @@ public class CreateNodesOperation : EditOperationBase
 
         foreach (var node in _createdNodes)
         {
-            node.Parent.Nodes.Remove(node.Node);
+            node.Parent?.Nodes.Remove(node.Node);
         }
 
         foreach (var groupNode in parents)

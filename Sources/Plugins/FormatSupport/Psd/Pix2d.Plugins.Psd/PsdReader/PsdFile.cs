@@ -1,4 +1,4 @@
-﻿namespace Pix2d.Plugins.Psd.PsdReader
+namespace Pix2d.Plugins.Psd.PsdReader
 {
     public class PsdFile
     {
@@ -69,9 +69,9 @@
 
         public IEnumerable<ImageResource> ImageResources => _imageResources;
 
-        public ResolutionInfo Resolution
+        public ResolutionInfo? Resolution
         {
-            get { return (ResolutionInfo) _imageResources.Find((ImageResource x) => x.ID == 1005); }
+            get { return (ResolutionInfo?) _imageResources.Find((ImageResource x) => x.ID == 1005); }
             private set
             {
                 var imageResource = _imageResources.Find((ImageResource x) => x.ID == 1005);
@@ -79,7 +79,8 @@
                 {
                     _imageResources.Remove(imageResource);
                 }
-                _imageResources.Add(value);
+                if (value != null)
+                    _imageResources.Add(value);
             }
         }
 
@@ -90,9 +91,9 @@
             _imageResources = new List<ImageResource>();
         }
 
-        public PsdFile Load(string filename)
+        public PsdFile? Load(string filename)
         {
-            PsdFile result;
+            PsdFile? result;
             using (var fileStream = new FileStream(filename, FileMode.Open))
             {
                 result = Load(fileStream);
@@ -100,13 +101,13 @@
             return result;
         }
 
-        public PsdFile Load(byte[] data)
+        public PsdFile? Load(byte[] data)
         {
             var stream = new MemoryStream(data);
             return Load(stream);
         }
 
-        public PsdFile Load(Stream stream)
+        public PsdFile? Load(Stream stream)
         {
             var binaryReverseReader = new BinaryReverseReader(stream);
             if (new string(binaryReverseReader.ReadChars(4)) != "8BPS")
@@ -132,7 +133,7 @@
             var num2 = binaryReverseReader.ReadUInt32();
             if (num2 <= 0u)
             {
-                return null;
+                return this;
             }
             var position = binaryReverseReader.BaseStream.Position;
             while (binaryReverseReader.BaseStream.Position - position < num2)
@@ -163,7 +164,7 @@
             var num3 = binaryReverseReader.ReadUInt32();
             if (num3 <= 0u)
             {
-                return null;
+                return this;
             }
             position = binaryReverseReader.BaseStream.Position;
             LoadLayers(binaryReverseReader);

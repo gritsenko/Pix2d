@@ -19,6 +19,7 @@ using SkiaNodes.Serialization;
 using System.Reflection;
 using Pix2d.Command;
 using Pix2d.Messages.ViewPort;
+using Pix2d.Common.FileSystem;
 
 namespace Pix2d;
 
@@ -155,6 +156,8 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
             var sp = _serviceProvider;
             var settings = _appState.Settings;
 
+            if (sp == null) return;
+
             var appState = sp.GetRequiredService<AppState>();
             //If we already have loaded scene
             //case: android after back button and return
@@ -167,7 +170,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
             if (StartupDocument != null)
             {
                 var projectService = sp.GetRequiredService<IProjectService>();
-                await projectService.OpenFilesAsync([settings.StartupDocument]);
+                await projectService.OpenFilesAsync([new NetFileSource(StartupDocument)]);
                 return;
             }
 
@@ -182,15 +185,18 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         finally
         {
             var sp = _serviceProvider;
-            var appState = sp.GetRequiredService<AppState>();
-            if (appState.CurrentProject.SceneNode == null)
+            if (sp != null)
             {
-                var commandsService = sp.GetRequiredService<ICommandService>();
-                commandsService.GetCommandList<FileCommands>()?.New.Execute();
-            }
+                var appState = sp.GetRequiredService<AppState>();
+                if (appState.CurrentProject.SceneNode == null)
+                {
+                    var commandsService = sp.GetRequiredService<ICommandService>();
+                    commandsService.GetCommandList<FileCommands>()?.New.Execute();
+                }
 
-            var viewPortService = sp.GetRequiredService<IViewPortService>();
-            viewPortService.ShowAll();
+                var viewPortService = sp.GetRequiredService<IViewPortService>();
+                viewPortService.ShowAll();
+            }
         }
     }
 

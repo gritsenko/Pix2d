@@ -5,23 +5,31 @@ using SkiaNodes.Interactive;
 
 namespace Pix2d.UI.Dialogs;
 
-public class InputDialogView : ComponentBase, IDialogView<string>
+public class InputDialogView : ComponentBase, IDialogView<string?>
 {
-    private string _resultValue;
-    private string _message;
+    private string? _resultValue;
+    private string? _message;
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        SKInput.Current.KeyPressed += OnKeyPressed;
+        if (SKInput.Current != null)
+        {
+            SKInput.Current.KeyPressed += OnKeyPressed;
+        }
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        SKInput.Current.KeyPressed -= OnKeyPressed;
+        if (SKInput.Current != null)
+        {
+            SKInput.Current.KeyPressed -= OnKeyPressed;
+        }
     }
 
-    private void OnKeyPressed(object sender, KeyboardActionEventArgs e)
+    private void OnKeyPressed(object? sender, KeyboardActionEventArgs? e)
     {
+        if (e == null) return;
+
         if (e.Key == VirtualKeys.Escape && e.Modifiers == KeyModifier.None)
         {
             Cancel();
@@ -42,12 +50,12 @@ public class InputDialogView : ComponentBase, IDialogView<string>
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .TextWrapping(TextWrapping.Wrap)
                     .Margin(new Thickness(16, 0))
-                    .Text(() => Message),
+                    .Text(() => Message ?? string.Empty),
                 
                 new TextBox().Row(1)
                     .Margin(new Thickness(16, 0))
                     .With(Focus)
-                    .Text(() => DialogResult, v => DialogResult = v),
+                    .Text(() => DialogResult ?? string.Empty, v => DialogResult = v),
 
                 new StackPanel().Row(2)
                     .Orientation(Orientation.Horizontal)
@@ -105,9 +113,9 @@ public class InputDialogView : ComponentBase, IDialogView<string>
         };
     }
 
-    public string Title { get; set; }
+    public string Title { get; set; } = string.Empty;
 
-    public string DialogResult
+    public string? DialogResult
     {
         get => _resultValue;
         set
@@ -117,7 +125,7 @@ public class InputDialogView : ComponentBase, IDialogView<string>
         }
     }
 
-    public string Message
+    public string? Message
     {
         get => _message;
         set
@@ -127,6 +135,6 @@ public class InputDialogView : ComponentBase, IDialogView<string>
         }
     }
 
-    public Action<bool?> OnDialogClosed { get; set; }
+    public Action<bool?> OnDialogClosed { get; set; } = _ => { };
 
 }

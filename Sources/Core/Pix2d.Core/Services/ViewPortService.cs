@@ -6,7 +6,7 @@ namespace Pix2d.Services;
 
 public class ViewPortService : IViewPortService
 {
-    private ViewPort _viewPort;
+    private ViewPort? _viewPort;
 
     private readonly Timer _viewPortChangeTimer;
 
@@ -14,7 +14,8 @@ public class ViewPortService : IViewPortService
 
     private readonly AppState _state;
 
-    public ViewPort ViewPort
+#pragma warning disable CS8766
+    public ViewPort? ViewPort
     {
         get => _viewPort;
         private set
@@ -28,6 +29,7 @@ public class ViewPortService : IViewPortService
                 _viewPort.ViewChanged += ViewPortOnViewChanged;
         }
     }
+#pragma warning restore CS8766
 
     public void Initialize(ViewPort viewPort)
     {
@@ -43,13 +45,13 @@ public class ViewPortService : IViewPortService
         _viewPortChangeTimer = new Timer(OnViewportTimerTick, null, -1, -1);
     }
 
-    private void OnViewportTimerTick(object state)
+    private void OnViewportTimerTick(object? state)
     {
         _messenger.Send(ViewPortChangedViewMessage.Default);
     }
 
 
-    private void ViewPortOnViewChanged(object sender, EventArgs e)
+    private void ViewPortOnViewChanged(object? sender, EventArgs e)
     {
         _viewPortChangeTimer.Change(300, -1);
     }
@@ -63,10 +65,11 @@ public class ViewPortService : IViewPortService
     {
         var scene = _state.CurrentProject.SceneNode;
         if (scene == null) return;
+        if (ViewPort == null) return;
 
         var bBox = scene.GetBoundingBoxWithContent();
         var vpBBox = ViewPort.Size;
         ViewPort.ShowArea(bBox, new SKSize(vpBBox.Width / 3, vpBBox.Height / 3));
-        _viewPort.Refresh();
+        ViewPort.Refresh();
     }
 }

@@ -1,4 +1,4 @@
-﻿using Avalonia.Styling;
+using Avalonia.Styling;
 using Avalonia.Xaml.Interactions.Custom;
 using Pix2d.Command;
 using Pix2d.UI.Resources;
@@ -109,12 +109,12 @@ public class MainMenuView : LocalizedComponentBase
             );
     }
 
-    private ScrollViewer _menuContentScrollViewer;
+    private ScrollViewer _menuContentScrollViewer = null!;
 
-    private MainMenuItemView[] _menuItems;
+    private MainMenuItemView[] _menuItems = null!;
 
-    [Inject] private AppState AppState { get; set; }
-    [Inject] private ICommandService CommandService { get; set; }
+    [Inject] private AppState AppState { get; set; } = null!;
+    [Inject] private ICommandService CommandService { get; set; } = null!;
 
     public bool ShowMenuContent { get; set; } = true;
     public MainMenuItemView? SelectedItem { get; set; }

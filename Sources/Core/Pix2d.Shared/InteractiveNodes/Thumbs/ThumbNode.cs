@@ -1,4 +1,4 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaNodes.Interactive;
 using SkiaSharp;
@@ -10,9 +10,9 @@ public class ThumbNode : SKNode
     protected bool IsPointerOver;
     public const double MinDragLength = 0;
 
-    public event EventHandler<DragCompletedEventArgs> DragComplete;
-    public event EventHandler<DragDeltaEventArgs> DragDelta;
-    public event EventHandler<DragStartedEventArgs> DragStarted;
+    public event EventHandler<DragCompletedEventArgs>? DragComplete;
+    public event EventHandler<DragDeltaEventArgs>? DragDelta;
+    public event EventHandler<DragStartedEventArgs>? DragStarted;
 
     public ThumbDirection Direction { get; set; }
 

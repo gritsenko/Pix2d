@@ -185,7 +185,8 @@ public partial class Pix2dSprite
                     var srcData = srcSprite?.GetData();
                     if (srcData != null)
                         sprite.SetData(srcData);
-                    sprite.TakeBitmapSubstitute(srcSprite);
+                    if (srcSprite != null)
+                        sprite.TakeBitmapSubstitute(srcSprite);
                 }
 
                 sprite.DesignerState.IsLocked = true;

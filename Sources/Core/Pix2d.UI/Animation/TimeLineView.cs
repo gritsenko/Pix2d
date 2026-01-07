@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls.Shapes;
+using Avalonia.Controls.Shapes;
 using Avalonia.Media.Transformation;
 using Avalonia.Styling;
 using Pix2d.Common.Behaviors;
@@ -152,7 +152,7 @@ public class TimeLineView : LocalizedComponentBase
         }
     }
 
-    private ItemReorderInfo<AnimationFrameViewModel> _reorderInfo;
+    private ItemReorderInfo<AnimationFrameViewModel>? _reorderInfo;
     private void Frames_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.Action == NotifyCollectionChangedAction.Remove)
@@ -180,7 +180,7 @@ public class TimeLineView : LocalizedComponentBase
         _editor.ReorderFrames(reorderInfo.OldIndex, reorderInfo.NewIndex);
     }
 
-    private SKBitmap PreviewProvider(AnimationFrameViewModel frameVm)
+    private SKBitmap? PreviewProvider(AnimationFrameViewModel frameVm)
     {
         var index = Frames.IndexOf(frameVm);
         if (index < 0)
@@ -218,8 +218,8 @@ public class AnimationFrameViewModel : ObservableObject
         set => Set(value);
     }
 
-    public Func<AnimationFrameViewModel, SKBitmap> PreviewProvider { get; set; }
-    public Action<AnimationFrameViewModel> UpdatePropertiesAction { get; set; }
+    public Func<AnimationFrameViewModel, SKBitmap?>? PreviewProvider { get; set; }
+    public Action<AnimationFrameViewModel>? UpdatePropertiesAction { get; set; }
 
     public SKBitmap Preview
     {

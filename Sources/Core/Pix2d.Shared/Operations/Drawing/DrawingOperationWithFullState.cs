@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
 using Pix2d.Abstract.Operations;
 using SkiaNodes;
@@ -7,24 +7,24 @@ namespace Pix2d.Operations.Drawing;
 
 public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISpriteEditorOperation
 {
-    private readonly IDrawingTarget _drawingTarget;
+    private readonly IDrawingTarget _drawingTarget = null!;
 
-    private byte[] _initialData;
-    private byte[] _finalData;
+    private byte[]? _initialData;
+    private byte[]? _finalData;
     private int _frame;
     private int _layerIndex;
     private int _finalFrame;
     private int _finalLayerIndex;
 
-    public HashSet<int> AffectedFrameIndexes { get; private set; }
-    public HashSet<int> AffectedLayerIndexes { get; private set; }
+    public HashSet<int> AffectedFrameIndexes { get; private set; } = new();
+    public HashSet<int> AffectedLayerIndexes { get; private set; } = new();
 
     public DrawingOperationWithFullState(IDrawingTarget drawingTarget)
     {
         _drawingTarget = drawingTarget;
     }
 
-    public void SetInitialData(byte[] initialData)
+    public void SetInitialData(byte[]? initialData)
     {
         _initialData = initialData;
 
@@ -38,7 +38,7 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
         }
     }
 
-    public void SetFinalData(byte[] finalData)
+    public void SetFinalData(byte[]? finalData)
     {
         _finalData = finalData;
         if (_finalData != null && _finalData[0] == 0)
@@ -64,7 +64,7 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
             sprite.SetFrameIndex(_finalFrame);
         }
 
-        _drawingTarget.SetData(_finalData);
+        _drawingTarget.SetData(_finalData!);
     }
 
     public override void OnPerformUndo()
@@ -75,12 +75,15 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
             sprite.SetFrameIndex(_frame);
         }
 
-        _drawingTarget.SetData(_initialData);
+        _drawingTarget.SetData(_initialData!);
     }
 
     public override IEnumerable<SKNode> GetEditedNodes()
     {
-        yield return _drawingTarget as SKNode;
+        if (_drawingTarget is SKNode node)
+        {
+            yield return node;
+        }
     }
 
     public IDrawingTarget GetDrawingTarget() => _drawingTarget;
@@ -106,9 +109,9 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
         _finalData = null;
     }
 
-    public bool CanMerge(DrawingOperationWithFullState operation)
+    public bool CanMerge(DrawingOperationWithFullState? operation)
     {
-        return _drawingTarget == operation._drawingTarget && _frame == operation._frame &&
+        return operation != null && _drawingTarget == operation._drawingTarget && _frame == operation._frame &&
             _layerIndex == operation._layerIndex;
     }
 

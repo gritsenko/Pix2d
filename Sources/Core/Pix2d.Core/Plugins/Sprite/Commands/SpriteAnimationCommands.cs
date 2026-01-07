@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Commands;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Primitives;
@@ -9,13 +9,13 @@ namespace Pix2d;
 public class SpriteAnimationCommands : CommandsListBase, ISpriteAnimationCommands
 {
     protected override string BaseName => "Sprite.Animation";
-    private SpriteEditor SpriteEditor => AppState.CurrentProject.CurrentNodeEditor as SpriteEditor;
+    private SpriteEditor? SpriteEditor => AppState.CurrentProject.CurrentNodeEditor as SpriteEditor;
 
     public Pix2dCommand AddFrame =>
-        GetCommand(() => { SpriteEditor.AddFrame(); }, "Add frame", null, EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
+        GetCommand(() => { SpriteEditor?.AddFrame(); }, "Add frame", null, EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
     public Pix2dCommand DuplicateFrame =>
-        GetCommand(() => { SpriteEditor.DuplicateFrame(); }, "Duplicate frame", null, EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
+        GetCommand(() => { SpriteEditor?.DuplicateFrame(); }, "Duplicate frame", null, EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
     public Pix2dCommand TogglePlay =>
         GetCommand(() => { SpriteEditor?.TogglePlay(); }, "Play/Pause animation", null, EditContextType.Sprite);
@@ -28,7 +28,7 @@ public class SpriteAnimationCommands : CommandsListBase, ISpriteAnimationCommand
     public Pix2dCommand DeleteFrame =>
         GetCommand(() =>
         {
-            if (!SpriteEditor.IsPlaying && (SpriteEditor?.FramesCount ?? 0) > 1)
+            if (!SpriteEditor?.IsPlaying == true && (SpriteEditor?.FramesCount ?? 0) > 1)
             {
                 SpriteEditor?.DeleteFrame();
             }

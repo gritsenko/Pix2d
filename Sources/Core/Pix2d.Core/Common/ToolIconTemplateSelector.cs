@@ -1,6 +1,8 @@
-﻿using Avalonia.Metadata;
+using Avalonia.Metadata;
 
 namespace Pix2d.Common;
+
+#nullable enable
 
 public class ToolIconTemplateSelector : IDataTemplate
 {
@@ -8,9 +10,9 @@ public class ToolIconTemplateSelector : IDataTemplate
     [Content]
     public Dictionary<string, IDataTemplate> Templates { get; } = new();
 
-    public Control Build(object data)
+    public Control? Build(object? data)
     {
-        var toolType = (string)data;
+        var toolType = (string)data!;
         var templateKey = toolType;
 
         //if (toolType.ToolIconPath != default)
@@ -25,13 +27,13 @@ public class ToolIconTemplateSelector : IDataTemplate
 
         if (Templates.TryGetValue(templateKey, out var toolTemplate))
         {
-            return toolTemplate.Build(data);
+            return toolTemplate!.Build(data);
         }
 
         return null;
     }
 
-    public bool Match(object data)
+    public bool Match(object? data)
     {
         return data is string;
     }
