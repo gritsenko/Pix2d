@@ -381,7 +381,7 @@ namespace Pix2d.Plugins.Psd.PsdReader
                 writer.Write(ImageData);
             }
 
-            public BinaryReverseReader DataReader
+        public BinaryReverseReader? DataReader
             {
                 get
                 {

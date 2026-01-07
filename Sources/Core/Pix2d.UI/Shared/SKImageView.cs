@@ -1,4 +1,4 @@
-﻿using Pix2d.Common;
+using Pix2d.Common;
 using Pix2d.Common.Extensions;
 using Pix2d.UI.Common;
 using Pix2d.UI.Resources;
@@ -11,7 +11,7 @@ public class SKImageView : ViewBase
     public static readonly DirectProperty<SKImageView, SKBitmapObservable> SourceProperty
         = AvaloniaProperty.RegisterDirect<SKImageView, SKBitmapObservable>(nameof(Source), o => o.Source, (o, v) => o.Source = v);
 
-    private SKBitmapObservable _source;
+    private SKBitmapObservable _source = null!;
     public SKBitmapObservable Source
     {
         get => _source;
@@ -46,9 +46,9 @@ public class SKImageView : ViewBase
                     .VerticalAlignment(VerticalAlignment.Center)
                     .Ref(out _imageControl));
 
-    private Image _imageControl;
-    private SKBitmapObservable _bitmap;
-    private Border _border;
+    private Image _imageControl = null!;
+    private SKBitmapObservable _bitmap = null!;
+    private Border _border = null!;
 
     private void UpdateSourceBitmap(SKBitmapObservable newBitmap)
     {
@@ -67,7 +67,7 @@ public class SKImageView : ViewBase
         UpdateBitmapControl(_bitmap?.Bitmap);
     }
 
-    private void UpdateBitmapControl(SKBitmap newBitmap)
+    private void UpdateBitmapControl(SKBitmap? newBitmap)
     {
         if(newBitmap != null && (newBitmap.Width < 1 || newBitmap.Height < 1))
         {

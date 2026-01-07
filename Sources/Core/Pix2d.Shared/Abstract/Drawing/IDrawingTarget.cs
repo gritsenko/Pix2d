@@ -18,7 +18,7 @@ public interface IDrawingTarget
     void ShowTargetBitmap();
         
     // If set the render target will use the image returned by the substitute function instead of actual image.
-    void SetTargetBitmapSubstitute(Func<SKBitmap> substitute);
+    void SetTargetBitmapSubstitute(Func<SKBitmap>? substitute);
 
     bool IsTargetBitmapVisible();
 

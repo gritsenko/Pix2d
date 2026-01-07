@@ -1,4 +1,4 @@
-﻿using Mvvm.Messaging;
+using Mvvm.Messaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Services;
 using Pix2d.Abstract.Tools;
@@ -7,7 +7,7 @@ using Pix2d.Plugins.Collaborate.Commands;
 
 namespace Pix2d.Plugins.Collaborate;
 
-public class CollaboratePlugin(IDrawingService drawingService, IToolService toolService, ICommandService commandService, IMessenger messenger)
+public class CollaboratePlugin(IDrawingService _drawingService, IToolService _toolService, ICommandService commandService, IMessenger messenger)
     : IPix2dPlugin
 {
     public void Initialize()

@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using Avalonia.Interactivity;
 using Pix2d.Command;
 using Pix2d.Messages;

@@ -1,4 +1,4 @@
-﻿using Avalonia.Interactivity;
+using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Pix2d.Abstract.Export;
 using Pix2d.Common;
@@ -143,10 +143,10 @@ public class ExportView : ComponentBase
     [Inject] private ICommandService CommandService { get; set; } = null!;
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
 
-    private ExporterInfo _selectedExporterInfo;
+    private ExporterInfo _selectedExporterInfo = null!;
 
     private double _scale = 1;
-    private ContentControl _exporterSettingsControl;
+    private ContentControl _exporterSettingsControl = null!;
     private IExporter? _configuredExporter;
 
     public double Scale

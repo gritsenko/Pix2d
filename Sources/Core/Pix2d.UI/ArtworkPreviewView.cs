@@ -134,7 +134,7 @@ public class ArtworkPreviewView : ComponentBase
                 }
             }
 
-            _editor.CurrentSprite.RenderFramePreview(frameIndex, ref curBitmap, _viewPort, sprite.UseBackgroundColor);
+            _editor.CurrentSprite!.RenderFramePreview(frameIndex, ref curBitmap, _viewPort!, sprite.UseBackgroundColor);
 
             Preview.SetBitmap(curBitmap);
         }

@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Export;
+using Pix2d.Abstract.Export;
 using Pix2d.Plugins.PngFormat.Exporters;
 
 namespace Pix2d.UI.Export;
@@ -28,5 +28,5 @@ public class SpritePngSequenceExporterSettingsView : ComponentBase, IExportSetti
         }
     }
 
-    public SpritePngSequenceExporter Exporter { get; set; }
+    public SpritePngSequenceExporter Exporter { get; set; } = null!;
 }

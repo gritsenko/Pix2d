@@ -63,7 +63,7 @@ namespace Pix2d.Plugins.Psd.PsdReader
 
         public bool AbsoluteAlpha { get; private set; }
 
-        public byte[][] ImageData { get; private set; }
+        public byte[][] ImageData { get; private set; } = Array.Empty<byte[]>();
 
         public ImageCompression ImageCompression { get; private set; }
 

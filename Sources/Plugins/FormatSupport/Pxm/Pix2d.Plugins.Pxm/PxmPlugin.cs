@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Pix2d.Plugins.Pxm
 {
-    [method: DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(PxmPlugin))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(PxmPlugin))]
     public class PxmPlugin : IPix2dPlugin
     {
         public IImportService ImportService { get; }

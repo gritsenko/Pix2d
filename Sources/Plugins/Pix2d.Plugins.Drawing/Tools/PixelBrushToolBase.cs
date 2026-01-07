@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
@@ -12,7 +12,7 @@ public abstract class PixelBrushToolBase : BaseTool, IDrawingTool
     public IDrawingService DrawingService { get; }
     public ISelectionService SelectionService { get; }
 
-    private SKNode _drawingLayerNode;
+    private SKNode? _drawingLayerNode;
     private BrushDrawingMode _drawingMode = BrushDrawingMode.Draw;
 
     public virtual BrushDrawingMode DrawingMode
@@ -50,7 +50,8 @@ public abstract class PixelBrushToolBase : BaseTool, IDrawingTool
     {
         base.Deactivate();
 
-        _drawingLayerNode.PointerPressed -= DrawingLayerNode_PointerPressed;
+        if (_drawingLayerNode != null)
+            _drawingLayerNode.PointerPressed -= DrawingLayerNode_PointerPressed;
         Messenger.Unregister<DrawingTargetChangedMessage>(this);
 
         DrawingService.DrawingLayer.ShowBrushPreview = false;
@@ -62,18 +63,18 @@ public abstract class PixelBrushToolBase : BaseTool, IDrawingTool
         DrawingService.DrawingLayer.SetDrawingLayerMode(DrawingMode);
     }
 
-    private void DrawingLayerNode_PointerPressed(object sender, PointerActionEventArgs e)
+    private void DrawingLayerNode_PointerPressed(object? sender, PointerActionEventArgs e)
     {
         _drawingMode = !e.Pointer.IsEraser ? BrushDrawingMode.Draw : BrushDrawingMode.Erase;
         DrawingService.DrawingLayer.SetDrawingLayerMode(DrawingMode);
     }
 
-    protected override void OnPointerMoved(object sender, PointerActionEventArgs e)
+    protected override void OnPointerMoved(object? sender, PointerActionEventArgs e)
     {
         DrawingService.DrawingLayer.ShowBrushPreview = !e.Pointer.IsTouch;
 
         //CHECK IF WE STILL ON OLD SPRITE
-        if (!e.Pointer.IsPressed && !_drawingLayerNode.ContainsPoint(e.Pointer.WorldPosition))
+        if (_drawingLayerNode != null && !e.Pointer.IsPressed && !_drawingLayerNode.ContainsPoint(e.Pointer.WorldPosition))
         {
             var container = SelectionService.GetContainer(e.Pointer.WorldPosition);
             if (container is IDrawingTarget dt)
@@ -81,7 +82,7 @@ public abstract class PixelBrushToolBase : BaseTool, IDrawingTool
         }
     }
 
-    protected override void OnPointerPressed(object sender, PointerActionEventArgs e)
+    protected override void OnPointerPressed(object? sender, PointerActionEventArgs e)
     {
         if ((e.KeyModifiers & KeyModifier.Alt) == 0) return;
         

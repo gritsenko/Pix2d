@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Pix2d.UI.Resources;
 using Pix2d.Plugins.Sprite.Commands;
 
@@ -6,8 +6,11 @@ namespace Pix2d.Plugins.Drawing.UI;
 
 public class ClipboardActionsView : ComponentBase
 {
-    [Inject] public ICommandService? CommandService { get; set; } = null!;
-    private ISpriteEditCommands SpriteEditCommands => CommandService.GetCommandList<ISpriteEditCommands>();
+    [Inject] public ICommandService? CommandService { get; set; }
+
+    private ISpriteEditCommands SpriteEditCommands => 
+        CommandService?.GetCommandList<ISpriteEditCommands>() ?? 
+        throw new InvalidOperationException("CommandService is not available");
 
     protected override object Build() =>
         new StackPanel()

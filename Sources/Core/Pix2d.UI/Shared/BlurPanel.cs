@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
@@ -14,7 +14,7 @@ public class BlurPanel : ViewBase
     /// </summary>
     public static readonly DirectProperty<BlurPanel, Control> ContentProperty
         = AvaloniaProperty.RegisterDirect<BlurPanel, Control>(nameof(Content), o => o.Content, (o, v) => o.Content = v);
-    private Control _content = default;
+    private Control _content = null!;
 
     public Control Content
     {

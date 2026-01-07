@@ -1,4 +1,4 @@
-﻿using System.Windows.Input;
+using System.Windows.Input;
 
 namespace Pix2d.UI.Shared;
 
@@ -32,7 +32,7 @@ public class AppButton : ViewBase
     /// </summary>
     public static readonly DirectProperty<AppButton, ICommand> CommandProperty
         = AvaloniaProperty.RegisterDirect<AppButton, ICommand>(nameof(Command), o => o.Command, (o, v) => o.Command = v);
-    private ICommand _command;
+    private ICommand _command = null!;
     public ICommand Command
     {
         get => _command;
@@ -44,7 +44,7 @@ public class AppButton : ViewBase
     /// </summary>
     public static readonly DirectProperty<AppButton, object> ContentProperty
         = AvaloniaProperty.RegisterDirect<AppButton, object>(nameof(Content), o => o.Content, (o, v) => o.Content = v);
-    private object _content;
+    private object _content = null!;
     public object Content
     {
         get => _content;
@@ -56,7 +56,7 @@ public class AppButton : ViewBase
     /// </summary>
     public static readonly DirectProperty<AppButton, FontFamily> IconFontFamilyProperty
         = AvaloniaProperty.RegisterDirect<AppButton, FontFamily>(nameof(IconFontFamily), o => o.IconFontFamily, (o, v) => o.IconFontFamily = v);
-    private FontFamily _iconFontFamily;
+    private FontFamily _iconFontFamily = null!;
     public FontFamily IconFontFamily
     {
         get => _iconFontFamily;

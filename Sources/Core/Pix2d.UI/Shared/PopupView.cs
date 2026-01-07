@@ -1,4 +1,4 @@
-﻿using System.Windows.Input;
+using System.Windows.Input;
 using Avalonia.Controls.Shapes;
 using Pix2d.Messages;
 using Pix2d.UI.Resources;
@@ -106,7 +106,7 @@ public class PopupView : ComponentBase
         = AvaloniaProperty.RegisterDirect<PopupView, ICommand>(nameof(CloseButtonCommand), o => o.CloseButtonCommand,
             (o, v) => o.CloseButtonCommand = v);
 
-    private ICommand _closeButtonCommand = default;
+    private ICommand _closeButtonCommand = null!;
 
     public ICommand CloseButtonCommand
     {
@@ -202,8 +202,8 @@ public class PopupView : ComponentBase
             );
     }
 
-    private ContentControl _contentControl;
-    private Action _onShowAction;
+    private ContentControl _contentControl = null!;
+    private Action _onShowAction = null!;
     private DateTime _autoCloseTime;
 
     private Point GetCurrentPos()

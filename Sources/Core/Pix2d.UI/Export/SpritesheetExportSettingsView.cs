@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Pix2d.Abstract.Export;
 using Pix2d.Plugins.PngFormat.Exporters;
 
@@ -34,5 +34,5 @@ public class SpritesheetExportSettingsView : ComponentBase, IExportSettingsViewB
     }
 
 
-    public SpritesheetImageExporter Exporter { get; set; }
+    public SpritesheetImageExporter Exporter { get; set; } = null!;
 }

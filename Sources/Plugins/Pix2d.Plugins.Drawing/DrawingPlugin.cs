@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Tools;
+using Pix2d.Abstract.Tools;
 using Pix2d.Infrastructure;
 using Pix2d.Plugins.Drawing.Commands;
 using Pix2d.Plugins.Drawing.Services;

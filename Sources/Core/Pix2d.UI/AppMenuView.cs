@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Avalonia.Styling;
 using Mvvm;
@@ -96,7 +96,7 @@ public class AppMenuView : LocalizedComponentBase
             if (pix2dCommand.Groups.Length < 2)
                 continue;
 
-            var lastGroup = pix2dCommand.Groups.LastOrDefault();
+            var lastGroup = pix2dCommand.Groups.Last();
             var title = L(lastGroup)();
             var commandItem = new AppMenuItemViewModel(lastGroup, title, pix2dCommand);
 

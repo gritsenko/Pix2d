@@ -1,4 +1,4 @@
-﻿using Pix2d.Plugins.Drawing.Nodes;
+using Pix2d.Plugins.Drawing.Nodes;
 using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Tools.Shapes;
@@ -7,7 +7,7 @@ public class TriangleShapeBuilder : SimpleShapeBuilder
 {
     protected override void DrawShape(SKPoint p0, SKPoint p1)
     {
-        var dln = ((DrawingLayerNode)DrawingLayer);
+        var dln = ((DrawingLayerNode)DrawingLayer!);
 
         if (dln.AspectSnapper?.IsAspectLocked == true)
         {

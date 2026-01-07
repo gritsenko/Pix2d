@@ -1,4 +1,4 @@
-﻿using Pix2d.CommonNodes;
+using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.Editors;
@@ -124,7 +124,7 @@ public class LayerOptionsView : LocalizedComponentBase
                                             .ItemTemplate((IEffectItem item) =>
                                                 new MenuItem()
                                                     .Header(item.Title)
-                                                    .OnClick(_ => EffectsService.AddEffect(Layer, item))
+                                                    .OnClick(_ => EffectsService.AddEffect(Layer!, item))
                                             )
                                     ),
 

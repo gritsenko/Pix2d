@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
 using Pix2d.Primitives.Drawing;
@@ -12,11 +12,11 @@ public class ShapeTool : BaseTool, IDrawingTool
 {
     public IDrawingService DrawingService { get; }
     public IMessenger Messenger { get; }
-    private ShapeBuilderBase _currentBuilder;
+    private ShapeBuilderBase? _currentBuilder;
     private ShapeType _shapeType = ShapeType.Rectangle;
     private SKPoint _lastPoint;
 
-    public event EventHandler ShapeTypeChanged;
+    public event EventHandler? ShapeTypeChanged;
 
     public ShapeType ShapeType
     {
@@ -68,7 +68,7 @@ public class ShapeTool : BaseTool, IDrawingTool
 
     private void DrawingServiceDrawingTargetChanged(DrawingTargetChangedMessage drawingTargetChangedMessage)
     {
-        if (!IsActive) return;
+        if (!IsActive || _currentBuilder == null) return;
             
         _currentBuilder.SetNextPointPreview(_lastPoint);
         DrawingService.DrawingLayer.FinishCurrentDrawing();
@@ -91,16 +91,18 @@ public class ShapeTool : BaseTool, IDrawingTool
         base.Deactivate();
     }
 
-    protected override void OnPointerPressed(object sender, PointerActionEventArgs e)
+    protected override void OnPointerPressed(object? sender, PointerActionEventArgs e)
     {
+        if (_currentBuilder == null) return;
         _currentBuilder.Reset();
         _currentBuilder.BeginDrawing();
         _lastPoint = e.Pointer.GetPosition((SKNode) DrawingService.DrawingLayer);
         _currentBuilder.AddPoint(_lastPoint);
     }
 
-    protected override void OnPointerMoved(object sender, PointerActionEventArgs e)
+    protected override void OnPointerMoved(object? sender, PointerActionEventArgs e)
     {
+        if (_currentBuilder == null) return;
         if (_currentBuilder.AddPointInputMode == AddPointInputMode.PressAndHold && !e.Pointer.IsPressed)
         {
             //_currentBuilder.Cancel();
@@ -112,9 +114,9 @@ public class ShapeTool : BaseTool, IDrawingTool
         DrawingService.DrawingLayer.FinishCurrentDrawing();
     }
 
-    protected override void OnPointerReleased(object sender, PointerActionEventArgs e)
+    protected override void OnPointerReleased(object? sender, PointerActionEventArgs e)
     {
-        if (_currentBuilder.AddPointInputMode == AddPointInputMode.PressAndHold)
+        if (_currentBuilder!.AddPointInputMode == AddPointInputMode.PressAndHold)
         {
             _currentBuilder.AddPoint(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
         }

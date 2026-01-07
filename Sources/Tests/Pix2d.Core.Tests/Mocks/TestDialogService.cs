@@ -5,7 +5,7 @@ namespace Pix2d.Core.Tests.Mocks;
 
 public class TestDialogService : IDialogService
 {
-    private string _nextInput;
+    private string _nextInput = string.Empty;
 
     public void SetDialogContainer(object container)
     {
@@ -24,7 +24,7 @@ public class TestDialogService : IDialogService
     {
     }
 
-    public Task<string> ShowInputDialogAsync(string message, string title, string defaultValue = "")
+    public Task<string?> ShowInputDialogAsync(string message, string title, string defaultValue = "")
     {
         return Task.FromResult(_nextInput);
     }
@@ -73,5 +73,5 @@ public class TestDialogService : IDialogService
         _nextInput = input;
     }
 
-    public IEnumerable<char> LastAlert { get; set; }
+    public IEnumerable<char> LastAlert { get; set; } = Array.Empty<char>();
 }

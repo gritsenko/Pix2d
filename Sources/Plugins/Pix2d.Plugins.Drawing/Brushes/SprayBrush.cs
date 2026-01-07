@@ -17,7 +17,7 @@ public class SprayBrush : BasePixelBrush
         return Preview;
     }
 
-    public override SKBitmap GetBrushBitmap(SKColor color, float scale)
+    public override SKBitmap? GetBrushBitmap(SKColor color, float scale)
     {
         var bm = base.GetBrushBitmap(color, scale);
         if (bm != null) return _brushBitmap;
@@ -40,7 +40,7 @@ public class SprayBrush : BasePixelBrush
     private SKBitmap CreateBrushBitmap(int size, SKColor color)
     {
         CalculatePoints(size);
-        return GetBrushBitmap(color, size).Copy();
+        return GetBrushBitmap(color, size)!.Copy();
     }
 
     public override bool Draw(IDrawingLayer layer, SKPointI pos, SKColor color, double pressure, bool ignoreSpacing = false)

@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Pix2d.UI.Shared;
 
 namespace Pix2d.UI;
@@ -10,7 +10,7 @@ public class TopToolUiContainer : ComponentBase
     protected override object Build() =>
         new BlurPanel()
             .IsVisible(() => ToolUiContent != null)
-            .Content(() => ToolUiContent);
+            .Content(() => ToolUiContent!);
 
     #endregion
 

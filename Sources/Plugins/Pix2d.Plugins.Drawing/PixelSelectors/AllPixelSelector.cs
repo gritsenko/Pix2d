@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.PixelSelectors;
@@ -14,10 +14,7 @@ public class AllPixelSelector : IPixelSelector
         return sourceBitmap.Copy();
     }
 
-    public SKPath GetSelectionPath()
-    {
-        return null;
-    }
+    public SKPath? GetSelectionPath() => null;
 
     public SKPoint Offset { get; }
     public void BeginSelection(SKPointI point)

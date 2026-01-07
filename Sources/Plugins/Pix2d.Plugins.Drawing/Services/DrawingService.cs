@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
@@ -24,7 +24,7 @@ public class DrawingService : IDrawingService
 
     private IDrawingLayer? _drawingLayer;
 
-    public event EventHandler MirrorModeChanged;
+    public event EventHandler? MirrorModeChanged;
 
     private readonly IViewPortRefreshService _viewPortRefreshService;
     private readonly IMessenger _messenger;
@@ -39,11 +39,11 @@ public class DrawingService : IDrawingService
 
     public IDrawingLayer DrawingLayer
     {
-        get => _drawingLayer;
+        get => _drawingLayer!;
         private set => SetNewDrawingLayer(value);
     }
 
-    public IDrawingTarget CurrentDrawingTarget { get; set; }
+    public IDrawingTarget? CurrentDrawingTarget { get; set; }
 
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(DrawingService))]
     public DrawingService(
@@ -90,14 +90,14 @@ public class DrawingService : IDrawingService
 
     private void OnBrushChanged()
     {
-        _drawingLayer.Brush = SpriteEditorState.CurrentBrushSettings.Brush;
+        _drawingLayer!.Brush = SpriteEditorState.CurrentBrushSettings.Brush!;
         SpriteEditorState.CurrentBrushSettings.InitBrush();
         Refresh();
     }
 
     private void OnColorChanged()
     {
-        _drawingLayer.DrawingColor = SpriteEditorState.CurrentColor;
+        _drawingLayer!.DrawingColor = SpriteEditorState.CurrentColor;
         Refresh();
     }
 
@@ -150,7 +150,8 @@ public class DrawingService : IDrawingService
 
     private void StartNewDrawingOperation()
     {
-        _operationFactory?.StartNewDrawingOperation(CurrentDrawingTarget);
+        if (CurrentDrawingTarget != null)
+            _operationFactory?.StartNewDrawingOperation(CurrentDrawingTarget);
     }
 
     private void DrawingLayer_DrawingApplied(object? sender, DrawingAppliedEventArgs e)
@@ -182,7 +183,7 @@ public class DrawingService : IDrawingService
         return Brushes.First(x => x is TBrush);
     }
 
-    private IDrawingTarget GetDrawingTargetFromCurrentSprite()
+    private IDrawingTarget? GetDrawingTargetFromCurrentSprite()
     {
         var sprite = _appState.CurrentProject?.CurrentEditedNode as IDrawingTarget;
         return sprite;
@@ -237,6 +238,9 @@ public class DrawingService : IDrawingService
         if (CurrentDrawingTarget == null)
             return;
 
+        if (_drawingLayer == null)
+            return;
+
         _drawingLayer.SetTarget(CurrentDrawingTarget);
         var adornerLayer = SkiaNodes.AdornerLayer.GetAdornerLayer((SKNode)CurrentDrawingTarget);
         adornerLayer.Add((SKNode)_drawingLayer);
@@ -247,7 +251,7 @@ public class DrawingService : IDrawingService
 
     public void SplitCurrentOperation()
     {
-        if (_operationFactory.IsOperationStarted)
+        if (_operationFactory?.IsOperationStarted == true && CurrentDrawingTarget != null)
             _operationFactory?.PushCurrentOperationAndStartNew(CurrentDrawingTarget);
     }
 
@@ -260,7 +264,8 @@ public class DrawingService : IDrawingService
     public void SetDrawingTarget(IDrawingTarget target)
     {
         CurrentDrawingTarget = target;
-        _drawingLayer.DrawingColor = SpriteEditorState.CurrentColor;
+        if (_drawingLayer != null)
+            _drawingLayer.DrawingColor = SpriteEditorState.CurrentColor;
 
         UpdateDrawingTarget();
     }
@@ -291,6 +296,9 @@ public class DrawingService : IDrawingService
 
     public void SetMirrorMode(MirrorMode mode, bool enable)
     {
+        if (_drawingLayer == null)
+            return;
+
         if (mode == MirrorMode.Horizontal || mode == MirrorMode.Both)
             _drawingLayer.MirrorX = enable;
 
@@ -302,10 +310,10 @@ public class DrawingService : IDrawingService
 
     public void PasteBitmap(SKBitmap bitmap, SKPoint pos)
     {
-        if (_drawingLayer == null)
+        if (_drawingLayer == null || CurrentDrawingTarget == null)
             return;
         
-        var pasteOperation = new PasteOperation(bitmap, pos, this.CurrentDrawingTarget, _drawingLayer, this, _toolService);
+        var pasteOperation = new PasteOperation(bitmap, pos, CurrentDrawingTarget, _drawingLayer, this, _toolService);
         _operationService.InvokeAndPushOperations(pasteOperation);
     }
 
@@ -326,9 +334,18 @@ public class DrawingService : IDrawingService
 
     protected virtual void OnMirrorModeChanged() => MirrorModeChanged?.Invoke(this, EventArgs.Empty);
 
-    public IPixelSelectionEditor GetSelectionEditor() => (IPixelSelectionEditor)DrawingLayer;
+    public IPixelSelectionEditor GetSelectionEditor()
+    {
+        if (DrawingLayer is IPixelSelectionEditor editor)
+            return editor;
+        throw new InvalidOperationException("DrawingLayer does not implement IPixelSelectionEditor");
+    }
 
-    public void SelectAll() => _drawingLayer.SelectAll();
+    public void SelectAll()
+    {
+        if (_drawingLayer != null)
+            _drawingLayer.SelectAll();
+    }
 
     public void CancelCurrentOperation() => _operationFactory?.CancelCurrentOperation();
 

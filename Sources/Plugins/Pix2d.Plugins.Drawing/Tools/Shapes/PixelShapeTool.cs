@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using SkiaNodes;
 
 namespace Pix2d.Plugins.Drawing.Tools.Shapes;
@@ -34,22 +34,22 @@ public abstract class PixelShapeTool<TShapeBuilder>(
         return builder;
     }
 
-    protected override void OnPointerPressed(object sender, PointerActionEventArgs e)
+    protected override void OnPointerPressed(object? sender, PointerActionEventArgs e)
     {
         base.OnPointerPressed(sender, e);
 
         if (!e.Handled)
         {
             //drawing shapes
-            _currentBuilder.Reset();
-            _currentBuilder.BeginDrawing();
+            _currentBuilder?.Reset();
+            _currentBuilder?.BeginDrawing();
             DrawingService.DrawingLayer.UseSwapBitmap = true;
-            _currentBuilder.AddPoint(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
+            _currentBuilder?.AddPoint(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
             _isDrawing = true;
         }
     }
 
-    protected override void OnPointerMoved(object sender, PointerActionEventArgs e)
+    protected override void OnPointerMoved(object? sender, PointerActionEventArgs e)
     {
         base.OnPointerMoved(sender, e);
 
@@ -61,11 +61,11 @@ public abstract class PixelShapeTool<TShapeBuilder>(
         }
     }
 
-    protected override void OnPointerReleased(object sender, PointerActionEventArgs e)
+    protected override void OnPointerReleased(object? sender, PointerActionEventArgs e)
     {
-        if (_isDrawing && _currentBuilder.AddPointInputMode == AddPointInputMode.PressAndHold)
+        if (_isDrawing && _currentBuilder?.AddPointInputMode == AddPointInputMode.PressAndHold)
         {
-            _currentBuilder.AddPoint(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
+            _currentBuilder?.AddPoint(e.Pointer.GetPosition((SKNode)DrawingService.DrawingLayer));
         }
 
         _isDrawing = false;

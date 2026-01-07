@@ -71,7 +71,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
         this.IsVisible = true;
     }
 
-    public void SetTargetBitmapSubstitute(Func<SKBitmap> substitute)
+    public void SetTargetBitmapSubstitute(Func<SKBitmap>? substitute)
     {
         _substitute = substitute;
     }

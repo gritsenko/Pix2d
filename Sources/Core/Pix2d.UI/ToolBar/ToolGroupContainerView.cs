@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Avalonia.Controls.Shapes;
 using Avalonia.Styling;
 using Pix2d.UI.Resources;
@@ -41,8 +41,8 @@ public class ToolGroupContainerView : ComponentBase
 
     [Inject] AppState AppState { get; set; } = null!;
 
-    private StackPanel _itemsPanel;
-    private string _currentGroup;
+    private StackPanel _itemsPanel = null!;
+    private string _currentGroup = null!;
 
     protected override void OnAfterInitialized()
     {

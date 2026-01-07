@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls.Shapes;
+using Avalonia.Controls.Shapes;
 using Pix2d.Common.Extensions;
 using Pix2d.UI.Resources;
 using SkiaSharp;
@@ -24,7 +24,7 @@ public class BrushItemView : ComponentBase
             );
 
 
-    private Primitives.Drawing.BrushSettings _preset;
+    private Primitives.Drawing.BrushSettings _preset = null!;
     private bool _showSizeText;
 
     public Primitives.Drawing.BrushSettings Preset
@@ -37,7 +37,7 @@ public class BrushItemView : ComponentBase
         }
     }
 
-    public SKBitmap Preview => Preset?.Brush?.GetPreviewBitmap(Preset.Scale) ?? null;
+    public SKBitmap? Preview => Preset?.Brush?.GetPreviewBitmap(Preset.Scale);
 
     public bool ShowSizeText
     {

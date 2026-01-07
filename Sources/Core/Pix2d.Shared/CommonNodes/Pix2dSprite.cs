@@ -103,7 +103,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
         this.SelectedLayer?.ShowFrame(CurrentFrameIndex);
     }
 
-    public void SetTargetBitmapSubstitute(Func<SKBitmap> substitute)
+    public void SetTargetBitmapSubstitute(Func<SKBitmap>? substitute)
     {
         SelectedLayer?.GetSpriteByFrame(CurrentFrameIndex)?.SetTargetBitmapSubstitute(substitute);
     }

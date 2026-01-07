@@ -1,4 +1,4 @@
-﻿using Pix2d.Plugins.Drawing.Tools;
+using Pix2d.Plugins.Drawing.Tools;
 
 namespace Pix2d.Plugins.Drawing.UI;
 
@@ -16,7 +16,16 @@ public class FillToolSettingsView: ComponentBase
 
     public bool EraseMode
     {
-        get => ((FillTool)DataContext)?.EraseMode ?? false;
-        set => ((FillTool)DataContext).EraseMode = value;
+        get
+        {
+            if (DataContext is not FillTool fillTool)
+                return false;
+            return fillTool.EraseMode;
+        }
+        set
+        {
+            if (DataContext is FillTool fillTool)
+                fillTool.EraseMode = value;
+        }
     }
 }

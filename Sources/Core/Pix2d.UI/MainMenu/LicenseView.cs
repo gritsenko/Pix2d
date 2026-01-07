@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Pix2d.UI.Common;
@@ -197,13 +197,13 @@ public class LicenseView : LocalizedComponentBase
 
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
 
-    public string? LicenseType => AppState.LicenseType.ToString();
+    public string LicenseType => AppState.LicenseType.ToString();
 
-    public string? Price { get; set; }
-    public string? UltimatePrice { get; set; }
-    public string? OldUltimatePrice { get; set; }
+    public string Price { get; set; } = string.Empty;
+    public string UltimatePrice { get; set; } = string.Empty;
+    public string OldUltimatePrice { get; set; } = string.Empty;
 
-    public string? OldPrice { get; set; }
+    public string OldPrice { get; set; } = string.Empty;
 
 
     [Conditional("DEBUG")]

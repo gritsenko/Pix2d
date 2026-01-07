@@ -1,4 +1,4 @@
-﻿using Avalonia.Interactivity;
+using Avalonia.Interactivity;
 using Pix2d.Abstract.Tools;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
@@ -7,7 +7,7 @@ namespace Pix2d.UI.ToolBar;
 
 public class ToolItemView : LocalizedComponentBase
 {
-    private ToolState _toolState;
+    private ToolState _toolState = null!;
     
     public ToolItemView(ToolState toolState)
     {

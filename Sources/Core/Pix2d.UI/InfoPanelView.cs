@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Avalonia.Styling;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
@@ -60,10 +60,10 @@ public class InfoPanelView : ComponentBase
     [Inject] AppState AppState { get; } = null!;
     public SelectionState SelectionState => AppState.SelectionState;
 
-    public string? PointerInfoX { get; set; } = "0";
-    public string? PointerInfoY { get; set; } = "0";
-    public string? SizeWidth { get; set; } = "0";
-    public string? SizeHeight { get; set; } = "0";
+    public string PointerInfoX { get; set; } = "0";
+    public string PointerInfoY { get; set; } = "0";
+    public string SizeWidth { get; set; } = "0";
+    public string SizeHeight { get; set; } = "0";
 
     protected override void OnAfterInitialized()
     {
