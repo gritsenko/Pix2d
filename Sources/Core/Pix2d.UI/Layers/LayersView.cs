@@ -18,7 +18,6 @@ using Pix2d.Operations;
 using Pix2d.Plugins.Sprite.Operations.Layers;
 using Pix2d.Operations.Effects;
 using Pix2d.Plugins.Sprite.Operations.Effects;
-using Pix2d.Abstract.Commands;
 
 namespace Pix2d.UI.Layers;
 
@@ -33,9 +32,7 @@ public class LayersView : ComponentBase
                     .Command(SpritePlugin.EditCommands.AddLayer)
                     .Content("\xE710")
                     .FontFamily(StaticResources.Fonts.IconFontSegoe),
-#pragma warning disable CS8618
                 new ListBox()
-#pragma warning restore CS8618
                     .ScrollViewer_VerticalScrollBarVisibility(ScrollBarVisibility.Hidden)
                     .Styles(new Style<ListBoxItem>()
                         .Setter(TemplatedControl.CornerRadiusProperty, new CornerRadius(7))
@@ -54,12 +51,12 @@ public class LayersView : ComponentBase
                             return new TextBlock().Text("No layer");
 
                         return new LayerItemView(itemVm)
-                            {
-                                RightPointerPressed = () => ItemRightPointerPressed(itemVm),
-                                LeftPointerPressed = () => ItemClicked(itemVm)
-                            }
+                        {
+                            RightPointerPressed = () => ItemRightPointerPressed(itemVm),
+                            LeftPointerPressed = () => ItemClicked(itemVm)
+                        }
                             .AddBehavior(new ItemsListContextDragBehavior()
-                                { Orientation = Orientation.Vertical });
+                            { Orientation = Orientation.Vertical });
                     }),
                 new BackgroundSelectorView().Row(2)
             )
@@ -72,9 +69,7 @@ public class LayersView : ComponentBase
     [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private ICommandService CommandService { get; set; } = null!;
 
-    private EditCommands EditCommands => CommandService.GetCommandList<EditCommands>()!;
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
-    private ISpriteEditCommands SpriteEditCommands => CommandService.GetCommandList<ISpriteEditCommands>()!;
 
     private int SelectedIndex => ReverseIndex(AppState.SpriteEditorState.CurrentLayerIndex);
 
@@ -106,9 +101,7 @@ public class LayersView : ComponentBase
 
     private class ItemReorderInfo<TItem>
     {
-#pragma warning disable CS8618
-        public TItem[] Items { get; set; }
-#pragma warning restore CS8618
+        public TItem[] Items { get; set; } = [];
 
         public int OldIndex { get; set; }
 
@@ -245,10 +238,10 @@ public class LayersView : ComponentBase
         }
 
         _editor?.SelectLayer(itemVm.SourceNode);
-        
+
         if (oldSelectedLayer != null && oldSelectedLayer != itemVm.SourceNode)
         {
-             Layers.FirstOrDefault(x => x.SourceNode == oldSelectedLayer)?.Invalidate();
+            Layers.FirstOrDefault(x => x.SourceNode == oldSelectedLayer)?.Invalidate();
         }
         itemVm.Invalidate();
 

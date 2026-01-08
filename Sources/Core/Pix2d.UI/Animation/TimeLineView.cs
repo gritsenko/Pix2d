@@ -13,7 +13,6 @@ using System.Diagnostics;
 using Pix2d.Abstract.Operations;
 using Pix2d.Plugins.Sprite.Operations;
 using Pix2d.Primitives.SpriteEditor;
-using Pix2d.UI.Shared;
 using Mvvm;
 using Pix2d.Abstract.Edit;
 using Pix2d.CommonNodes;
@@ -46,9 +45,7 @@ public class TimeLineView : LocalizedComponentBase
                     .Fill(StaticResources.Brushes.PanelsBackgroundBrush)
                     .RenderTransform(TransformOperations.Parse("translateY(60px)")),
 
-#pragma warning disable CS8618
                 new ListBox().Row(1)
-#pragma warning restore CS8618
                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                     .BorderThickness(0)
                     .ItemsPanel(new VirtualizingStackPanel().Orientation(Orientation.Horizontal))
@@ -62,14 +59,16 @@ public class TimeLineView : LocalizedComponentBase
                         _editor?.SetFrameIndex(v);
                     })
                     .ItemTemplate<AnimationFrameViewModel>(itemVm =>
-                        new Border()
-                            .Background(StaticResources.Brushes.CheckerTilesBrush)
-                            .Child(
-                                new Rectangle()
-                                    .Width(52)
-                                    .Height(52)
-                                    .Fill(() => itemVm?.Preview?.ToBrush() ?? StaticResources.Brushes.CheckerTilesBrush)
-                            ).AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })
+                        new FuncComponent<AnimationFrameViewModel>(itemVm, vm =>
+                            new Border()
+                                .Background(StaticResources.Brushes.CheckerTilesBrush)
+                                .Child(
+                                    new Rectangle()
+                                        .Width(52)
+                                        .Height(52)
+                                        .Fill(() => itemVm?.Preview?.ToBrush() ?? StaticResources.Brushes.CheckerTilesBrush)
+                                ))
+                            .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })
                     ) //ItemTemplate
             ]);
 
@@ -201,9 +200,7 @@ public class TimeLineView : LocalizedComponentBase
 
     private class ItemReorderInfo<TItem>
     {
-#pragma warning disable CS8618
-        public TItem[] Items { get; set; }
-#pragma warning restore CS8618
+        public TItem[] Items { get; set; } = [];
 
         public int OldIndex { get; set; }
 

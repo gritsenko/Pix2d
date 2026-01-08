@@ -28,8 +28,8 @@ public class BulkAddObservableCollection<T> : ObservableCollection<T>
             Items.Add(item);
         }
 
-        OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
-        OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
+        //OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
+        //OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
         OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
     }
 }
