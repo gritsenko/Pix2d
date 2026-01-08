@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
@@ -14,7 +14,7 @@ public class BlurPanel : ViewBase
     /// </summary>
     public static readonly DirectProperty<BlurPanel, Control> ContentProperty
         = AvaloniaProperty.RegisterDirect<BlurPanel, Control>(nameof(Content), o => o.Content, (o, v) => o.Content = v);
-    private Control _content = default;
+    private Control _content = null!;
 
     public Control Content
     {
@@ -63,6 +63,7 @@ public class BlurBehindRenderOperation(Rect bounds, float cornerRadius) : ICusto
         var w = (float)_bounds.Width;
         var h = (float)_bounds.Height;
 
+        /*
         if (false)
         {
             var scale = canvas.TotalMatrix.ScaleX;
@@ -92,6 +93,7 @@ public class BlurBehindRenderOperation(Rect bounds, float cornerRadius) : ICusto
             canvas.DrawRoundRect(0, 0, w, h, _cornerRadius, _cornerRadius, blurSnapPaint);
 
         }
+        */
         canvas.DrawRoundRect(0, 0, w, h, _cornerRadius, _cornerRadius, BgPaint);
         canvas.DrawRoundRect(0, 0, w, h, _cornerRadius, _cornerRadius, BorderPaint);
     }

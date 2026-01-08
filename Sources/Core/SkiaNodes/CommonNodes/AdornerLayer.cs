@@ -1,10 +1,10 @@
-﻿using SkiaNodes.Abstract;
+using SkiaNodes.Abstract;
 
 namespace SkiaNodes;
 
 public class AdornerLayer : SKNode
 {
-    private static IViewPortProvider _viewPortProvider;
+    private static IViewPortProvider? _viewPortProvider;
 
     public static void Initialize(IViewPortProvider viewPortProvider)
     {
@@ -13,12 +13,12 @@ public class AdornerLayer : SKNode
 
     public override bool IsAdorner => true;
 
-    private ViewPort _viewPort;
+    private ViewPort? _viewPort;
     private readonly HashSet<IViewPortBindable> _viewPortBindables = [];
 
-    public SKNode TargetNode { get; private set; }
+    public SKNode? TargetNode { get; private set; }
 
-    public ViewPort ViewPort
+    public ViewPort? ViewPort
     {
         get => _viewPort;
         set
@@ -31,10 +31,14 @@ public class AdornerLayer : SKNode
         }
     }
 
-    private void ViewPort_ViewChanged(object sender, System.EventArgs e)
+    private void ViewPort_ViewChanged(object? sender, System.EventArgs e)
     {
-        foreach (var node in _viewPortBindables)
-            node.OnViewChanged(_viewPort);
+        var vp = _viewPort;
+        if (vp != null)
+        {
+            foreach (var node in _viewPortBindables)
+                node.OnViewChanged(vp);
+        }
     }
 
     public static AdornerLayer GetAdornerLayer(SKNode node)
@@ -49,13 +53,17 @@ public class AdornerLayer : SKNode
             adornerLayer = new AdornerLayer()
             {
                 TargetNode = node,
-                ViewPort = _viewPortProvider.ViewPort
+                ViewPort = _viewPortProvider!.ViewPort
             };
             node.AdornerLayer = adornerLayer;
+            adornerLayer.Position = node.GetGlobalPosition();
         }
-        adornerLayer.Position = node.GetGlobalPosition();
+        else
+        {
+            adornerLayer.Position = node.GetGlobalPosition();
+        }
 
-        return adornerLayer;
+        return adornerLayer!;
     }
 
     protected override void OnChildrenAdded(IEnumerable<SKNode> newNodes)

@@ -1,4 +1,4 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 using SkiaNodes.Abstract;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -75,18 +75,15 @@ public class DrawingContainerBaseNode : SKNode, IContainerNode, IClippingSource
 
     private void DrawDynamicCheckerboard(SKCanvas canvas, ViewPort vp)
     {
-        var cellSize = GridCellSize.Width < 1 ? 8 : GridCellSize.Width;
-        var effectiveCellSize = vp.Zoom < 4 ? cellSize : 1;
-
+        var cellSize = GridUtils.CalculateAdaptiveStep(vp.DpiEffectiveZoom);
         using var paint = new SKPaint
         {
             Shader = SKShader.CreateBitmap(
                 CheckerPattern,
                 SKShaderTileMode.Repeat,
                 SKShaderTileMode.Repeat,
-                SKMatrix.CreateScale(effectiveCellSize, effectiveCellSize)
-            ),
-            FilterQuality = SKFilterQuality.None // Critical for crisp pixels
+                SKMatrix.CreateScale(cellSize, cellSize)
+            )
         };
 
         canvas.DrawRect(LocalBounds, paint);

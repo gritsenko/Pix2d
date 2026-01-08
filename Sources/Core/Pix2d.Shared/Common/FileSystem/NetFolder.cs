@@ -37,7 +37,7 @@ public class NetFolder : IWriteDestinationFolder
         {
             return Task.FromResult<IFileContentSource>(new NetFileSource(path));
         }
-        return Task.FromResult<IFileContentSource>(default);
+        return Task.FromResult<IFileContentSource>(null!);
     }
 
     public IWriteDestinationFolder GetSubfolder(string folderName)
@@ -98,7 +98,7 @@ public class NetFolder : IWriteDestinationFolder
         });
     }
 
-    public Task<IEnumerable<IFileContentSource>> GetFilesAsync(string subfolderPath = default)
+    public Task<IEnumerable<IFileContentSource>> GetFilesAsync(string? subfolderPath = null)
     {
         var dirInfo =
             new DirectoryInfo(subfolderPath == default ? Path : System.IO.Path.Combine(this.Path, subfolderPath));

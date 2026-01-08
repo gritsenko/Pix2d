@@ -113,7 +113,7 @@ public sealed class SessionService(
 
                 var file = sessionInfo.LoadFromSessionFolder
                     ? await GetSessionFileToReadAsync()
-                    : await fileService.GetFileContentSourceAsync(sessionInfo.ProjectPath);
+                    : await fileService.GetFileContentSourceAsync(sessionInfo.ProjectPath!);
 
                 await sessionProjectLoader.OpenProjectFromSessionAsync(file);
                 ClearSessionInfo();
@@ -150,8 +150,8 @@ public sealed class SessionService(
 
     private void ClearSessionInfo()
     {
-        settingsService.Set<SessionInfo>("session", null);
-        ProjectState.LastSessionInfo = null;
+        settingsService.Set<SessionInfo>("session", null!);
+        ProjectState.LastSessionInfo = new();
     }
 
     public async Task ForceSaveAsync(TimeSpan timeout)
@@ -203,7 +203,7 @@ public sealed class SessionService(
         if (sessionInfo.LoadFromSessionFolder)
         {
             var file = await GetSessionFileToWriteAsync();
-            await ProjectPacker.WriteProjectAsync(file, appState.CurrentProject.SceneNode);
+            await ProjectPacker.WriteProjectAsync(file, appState.CurrentProject.SceneNode!);
         }
 
         settingsService.Set("session", sessionInfo);

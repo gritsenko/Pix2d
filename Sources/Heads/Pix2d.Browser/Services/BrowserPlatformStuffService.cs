@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Export;
+using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.State;
@@ -11,9 +11,9 @@ namespace Pix2d.Browser.Services;
 
 public class BrowserPlatformStuffService : IPlatformStuffService
 {
-    private string _appVersion;
+    private string _appVersion = string.Empty;
 
-    public bool IsTextInputFocused => EditorApp.TopLevel.FocusManager?.GetFocusedElement() is TextBox;
+    public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;
 
     public string KeyToString(VirtualKeys key)
     {
@@ -77,7 +77,7 @@ public class BrowserPlatformStuffService : IPlatformStuffService
 
             //_appView.Title = title + " - v" + GetAppVersion();
         }
-        catch (Exception ex)
+        catch
         {
             //whatever!
         }

@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Services;
+using Pix2d.Abstract.Services;
 using Pix2d.CommonNodes;
 using Pix2d.Operations.Effects;
 using Pix2d.Plugins.Sprite.Operations.Effects;
@@ -36,13 +36,13 @@ public class EffectsService(IOperationService operationService) : IEffectsServic
     public void AddEffect(SKNode node, IEffectsService.IEffectItem effectItem)
     {
         var effect = Activator.CreateInstance(effectItem.EffectType) as ISKNodeEffect;
-        operationService.InvokeAndPushOperations(new AddEffectOperation([node], effect));
+        operationService.InvokeAndPushOperations(new AddEffectOperation([node], effect!));
     }
 
     public IEffectsService.IEffectSettingsView GetSettingsView(ISKNodeEffect effect)
     {
         var effectItem = _availableEffects.FirstOrDefault(x => x.EffectType == effect.GetType());
-        return effectItem.GetSettingsView(effect);
+        return effectItem!.GetSettingsView(effect);
     }
 
     public class RegisteredEffectItem<TEffect, TEffectSettingsView>(
@@ -55,6 +55,6 @@ public class EffectsService(IOperationService operationService) : IEffectsServic
         public Type EffectType { get; } = typeof(TEffect);
 
         public IEffectsService.IEffectSettingsView GetSettingsView(ISKNodeEffect effect) =>
-            (IEffectsService.IEffectSettingsView)SettingsViewFuc.Invoke((TEffect)effect);
+            (IEffectsService.IEffectSettingsView)SettingsViewFuc.Invoke((TEffect)effect!)!;
     }
 }

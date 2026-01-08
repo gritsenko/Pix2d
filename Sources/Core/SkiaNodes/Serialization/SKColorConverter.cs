@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Newtonsoft.Json;
 using SkiaSharp;
 
@@ -6,7 +6,7 @@ namespace SkiaNodes.Serialization;
 
 public partial class SKColorConverter : JsonConverter
 {
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
             reader.Read();
             var value = reader.ReadAsString();
@@ -21,8 +21,14 @@ public partial class SKColorConverter : JsonConverter
 
     public override bool CanWrite { get; } = true;
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
+            if (value == null)
+            {
+                writer.WriteNull();
+                return;
+            }
+
             writer.WriteStartObject();
             writer.WritePropertyName("skcolor");
             serializer.Serialize(writer, value.ToString(), typeof(SKColor));

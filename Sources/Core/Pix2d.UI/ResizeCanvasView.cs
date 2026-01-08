@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Pix2d.Messages;
 using Pix2d.UI.Shared;
 using SkiaSharp;
@@ -120,7 +120,7 @@ public class ResizeCanvasView : LocalizedComponentBase
     private int _horizontalAnchor = 0;
     private int _verticalAnchor = 0;
     private bool _keepAspect;
-    private string _originalSizeStr;
+    private string _originalSizeStr = null!;
 
     public string OriginalSizeStr
     {

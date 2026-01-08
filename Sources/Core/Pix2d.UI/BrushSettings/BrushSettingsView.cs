@@ -1,4 +1,4 @@
-﻿using Avalonia.Styling;
+using Avalonia.Styling;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using Colors = Avalonia.Media.Colors;
@@ -38,7 +38,7 @@ public class BrushSettingsView : LocalizedComponentBase
                             .BorderThickness(0)
                             .Padding(0)
                             .ItemsSource(() => DrawingState.BrushPresets)
-                            .SelectedItem(() => CurrentPixelBrushPreset, v => CurrentPixelBrushPreset = (Primitives.Drawing.BrushSettings)v)
+                            .SelectedItem(() => CurrentPixelBrushPreset!, v => CurrentPixelBrushPreset = (Primitives.Drawing.BrushSettings)v)
                             .ItemsPanel(StaticResources.Templates.WrapPanelTemplate)
                             .ItemTemplate((Primitives.Drawing.BrushSettings itemVm) =>
                                 new BrushItemView()
@@ -77,10 +77,10 @@ public class BrushSettingsView : LocalizedComponentBase
 
     public Pix2d.Primitives.Drawing.BrushSettings? CurrentPixelBrushPreset
     {
-        get => DrawingState.CurrentPixelBrushPreset;
+        get => DrawingState.CurrentPixelBrushPreset!;
         set
         {
-            DrawingState.CurrentPixelBrushPreset = value;
+            DrawingState.CurrentPixelBrushPreset = value!;
 
             if (value?.Brush != null)
             {

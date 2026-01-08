@@ -1,4 +1,4 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 
@@ -41,8 +41,8 @@ public class Pix2dWatermarkNode : TextNode
         }
 
         var textPaint = canvas.GetSolidFillPaint(SKColors.White);
-        textPaint.TextSize = FontSize;
-        canvas.DrawText(Text, new SKPoint(FontSize / 2, FontSize + 1), textPaint);
+        var textFont = new SKFont(SKTypeface.Default, FontSize);
+        canvas.DrawText(Text, new SKPoint(FontSize / 2, FontSize + 1), SKTextAlign.Left, textFont, textPaint);
 
     }
 }

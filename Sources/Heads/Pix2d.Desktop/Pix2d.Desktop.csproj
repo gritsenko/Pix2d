@@ -86,7 +86,6 @@
 		<ProjectReference Include="..\..\Plugins\FormatSupport\Psd\Pix2d.Plugins.Psd\Pix2d.Plugins.Psd.csproj" />
 		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
 		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Drawing\Pix2d.Plugins.Drawing.csproj" />
-		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.HttpHost\Pix2d.Plugins.HttpHost.csproj" />
 		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.PixelText\Pix2d.Plugins.PixelText.csproj" />
 		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.PngCompress\Pix2d.Plugins.PngCompress.csproj" />
 	</ItemGroup>

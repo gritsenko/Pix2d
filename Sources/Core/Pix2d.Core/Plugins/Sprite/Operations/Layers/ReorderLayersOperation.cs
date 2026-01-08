@@ -1,4 +1,5 @@
-﻿using Pix2d.Abstract.Operations;
+#nullable enable
+using Pix2d.Abstract.Operations;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
 using SkiaNodes;
@@ -18,16 +19,16 @@ public class ReorderLayersOperation : EditOperationBase, ISpriteEditorOperation
     public HashSet<int> AffectedLayerIndexes { get; }
     public HashSet<int> AffectedFrameIndexes { get; }
 
-    public ReorderLayersOperation(Pix2dSprite sprite, int oldIndex, int newIndex)
-    {
-        _sprite = sprite;
-        _oldLayerIndex = oldIndex;
-        _newLayerIndex = newIndex;
-        _reorderedLayer = sprite.Nodes[_oldLayerIndex] as Pix2dSprite.Layer;
-        AffectedFrameIndexes = [sprite.CurrentFrameIndex];
-        AffectedLayerIndexes = [oldIndex, newIndex];
-        //addAfterFrameIndex == -1 means add to end of list
-    }
+     public ReorderLayersOperation(Pix2dSprite sprite, int oldIndex, int newIndex)
+     {
+         _sprite = sprite;
+         _oldLayerIndex = oldIndex;
+         _newLayerIndex = newIndex;
+         _reorderedLayer = sprite.Nodes[_oldLayerIndex] as Pix2dSprite.Layer ?? throw new InvalidOperationException("Layer at oldIndex is not a valid Layer");
+         AffectedFrameIndexes = [sprite.CurrentFrameIndex];
+         AffectedLayerIndexes = [oldIndex, newIndex];
+         //addAfterFrameIndex == -1 means add to end of list
+     }
 
     public override void OnPerform()
     {

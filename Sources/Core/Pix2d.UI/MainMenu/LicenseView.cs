@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Pix2d.UI.Common;
@@ -6,7 +6,6 @@ using Pix2d.UI.Resources;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Pix2d.Common.Extensions;
-using Pix2d.UI.Shared;
 using Pix2d.Command;
 
 namespace Pix2d.UI.MainMenu;
@@ -197,13 +196,13 @@ public class LicenseView : LocalizedComponentBase
 
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
 
-    public string? LicenseType => AppState.LicenseType.ToString();
+    public string LicenseType => AppState.LicenseType.ToString();
 
-    public string? Price { get; set; }
-    public string? UltimatePrice { get; set; }
-    public string? OldUltimatePrice { get; set; }
+    public string Price { get; set; } = string.Empty;
+    public string UltimatePrice { get; set; } = string.Empty;
+    public string OldUltimatePrice { get; set; } = string.Empty;
 
-    public string? OldPrice { get; set; }
+    public string OldPrice { get; set; } = string.Empty;
 
 
     [Conditional("DEBUG")]
@@ -312,7 +311,10 @@ public class LicenseView : LocalizedComponentBase
         try
         {
             var price = LicenseService.GetFormattedPrice;
-            Price = price;
+            Price = price ?? string.Empty;
+            if (price == null)
+                return;
+            
             var match = Regex.Match(price, @"\d+(,\d+)*(\.\d+)");
 
             double val = 0;

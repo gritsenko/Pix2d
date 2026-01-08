@@ -1,4 +1,4 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using System.Text;
 using Pix2d.Abstract.Platform.FileSystem;
 using SkiaNodes;
@@ -13,7 +13,7 @@ public class ProjectUnpacker
 {
     private static readonly Encoding ZipEncoding = Encoding.UTF8;
 
-    public static async Task<SKNode> LoadProjectScene(IFileContentSource file)
+    public static async Task<SKNode?> LoadProjectScene(IFileContentSource file)
     {
         if (!file.Exists)
             throw new Exception($"File {file.Path} does not exists!");
@@ -50,7 +50,11 @@ public class ProjectUnpacker
                 images.Add(imageZipEntry.Name, srcBm);
             }
 
-            await using var projectStream = zip.GetEntry("project.json").Open();
+            var projectEntry = zip.GetEntry("project.json");
+            if (projectEntry == null)
+                return null;
+
+            await using var projectStream = projectEntry.Open();
             using var streamReader = new StreamReader(projectStream);
             var sceneJson = await streamReader.ReadToEndAsync();
 
@@ -67,7 +71,7 @@ public class ProjectUnpacker
         }
     }
 
-    public static async Task<SKNode> LoadProjectFolderAsync(IWriteDestinationFolder folder)
+    public static async Task<SKNode?> LoadProjectFolderAsync(IWriteDestinationFolder folder)
     {
         var files = await folder.GetFilesAsync("Resources");
         var images = new Dictionary<string, SKBitmap>();
@@ -77,7 +81,8 @@ public class ProjectUnpacker
             await using var data = await file.OpenRead();
             data.Seek(0, SeekOrigin.Begin);
             var bm = data.ToSKBitmap();
-            images.Add(Path.GetFileName(file.Path), bm);
+            if (bm != null)
+                images.Add(Path.GetFileName(file.Path), bm);
         }
 
         var projectFile = await folder.GetFileSourceAsync("project", "pix2d.json", true);
@@ -96,13 +101,13 @@ public class ProjectUnpacker
         return entryFile;
     }
 
-    public static async Task<SKBitmap> LoadPreview(IFileContentSource file)
+    public static async Task<SKBitmap?> LoadPreview(IFileContentSource file)
     {
         if (!file.Exists)
             return null;
 
         using var fileStream = await file.OpenRead();
-        if (!fileStream.CanRead || fileStream.Length < 1 || fileStream.Position < 0) 
+        if (!fileStream.CanRead || fileStream.Length < 1 || fileStream.Position < 0)
             return null;
 
         using var zip = new ZipArchive(fileStream, ZipArchiveMode.Read, true, ZipEncoding);

@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Operations;
+using Pix2d.Abstract.Operations;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
 using SkiaNodes;
@@ -7,27 +7,27 @@ namespace Pix2d.Plugins.Sprite.Operations;
 
 public class MergeLayerOperation : DeleteNodesOperation, ISpriteEditorOperation
 {
-    private Pix2dSprite _parent;
-    private Pix2dSprite.Layer _mergedLayer;
+    private Pix2dSprite _parent = null!;
+    private Pix2dSprite.Layer _mergedLayer = null!;
     private int _oldIndex;
     private int _newIndex;
-    private byte[][] _mergeTargetLayerDatas;
-    private Pix2dSprite.Layer _targetLayer;
+    private byte[][] _mergeTargetLayerDatas = null!;
+    private Pix2dSprite.Layer _targetLayer = null!;
 
-    public HashSet<int> AffectedLayerIndexes { get; }
+    public HashSet<int> AffectedLayerIndexes { get; } = null!;
     public HashSet<int> AffectedFrameIndexes { get; } = [];
 
     public MergeLayerOperation(IEnumerable<SKNode> nodes) : base(nodes)
     {
-        _mergedLayer = nodes.FirstOrDefault() as Pix2dSprite.Layer;
+        _mergedLayer = nodes.FirstOrDefault() as Pix2dSprite.Layer ?? throw new ArgumentNullException(nameof(nodes));
         _oldIndex = _mergedLayer.Index;
         _newIndex = Math.Max(0, _mergedLayer.Index - 1);
-        _parent = _mergedLayer.Parent as Pix2dSprite;
+        _parent = _mergedLayer.Parent as Pix2dSprite ?? throw new InvalidOperationException("Parent must be a Pix2dSprite");
 
         AffectedLayerIndexes = [_oldIndex, _newIndex];
         AffectedFrameIndexes = [_parent.CurrentFrameIndex];
 
-        _targetLayer = _parent.Nodes[_newIndex] as Pix2dSprite.Layer;
+        _targetLayer = _parent.Nodes[_newIndex] as Pix2dSprite.Layer ?? throw new InvalidOperationException("Target layer not found");
         _mergeTargetLayerDatas = _targetLayer.Nodes.OfType<BitmapNode>().Select(x => x.GetData()).ToArray();
     }
 
@@ -37,7 +37,11 @@ public class MergeLayerOperation : DeleteNodesOperation, ISpriteEditorOperation
 
         base.OnPerform();
 
-        _parent.SelectLayer(_parent.Nodes[_newIndex] as Pix2dSprite.Layer);
+        var layer = _parent.Nodes[_newIndex] as Pix2dSprite.Layer;
+        if (layer != null)
+        {
+            _parent.SelectLayer(layer);
+        }
 
     }
 
@@ -49,7 +53,7 @@ public class MergeLayerOperation : DeleteNodesOperation, ISpriteEditorOperation
         {
             var mergeTargetLayerData = _mergeTargetLayerDatas[i];
             var frame = _targetLayer.Nodes[i] as BitmapNode;
-            frame.SetData(mergeTargetLayerData);
+            frame?.SetData(mergeTargetLayerData);
         }
 
         _parent.SelectLayer(_mergedLayer);

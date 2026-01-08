@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Pix2d.Abstract.Selection;
 using Pix2d.CommonNodes;
 using Pix2d.InteractiveNodes.Thumbs;
@@ -15,13 +15,13 @@ namespace Pix2d.InteractiveNodes;
 
 public class FrameEditorNode : SKNode
 {
-    public event EventHandler SelectionEditStarted;
-    public event EventHandler SelectionEditing;
-    public event EventHandler SelectionEdited;
+    public event EventHandler? SelectionEditStarted;
+    public event EventHandler? SelectionEditing;
+    public event EventHandler? SelectionEdited;
 
     private readonly MoveThumbNode _moveThumb;
     private readonly ResizeThumbSingleNode[] _sizeThumb = new ResizeThumbSingleNode[4];
-    private NodesSelection _selection;
+    private NodesSelection? _selection;
     private SKPoint _initialPos;
     private SKSize _initialSize;
     private float _initialRotation;
@@ -32,7 +32,7 @@ public class FrameEditorNode : SKNode
 
     public NodeReparentMode ReparentMode { get; set; }
 
-    public Func<IAspectSnapper> AspectSnapperProviderFunc { get; set; }
+    public Func<IAspectSnapper>? AspectSnapperProviderFunc { get; set; }
 
 
     public bool AllowResize
@@ -98,25 +98,25 @@ public class FrameEditorNode : SKNode
 
     private void SizeThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
-        _selection.InitOperation<ResizeOperation>();
+        _selection?.InitOperation<ResizeOperation>();
         OnSelectionEditStarted();
     }
 
     private void MoveThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
-        _selection.InitOperation<MoveOperation>();
+        _selection?.InitOperation<MoveOperation>();
         OnSelectionEditStarted();
     }
     private void RotateThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
-        _selection.InitOperation<RotateOperation>();
+        _selection?.InitOperation<RotateOperation>();
         OnSelectionEditStarted();
     }
 
     private void ThumbOnDragComplete(object? sender, DragCompletedEventArgs e)
     {
         OnSelectionEdited();
-        _selection.FinishOperation();
+        _selection?.FinishOperation();
     }
 
     private void Thumb_DragDelta(object? sender, DragDeltaEventArgs e)
@@ -130,16 +130,10 @@ public class FrameEditorNode : SKNode
                 thumb.UpdateToTargets();
             }
         }
-
-        if (sender is MoveThumbNode)
-        {
-            _selection.UpdateParents(ReparentMode);
-        }
-
         OnSelectionEditing();
     }
 
-    public void SetSelection(INodesSelection selection, SKPath highlightPath = null)
+    public void SetSelection(INodesSelection selection, SKPath? highlightPath = null)
     {
         EditStarted = false;
         _selection = selection as NodesSelection;
@@ -188,30 +182,30 @@ public class FrameEditorNode : SKNode
 
     protected virtual void OnSelectionEdited()
     {
-        _selection.Invalidate();
+        _selection?.Invalidate();
         SelectionEdited?.Invoke(this, EventArgs.Empty);
     }
 
     protected virtual void OnSelectionEditing()
     {
-        _selection.Invalidate();
+        _selection?.Invalidate();
         SelectionEditing?.Invoke(this, EventArgs.Empty);
     }
 
     public bool GetAspectLock()
     {
-        return _selection.LockAspect || AspectSnapperProviderFunc?.Invoke().IsAspectLocked == true;
+        return _selection?.LockAspect ?? false || (AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked == true);
     }
     public bool GetAxisLock()
     {
-        return AspectSnapperProviderFunc?.Invoke().IsAspectLocked ?? false;
+        return AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked ?? false;
     }
 
     public void ActivateMoveThumb()
     {
         _moveThumb.OnPointerPressed(
-            new PointerActionEventArgs(PointerActionType.Pressed, SKInput.Current.Pointer,
-                SKInput.Current.GetModifiers()), 0);
+            new PointerActionEventArgs(PointerActionType.Pressed, SKInput.Current.Pointer!,
+                SKInput.Current.GetModifiers()!), 0);
     }
 
     protected virtual void OnSelectionEditStarted()
@@ -235,6 +229,7 @@ public class FrameEditorNode : SKNode
 
     public void Rotate(int angle)
     {
+        if (_selection == null) return;
         OnSelectionEditStarted();
         _selection.Rotation += angle;
         OnSelectionEdited();
@@ -242,6 +237,7 @@ public class FrameEditorNode : SKNode
 
     public void ResetEdit()
     {
+        if (_selection == null) return;
         _selection.SetPosition(_initialPos);
         _selection.SetRotation(_initialRotation);
         _selection.SetSize(_initialSize);

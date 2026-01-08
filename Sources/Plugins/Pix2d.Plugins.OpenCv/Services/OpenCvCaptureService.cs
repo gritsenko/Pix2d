@@ -1,21 +1,18 @@
 ﻿using OpenCvSharp;
 using Pix2d.Abstract.Services;
-using SkiaNodes;
 using SkiaSharp;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Pix2d.Desktop.Services;
+namespace Pix2d.Plugins.OpenCv.Services;
 
 [method: DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(OpenCvCaptureService))]
-internal class OpenCvCaptureService(IViewPortService viewPortService, IDrawingService drawingService) : IImageCaptureService
+internal class OpenCvCaptureService(IDrawingService drawingService) : IImageCaptureService
 {
     public async Task PasteImageAsync()
     {
         var img = await GetImageAsync();
         if (img != null)
         {
-            var dln = drawingService?.DrawingLayer as SKNode;
-            //var isResized = await TryToResizeCanvas(dln, img);
             var localPos = SKPoint.Empty;// dln.GetLocalPosition(viewPortService.ViewPort.ViewPortCenterGlobal);
             //if (isResized)
             //{
@@ -26,7 +23,7 @@ internal class OpenCvCaptureService(IViewPortService viewPortService, IDrawingSe
         }
     }
 
-    public async Task<SKBitmap> GetImageAsync()
+    public async Task<SKBitmap?> GetImageAsync()
     {
         using var capture = new VideoCapture(0);
         // Check if the camera is opened successfully
@@ -57,14 +54,14 @@ internal class OpenCvCaptureService(IViewPortService viewPortService, IDrawingSe
             // Display the frame in the window
             //window.ShowImage(frame);
             await Task.Delay(300);
-            result = ConvertMatToSKBitmap(frame);
+            result = ConvertMatToSkBitmap(frame);
             break;
         }
 
         return result;
     }
 
-    static SKBitmap ConvertMatToSKBitmap(Mat mat)
+    static SKBitmap ConvertMatToSkBitmap(Mat mat)
     {
         using var stream = mat.ToMemoryStream();
         return SKBitmap.Decode(stream);

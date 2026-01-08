@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +15,7 @@ public class PlatformStuffService : IPlatformStuffService
 {
     private readonly IServiceProvider _serviceProvider;
     public PlatformType CurrentPlatform => PlatformType.CrossPlatformDesktop;
-    public bool IsTextInputFocused => EditorApp.TopLevel.FocusManager?.GetFocusedElement() is TextBox;
+    public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;
 
     public PlatformStuffService(AppState state, IServiceProvider serviceProvider)
     {
@@ -153,7 +153,7 @@ public class PlatformStuffService : IPlatformStuffService
             var assemblyPath = Path.Combine(appPath, "pix2d.exe");
             var fvi = FileVersionInfo.GetVersionInfo(assemblyPath);
             var version = fvi.ProductVersion;
-            return version;
+            return version ?? "unknown desktop";
         }
         catch (Exception ex)
         {
@@ -240,7 +240,7 @@ public class PlatformStuffService : IPlatformStuffService
 
         void LogInfo(string message) => Console.WriteLine($"INFO: {message}");
 
-        void LogError(string message, Exception ex = null)
+        void LogError(string message, Exception? ex = null)
         {
             Console.WriteLine($"ERROR: {message} - {ex?.Message}");
             if (ex != null) Console.WriteLine(ex.ToString());

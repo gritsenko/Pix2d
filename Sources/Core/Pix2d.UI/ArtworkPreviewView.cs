@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using Pix2d.Abstract.Edit;
 using Pix2d.Common;
 using Pix2d.Messages;
@@ -43,11 +43,11 @@ public class ArtworkPreviewView : ComponentBase
         new FuncDataTemplate<ScaleItem>((itemVm, ns)
             => new TextBlock().Text($"{itemVm?.Scale:F2}x"));
 
-    [Inject] AppState AppState { get; }
-    [Inject] IMessenger Messenger { get; }
+    [Inject] AppState AppState { get; } = null!;
+    [Inject] IMessenger Messenger { get; } = null!;
 
-    private ISpriteEditor _editor;
-    private ViewPort _viewPort;
+    private ISpriteEditor? _editor;
+    private ViewPort? _viewPort;
     
     private ScaleItem _selectedScale = new(1);
 
@@ -134,7 +134,7 @@ public class ArtworkPreviewView : ComponentBase
                 }
             }
 
-            _editor.CurrentSprite.RenderFramePreview(frameIndex, ref curBitmap, _viewPort, sprite.UseBackgroundColor);
+            _editor.CurrentSprite!.RenderFramePreview(frameIndex, ref curBitmap, _viewPort!, sprite.UseBackgroundColor);
 
             Preview.SetBitmap(curBitmap);
         }

@@ -1,10 +1,10 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 
 namespace Pix2d.Primitives.Drawing;
 
 public class BrushSettings
 {
-    public IPixelBrush Brush { get; set; }
+    public IPixelBrush? Brush { get; set; }
     public float Scale { get; set; }
     public float Opacity { get; set; }
     public float Spacing { get; set; } = 1;
@@ -22,7 +22,8 @@ public class BrushSettings
 
     public async void InitBrush()
     {
-            await Brush.InitBrush(Scale, Opacity, Spacing);
+            if (Brush != null)
+                await Brush.InitBrush(Scale, Opacity, Spacing);
         }
 
     protected bool Equals(BrushSettings other)
@@ -30,7 +31,7 @@ public class BrushSettings
             return Equals(Brush, other.Brush) && Scale.Equals(other.Scale) && Opacity.Equals(other.Opacity) && Spacing.Equals(other.Spacing);
         }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;

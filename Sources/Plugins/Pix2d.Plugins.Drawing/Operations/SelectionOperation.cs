@@ -12,7 +12,7 @@ public class SelectionOperation : EditOperationBase
 {
     private readonly SelectionData _selectionData;
     private readonly SKNodeTransformState _initialState;
-    private SKNodeTransformState _finalState;
+    private SKNodeTransformState? _finalState;
     private readonly DrawingLayerNode _drawingLayer;
 
     public SelectionOperation(DrawingLayerNode drawingLayer)
@@ -22,8 +22,8 @@ public class SelectionOperation : EditOperationBase
         {
             SelectionLayer = (SpriteSelectionNode)drawingLayer.GetSelectionLayer(),
             BackgroundBitmap = drawingLayer.GetSelectionBackground(),
-            DrawingTarget = drawingLayer.DrawingTarget,
-            DrawingTargetData = drawingLayer.DrawingTarget.GetData(),
+            DrawingTarget = drawingLayer.DrawingTarget ?? throw new InvalidOperationException("DrawingTarget cannot be null"),
+            DrawingTargetData = drawingLayer.DrawingTarget?.GetData() ?? throw new InvalidOperationException("DrawingTargetData cannot be null"),
         };
 
         _initialState = new SKNodeTransformState(_selectionData.SelectionLayer);
@@ -43,7 +43,7 @@ public class SelectionOperation : EditOperationBase
     
     public override void OnPerform()
     {
-        _finalState.ApplyTo(_selectionData.SelectionLayer);
+        _finalState?.ApplyTo(_selectionData.SelectionLayer);
         _selectionData.DrawingTarget.SetData(_selectionData.DrawingTargetData);
         _drawingLayer.SetSelection(_selectionData.SelectionLayer, _selectionData.BackgroundBitmap);
     }
@@ -62,9 +62,9 @@ public class SelectionOperation : EditOperationBase
 
     private class SelectionData
     {
-        public SpriteSelectionNode SelectionLayer { get; set; }
-        public SKBitmap BackgroundBitmap { get; set; }
-        public IDrawingTarget DrawingTarget { get; set; }
-        public byte[] DrawingTargetData { get; set; }
+        public SpriteSelectionNode SelectionLayer { get; set; } = null!;
+        public SKBitmap BackgroundBitmap { get; set; } = null!;
+        public IDrawingTarget DrawingTarget { get; set; } = null!;
+        public byte[] DrawingTargetData { get; set; } = null!;
     }
 }

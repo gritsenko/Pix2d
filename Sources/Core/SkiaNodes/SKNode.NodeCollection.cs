@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using SkiaNodes.Common;
@@ -178,11 +178,12 @@ public partial class SKNode
 
         public SKNode this[int index]
         {
-            get => index < Count ? _nodes[index] : null;
+            get => _nodes[index];
             set
             {
-                _nodes[index] = value;
-                hostNode.OnChildrenAdded(value.Yield());
+                _nodes[index] = value!;
+                if (value != null)
+                    hostNode.OnChildrenAdded(value.Yield());
             }
         }
 

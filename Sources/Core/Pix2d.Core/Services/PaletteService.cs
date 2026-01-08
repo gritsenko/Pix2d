@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Pix2d.Primitives.Palette;
 using SkiaSharp;
 
@@ -15,7 +15,7 @@ public class PaletteService : IPaletteService
 
     private Dictionary<string, List<SKColor>> _palettes = new Dictionary<string, List<SKColor>>();
 
-    public event EventHandler<PaletteChangedEventArgs> PaletteChanged;
+    public event EventHandler<PaletteChangedEventArgs>? PaletteChanged;
 
     public PaletteService(ISettingsService settingsService)
     {
@@ -44,10 +44,10 @@ public class PaletteService : IPaletteService
 
     public IEnumerable<SKColor> GetPaletteColors(string paletteName)
     {
-        return GetPalette(paletteName).ToArray();
+        return GetPalette(paletteName)!.ToArray();
     }
 
-    private List<SKColor> GetPalette(string paletteName)
+    private List<SKColor>? GetPalette(string paletteName)
     {
         if (_palettes.TryGetValue(paletteName, out var palette))
         {
@@ -63,6 +63,9 @@ public class PaletteService : IPaletteService
             return;
 
         var palette = GetPalette(paletteName);
+
+        if (palette == null)
+            return;
 
         var oldIndex = palette.IndexOf(color);
         if (oldIndex > -1)
@@ -91,6 +94,9 @@ public class PaletteService : IPaletteService
     public void RemoveColor(string paletteName, SKColor color)
     {
         var palette = GetPalette(paletteName);
+        
+        if (palette == null)
+            return;
 
         palette.Remove(color);
 
@@ -115,7 +121,7 @@ public class PaletteService : IPaletteService
         {
             var palstr = _settingsService.Get<string>(nameof(CustomPalette));
 
-            if (!string.IsNullOrWhiteSpace(palstr))
+            if (palstr != null && !string.IsNullOrWhiteSpace(palstr))
             {
                 if (palstr.StartsWith("#"))
                 {
@@ -131,6 +137,7 @@ public class PaletteService : IPaletteService
         }
     }
 
+#pragma warning disable CS0649
     struct Col
     {
         public byte A;
@@ -143,11 +150,12 @@ public class PaletteService : IPaletteService
             return new SKColor(R, G, B, A);
         }
     }
+#pragma warning restore CS0649
 
     private void LoadColorsFromARGB(string palstr, List<SKColor> customColors)
     {
         var colors = JsonConvert.DeserializeObject<Col[]>(palstr);
-        if (colors.Length > 0)
+        if (colors != null && colors.Length > 0)
         {
             _customColors.Clear();
             _customColors.AddRange(colors.Select(x => x.ToSKColor()).Where(x => x != SKColor.Empty));
@@ -161,7 +169,7 @@ public class PaletteService : IPaletteService
         var colors = palstr.Split(';');
         if (colors.Length <= 0) return;
 
-        var palette = colors.Select(SKColor.Parse);
+        var palette = colors.Select(x => SKColor.Parse(x));
 
         customColors.Clear();
         customColors.AddRange(palette.Where(x => x != SKColor.Empty));

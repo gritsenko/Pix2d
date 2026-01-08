@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +10,10 @@ namespace Pix2d.Plugins.Sprite.Operations;
 
 public class EditFrameOperation : EditOperationBase
 {
-    private readonly int _frameIndex;
-    private readonly Pix2dSprite _sprite;
-    private readonly Dictionary<Guid, byte[]> _initialData;
-    private Dictionary<Guid, byte[]> _finalData;
+     private readonly int _frameIndex;
+     private readonly Pix2dSprite _sprite;
+     private readonly Dictionary<Guid, byte[]> _initialData;
+     private Dictionary<Guid, byte[]> _finalData = null!;
 
     public EditFrameOperation(Pix2dSprite targetSprite)
     {
@@ -66,8 +67,8 @@ public class EditFrameOperation : EditOperationBase
         }
     }
 
-    public override IEnumerable<SKNode> GetEditedNodes()
-    {
-        return _sprite.Layers.Select(x => x.GetSpriteByFrame(_frameIndex));
-    }
+     public override IEnumerable<SKNode> GetEditedNodes()
+     {
+         return _sprite.Layers.Select(x => x.GetSpriteByFrame(_frameIndex)).OfType<SKNode>();
+     }
 }

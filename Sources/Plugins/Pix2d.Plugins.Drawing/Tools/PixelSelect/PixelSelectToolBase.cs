@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
@@ -44,21 +44,21 @@ public abstract class PixelSelectToolBase : BaseTool, IDrawingTool, IPixelSelect
         Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
     }
 
-    private void DrawingLayer_SelectionRemoved(object sender, EventArgs e)
+    private void DrawingLayer_SelectionRemoved(object? sender, EventArgs e)
     {
         SelectionState.IsUserSelecting = false;
     }
 
-    private void DrawingLayer_SelectionStarted(object sender, EventArgs e)
+    private void DrawingLayer_SelectionStarted(object? sender, EventArgs e)
     {
         SelectionState.IsUserSelecting = true;
     }
 
-    private void DrawingLayerOnPixelsBeforeSelected(object sender, EventArgs e)
+    private void DrawingLayerOnPixelsBeforeSelected(object? sender, EventArgs e)
     {
     }
 
-    protected override void OnPointerMoved(object sender, PointerActionEventArgs e)
+    protected override void OnPointerMoved(object? sender, PointerActionEventArgs e)
     {
         base.OnPointerMoved(sender, e);
         if (SelectionState.IsUserSelecting)
@@ -95,7 +95,8 @@ public abstract class PixelSelectToolBase : BaseTool, IDrawingTool, IPixelSelect
         DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;
         Messenger.Unregister<OperationInvokedMessage>(this, OnOperationInvoked);
         DrawingLayer.ApplySelection();
-        SelectionState.UserSelectingFrameSize = DrawingLayer.DrawingTarget.GetSize();
+        if (DrawingLayer.DrawingTarget != null)
+            SelectionState.UserSelectingFrameSize = DrawingLayer.DrawingTarget.GetSize();
     }
 
     public SKRect GetSelectionRect()

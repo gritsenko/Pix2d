@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using SkiaNodes.Interactive;
 
@@ -9,7 +9,7 @@ public class CommandShortcut
     public KeyModifier KeyModifiers { get; }
 
     public VirtualKeys Key { get; }
-    public Func<VirtualKeys, string> KeyConverter { get; set; }
+    public Func<VirtualKeys, string>? KeyConverter { get; set; }
 
     public CommandShortcut(VirtualKeys key, KeyModifier keyModifiers = KeyModifier.None)
     {

@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Tools;
 
 namespace Pix2d.Plugins.Drawing.Tools;
@@ -22,7 +22,7 @@ public class EyedropperTool : BaseTool, IDrawingTool
         await base.Activate();
     }
 
-    protected override void OnPointerReleased(object sender, PointerActionEventArgs e)
+    protected override void OnPointerReleased(object? sender, PointerActionEventArgs e)
     {
         e.Handled = true;
         DrawingService.PickColorByPoint(e.Pointer.WorldPosition);

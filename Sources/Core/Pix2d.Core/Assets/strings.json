@@ -244,7 +244,21 @@
       "Current license:": "Current license:",
       "Lifetime license": "Lifetime license",
       "One time payment": "One time payment",
-      "per month": "per month"
+      "per month": "per month",
+      "Hide export dialog": "Hide export dialog",
+      "Show export dialog": "Show export dialog",
+      "Show/Hide extra tools": "Show/Hide extra tools",
+      "Show main menu": "Show main menu",
+      "Hide main menu": "Hide main menu",
+      "Toggle main menu": "Toggle main menu",
+      "Toggle canvas size panel": "Toggle canvas size panel",
+      "Show layer options": "Show layer options",
+      "Hide layer options": "Hide layer options",
+      "Toggle layer options": "Toggle layer options",
+      "Show clipboard bar": "Show clipboard bar",
+      "Hide clipboard bar": "Hide clipboard bar",
+      "Toggle clipboard bar": "Toggle clipboard bar",
+      "Show license purchase": "Show license purchase"
     },
     "Locale": "en"
   },
@@ -493,7 +507,21 @@
       "Current license:": "Текущая лицензия:",
       "Lifetime license": "Пожизненная лицензия",
       "One time payment": "Одноразовый платеж",
-      "per month": "в месяц"
+      "per month": "в месяц",
+      "Hide export dialog": "Скрыть диалог экспорта",
+      "Show export dialog": "Показать диалог экспорта",
+      "Show/Hide extra tools": "Показать/скрыть дополнительные инструменты",
+      "Show main menu": "Показать главное меню",
+      "Hide main menu": "Скрыть главное меню",
+      "Toggle main menu": "Переключить главное меню",
+      "Toggle canvas size panel": "Переключить панель размера холста",
+      "Show layer options": "Показать параметры слоя",
+      "Hide layer options": "Скрыть параметры слоя",
+      "Toggle layer options": "Переключить параметры слоя",
+      "Show clipboard bar": "Показать панель буфера обмена",
+      "Hide clipboard bar": "Скрыть панель буфера обмена",
+      "Toggle clipboard bar": "Переключить панель буфера обмена",
+      "Show license purchase": "Показать покупку лицензии"
     },
     "Locale": "ru"
   }

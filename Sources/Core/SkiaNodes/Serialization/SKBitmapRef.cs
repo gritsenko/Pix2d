@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using SkiaSharp;
 
 namespace SkiaNodes.Serialization;
 
 public class SKBitmapRef
 {
-    public string Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
     public SKBitmapRef()
     {
@@ -16,10 +16,10 @@ public class SKBitmapRef
         Id = Guid.NewGuid() + ".png";
 
         ///todo: slow - make raw bytes instaed of png
-        dataStorage.SetEntry(Id, sourceObject);
+        dataStorage?.SetEntry(Id, sourceObject);
     }
 
-    public SKBitmap Load(IDataStorage dataStorage = null)
+    public SKBitmap? Load(IDataStorage? dataStorage = null)
     {
         if (string.IsNullOrWhiteSpace(Id))
             return null;

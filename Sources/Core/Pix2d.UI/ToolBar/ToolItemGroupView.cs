@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls.Shapes;
+using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Pix2d.Abstract.Tools;
 using Pix2d.Common.Extensions;
@@ -25,7 +25,6 @@ public class ToolItemGroupView : LocalizedComponentBase
                     .Child(
                         new Grid()
                             .Ref(out _gridContainer)
-                            .ToolTip(() => ActiveItem?.ToolTip ?? GroupName)
                             .Children(
                                 new ContentControl()
                                     .Name("tool-item-border")
@@ -71,7 +70,8 @@ public class ToolItemGroupView : LocalizedComponentBase
         else
         {
             AppState.UiState.ShowToolGroup = false;
-            ToolService.ActivateTool(ActiveItem!.Name);
+            if (ActiveItem != null)
+                ToolService.ActivateTool(ActiveItem.ToolType);
         }
 
         this.StateHasChanged();
@@ -81,7 +81,7 @@ public class ToolItemGroupView : LocalizedComponentBase
     {
         IsSelected = false;
         var activeTool = AppState.ToolsState.CurrentTool;
-        if (activeTool.GroupName == GroupName)
+        if (activeTool?.GroupName == GroupName)
         {
             IsSelected = true;
             SetActiveItem(activeTool);
@@ -95,7 +95,7 @@ public class ToolItemGroupView : LocalizedComponentBase
     public void SetActiveItem(ToolState item)
     {
         ActiveItem = item;
-        _gridContainer.ToolTip(item?.ToolTip);
+        _gridContainer.ToolTip(item!.ToolTip);
         StateHasChanged();
     }
 }

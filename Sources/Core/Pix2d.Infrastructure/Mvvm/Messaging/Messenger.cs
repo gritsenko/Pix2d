@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Mvvm.Messaging;
@@ -6,12 +6,12 @@ namespace Mvvm.Messaging;
 public class Messenger : IMessenger
 {
     private static readonly object CreationLock = new object();
-    private static IMessenger _defaultInstance;
+    private static IMessenger? _defaultInstance;
     private readonly object _registerLock = new object();
-    private Dictionary<Type, List<WeakActionAndToken>> _recipientsOfSubclassesAction;
-    private Dictionary<Type, List<WeakActionAndToken>> _recipientsStrictAction;
+    private Dictionary<Type, List<WeakActionAndToken>>? _recipientsOfSubclassesAction;
+    private Dictionary<Type, List<WeakActionAndToken>>? _recipientsStrictAction;
 
-    private readonly SynchronizationContext _context = SynchronizationContext.Current;
+    private readonly SynchronizationContext? _context = SynchronizationContext.Current;
 
     public static IMessenger Default
     {
@@ -36,12 +36,12 @@ public class Messenger : IMessenger
 
     public virtual void Register<TMessage>(object recipient, Action<TMessage> action)
     {
-        Register(recipient, null, false, action);
+        Register(recipient, (object)null!, false, action);
     }
 
     public virtual void Register<TMessage>(object recipient, bool receiveDerivedMessagesToo, Action<TMessage> action)
     {
-        Register(recipient, null, receiveDerivedMessagesToo, action);
+        Register(recipient, (object)null!, receiveDerivedMessagesToo, action);
     }
 
     public virtual void Register<TMessage>(object recipient, object token, Action<TMessage> action)
@@ -142,7 +142,7 @@ public class Messenger : IMessenger
         Justification = "This syntax is more convenient than other alternatives.")]
     public virtual void Unregister<TMessage>(object recipient)
     {
-        Unregister<TMessage>(recipient, null, null);
+        Unregister<TMessage>(recipient, (object)null!, null!);
     }
 
     [SuppressMessage(
@@ -151,12 +151,12 @@ public class Messenger : IMessenger
         Justification = "This syntax is more convenient than other alternatives.")]
     public virtual void Unregister<TMessage>(object recipient, object token)
     {
-        Unregister<TMessage>(recipient, token, null);
+        Unregister<TMessage>(recipient, token, null!);
     }
 
     public virtual void Unregister<TMessage>(object recipient, Action<TMessage> action)
     {
-        Unregister(recipient, null, action);
+        Unregister(recipient, (object)null!, action);
     }
 
     public virtual void Unregister<TMessage>(object recipient, object token, Action<TMessage> action)
@@ -223,9 +223,9 @@ public class Messenger : IMessenger
 
     private static void SendToList<TMessage>(
         TMessage message,
-        IEnumerable<WeakActionAndToken> weakActionsAndTokens,
-        Type messageTargetType,
-        object token)
+        IEnumerable<WeakActionAndToken>? weakActionsAndTokens,
+        Type? messageTargetType,
+        object? token)
     {
         if (weakActionsAndTokens != null)
         {
@@ -239,21 +239,21 @@ public class Messenger : IMessenger
                 var executeAction = item.Action as IExecuteWithObject;
 
                 if (executeAction != null
-                    && item.Action.IsAlive
-                    && item.Action.Target != null
+                    && item.Action!.IsAlive
+                    && item.Action!.Target != null
                     && (messageTargetType == null
-                        || item.Action.Target.GetType() == messageTargetType
-                        || messageTargetType.GetTypeInfo().IsAssignableFrom(item.Action.Target.GetType().GetTypeInfo()))
+                        || item.Action!.Target.GetType() == messageTargetType
+                        || messageTargetType.GetTypeInfo().IsAssignableFrom(item.Action!.Target.GetType().GetTypeInfo()))
                     && ((item.Token == null && token == null)
-                        || item.Token != null && item.Token.Equals(token)))
+                        || item.Token != null && item.Token!.Equals(token)))
                 {
-                    executeAction.ExecuteWithObject(message);
+                    executeAction.ExecuteWithObject(message!);
                 }
             }
         }
     }
 
-    private static void UnregisterFromLists(object recipient, Dictionary<Type, List<WeakActionAndToken>> lists)
+    private static void UnregisterFromLists(object? recipient, Dictionary<Type, List<WeakActionAndToken>>? lists)
     {
         if (recipient == null
             || lists == null
@@ -268,7 +268,7 @@ public class Messenger : IMessenger
             {
                 foreach (var item in lists[messageType])
                 {
-                    var weakAction = (IExecuteWithObject)item.Action;
+                    var weakAction = item.Action as IExecuteWithObject;
 
                     if (weakAction != null
                         && recipient == weakAction.Target)
@@ -281,10 +281,10 @@ public class Messenger : IMessenger
     }
 
     private static void UnregisterFromLists<TMessage>(
-        object recipient,
-        object token,
-        Action<TMessage> action,
-        Dictionary<Type, List<WeakActionAndToken>> lists)
+        object? recipient,
+        object? token,
+        Action<TMessage>? action,
+        Dictionary<Type, List<WeakActionAndToken>>? lists)
     {
         var messageType = typeof(TMessage);
 
@@ -307,7 +307,7 @@ public class Messenger : IMessenger
                     && (action == null || action.GetMethodInfo().Name == weakActionCasted.MethodName)
                     && (token == null || token.Equals(item.Token)))
                 {
-                    item.Action.MarkForDeletion();
+                    item.Action!.MarkForDeletion();
                 }
             }
         }
@@ -333,12 +333,14 @@ public class Messenger : IMessenger
 
     public void Cleanup()
     {
-        CleanupList(_recipientsOfSubclassesAction);
-        CleanupList(_recipientsStrictAction);
+        if (_recipientsOfSubclassesAction != null)
+            CleanupList(_recipientsOfSubclassesAction);
+        if (_recipientsStrictAction != null)
+            CleanupList(_recipientsStrictAction);
         _isCleanupRegistered = false;
     }
 
-    private void SendToTargetOrType<TMessage>(TMessage message, Type messageTargetType, object token)
+    private void SendToTargetOrType<TMessage>(TMessage message, Type? messageTargetType, object? token)
     {
         var messageType = typeof(TMessage);
 
@@ -347,11 +349,11 @@ public class Messenger : IMessenger
             // Clone to protect from people registering in a "receive message" method
             // Correction Messaging BL0008.002
             var listClone =
-                _recipientsOfSubclassesAction.Keys.Take(_recipientsOfSubclassesAction.Count()).ToList();
+                _recipientsOfSubclassesAction!.Keys.Take(_recipientsOfSubclassesAction.Count()).ToList();
 
             foreach (var type in listClone)
             {
-                List<WeakActionAndToken> list = null;
+                List<WeakActionAndToken>? list = null;
 
                 if (messageType == type
                     || messageType.GetTypeInfo().IsSubclassOf(type)
@@ -363,13 +365,13 @@ public class Messenger : IMessenger
                     }
                 }
 
-                SendToList(message, list, messageTargetType, token);
+                SendToList(message, list!, messageTargetType, token);
             }
         }
 
         if (_recipientsStrictAction != null)
         {
-            List<WeakActionAndToken> list = null;
+            List<WeakActionAndToken>? list = null;
 
             lock (_recipientsStrictAction)
             {
@@ -394,9 +396,9 @@ public class Messenger : IMessenger
 
     private struct WeakActionAndToken
     {
-        public WeakAction Action;
+        public WeakAction? Action;
 
-        public object Token;
+        public object? Token;
     }
 
     #endregion

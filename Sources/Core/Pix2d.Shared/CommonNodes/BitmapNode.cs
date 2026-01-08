@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -8,12 +8,12 @@ namespace Pix2d.CommonNodes;
 
 public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
 {
-    private SKBitmap _bitmap;
+    private SKBitmap? _bitmap;
     protected SKRect _bitmapRect;
     protected SKRect _nodeRect;
-    private Func<SKBitmap> _substitute;
+    private Func<SKBitmap>? _substitute;
 
-    public SKBitmap Bitmap
+    public SKBitmap? Bitmap
     {
         get => _bitmap;
         set
@@ -29,7 +29,9 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
         }
     }
 
-    protected virtual void OnBitmapChanged(SKBitmap newBitmap)
+    SKBitmap IBitmapNode.Bitmap => _bitmap!;
+
+    protected virtual void OnBitmapChanged(SKBitmap? newBitmap)
     {
     }
 
@@ -40,6 +42,17 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
 
     public void SetData(byte[] data)
     {
+        if (Bitmap == null)
+            throw new InvalidOperationException("Bitmap is null");
+
+        // Allow empty data - treat as "clear bitmap"
+        if (data.Length == 0)
+        {
+            Bitmap.Erase(SKColor.Empty);
+            InvalidateBitmap();
+            return;
+        }
+
         if (data.Length != Bitmap.ByteCount)
         {
             throw new InvalidOperationException(
@@ -66,7 +79,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
         this.IsVisible = true;
     }
 
-    public void SetTargetBitmapSubstitute(Func<SKBitmap> substitute)
+    public void SetTargetBitmapSubstitute(Func<SKBitmap>? substitute)
     {
         _substitute = substitute;
     }
@@ -78,7 +91,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
 
     public float GetOpacity() => Opacity;
     public SKColor PickColorByPoint(int localPosX, int localPosY) => 
-        Bitmap.GetPixel(localPosX, localPosY);
+        Bitmap?.GetPixel(localPosX, localPosY) ?? SKColor.Empty;
 
     public void Draw(Action<SKCanvas> drawAction)
     {
@@ -115,7 +128,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
         throw new NotImplementedException();
     }
 
-    protected void UpdateSize(SKBitmap value)
+    protected void UpdateSize(SKBitmap? value)
     {
         if (value != null)
             Size = new SKSize(value.Width, value.Height);
@@ -146,7 +159,9 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
             }
             else
             {
-                    canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect, new SKPaint() { FilterQuality = SKFilterQuality.None });
+#pragma warning disable CS0618
+                    canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect, new SKPaint() { FilterQuality = SKFilterQuality.Low });
+#pragma warning restore CS0618
             }
         }
     }
@@ -166,11 +181,12 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
 
     public void MergeFrom(BitmapNode sprite, float opacity = 1)
     {
+        if (_bitmap == null) return;
         using (var surface = _bitmap.GetSKSurface())
         {
             var canvas = surface.Canvas;
             var paint = new SKPaint() { Color = SKColors.Black.WithAlpha((byte)(opacity * 255)) };
-            canvas.DrawBitmap(sprite.Bitmap, sprite.GetBoundingBox(), paint);
+            canvas.DrawBitmap(sprite.Bitmap!, sprite.GetBoundingBox(), paint);
             canvas.Flush();
         }
 
@@ -179,35 +195,37 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
 
     public byte[] GetData()
     {
+        if (Bitmap == null)
+            throw new InvalidOperationException("Bitmap is null");
         return Bitmap.Bytes;
     }
     public void RotateSourceBitmap(bool resize = false)
-        => ReplaceBitmap(Bitmap.Rotate90(), resize);
+        => ReplaceBitmap(Bitmap!.Rotate90(), resize);
 
     public void FlipHorizontal()
-        => ReplaceBitmap(Bitmap.FlipHorizontal());
+        => ReplaceBitmap(Bitmap!.FlipHorizontal());
 
     public void FlipVertical()
-        => ReplaceBitmap(Bitmap.FlipVertical());
+        => ReplaceBitmap(Bitmap!.FlipVertical());
 
     public void Resize(SKSize newSize, float horizontalAnchor, float verticalAnchor)
-        => ReplaceBitmap(Bitmap.Resize(newSize.ToSizeI(), horizontalAnchor, verticalAnchor), true);
+        => ReplaceBitmap(Bitmap!.Resize(newSize.ToSizeI(), horizontalAnchor, verticalAnchor), true);
 
     public void Crop(SKRect targetBounds)
-        => ReplaceBitmap(Bitmap.Crop(targetBounds), true);
+        => ReplaceBitmap(Bitmap!.Crop(targetBounds), true);
 
-    public Action FlushRequestedAction { get; set; }
+    public Action FlushRequestedAction { get; set; } = () => { };
     public bool LockTransparentPixels { get; } = false;
 
     public virtual SKBitmap GetDrawingBitmap()
     {
-        return this.Bitmap;
+        return this.Bitmap ?? throw new InvalidOperationException("Bitmap is null");
     }
 
     public override void OnUnload()
     {
-        this._bitmap.Dispose();
-        this._bitmap = null;
+        _bitmap?.Dispose();
+        _bitmap = null;
         base.OnUnload();
     }
 

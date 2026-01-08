@@ -1,5 +1,4 @@
-﻿using Avalonia.Styling;
-using Avalonia.Xaml.Interactions.Custom;
+using Avalonia.Styling;
 using Pix2d.Command;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
@@ -58,6 +57,11 @@ public class MainMenuView : LocalizedComponentBase
                 .ContentViewType(typeof(InfoView))
                 .OnClicked(SelectMenuItem),
             new MainMenuItemView()
+                .Header(L("Commands"))
+                .Icon("\xE76D")
+                .ContentViewType(typeof(CommandsView))
+                .OnClicked(SelectMenuItem),
+            new MainMenuItemView()
                 .Header(L("New"))
                 .Icon("\xE7C3")
                 .ContentViewType(typeof(NewDocumentView))
@@ -83,7 +87,7 @@ public class MainMenuView : LocalizedComponentBase
             //    .OnClicked(SelectMenuItem)
         ];
 
-        return new BlurPanel()
+        return new Border()
             .Child(
                 new Grid()
                     .Cols("200,*")
@@ -109,12 +113,12 @@ public class MainMenuView : LocalizedComponentBase
             );
     }
 
-    private ScrollViewer _menuContentScrollViewer;
+    private ScrollViewer _menuContentScrollViewer = null!;
 
-    private MainMenuItemView[] _menuItems;
+    private MainMenuItemView[] _menuItems = null!;
 
-    [Inject] private AppState AppState { get; set; }
-    [Inject] private ICommandService CommandService { get; set; }
+    [Inject] private AppState AppState { get; set; } = null!;
+    [Inject] private ICommandService CommandService { get; set; } = null!;
 
     public bool ShowMenuContent { get; set; } = true;
     public MainMenuItemView? SelectedItem { get; set; }

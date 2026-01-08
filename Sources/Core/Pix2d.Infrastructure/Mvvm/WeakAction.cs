@@ -1,18 +1,18 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace Mvvm;
 
 public class WeakAction
 {
-    private Action _staticAction;
+    private Action? _staticAction;
 
-    protected MethodInfo Method { get; set; }
+    protected MethodInfo? Method { get; set; }
 
-    public virtual string MethodName => _staticAction != null ? _staticAction.GetMethodInfo().Name : Method.Name;
+    public virtual string MethodName => _staticAction != null ? _staticAction.GetMethodInfo().Name : Method?.Name ?? string.Empty;
 
-    protected WeakReference ActionReference { get; set; }
+    protected WeakReference? ActionReference { get; set; }
 
-    protected WeakReference Reference { get; set; }
+    protected WeakReference? Reference { get; set; }
 
     public bool IsStatic => _staticAction != null;
 
@@ -20,7 +20,7 @@ public class WeakAction
     {
     }
 
-    public WeakAction(Action action) : this(action?.Target, action)
+    public WeakAction(Action action) : this(action.Target!, action)
     {
     }
 
@@ -52,14 +52,14 @@ public class WeakAction
             if (_staticAction == null && Reference == null)
                 return false;
 
-            if (_staticAction == null) return Reference.IsAlive;
+            if (_staticAction == null) return Reference!.IsAlive;
             return Reference == null || Reference.IsAlive;
         }
     }
 
-    public object Target => Reference?.Target;
+    public object? Target => Reference?.Target;
 
-    protected object ActionTarget => ActionReference?.Target;
+    protected object? ActionTarget => ActionReference?.Target;
 
     public void Execute()
     {
@@ -75,7 +75,7 @@ public class WeakAction
         if (Method == null || ActionReference == null || actionTarget == null) return;
         try
         {
-            Method.Invoke(actionTarget, null);
+            Method.Invoke(actionTarget, null!);
         }
         catch (TargetInvocationException exception)
         {

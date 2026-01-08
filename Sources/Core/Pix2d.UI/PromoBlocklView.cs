@@ -1,4 +1,4 @@
-﻿using Avalonia.Styling;
+using Avalonia.Styling;
 using Pix2d.Command;
 using Pix2d.UI.Resources;
 
@@ -46,7 +46,7 @@ public class PromoBlockView : ComponentBase
             .VerticalAlignment(VerticalAlignment.Stretch);
 
     [Inject] public ILicenseService? LicenseService { get; } = null!;
-    [Inject] public AppState? AppState { get; } = null!;
+    [Inject] public AppState AppState { get; } = null!;
     [Inject] private ICommandService CommandService { get; set; } = null!;
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
     public string CallToActionText { get; set; } = "PRO";

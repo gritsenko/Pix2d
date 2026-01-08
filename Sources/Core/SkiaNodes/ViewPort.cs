@@ -1,4 +1,4 @@
-﻿using SkiaNodes.Extensions;
+using SkiaNodes.Extensions;
 using SkiaSharp;
 
 namespace SkiaNodes;
@@ -38,8 +38,8 @@ public class ViewPort
     public const float MaxZoom = 100;
     public const float MinZoom = 0.01f;
 
-    public event EventHandler ViewChanged;
-    public event EventHandler RefreshRequested;
+    public event EventHandler? ViewChanged;
+    public event EventHandler? RefreshRequested;
 
     public bool IsPixelPerfectZoom => Math.Abs(DpiEffectiveZoom - 1) < 0.0000001f || Math.Abs((DpiEffectiveZoom % 2)) < 0.00000001f;
 

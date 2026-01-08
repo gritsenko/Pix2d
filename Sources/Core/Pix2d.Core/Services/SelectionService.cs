@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Operations;
+using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Selection;
 using Pix2d.Abstract.Services;
 using Pix2d.CommonNodes;
@@ -33,7 +33,7 @@ public class SelectionService : ISelectionService
     public bool HasSelectedNodes => SelectedNodes.Any();
 
 
-    public GroupNode ActiveGroup { get; set; }
+    public GroupNode ActiveGroup { get; set; } = null!;
 
     public SelectionService(ISceneService sceneService, ISnappingService snappingService, IMessenger messenger, AppState appState, IOperationService operationService)
     {
@@ -112,7 +112,6 @@ public class SelectionService : ISelectionService
 
     private void Select(SKNode[] nodes, bool addToSelection)
     {
-
         var intersection = SelectedNodes.Intersect(nodes);
 
         //shift pressed mode
@@ -152,7 +151,7 @@ public class SelectionService : ISelectionService
     public void ClearSelection()
     {
         SetSelectedNodes(Enumerable.Empty<SKNode>());
-        ActiveGroup = null;
+        ActiveGroup = null!;
     }
 
     public SKNode GetCurrentContainer()
@@ -169,7 +168,7 @@ public class SelectionService : ISelectionService
                 return n;
 
             var container = SelectedNodes.GetParents().OfType<DrawingContainerBaseNode>().FirstOrDefault();
-            return container;
+            return container!;
         }
 
         var containers = _sceneService.GetCurrentSceneContainers<DrawingContainerBaseNode>();
@@ -178,13 +177,13 @@ public class SelectionService : ISelectionService
             return containers[0];
         }
 
-        return null;
+        return (IContainerNode)Scene;
     }
 
     public IContainerNode GetContainer(SKPoint worldPosition)
     {
         var container = Scene.Nodes.OfType<DrawingContainerBaseNode>().FirstOrDefault(x => x.GetBoundingBox().Contains(worldPosition));
-        return container;
+        return container!;
     }
 
     protected virtual void SetSelectedNodes(IEnumerable<SKNode> selectedNodes)
@@ -217,7 +216,7 @@ public class SelectionService : ISelectionService
 
         if (nodes.Length == 1 && nodes[0].DesignerState.LockAspect.HasValue)
         {
-            return nodes[0].DesignerState.LockAspect.Value;
+            return nodes[0].DesignerState.LockAspect!.Value;
         }
 
         return false;

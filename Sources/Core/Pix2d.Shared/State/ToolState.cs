@@ -1,7 +1,6 @@
 ﻿#nullable enable
 using Pix2d.Abstract;
 using Pix2d.Abstract.Tools;
-using System;
 
 namespace Pix2d.State;
 

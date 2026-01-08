@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Styling;
 using Avalonia.Themes.Simple;
 using Avalonia.VisualTree;
@@ -8,14 +8,14 @@ namespace Pix2d;
 
 public class EditorApp : Application
 {
-    public HostView HostView { get; private set; }
+    public HostView? HostView { get; private set; }
 
-    public static IPix2dBootstrapper Pix2dBootstrapper { get; set; }
-    public static Action<object> AppStarted { get; set; }
-    public static Action AppInitialized { get; set; }
-    public static Func<bool> OnAppClosing { get; set; }
-    public static TopLevel TopLevel { get; private set; }
-    public static IUiModule UiModule { get; set; }
+    public static IPix2dBootstrapper? Pix2dBootstrapper { get; set; }
+    public static Action<object>? AppStarted { get; set; }
+    public static Action? AppInitialized { get; set; }
+    public static Func<bool>? OnAppClosing { get; set; }
+    public static TopLevel? TopLevel { get; private set; }
+    public static IUiModule? UiModule { get; set; }
 
     public override void Initialize()
     {
@@ -26,7 +26,7 @@ public class EditorApp : Application
     /// <summary>
     /// Used to set top level on android application on main activity
     /// </summary>
-    public void UpdateTopLevelFromHostView() => TopLevel = HostView.GetVisualRoot() as TopLevel;
+    public void UpdateTopLevelFromHostView() => TopLevel = HostView?.GetVisualRoot() as TopLevel;
 
     private void InitStyles()
     {
@@ -34,12 +34,15 @@ public class EditorApp : Application
         {
             Styles.Add(new SimpleTheme());
 
-            var styles = (Styles)UiModule.GetStyles();
-            foreach (var externalStyle in styles)
-                Styles.Add(externalStyle);
+            var styles = (Styles?)UiModule?.GetStyles();
+            if (styles != null)
+            {
+                foreach (var externalStyle in styles)
+                    Styles.Add(externalStyle);
 
-            foreach (var resource in styles.Resources)
-                Resources.Add(resource);
+                foreach (var resource in styles.Resources)
+                    Resources.Add(resource);
+            }
         }
         catch (Exception ex)
         {
@@ -91,9 +94,12 @@ public class EditorApp : Application
         AppStarted?.Invoke(desktop.MainWindow);
     }
 
-    private void InitializePix2d(HostView hostView)
+    private void InitializePix2d(HostView? hostView)
     {
         if (Design.IsDesignMode)
+            return;
+
+        if (hostView == null)
             return;
 
         try
@@ -105,12 +111,12 @@ public class EditorApp : Application
 
             Pix2dBootstrapper.Initialize();
 
-            hostView.LoadMainView(UiModule.GetMainViewType(), Pix2dBootstrapper.GetServiceProvider());
+            hostView.LoadMainView(UiModule!.GetMainViewType(), Pix2dBootstrapper!.GetServiceProvider());
         }
         catch (Exception ex)
         {
             Logger.Log(ex.Message);
-            Logger.Log(ex.StackTrace);
+            Logger.Log(ex.StackTrace!);
             throw;
         }
         AppInitialized?.Invoke();

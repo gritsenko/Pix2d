@@ -1,4 +1,4 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 
 namespace SkiaNodes.Extensions;
 
@@ -15,13 +15,13 @@ public static class EffectExtensions
 
         var vp = new ViewPort(targetBitmap.Width, targetBitmap.Height);
         var srcBm = targetBitmap.Copy();
-        //Render(canvas, vp, null, srcBm);
-        throw new NotImplementedException();
 
         if (effect.EffectType == EffectType.BackEffect)
         {
             canvas.DrawBitmap(srcBm, 0, 0);
         }
+
+        throw new NotImplementedException();
     }
 
 }

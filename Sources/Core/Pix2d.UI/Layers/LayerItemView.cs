@@ -14,6 +14,9 @@ public class LayerItemView(LayerItemViewModel viewModel) : ComponentBase<LayerIt
 
     protected override object Build(LayerItemViewModel? vm)
     {
+        if (vm == null)
+            return new TextBlock().Text("No layer");
+
         vm.Invalidated += StateHasChanged;
 
         return new Border()
@@ -33,7 +36,7 @@ public class LayerItemView(LayerItemViewModel viewModel) : ComponentBase<LayerIt
                                 new Rectangle()
                                     .Width(100)
                                     .Height(100)
-                                    .Fill(() => new ImageBrush(vm.Preview.ToBitmap()))
+                                    .Fill(() => vm.Preview != null ? new ImageBrush(vm.Preview.ToBitmap()) : new SolidColorBrush(Colors.Transparent))
                             )
                             .OnPointerPressed(OnRightPointerPressed),
                         new Grid()
@@ -42,12 +45,12 @@ public class LayerItemView(LayerItemViewModel viewModel) : ComponentBase<LayerIt
                             .Width(32)
                             .HorizontalAlignment(HorizontalAlignment.Left)
                             .Children(
-                                new Button()
+                                new Button().Name("ToggleVisibilityButton")
                                     .Row(0)
                                     .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .FontSize(18)
                                     .OnClick(_ => UpdateState(vm.ToggleLayerVisibility))
-                                    .Foreground(() => vm.SourceNode.IsVisible ? Brushes.White : Brushes.LightGray)
+                                    .Foreground(() => vm.SourceNode.IsVisible ? Brushes.White : Brushes.Gray)
                                     .Content("\xe92a"),
                                 new Button().Name("LockTransparentPixelsButton")
                                     .Row(1)

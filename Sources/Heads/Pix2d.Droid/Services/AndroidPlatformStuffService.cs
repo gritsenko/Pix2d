@@ -24,7 +24,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
     private string? _appVersion;
 
     public PlatformType CurrentPlatform => PlatformType.Android;
-    public bool IsTextInputFocused => EditorApp.TopLevel.FocusManager?.GetFocusedElement() is TextBox;
+    public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;
 
     public AndroidPlatformStuffService(IServiceProvider serviceProvider)
     {
@@ -38,7 +38,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
             System.Diagnostics.Debug.WriteLine($"AndroidPlatformStuffService: FileOpened event received for {fileSource?.Title ?? "null"}");
             var projectService = _serviceProvider.GetRequiredService<IProjectService>();
 
-            if (projectService == null! || fileSource == null)
+            if (projectService == null || fileSource == null)
             {
                 System.Diagnostics.Debug.WriteLine("AndroidPlatformStuffService: projectService is null or fileSource is null.");
                 return;
@@ -104,11 +104,11 @@ public class AndroidPlatformStuffService : IPlatformStuffService
 
     private string CalculateAppVersionString()
     {
-        Assembly assembly = Assembly.GetEntryAssembly();
+        Assembly? assembly = Assembly.GetEntryAssembly();
 
         if (assembly == null)
         {
-            return "Unknown Version (N/A)s";
+            return "Unknown Version (N/A)";
         }
 
         string versionString;
@@ -138,7 +138,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
             }
         }
 
-        return $"{versionString} ({buildString})s";
+        return $"{versionString} ({buildString})";
     }
 
     public void ToggleTopmostWindow()
@@ -146,14 +146,18 @@ public class AndroidPlatformStuffService : IPlatformStuffService
         throw new NotImplementedException();
     }
 
-    public bool HasKeyboard => false;
+    public bool HasKeyboard => true;
     public bool CanShare => true;
     public async void Share(IStreamExporter exporter, double scale)
     {
         try
         {
             var tempFilename = "pix2d_share" + exporter.SupportedExtensions.First();
-            var sdCardPath = Path.Combine(Application.Context.ExternalCacheDir.AbsolutePath, "tmp");
+            var externalCacheDir = Application.Context.ExternalCacheDir?.AbsolutePath;
+            if (externalCacheDir == null)
+                throw new InvalidOperationException("External cache directory is not available");
+                
+            var sdCardPath = Path.Combine(externalCacheDir, "tmp");
             if (!Directory.Exists(sdCardPath))
             {
                 Directory.CreateDirectory(sdCardPath);

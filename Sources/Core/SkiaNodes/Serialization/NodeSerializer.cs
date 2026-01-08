@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Newtonsoft.Json;
 using SkiaSharp;
 
@@ -70,7 +70,7 @@ public class NodeSerializer : IDisposable
             ];
 
             var node = JsonConvert.DeserializeObject<T>(json, GetJsonSettings(converters));
-            return (T)node;
+            return node ?? throw new JsonSerializationException($"Failed to deserialize node of type {typeof(T).Name}");
         }
         catch (Exception ex)
         {
@@ -88,6 +88,6 @@ public class NodeSerializer : IDisposable
             //new NodeCollectionConverter()
         ];
         var node = JsonConvert.DeserializeObject(json, type, GetJsonSettings(converters));
-        return (SKNode)node;
+        return node as SKNode ?? throw new JsonSerializationException($"Failed to deserialize node of type {type.Name}");
     }
 }

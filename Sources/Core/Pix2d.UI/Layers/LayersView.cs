@@ -1,4 +1,4 @@
-﻿using Pix2d.Command;
+using Pix2d.Command;
 using Pix2d.Common.Behaviors;
 using Pix2d.Common.Extensions;
 using Pix2d.CommonNodes;
@@ -18,7 +18,6 @@ using Pix2d.Operations;
 using Pix2d.Plugins.Sprite.Operations.Layers;
 using Pix2d.Operations.Effects;
 using Pix2d.Plugins.Sprite.Operations.Effects;
-using Pix2d.Abstract.Commands;
 
 namespace Pix2d.UI.Layers;
 
@@ -52,12 +51,12 @@ public class LayersView : ComponentBase
                             return new TextBlock().Text("No layer");
 
                         return new LayerItemView(itemVm)
-                            {
-                                RightPointerPressed = () => ItemRightPointerPressed(itemVm),
-                                LeftPointerPressed = () => ItemClicked(itemVm)
-                            }
+                        {
+                            RightPointerPressed = () => ItemRightPointerPressed(itemVm),
+                            LeftPointerPressed = () => ItemClicked(itemVm)
+                        }
                             .AddBehavior(new ItemsListContextDragBehavior()
-                                { Orientation = Orientation.Vertical });
+                            { Orientation = Orientation.Vertical });
                     }),
                 new BackgroundSelectorView().Row(2)
             )
@@ -70,9 +69,7 @@ public class LayersView : ComponentBase
     [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private ICommandService CommandService { get; set; } = null!;
 
-    private EditCommands EditCommands => CommandService.GetCommandList<EditCommands>()!;
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
-    private ISpriteEditCommands SpriteEditCommands => CommandService.GetCommandList<ISpriteEditCommands>()!;
 
     private int SelectedIndex => ReverseIndex(AppState.SpriteEditorState.CurrentLayerIndex);
 
@@ -100,11 +97,11 @@ public class LayersView : ComponentBase
     private int ReverseIndex(int index) => Layers.Count - index - 1;
 
     private bool _reorderingStarted;
-    private ItemReorderInfo<LayerItemViewModel> _reorderInfo;
+    private ItemReorderInfo<LayerItemViewModel>? _reorderInfo;
 
     private class ItemReorderInfo<TItem>
     {
-        public TItem[] Items { get; set; }
+        public TItem[] Items { get; set; } = [];
 
         public int OldIndex { get; set; }
 
@@ -113,7 +110,7 @@ public class LayersView : ComponentBase
 
     private void Layers_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Remove)
+        if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
         {
             _reorderInfo = new ItemReorderInfo<LayerItemViewModel>()
             {
@@ -123,7 +120,7 @@ public class LayersView : ComponentBase
             _reorderingStarted = true;
         }
 
-        if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted)
+        if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted && _reorderInfo != null)
         {
             _reorderInfo.NewIndex = e.NewStartingIndex;
             OnLayersReordered(_reorderInfo);
@@ -138,7 +135,7 @@ public class LayersView : ComponentBase
         var oldIndex = ReverseIndex(reorderInfo.OldIndex);
         var newIndex = ReverseIndex(reorderInfo.NewIndex);
         Debug.WriteLine($"Reordered layers from {oldIndex} to {newIndex}");
-        _editor.ReorderLayers(oldIndex, newIndex);
+        _editor?.ReorderLayers(oldIndex, newIndex);
     }
 
     private void OnOperationInvoked(OperationInvokedMessage operation)
@@ -216,7 +213,7 @@ public class LayersView : ComponentBase
         }
     }
 
-    private SKBitmap PreviewProvider(LayerItemViewModel frameVm)
+    private SKBitmap? PreviewProvider(LayerItemViewModel frameVm)
     {
         if (_editor == null)
             return null;
@@ -234,17 +231,17 @@ public class LayersView : ComponentBase
 
     private void ItemClicked(LayerItemViewModel itemVm)
     {
-        var oldSelectedLayer = _editor.SelectedLayer;
+        var oldSelectedLayer = _editor?.SelectedLayer;
         if (oldSelectedLayer == itemVm.SourceNode)
         {
             ViewCommands.ToggleLayerOptionsCommand.Execute();
         }
 
         _editor?.SelectLayer(itemVm.SourceNode);
-        
+
         if (oldSelectedLayer != null && oldSelectedLayer != itemVm.SourceNode)
         {
-             Layers.FirstOrDefault(x => x.SourceNode == oldSelectedLayer)?.Invalidate();
+            Layers.FirstOrDefault(x => x.SourceNode == oldSelectedLayer)?.Invalidate();
         }
         itemVm.Invalidate();
 
@@ -261,9 +258,9 @@ public class LayersView : ComponentBase
 public class LayerItemViewModel
 {
     private readonly SpriteEditor _editor;
-    private SKBitmap _preview;
+    private SKBitmap? _preview;
 
-    public SKBitmap Preview
+    public SKBitmap? Preview
     {
         get
         {
@@ -279,7 +276,7 @@ public class LayerItemViewModel
         SourceNode = sourceNode;
     }
 
-    public Func<LayerItemViewModel, SKBitmap> PreviewProvider { get; set; }
+    public Func<LayerItemViewModel, SKBitmap?>? PreviewProvider { get; set; }
 
     public Pix2dSprite.Layer SourceNode { get; set; }
     public bool IsSelected => _editor?.SelectedLayer == SourceNode;

@@ -1,4 +1,4 @@
-﻿using Avalonia.Input;
+using Avalonia.Input;
 using Pix2d.Common.Extensions;
 using Pix2d.Messages;
 using Pix2d.State;
@@ -154,7 +154,7 @@ public class ColorPickerView : LocalizedComponentBase
     private float _hsvSPart;
     private float _hsvVPart;
 
-    private string _hexValue;
+    private string _hexValue = null!;
 
     // Because of double-way binding, when changing one of the HSV values may change others due to
     // color value conversion to RGB and rounding. To prevent such unexpected behaviour we add this
@@ -376,7 +376,7 @@ public class ColorPickerView : LocalizedComponentBase
             RecentColors.Add(c);
     }
 
-    private void LoadColors(string paletteName = default)
+    private void LoadColors(string paletteName = default!)
     {
         if (paletteName == default || paletteName == nameof(PaletteService.CustomPalette))
             LoadPalette(CustomColors, PaletteService.CustomPalette);

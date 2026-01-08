@@ -7,7 +7,9 @@ public class RectangleShapeBuilder : SimpleShapeBuilder
 {
     protected override void DrawShape(SKPoint p0, SKPoint p1)
     {
-        var dln = ((DrawingLayerNode) DrawingLayer);
+        var dln = DrawingLayer as DrawingLayerNode;
+        if (dln == null)
+            return;
 
         if (dln.AspectSnapper?.IsAspectLocked == true)
         {

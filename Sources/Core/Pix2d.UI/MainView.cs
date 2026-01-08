@@ -74,8 +74,9 @@ public class MainView : LocalizedComponentBase
         new Grid().Name("RootGrid").Children(
             new Border()
                 .Name("Pix2dCanvasContainer")
-                .OnPointerPressed((e) => { 
-                    if (e.Source is StyledElement element) Messenger.Send(new WindowClickedMessage(element)); 
+                .OnPointerPressed((e) =>
+                {
+                    if (e.Source is StyledElement element) Messenger.Send(new WindowClickedMessage(element));
                 }, RoutingStrategies.Tunnel),
 
             new LayoutTransformControl()
@@ -156,7 +157,6 @@ public class MainView : LocalizedComponentBase
                                 .IsVisible(() => UiState.ShowLayers)
                                 .HorizontalAlignment(HorizontalAlignment.Right),
 
-                            //new Border().Col(1).Row(2).Background(Colors.BurlyWood.ToBrush()),
                             new Canvas().Col(1).Row(2).ColSpan(2).Name("PopupContainer")
                                 .Ref(out _panelsContainer)
                                 .Children(new Control[]
@@ -238,11 +238,9 @@ public class MainView : LocalizedComponentBase
                                         .HorizontalAlignment(HorizontalAlignment.Center)
                                 ),
 
-                            new DialogContainer()
-                                .Col(0).ColSpan(3)
-                                .Row(0).RowSpan(5)
                         ])
-                )
+                ),
+                new DialogContainer()
             );
 
     private Canvas _panelsContainer = null!;
@@ -305,7 +303,9 @@ public class MainView : LocalizedComponentBase
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
-        var hasFiles = e.Data.GetDataFormats().Any(x => x == "Files");
+#pragma warning disable CS0618
+        var hasFiles = e.Data?.GetDataFormats().Any(x => x == "Files") ?? false;
+#pragma warning restore CS0618
         if (hasFiles)
             e.DragEffects = DragDropEffects.Copy;
     }
@@ -316,7 +316,9 @@ public class MainView : LocalizedComponentBase
         if (e.Handled)
             return;
 
-        var data = e.Data.Get("Files");
+#pragma warning disable CS0618
+        var data = e.Data?.Get("Files");
+#pragma warning restore CS0618
 
         if (data is not IEnumerable<IStorageItem> droppedFiles)
             return;

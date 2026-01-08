@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Newtonsoft.Json;
 using SkiaSharp;
 
@@ -8,14 +8,14 @@ public partial class SKBitmapConverter : JsonConverter
 {
     public IDataStorage? DataStorage { get; set; }
 
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
             reader.Read();
             reader.Read();
             reader.Read();
             var id = reader.ReadAsString();
             reader.Read();
-            return DataStorage.GetEntry(id);
+            return id != null && DataStorage != null ? DataStorage.GetEntry(id) : null;
         }
 
     public override bool CanConvert(Type objectType)
@@ -23,17 +23,15 @@ public partial class SKBitmapConverter : JsonConverter
             return objectType == typeof(SKBitmap) || objectType.IsSubclassOf(typeof(SKBitmap));
         }
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
-            //            writer.WriteStartObject();
-
-            var bmdef = new SKBitmapRef((SKBitmap)value, DataStorage);
-            var th = serializer.TypeNameHandling;
-            serializer.TypeNameHandling = TypeNameHandling.All;
-            serializer.Serialize(writer, bmdef, typeof(SKBitmapRef));
-            serializer.TypeNameHandling = th;
-
-
-            //            writer.WriteEndObject();
+            if (value is SKBitmap bitmap)
+            {
+                var bmdef = new SKBitmapRef(bitmap, DataStorage);
+                var th = serializer.TypeNameHandling;
+                serializer.TypeNameHandling = TypeNameHandling.All;
+                serializer.Serialize(writer, bmdef, typeof(SKBitmapRef));
+                serializer.TypeNameHandling = th;
+            }
         }
 }

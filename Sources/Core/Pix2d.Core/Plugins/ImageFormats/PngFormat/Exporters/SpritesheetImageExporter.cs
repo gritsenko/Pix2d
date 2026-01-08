@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Exporters;
@@ -31,12 +31,14 @@ public class SpritesheetImageExporter(IFileService fileService) : SKNodeExporter
         {
             canvas.Clear();
 
-            var x = 0;
-            var y = 0;
-            var paint = new SKPaint()
-            {
-                FilterQuality = SKFilterQuality.None
-            };
+             var x = 0;
+             var y = 0;
+#pragma warning disable CS0618
+             var paint = new SKPaint()
+             {
+                 FilterQuality = SKFilterQuality.None
+             };
+#pragma warning restore CS0618
 
             foreach (var frame in framesArr)
             {

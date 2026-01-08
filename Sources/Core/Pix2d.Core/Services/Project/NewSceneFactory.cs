@@ -1,4 +1,3 @@
-﻿#nullable enable
 using System.Collections.Immutable;
 using Pix2d.Abstract.Import;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -13,11 +12,11 @@ internal class NewSceneFactory(Action<ImportData> importAction) : IImportTarget
 {
     public void Import(ImportData data) => importAction.Invoke(data);
 
-    public static Task<SKNode> GetNewSceneFromFiles(IReadOnlyList<IFileContentSource> files, IImportService importService) =>
+    public static async Task<SKNode> GetNewSceneFromFiles(IReadOnlyList<IFileContentSource> files, IImportService importService) =>
         files.First().Extension switch
         {
-            ".pix2d" => ProjectUnpacker.LoadProjectScene(files.First()),
-            _ => ImportToNewScene(files, importService)
+            ".pix2d" => (await ProjectUnpacker.LoadProjectScene(files.First())) ?? throw new ArgumentException("Failed to load project scene"),
+            _ => await ImportToNewScene(files, importService)
         };
 
     private static async Task<SKNode> ImportToNewScene(IEnumerable<IFileContentSource> files, IImportService importService)
@@ -40,9 +39,11 @@ internal class NewSceneFactory(Action<ImportData> importAction) : IImportTarget
                     layer.DeleteFrame(0);
 
                 for (var frameIndex = 0; frameIndex < layerPropertiesInfo.Frames.Count; frameIndex++)
-                    layer.InsertFrameFromBitmap(
-                        frameIndex,
-                        layerPropertiesInfo.Frames[frameIndex].BitmapProviderFunc());
+                {
+                    var bitmap = layerPropertiesInfo.Frames[frameIndex].BitmapProviderFunc?.Invoke();
+                    if (bitmap != null)
+                        layer.InsertFrameFromBitmap(frameIndex, bitmap);
+                }
             }
         });
 

@@ -1,4 +1,4 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 
 namespace SkiaNodes.Serialization;
 
@@ -11,9 +11,9 @@ public class SimpleDictionaryStorage(IDictionary<string, SKBitmap>? data = null)
         _data[id] = data;
     }
 
-    public SKBitmap GetEntry(string id)
+    public SKBitmap? GetEntry(string id)
     {
-        return _data.TryGetValue(id, out SKBitmap data) ? data : null;
+        return _data.TryGetValue(id, out var data) ? data : null;
     }
 
     public IDictionary<string, SKBitmap> GetDataEntries()

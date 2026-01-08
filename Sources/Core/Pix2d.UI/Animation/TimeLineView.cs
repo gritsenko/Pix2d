@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls.Shapes;
+using Avalonia.Controls.Shapes;
 using Avalonia.Media.Transformation;
 using Avalonia.Styling;
 using Pix2d.Common.Behaviors;
@@ -13,7 +13,6 @@ using System.Diagnostics;
 using Pix2d.Abstract.Operations;
 using Pix2d.Plugins.Sprite.Operations;
 using Pix2d.Primitives.SpriteEditor;
-using Pix2d.UI.Shared;
 using Mvvm;
 using Pix2d.Abstract.Edit;
 using Pix2d.CommonNodes;
@@ -60,15 +59,16 @@ public class TimeLineView : LocalizedComponentBase
                         _editor?.SetFrameIndex(v);
                     })
                     .ItemTemplate<AnimationFrameViewModel>(itemVm =>
-                        new Border()
-                            .Background(StaticResources.Brushes.CheckerTilesBrush)
-                            .Child(
-                                new Rectangle()
-                                    .Width(52)
-                                    .Height(52)
-                                    .Fill(itemVm?.Preview, bindingMode: BindingMode.OneWay, bindingSource:itemVm,
-                                        converter: StaticResources.Converters.SKBitmapToIBrushConverter)
-                            ).AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })
+                        new FuncComponent<AnimationFrameViewModel>(itemVm, vm =>
+                            new Border()
+                                .Background(StaticResources.Brushes.CheckerTilesBrush)
+                                .Child(
+                                    new Rectangle()
+                                        .Width(52)
+                                        .Height(52)
+                                        .Fill(() => itemVm?.Preview?.ToBrush() ?? StaticResources.Brushes.CheckerTilesBrush)
+                                ))
+                            .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })
                     ) //ItemTemplate
             ]);
 
@@ -121,7 +121,7 @@ public class TimeLineView : LocalizedComponentBase
 
     private void OnFrameChanged(object? sender, SpriteFrameChangedEvenArgs e)
     {
-        AppState.SpriteEditorState.CurrentFrameIndex = _editor.CurrentFrameIndex;
+        AppState.SpriteEditorState.CurrentFrameIndex = _editor?.CurrentFrameIndex ?? 0;
         StateHasChanged();
     }
 
@@ -152,10 +152,10 @@ public class TimeLineView : LocalizedComponentBase
         }
     }
 
-    private ItemReorderInfo<AnimationFrameViewModel> _reorderInfo;
+    private ItemReorderInfo<AnimationFrameViewModel>? _reorderInfo;
     private void Frames_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Remove)
+        if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
         {
             _reorderInfo = new ItemReorderInfo<AnimationFrameViewModel>()
             {
@@ -165,7 +165,7 @@ public class TimeLineView : LocalizedComponentBase
             _reorderingStarted = true;
         }
 
-        if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted)
+        if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted && _reorderInfo != null)
         {
             _reorderInfo.NewIndex = e.NewStartingIndex;
             OnFramesReordered(_reorderInfo);
@@ -177,13 +177,13 @@ public class TimeLineView : LocalizedComponentBase
     private void OnFramesReordered(ItemReorderInfo<AnimationFrameViewModel> reorderInfo)
     {
         Debug.WriteLine($"Reordered frames from {reorderInfo.OldIndex} to {reorderInfo.NewIndex}");
-        _editor.ReorderFrames(reorderInfo.OldIndex, reorderInfo.NewIndex);
+        _editor?.ReorderFrames(reorderInfo.OldIndex, reorderInfo.NewIndex);
     }
 
-    private SKBitmap PreviewProvider(AnimationFrameViewModel frameVm)
+    private SKBitmap? PreviewProvider(AnimationFrameViewModel frameVm)
     {
         var index = Frames.IndexOf(frameVm);
-        if (index < 0)
+        if (index < 0 || _editor == null)
         {
             return null;
         }
@@ -200,7 +200,7 @@ public class TimeLineView : LocalizedComponentBase
 
     private class ItemReorderInfo<TItem>
     {
-        public TItem[] Items { get; set; }
+        public TItem[] Items { get; set; } = [];
 
         public int OldIndex { get; set; }
 
@@ -210,7 +210,7 @@ public class TimeLineView : LocalizedComponentBase
 
 public class AnimationFrameViewModel : ObservableObject
 {
-    private SKBitmap _preview;
+    private SKBitmap? _preview;
 
     public List<LayerFrameMeta> Layers
     {
@@ -218,10 +218,10 @@ public class AnimationFrameViewModel : ObservableObject
         set => Set(value);
     }
 
-    public Func<AnimationFrameViewModel, SKBitmap> PreviewProvider { get; set; }
-    public Action<AnimationFrameViewModel> UpdatePropertiesAction { get; set; }
+    public Func<AnimationFrameViewModel, SKBitmap?>? PreviewProvider { get; set; }
+    public Action<AnimationFrameViewModel>? UpdatePropertiesAction { get; set; }
 
-    public SKBitmap Preview
+    public SKBitmap? Preview
     {
         get
         {

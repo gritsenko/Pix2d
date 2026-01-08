@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Diagnostics;
 using Pix2d.Abstract.Operations;
 using Pix2d.Messages;
@@ -16,13 +16,13 @@ public class OperationService : IOperationService
 
     private readonly LimitedSizeStack<IEditOperation> _undoOperations = new(MaxSteps) { OnRemoveItem = OnRemoveItemFromHistory };
 
-    private IEditOperation _currentOperation;
+    private IEditOperation? _currentOperation;
 
     public bool CanUndo => _undoOperations.Any();
     public int UndoOperationsCount => _undoOperations.Count;
     public bool CanRedo => _redoOperations.Any();
 
-    public event EventHandler<OperationInvokeEventArgs> OperationInvoked;
+    public event EventHandler<OperationInvokeEventArgs>? OperationInvoked;
 
     public OperationService(AppState appState)
     {
@@ -35,14 +35,14 @@ public class OperationService : IOperationService
         Clear();
     }
 
-    public void PushOperations(params IEditOperation[] operations)
+    public void PushOperations(params IEditOperation[]? operations)
     {
-        var ops = operations.Where(x => x != null).ToArray();
+        var ops = operations?.Where(x => x != null).ToArray();
 
-        if (ops.Length == 0 || IsAlreadyPushed(ops))
+        if (ops == null || ops.Length == 0 || IsAlreadyPushed(ops))
             return;
 
-        var operation = ops.Length > 1 ? new BulkEditOperation(operations) : operations[0];
+        var operation = ops.Length > 1 ? new BulkEditOperation(ops!) : ops[0]!;
 
         _undoOperations.Push(operation);
 
@@ -50,16 +50,17 @@ public class OperationService : IOperationService
 
 #if DEBUG
         System.Diagnostics.StackTrace t = new System.Diagnostics.StackTrace();
-        var path = "\n" + string.Join(" \\ ", t.GetFrames().Take(3).Select(x => x.GetMethod().DeclaringType.Name + "." + x.GetMethod().Name).Reverse());
+        var path = "\n" + string.Join(" \\ ", t.GetFrames().Take(3).Select(x => x.GetMethod()!.DeclaringType!.Name + "." + x.GetMethod()!.Name).Reverse());
         Debug.WriteLine("Operation (" + _undoOperations.Count + ") pushed: " + operation.GetType() + " from:" + path);
 #endif
 
         OnOperationInvoked(new OperationInvokeEventArgs(OperationEventType.Perform, operation));
     }
 
-    public void InvokeAndPushOperations(params IEditOperation[] operations)
+    public void InvokeAndPushOperations(params IEditOperation[]? operations)
     {
-        foreach (var editOperation in operations) editOperation.OnPerform();
+        if (operations == null) return;
+        foreach (var editOperation in operations) editOperation?.OnPerform();
 
         PushOperations(operations);
     }
@@ -71,7 +72,7 @@ public class OperationService : IOperationService
     }
 
     //dispose items before remove from history
-    private static void OnRemoveItemFromHistory(IEditOperation operation)
+    private static void OnRemoveItemFromHistory(IEditOperation? operation)
     {
         if (operation is IDisposable dop)
             dop.Dispose();
@@ -80,7 +81,7 @@ public class OperationService : IOperationService
     //todo: optimize in 2020
     internal bool IsAlreadyPushed(IEditOperation[] ops)
     {
-        bool EqualOrContains(IEditOperation op1, IEditOperation op2)
+        bool EqualOrContains(IEditOperation? op1, IEditOperation op2)
         {
             return op1 == op2 || op1 is BulkEditOperation bulkOp && bulkOp.HasOperation(op2);
         }
@@ -133,7 +134,7 @@ public class OperationService : IOperationService
         if (_redoOperations.Count == 0) return;
 
         _currentOperation = _redoOperations.Pop();
-        _currentOperation.OnPerform();
+        _currentOperation!.OnPerform();
 
         _undoOperations.Push(_currentOperation);
 
@@ -161,7 +162,7 @@ public class OperationService : IOperationService
     {
         private readonly LinkedList<T> _list = [];
 
-        public Action<T> OnRemoveItem { get; set; }
+        public Action<T>? OnRemoveItem { get; set; }
 
         public void Push(T item)
         {
@@ -184,7 +185,7 @@ public class OperationService : IOperationService
             if (_list.First == null)
                 throw new Exception("No items in stack!");
 
-            var item = _list.First.Value;
+            var item = _list.First.Value!;
             _list.RemoveFirst();
             return item;
         }

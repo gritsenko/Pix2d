@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System.Collections;
 using System.Diagnostics;
 using Avalonia.Input;
@@ -18,7 +18,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
     private int _draggedIndex;
     private int _targetIndex;
-    private Control _draggedContainer = null!;
+    private Control? _draggedContainer;
 
     public static readonly StyledProperty<Orientation> OrientationProperty =
         AvaloniaProperty.Register<ItemsListContextDragBehavior, Orientation>(nameof(Orientation));
@@ -99,12 +99,14 @@ public class ItemsListContextDragBehavior : Behavior<Control>
     private void StartDrag(Point pos)
     {
         _dragStartPoint = pos;
-        _draggedContainer = AssociatedObject.Parent as Control;
-        _oldItemZIndex = _draggedContainer!.ZIndex;
+        _draggedContainer = AssociatedObject?.Parent as Control;
+        if (_draggedContainer == null) return;
+        _oldItemZIndex = _draggedContainer.ZIndex;
         _draggedContainer.ZIndex = 100;
         AddTransforms();
 
-        ((TranslateTransform)_draggedContainer.RenderTransform!).Y -= 10;
+        if (_draggedContainer.RenderTransform is TranslateTransform renderTransform)
+            renderTransform.Y -= 10;
 
         _draggedContainer.Opacity = 0.7;
         _readyToDrag = true;
@@ -136,7 +138,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
             _readyToDrag = false;
             _itemsControl = null;
-            _draggedContainer = null!;
+            _draggedContainer = null;
         }
     }
 
@@ -216,10 +218,12 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
     private void DragItemX(double delta)
     {
-        _draggedIndex = _itemsControl!.IndexFromContainer(_draggedContainer!);
+        if (_itemsControl == null || _draggedContainer == null) return;
+        _draggedIndex = _itemsControl.IndexFromContainer(_draggedContainer);
         _targetIndex = -1;
 
-        ((TranslateTransform)_draggedContainer.RenderTransform!).X = delta;
+        if (_draggedContainer.RenderTransform is TranslateTransform draggedTransform)
+            draggedTransform.X = delta;
 
         var draggedBounds = _draggedContainer.Bounds;
         var draggedStart = draggedBounds.X;
@@ -237,23 +241,26 @@ public class ItemsListContextDragBehavior : Behavior<Control>
             var targetMid = targetBounds.X + targetBounds.Width / 2;
             var targetIndex = _itemsControl.IndexFromContainer(targetContainer);
 
-            if (targetStart > draggedStart && draggedDeltaEnd >= targetMid)
+            if (targetContainer.RenderTransform is TranslateTransform targetTransform)
             {
-                ((TranslateTransform)targetContainer.RenderTransform).X = -draggedBounds.Width;
+                if (targetStart > draggedStart && draggedDeltaEnd >= targetMid)
+                {
+                    targetTransform.X = -draggedBounds.Width;
 
-                _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex > _targetIndex ? targetIndex : _targetIndex;
-                Debug.WriteLine($"Moved Right {_draggedIndex} -> {_targetIndex}");
-            }
-            else if (targetStart < draggedStart && draggedDeltaStart <= targetMid)
-            {
-                ((TranslateTransform)targetContainer.RenderTransform).X = draggedBounds.Width;
+                    _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex > _targetIndex ? targetIndex : _targetIndex;
+                    Debug.WriteLine($"Moved Right {_draggedIndex} -> {_targetIndex}");
+                }
+                else if (targetStart < draggedStart && draggedDeltaStart <= targetMid)
+                {
+                    targetTransform.X = draggedBounds.Width;
 
-                _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex < _targetIndex ? targetIndex : _targetIndex;
-                Debug.WriteLine($"Moved Left {_draggedIndex} -> {_targetIndex}");
-            }
-            else
-            {
-                ((TranslateTransform)targetContainer.RenderTransform).X = 0;
+                    _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex < _targetIndex ? targetIndex : _targetIndex;
+                    Debug.WriteLine($"Moved Left {_draggedIndex} -> {_targetIndex}");
+                }
+                else
+                {
+                    targetTransform.X = 0;
+                }
             }
         }
 
@@ -262,10 +269,12 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
     private void DragItemY(double delta)
     {
+        if (_itemsControl == null || _draggedContainer == null) return;
         _draggedIndex = _itemsControl.IndexFromContainer(_draggedContainer);
         _targetIndex = -1;
 
-        ((TranslateTransform)_draggedContainer.RenderTransform).Y = delta - 10;
+        if (_draggedContainer.RenderTransform is TranslateTransform draggedTransform)
+            draggedTransform.Y = delta - 10;
 
         var draggedBounds = _draggedContainer.Bounds;
         var draggedStart = draggedBounds.Y;
@@ -283,23 +292,26 @@ public class ItemsListContextDragBehavior : Behavior<Control>
             var targetMid = targetBounds.Y + targetBounds.Height / 2;
             var targetIndex = _itemsControl.IndexFromContainer(targetContainer);
 
-            if (targetStart > draggedStart && draggedDeltaEnd >= targetMid)
+            if (targetContainer.RenderTransform is TranslateTransform targetTransform)
             {
-                ((TranslateTransform)targetContainer.RenderTransform).Y = -draggedBounds.Height;
+                if (targetStart > draggedStart && draggedDeltaEnd >= targetMid)
+                {
+                    targetTransform.Y = -draggedBounds.Height;
 
-                _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex > _targetIndex ? targetIndex : _targetIndex;
-                Debug.WriteLine($"Moved Right {_draggedIndex} -> {_targetIndex}");
-            }
-            else if (targetStart < draggedStart && draggedDeltaStart <= targetMid)
-            {
-                ((TranslateTransform)targetContainer.RenderTransform).Y = draggedBounds.Height;
+                    _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex > _targetIndex ? targetIndex : _targetIndex;
+                    Debug.WriteLine($"Moved Right {_draggedIndex} -> {_targetIndex}");
+                }
+                else if (targetStart < draggedStart && draggedDeltaStart <= targetMid)
+                {
+                    targetTransform.Y = draggedBounds.Height;
 
-                _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex < _targetIndex ? targetIndex : _targetIndex;
-                Debug.WriteLine($"Moved Left {_draggedIndex} -> {_targetIndex}");
-            }
-            else
-            {
-                ((TranslateTransform)targetContainer.RenderTransform).Y = 0;
+                    _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex < _targetIndex ? targetIndex : _targetIndex;
+                    Debug.WriteLine($"Moved Left {_draggedIndex} -> {_targetIndex}");
+                }
+                else
+                {
+                    targetTransform.Y = 0;
+                }
             }
         }
 

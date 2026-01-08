@@ -1,4 +1,4 @@
-﻿namespace SkiaNodes;
+namespace SkiaNodes;
 
 public class NodeDesignerState
 {
@@ -16,9 +16,9 @@ public class NodeDesignerState
 public class NodeExportSettings
 {
     public NodeExportMode ExportMode { get; set; }
-    public string TextureKey { get; set; }
-    public string ClassName { get; set; }
-    public string OnClickHandlerName { get; set; }
+    public string TextureKey { get; set; } = string.Empty;
+    public string ClassName { get; set; } = string.Empty;
+    public string OnClickHandlerName { get; set; } = string.Empty;
     public float ExportScale { get; set; } = 1;
     public NodeExportFormat ExportFormat { get; set; } = NodeExportFormat.Png;
 }

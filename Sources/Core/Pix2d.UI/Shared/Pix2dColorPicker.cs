@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls.Shapes;
+using Avalonia.Controls.Shapes;
 using Pix2d.Common.Extensions;
 using Pix2d.UI.Resources;
 using SkiaSharp;
@@ -133,10 +133,10 @@ public class Pix2dColorPicker : ViewBase
 
 
 
-    private Control _colorSquare;
-    private Control _hueSlider;
-    private Image _colorThumb;
-    private Image _hueThumb;
+    private Control _colorSquare = null!;
+    private Control _hueSlider = null!;
+    private Image _colorThumb = null!;
+    private Image _hueThumb = null!;
 
     private Size SquareSize => _colorSquare.Bounds.Size;
 
@@ -197,7 +197,7 @@ public class Pix2dColorPicker : ViewBase
 
         var y = _hue * _tickHeight;
         if (!double.IsNaN(y))
-            ((TranslateTransform)_hueThumb.RenderTransform).Y = y;
+            ((TranslateTransform)_hueThumb.RenderTransform!).Y = y;
     }
 
     private void UpdateColor(Point point)
@@ -217,17 +217,17 @@ public class Pix2dColorPicker : ViewBase
 
     private void UpdateThumb()
     {
-        if (!_isInitialized) 
+        if (!_isInitialized)
             return;
 
         var x = _sat * SquareSize.Width;
         var y = (1 - _val) * SquareSize.Height;
 
         if (!double.IsNaN(x))
-            ((TranslateTransform)_colorThumb.RenderTransform).X = x;
+            ((TranslateTransform)_colorThumb.RenderTransform!).X = x;
 
         if (!double.IsNaN(y))
-            ((TranslateTransform)_colorThumb.RenderTransform).Y = y;
+            ((TranslateTransform)_colorThumb.RenderTransform!).Y = y;
 
         //this.HueSlider.Hue = _hue;
     }

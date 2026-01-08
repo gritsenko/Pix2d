@@ -1,4 +1,3 @@
-﻿using Avalonia.Controls.Shapes;
 using Pix2d.Common.Extensions;
 using Pix2d.UI.Resources;
 using SkiaSharp;
@@ -10,7 +9,7 @@ public class BrushItemView : ComponentBase
 
     protected override object Build() =>
         new Border()
-            .Background(() => Preview.ToBrush().Stretch(Stretch.None))
+            .Background(() => Preview?.ToBrush()?.Stretch(Stretch.None) ?? StaticResources.Brushes.CheckerTilesBrush)
             .CornerRadius(StaticResources.Measures.ButtonCornerRadius)
             .Child(
                 new TextBlock()
@@ -24,7 +23,7 @@ public class BrushItemView : ComponentBase
             );
 
 
-    private Primitives.Drawing.BrushSettings _preset;
+    private Primitives.Drawing.BrushSettings _preset = null!;
     private bool _showSizeText;
 
     public Primitives.Drawing.BrushSettings Preset
@@ -37,7 +36,7 @@ public class BrushItemView : ComponentBase
         }
     }
 
-    public SKBitmap Preview => Preset?.Brush?.GetPreviewBitmap(Preset.Scale) ?? null;
+    public SKBitmap? Preview => Preset?.Brush?.GetPreviewBitmap(Preset.Scale);
 
     public bool ShowSizeText
     {

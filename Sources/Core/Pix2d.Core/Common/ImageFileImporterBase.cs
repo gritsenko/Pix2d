@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Platform.FileSystem;
+using Pix2d.Abstract.Platform.FileSystem;
 using SkiaSharp;
 using SkiaNodes.Extensions;
 using Pix2d.Abstract.Import;
@@ -15,7 +15,7 @@ public class ImageFileImporterBase : IImporter
         foreach (var file in files)
         {
             await using var stream = await file.OpenRead();
-            var bm = stream.ToSKBitmap();
+            var bm = stream.ToSKBitmap()!;
             frames.Add(bm);
             w = Math.Max(w, bm.Width);
             h = Math.Max(h, bm.Height);

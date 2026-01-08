@@ -25,7 +25,7 @@ public class PreloadedProject(IFileContentSource file)
 
     public IFileContentSource File => file;
 
-    public Task<SKNode> LoadAsync()
+    public Task<SKNode?> LoadAsync()
     {
         return ProjectUnpacker.LoadProjectScene(file);
     }

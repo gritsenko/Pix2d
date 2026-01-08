@@ -1,5 +1,6 @@
 ﻿using Avalonia.Controls.Shapes;
 using Avalonia.Styling;
+using Pix2d.Abstract.Tools;
 using Pix2d.Command;
 using Pix2d.Common.Extensions;
 using Pix2d.Primitives;
@@ -29,6 +30,7 @@ public class ToolBarView : ComponentBase
             .Width(44)
             .Height(44)
             .Foreground(StaticResources.Brushes.ForegroundBrush)
+            .Background(Brushes.Transparent) //to intrecept poiner events
             .Padding(new Thickness(0)),
 
         new Style<Shape>(s => s.Class("toolbar-button").Descendant().Is<Shape>())
@@ -129,7 +131,6 @@ public class ToolBarView : ComponentBase
 
 
     [Inject] private AppState AppState { get; set; } = null!;
-    [Inject] private IMessenger Messenger { get; set; } = null!;
     [Inject] private ICommandService CommandService { get; set; } = null!;
 
     private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
@@ -143,12 +144,16 @@ public class ToolBarView : ComponentBase
 
     protected override void OnAfterInitialized()
     {
-        //Messenger.Register<EditContextChangedMessage>(this, msg => UpdateToolsFromCurrentContext());
-        AppState.ToolsState.WatchFor(x=>x.CurrentToolKey, StateHasChanged);
+        AppState.ToolsState.WatchFor(x=>x.CurrentToolKey, OnToolChanged);
         AppState.CurrentProject.WatchFor(x => x.CurrentContextType, OnEditContextChanged);
         AppState.SpriteEditorState.WatchFor(x => x.CurrentColor, StateHasChanged);
         AppState.SpriteEditorState.WatchFor(x => x.CurrentBrushSettings, StateHasChanged);
         RebuildTools();
+    }
+
+    private void OnToolChanged()
+    {
+        StateHasChanged();
     }
 
     private void OnEditContextChanged()

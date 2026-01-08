@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using SkiaNodes.Extensions;
 using SkiaNodes.TreeObserver;
 using SkiaSharp;
@@ -25,8 +25,8 @@ public partial class SKNode
     private Guid _id;
 
 
-    public event EventHandler NodeInvalidated;
-    public event EventHandler SizeChanged;
+    public event EventHandler? NodeInvalidated;
+    public event EventHandler? SizeChanged;
 
     public string Name { get; set; } = "New node";
 
@@ -271,8 +271,8 @@ public partial class SKNode
 
         using var paint = new SKPaint();
         paint.Color = BBoxColor;
-        paint.TextSize = 14;
-        canvas.DrawText($"{this.Name}[{this.GetType().Name}]", 10 * GetNestingLevel(), 20 + 20 * Index, paint);
+        using var font = new SKFont();
+        canvas.DrawText($"{this.Name}[{this.GetType().Name}]", 10 * GetNestingLevel(), 20 + 20 * Index, SKTextAlign.Left, font, paint);
     }
 
     public virtual void DrawBoundingBox(SKCanvas canvas, ViewPort vp, float thickness, SKColor color)

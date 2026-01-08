@@ -22,7 +22,7 @@ public class ImageGenerateSettingsView : LocalizedComponentBase
                     .Content(L("Generate"))
             );
 
-    public string Text { get; set; }
+    public required string Text { get; set; }
 
 
     private async void OnApplyButtonClicked()

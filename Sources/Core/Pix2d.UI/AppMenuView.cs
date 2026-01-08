@@ -1,10 +1,9 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Avalonia.Styling;
 using Mvvm;
 using Pix2d.Primitives;
 using Pix2d.UI.Resources;
-using Pix2d.UI.Shared;
 
 namespace Pix2d.UI;
 
@@ -12,7 +11,7 @@ public class AppMenuView : LocalizedComponentBase
 {
     protected override StyleGroup? BuildStyles() =>
     [
-        new Style<MenuItem>(s => s.OfType<MenuItem>())
+        new Style<MenuItem>()
         {
             Setters =
             {
@@ -34,7 +33,7 @@ public class AppMenuView : LocalizedComponentBase
                         new TextBlock()
                             .Col(1)
                             .IsVisible(()=>!string.IsNullOrWhiteSpace(item.Shortcut))
-                            .Text(() => item.Shortcut)
+                            .Text(() => item.Shortcut ?? "")
                             .TextAlignment(TextAlignment.Right)
                             .FontSize(14)
                             .Foreground(Colors.LightGray.ToBrush())
@@ -96,7 +95,7 @@ public class AppMenuView : LocalizedComponentBase
             if (pix2dCommand.Groups.Length < 2)
                 continue;
 
-            var lastGroup = pix2dCommand.Groups.LastOrDefault();
+            var lastGroup = pix2dCommand.Groups.Last();
             var title = L(lastGroup)();
             var commandItem = new AppMenuItemViewModel(lastGroup, title, pix2dCommand);
 

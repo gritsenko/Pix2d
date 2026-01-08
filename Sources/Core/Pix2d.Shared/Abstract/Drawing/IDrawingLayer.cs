@@ -43,7 +43,7 @@ public interface IDrawingLayer
     SKPointI GetMirroredPoint(SKPointI p, SKPointI brushOffset = default, int brushSize = default);
     bool ShowBrushPreview { get; set; }
     SKSize SelectionSize { get; }
-    IDrawingTarget DrawingTarget { get; }
+    IDrawingTarget? DrawingTarget { get; }
 
     SKNode GetSelectionLayer();
 

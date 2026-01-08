@@ -11,7 +11,7 @@ public class SquareSolidBrush : BasePixelBrush
         return Preview;
     }
 
-    public override SKBitmap GetBrushBitmap(SKColor color, float scale)
+    public override SKBitmap? GetBrushBitmap(SKColor color, float scale)
     {
         var bm = base.GetBrushBitmap(color, scale);
         if (bm != null) return _brushBitmap;

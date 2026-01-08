@@ -1,4 +1,4 @@
-﻿using Pix2d.CommonNodes;
+using Pix2d.CommonNodes;
 using Pix2d.Operations;
 using SkiaNodes.Extensions;
 
@@ -8,15 +8,15 @@ public abstract class EditSpriteOperationBase : TransformOperation
 {
     public class FrameNodeData
     {
-        public byte[] Data;
+        public byte[] Data = null!;
     }
     public class LayerData
     {
-        public FrameNodeData[] FrameNodes;
+        public FrameNodeData[] FrameNodes = null!;
     }
 
     protected readonly Pix2dSprite _targetSprite;
-    protected LayerData[] _unmodifidSpriteData;
+    protected LayerData[] _unmodifidSpriteData = null!;
 
     public EditSpriteOperationBase(Pix2dSprite targetSprite)
     {
@@ -54,7 +54,7 @@ public abstract class EditSpriteOperationBase : TransformOperation
             {
                 foreach (var frameNode in targetSpriteLayer.Nodes.OfType<BitmapNode>())
                 {
-                    var pixelsData = data[targetSpriteLayer.Index].FrameNodes[frameNode.Index];
+                    var pixelsData = data![targetSpriteLayer.Index].FrameNodes![frameNode.Index];
                     frameNode.SetData(pixelsData.Data);
                 }
             }
@@ -67,15 +67,15 @@ public abstract class EditSpriteOperationBase : TransformOperation
     }
 }
 
-public class EditSpriteOperation : EditSpriteOperationBase
-{
-    private LayerData[] _finalData;
+    public class EditSpriteOperation : EditSpriteOperationBase
+    {
+        private LayerData[] _finalData = null!;
 
     public EditSpriteOperation(Pix2dSprite targetSprite) : base(targetSprite)
     {
     }
 
-    public Action Callback { get; set; }
+    public Action? Callback { get; set; }
 
     public new void SetFinalData()
     {

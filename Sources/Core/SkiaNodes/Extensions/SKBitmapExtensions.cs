@@ -1,16 +1,16 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 
 namespace SkiaNodes.Extensions;
 
 public static class SKBitmapExtensions
 {
-    public static SKBitmap ToSKBitmap(this Stream stream)
+    public static SKBitmap? ToSKBitmap(this Stream stream)
     {
         using var codec = SKCodec.Create(stream);
         return DecodeBitmap(codec);
     }
 
-    private static SKBitmap DecodeBitmap(SKCodec codec)
+    private static SKBitmap? DecodeBitmap(SKCodec? codec)
     {
         if (codec == null)
             return null;
@@ -33,7 +33,7 @@ public static class SKBitmapExtensions
         return srcBm;
     }
 
-    public static SKBitmap ToSKBitmap(this byte[] data)
+    public static SKBitmap? ToSKBitmap(this byte[] data)
     {
         using (var skMemoryStream = new SKMemoryStream(data))
         using (var codec = SKCodec.Create(skMemoryStream))

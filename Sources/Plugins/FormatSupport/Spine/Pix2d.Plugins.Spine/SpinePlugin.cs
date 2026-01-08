@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Pix2d.Plugins.SpinePlugin
 {
-    [method: DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(SpinePlugin))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(SpinePlugin))]
     public class SpinePlugin : IPix2dPlugin
     {
         public IImportService ImportService { get; }

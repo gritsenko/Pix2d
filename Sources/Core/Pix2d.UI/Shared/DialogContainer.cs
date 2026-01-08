@@ -1,4 +1,4 @@
-﻿using Mvvm;
+using Mvvm;
 using Pix2d.Abstract.UI;
 using Pix2d.UI.Resources;
 
@@ -44,13 +44,13 @@ public class DialogContainer : ComponentBase, IDialogContainer
                     .Ref(out _contentControl)
                     .Header(Title, BindingMode.OneWay, bindingSource: this)
                     .IsOpen(true)
-                    .OnCloseButtonClicked(_ => OnCloseButtonClicked())
+                    .OnCloseButtonClicked(e => OnCloseButtonClicked())
             );
 
-    private PopupView _contentControl;
-    private Border _ovarlayBorder;
+    private PopupView _contentControl = null!;
+    private Border _ovarlayBorder = null!;
 
-    public event EventHandler CloseButtonClicked;
+    public event EventHandler? CloseButtonClicked;
 
     [Inject] private IDialogService DialogService { get; set; } = null!;
 

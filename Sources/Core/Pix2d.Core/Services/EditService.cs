@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System.Diagnostics;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Tools;
@@ -17,7 +17,7 @@ public class EditService : IEditService
 {
     private readonly IViewPortService _viewPortService;
     private readonly IViewPortRefreshService _viewPortRefreshService;
-    private readonly SpriteEditor _spriteEditor;
+    private readonly SpriteEditor? _spriteEditor;
 
     private readonly ISelectionService _selectionService;
     private readonly AppState _appState;
@@ -37,7 +37,9 @@ public class EditService : IEditService
         set => ProjectState.CurrentNodeEditor = value;
     }
 
-    private SKNode FrameEditorNode => _appState.CurrentProject.FrameEditorNode;
+    private SKNode FrameEditorNode => _appState.CurrentProject.FrameEditorNode!;
+
+    private SpriteEditor SpriteEditor => _spriteEditor ?? throw new InvalidOperationException("SpriteEditor is not initialized");
 
 
     public EditService(IViewPortRefreshService viewPortRefreshService,
@@ -86,16 +88,23 @@ public class EditService : IEditService
                 return;
 
             var selection = ProjectState.Selection;
-            if (selection == null || _appState.ToolsState.CurrentTool.ToolInstance is IDrawingTool)
+            if (selection == null || _appState.ToolsState.CurrentTool?.ToolInstance is IDrawingTool)
             {
                 FrameEditorNode.IsVisible = false;
                 return;
             }
 
             FrameEditorNode.IsVisible = true;
-            ((FrameEditorNode)FrameEditorNode).SetSelection(selection);
-            var adornerLayer = SkiaNodes.AdornerLayer.GetAdornerLayer(ProjectState.SceneNode);
-            adornerLayer.Add(FrameEditorNode);
+            ((FrameEditorNode)FrameEditorNode).SetSelection(selection!);
+            var sceneNode = ProjectState.SceneNode;
+            if (sceneNode != null)
+            {
+                var adornerLayer = SkiaNodes.AdornerLayer.GetAdornerLayer(sceneNode);
+                if (adornerLayer != null)
+                {
+                    adornerLayer.Add(FrameEditorNode);
+                }
+            }
         }
         finally
         {
@@ -134,8 +143,8 @@ public class EditService : IEditService
         {
             sprite.InvalidateFrames();
             _appState.CurrentProject.CurrentEditedNode = node;
-            _spriteEditor.SetTargetNode(node);
-            CurrentNodeEditor = _spriteEditor;
+            SpriteEditor.SetTargetNode(node);
+            CurrentNodeEditor = SpriteEditor;
             CurrentEditContextType = EditContextType.Sprite;
         }
 
@@ -148,6 +157,8 @@ public class EditService : IEditService
     public void GroupNodes(SKNode[] nodes)
     {
         var parent = nodes[0].Parent;
+        if (parent == null) return;
+
         var newGroup = new GroupNode();
         newGroup.Name = "Group";
         foreach (var node in nodes)
@@ -163,10 +174,13 @@ public class EditService : IEditService
 
     public void UngroupNodes(GroupNode group)
     {
+        var parent = group.Parent;
+        if (parent == null) return;
+
         foreach (var node in group.Nodes.ToArray())
         {
             group.Nodes.Remove(node);
-            group.Parent.Nodes.Insert(group.Index, node);
+            parent.Nodes.Insert(group.Index, node);
         }
 
         group.RemoveFromParent();
@@ -198,7 +212,7 @@ public class EditService : IEditService
 
     public INodeEditor GetCurrentEditor()
     {
-        return CurrentNodeEditor;
+        return CurrentNodeEditor!;
     }
 
     public void ApplyCurrentEdit()

@@ -1,4 +1,4 @@
-﻿namespace Pix2d.Plugins.Psd.PsdReader
+namespace Pix2d.Plugins.Psd.PsdReader
 {
     public class ResolutionInfo : ImageResource
     {
@@ -52,8 +52,8 @@
             {
                 HRes,
                 VRes,
-                Enum.GetName(typeof(Unit), WidthUnit),
-                Enum.GetName(typeof(Unit), HeightUnit)
+                Enum.GetName(typeof(Unit), WidthUnit) ?? "Unknown",
+                Enum.GetName(typeof(Unit), HeightUnit) ?? "Unknown"
             });
         }
 

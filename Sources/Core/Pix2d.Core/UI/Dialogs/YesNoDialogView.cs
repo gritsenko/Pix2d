@@ -2,6 +2,8 @@ using Avalonia.Styling;
 using Pix2d.Abstract.UI;
 using Pix2d.UI.Resources;
 
+#pragma warning disable CS0612 // Avalonia markup extension methods
+
 namespace Pix2d.UI.Dialogs;
 
 public class YesNoDialogView : ViewBase, IDialogView<bool>
@@ -9,7 +11,7 @@ public class YesNoDialogView : ViewBase, IDialogView<bool>
     public static readonly DirectProperty<YesNoDialogView, string> MessageProperty
         = AvaloniaProperty.RegisterDirect<YesNoDialogView, string>(nameof(Message), o => o.Message, (o, v) => o.Message = v);
 
-    private string _message;
+    private string _message = string.Empty;
 
     public string Message
     {
@@ -20,7 +22,7 @@ public class YesNoDialogView : ViewBase, IDialogView<bool>
     public static readonly DirectProperty<YesNoDialogView, string> OkLabelProperty
         = AvaloniaProperty.RegisterDirect<YesNoDialogView, string>(nameof(OkLabel), o => o.OkLabel, (o, v) => o.OkLabel = v);
 
-    private string _okLabel;
+    private string _okLabel = string.Empty;
 
     public string OkLabel
     {
@@ -31,7 +33,7 @@ public class YesNoDialogView : ViewBase, IDialogView<bool>
     public static readonly DirectProperty<YesNoDialogView, string> CancelLabelProperty
         = AvaloniaProperty.RegisterDirect<YesNoDialogView, string>(nameof(CancelLabel), o => o.CancelLabel, (o, v) => o.CancelLabel = v);
 
-    private string _cancelLabel;
+    private string _cancelLabel = string.Empty;
 
     public string CancelLabel
     {
@@ -84,7 +86,7 @@ public class YesNoDialogView : ViewBase, IDialogView<bool>
                     ) //stack panel children
             );
 
-    public string Title { get; set; }
-    public Action<bool?> OnDialogClosed { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public Action<bool?> OnDialogClosed { get; set; } = null!;
     public bool DialogResult { get; private set; }
 }

@@ -1,4 +1,5 @@
-﻿using Pix2d.Abstract.Tools;
+#nullable enable
+using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
 using Pix2d.Plugins.Sprite.Commands;
 using SkiaNodes;
@@ -23,20 +24,20 @@ public class SpritePlugin(ICommandService commandService, IDrawingService drawin
         commandService.RegisterCommandList(AnimationCommands);
     }
 
-    internal (IEnumerable<SKNode> Nodes, SKColor BackgroundColor) GetDataForCutOrCopy(AppState appState)
-    {
-        if (appState.ToolsState.CurrentTool.ToolInstance is not IPixelSelectionTool)
-            return ([], SKColor.Empty);
+      internal (IEnumerable<SKNode> Nodes, SKColor BackgroundColor) GetDataForCutOrCopy(AppState appState)
+      {
+          if (appState.ToolsState.CurrentTool?.ToolInstance is not IPixelSelectionTool)
+              return ([], SKColor.Empty);
 
-        IEnumerable<SKNode> selectedNodes = appState.CurrentProject.Selection?.Nodes;
-        if (drawingService.DrawingLayer.HasSelection)
-        {
-            var tmpSprite = new BitmapNode()
-            { IsVisible = true, Bitmap = ((BitmapNode)drawingService.DrawingLayer.GetSelectionLayer()).Bitmap };
-            selectedNodes = tmpSprite.Yield();
-        }
-        return (selectedNodes, SKColor.Empty);
-    }
+         IEnumerable<SKNode>? selectedNodes = appState.CurrentProject.Selection?.Nodes;
+         if (drawingService.DrawingLayer.HasSelection)
+         {
+             var tmpSprite = new BitmapNode()
+             { IsVisible = true, Bitmap = ((BitmapNode)drawingService.DrawingLayer.GetSelectionLayer()).Bitmap };
+             selectedNodes = tmpSprite.Yield();
+         }
+         return (selectedNodes ?? [], SKColor.Empty);
+     }
 
     public void FillSelection(SKColor color)
     {

@@ -1,24 +1,23 @@
-﻿using Avalonia.Interactivity;
+using Avalonia.Interactivity;
 using Pix2d.Abstract.Tools;
 using Pix2d.UI.Resources;
-using Pix2d.UI.Shared;
 
 namespace Pix2d.UI.ToolBar;
 
 public class ToolItemView : LocalizedComponentBase
 {
-    private ToolState _toolState;
+    private ToolState _toolState = null!;
     
     public ToolItemView(ToolState toolState)
     {
         _toolState = toolState;
         Initialize();
+        _button.ToolTip(L(_toolState.ToolTip)());
     }
-    
+
     protected override object Build() =>
         new Button()
             .Ref(out _button)
-            .ToolTip(L(_toolState?.ToolTip)())
             .Classes("toolbar-button")
             .BindClass(() => IsSelected, "selected")
             .OnClick(OnButtonClicked)
@@ -47,29 +46,20 @@ public class ToolItemView : LocalizedComponentBase
     [Inject] private IToolService ToolService { get; set; } = null!;
     [Inject] private AppState AppState { get; set; } = null!;
 
-    private Button _button;
+    private Button _button = null!;
 
     public string ToolKey => ToolState?.Name ?? "";
 
     public string ToolIconKey => ToolState?.IconKey ?? "";
     public bool IsSelected => AppState.ToolsState.CurrentToolKey == ToolKey;
 
-    public ToolState ToolState
-    {
-        get => _toolState;
-        set
-        {
-            _toolState = value;
-            StateHasChanged();
-        }
-    }
+    public ToolState ToolState => _toolState;
 
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
         AppState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, StateHasChanged);
         AppState.ToolsState.WatchFor(x => x.CurrentToolKey, UpdateIsSelected);
-
         UpdateIsSelected();
     }
 
@@ -102,7 +92,7 @@ public class ToolItemView : LocalizedComponentBase
         else
         {
             AppState.UiState.ShowToolProperties = false;
-            ToolService.ActivateTool(this._toolState.Name);
+            ToolService.ActivateTool(_toolState.ToolType);
         }
 
         this.StateHasChanged();

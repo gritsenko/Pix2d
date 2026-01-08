@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace SkiaNodes.Serialization;
 
@@ -9,14 +9,17 @@ public class NodeCollectionConverter : JsonConverter
         return (objectType == typeof(SKNode.NodeCollection));
     }
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
-        serializer.Serialize(writer, ((SKNode.NodeCollection)value).Where(c => !c.IsAdorner).ToArray());
+        if (value is SKNode.NodeCollection collection)
+            serializer.Serialize(writer, collection.Where(c => !c.IsAdorner).ToArray());
+        else
+            writer.WriteNull();
     }
 
     public override bool CanRead => false;
 
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue,
         JsonSerializer serializer)
     {
         throw new NotImplementedException();

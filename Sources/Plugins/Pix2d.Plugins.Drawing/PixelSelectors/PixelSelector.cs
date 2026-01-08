@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Pix2d.Abstract.Drawing;
@@ -11,8 +11,8 @@ public class PixelSelector : IPixelSelector
 {
     private SKPointI _lastSelectionPoint;
     private readonly HashSet<SKPointI> _selectionPoints = new HashSet<SKPointI>();
-    private SKPath _selectionPath;
-    private byte[] _pixelsBuff;
+    private SKPath? _selectionPath;
+    private byte[]? _pixelsBuff;
     private int _offsetX;
     private int _offsetY;
     private int _width;
@@ -82,10 +82,18 @@ public class PixelSelector : IPixelSelector
         }
     }
 
-    private void SetPixel(int x, int y) => _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] = 1;
+    private void SetPixel(int x, int y)
+    {
+        if (_pixelsBuff != null)
+            _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] = 1;
+    }
+    
     private bool GetPixel(int x, int y)
     {
         if (x < _imageLeft || y < _imageTop || x > _imageRight || y > _imageBot)
+            return false;
+
+        if (_pixelsBuff == null)
             return false;
 
         return _pixelsBuff[x + _offsetX + (y + _offsetY) * _width] > 0;
@@ -93,11 +101,16 @@ public class PixelSelector : IPixelSelector
 
     private void BuildSelectionPath()
     {
+        if (_pixelsBuff == null)
+            return;
+            
         _selectionPath = Algorithms.GetContour(_selectionPoints, _pixelsBuff, new SKRectI(_imageLeft, _imageTop, _imageRight, _imageBot), new SKPointI(_offsetX, _offsetY), new SKSizeI(_width, _height));
     }
 
     public void ClearSelectionFromBitmap(ref SKBitmap bitmap)
     {
+        if (_pixelsBuff == null)
+            return;
 
         unsafe
         {
@@ -137,6 +150,9 @@ public class PixelSelector : IPixelSelector
         var bitmap = new SKBitmap(_width, _height, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
         bitmap.Erase(SKColor.Empty);
 
+        if (_pixelsBuff == null)
+            return bitmap;
+
         var srcWidth = sourceBitmap.Width;
 
         unsafe
@@ -171,8 +187,5 @@ public class PixelSelector : IPixelSelector
         return bitmap;
     }
 
-    public SKPath GetSelectionPath()
-    {
-        return _selectionPath;
-    }
+    public SKPath? GetSelectionPath() => _selectionPath;
 }

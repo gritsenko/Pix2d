@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+using System;
+using System.Diagnostics;
 using Avalonia.Platform.Storage;
 using Mvvm.Messaging;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -12,9 +13,11 @@ public class BrowserFileService(IMessenger messenger, IPlatformStuffService plat
     : AvaloniaFileService(messenger, platformStuffService, settingsService)
 {
 
-    protected override IFileContentSource? GetFileSource(IStorageFile? file)
+    protected override IFileContentSource GetFileSource(IStorageFile? file)
     {
+        if (file == null)
+            throw new ArgumentNullException(nameof(file));
         Debug.WriteLine(file.GetType().Name);
-        return file == null ? null : new AvaloniaFileSource(file);
+        return new AvaloniaFileSource(file);
     }
 }

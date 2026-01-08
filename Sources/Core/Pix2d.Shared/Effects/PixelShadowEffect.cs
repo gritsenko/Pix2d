@@ -6,8 +6,8 @@ namespace Pix2d.Effects;
 
 public class PixelShadowEffect : ISKNodeEffect
 {
-    private SKImageFilter _shadowFilter;
-    private SKSurface _effectRenderCache;
+    private SKImageFilter? _shadowFilter;
+    private SKSurface? _effectRenderCache;
     private SKImageInfo _cacheImageInfo;
 
     public string Name => "Shadow";

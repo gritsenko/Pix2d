@@ -1,11 +1,11 @@
-﻿using Pix2d.Abstract.Platform.FileSystem;
+using Pix2d.Abstract.Platform.FileSystem;
 
 namespace Pix2d.Primitives;
 
 public class MruRecord
 {
-    public string Name { get; set; }
-    public string Path { get; set; }
+    public string Name { get; set; } = null!;
+    public string Path { get; set; } = null!;
 
     public MruRecord()
     {
@@ -13,8 +13,8 @@ public class MruRecord
 
     public MruRecord(IFileContentSource file)
     {
-            Path = file.Path;
-            Name = file.Title;
+            Path = file.Path!;
+            Name = file.Title!;
         }
 
     protected bool Equals(MruRecord other)
@@ -22,7 +22,7 @@ public class MruRecord
             return Name == other.Name && Path == other.Path;
         }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;

@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Pix2d.Abstract.Commands;
 using Pix2d.Command;
 using Pix2d.Primitives;
@@ -85,11 +85,11 @@ public class CommandService : ICommandService
                 return;
             }
 
-            var editContextType = _appState.CurrentProject.CurrentContextType;
-            if (FindCommand(e.Key, e.Modifiers, editContextType, out var command))
-            {
-                await ExecuteCommandAsync(command.Name);
-            }
+             var editContextType = _appState.CurrentProject.CurrentContextType;
+             if (FindCommand(e.Key, e.Modifiers, editContextType, out var command) && command != null)
+             {
+                 await ExecuteCommandAsync(command.Name);
+             }
         }
         catch (Exception ex)
         {
@@ -97,9 +97,9 @@ public class CommandService : ICommandService
         }
     }
 
-    private bool FindCommand(VirtualKeys key, KeyModifier modifiers, EditContextType editContextType, out Pix2dCommand command)
-    {
-        command = null;
+     private bool FindCommand(VirtualKeys key, KeyModifier modifiers, EditContextType editContextType, out Pix2dCommand command)
+     {
+         command = null!;
         foreach (var cmd in _commands.Values)
         {
             if (cmd.CheckShortcut(key, modifiers, editContextType))
@@ -158,17 +158,17 @@ public class CommandService : ICommandService
         }
     }
 
-    public bool TryGetCommand(string name, out Pix2dCommand command)
-    {
-        if (_commands.TryGetValue(name, out var result))
-        {
-            command = result;
-            return true;
-        }
+     public bool TryGetCommand(string name, out Pix2dCommand command)
+     {
+         if (_commands.TryGetValue(name, out var result))
+         {
+             command = result;
+             return true;
+         }
 
-        command = null;
-        return false;
-    }
+         command = null!;
+         return false;
+     }
 
     IEnumerable<Pix2dCommand> ICommandService.GetCommands()
     {

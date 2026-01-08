@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Selection;
+using Pix2d.Abstract.Selection;
 using Pix2d.Selection;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -9,7 +9,8 @@ public class LeftTopResizeThumbSingleNode : ResizeThumbSingleNode
 {
     protected override void AdjustDimensionsToTargets(NodesSelection selection)
     {
-            var frame = selection.Frame;
+            var frame = selection?.Frame;
+            if (frame == null) return;
             var transform = frame.GetGlobalTransform();
             Position = transform.MapPoint(frame.LocalBounds.GetLeftTopPoint());
         }
@@ -25,9 +26,9 @@ public class LeftTopResizeThumbSingleNode : ResizeThumbSingleNode
             var pivotPosition = _initialTargetPivotPosition;
             pivotPosition.Offset(-delta.X / 2, - delta.Y / 2);
             
-            TargetSelection.SetPosition(_initialTargetGlobalTransform.MapPoint(position));
-            TargetSelection.SetPivotPosition(pivotPosition);
+            TargetSelection?.SetPosition(_initialTargetGlobalTransform.MapPoint(position));
+            TargetSelection?.SetPivotPosition(pivotPosition);
 
-            TargetSelection.SetSize(newSize);
+            TargetSelection?.SetSize(newSize);
         }
 }

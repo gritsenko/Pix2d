@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 
@@ -6,24 +6,24 @@ namespace SkiaNodes.Interactive;
 
 public class SKInput
 {
-    public Func<SKNode> RootNodeProvider { get; set; }
-    public Func<ViewPort> ViewPortProvider { get; set; }
+    public Func<SKNode>? RootNodeProvider { get; set; }
+    public Func<ViewPort>? ViewPortProvider { get; set; }
 
 
     private KeyModifier _keyModifiers;
     private bool _panMode;
     private SKInputPointer _pointer;
-    private static SKInput _instance;
+    private static SKInput? _instance;
 
-    public event EventHandler<KeyboardActionEventArgs> KeyPressed;
-    public event EventHandler<KeyboardActionEventArgs> KeyReleased;
-    public event EventHandler<RootNodeChangedEventArgs> RootNodeChanged;
-    public event EventHandler<SKInputPointer> PointerChanged;
+    public event EventHandler<KeyboardActionEventArgs>? KeyPressed;
+    public event EventHandler<KeyboardActionEventArgs>? KeyReleased;
+    public event EventHandler<RootNodeChangedEventArgs>? RootNodeChanged;
+    public event EventHandler<SKInputPointer>? PointerChanged;
 
     public static SKInput Current => _instance ??= new SKInput();
 
-    public IInteractive CapturedPointerBy { get; set; }
-    private IInteractive LastInteractiveUnderPointer { get; set; }
+    public IInteractive? CapturedPointerBy { get; set; }
+    private IInteractive? LastInteractiveUnderPointer { get; set; }
 
     public SKInputPointer Pointer
     {
@@ -70,7 +70,7 @@ public class SKInput
         if (!IsInitialized)
             return;
 
-        Pointer = new SKInputPointer(pos, GetViewport(), true, EraserMode, true);
+        Pointer = new SKInputPointer(pos, GetViewport()!, true, EraserMode, true);
         var args = new PointerActionEventArgs(PointerActionType.Pressed, Pointer, modifiers);
 
         HandlePointerEventByInteractives((interactive) =>
@@ -79,7 +79,7 @@ public class SKInput
         }, args);
     }
 
-    private ViewPort GetViewport() => ViewPortProvider?.Invoke();
+    private ViewPort? GetViewport() => ViewPortProvider?.Invoke();
 
     private void HandlePointerEventByInteractives(Action<IInteractive> handler, PointerActionEventArgs args)
     {
@@ -103,7 +103,7 @@ public class SKInput
         if (!IsInitialized)
             return;
 
-        Pointer = new SKInputPointer(pos, GetViewport(), false, EraserMode, isTouch);
+        Pointer = new SKInputPointer(pos, GetViewport()!, false, EraserMode, isTouch);
         var args = new PointerActionEventArgs(PointerActionType.Released, Pointer, modifiers);
 
         HandlePointerEventByInteractives((interactive) =>
@@ -117,7 +117,7 @@ public class SKInput
         if (!IsInitialized)
             return;
 
-        Pointer = new SKInputPointer(pos, GetViewport(), isPointerPressed, EraserMode, isTouch);
+        Pointer = new SKInputPointer(pos, GetViewport()!, isPointerPressed, EraserMode, isTouch);
         var worldPos = Pointer.WorldPosition;
 
         var args = new PointerActionEventArgs(PointerActionType.Moved, Pointer, modifiers);
@@ -130,7 +130,6 @@ public class SKInput
                 LastInteractiveUnderPointer?.OnPointerLeave(worldPos);
                 LastInteractiveUnderPointer = interactive;
                 LastInteractiveUnderPointer?.OnPointerEnter(worldPos);
-                LastInteractiveUnderPointer = interactive;
             }
 
         }, args);
@@ -203,7 +202,7 @@ public class SKInput
             d.Invoke(this, e);
             if (e.Handled)
             {
-                Debug.WriteLine($"Key pressed {e.Key} processed by " + d.Target.GetType().Name);
+                Debug.WriteLine($"Key pressed {e.Key} processed by " + d.Target?.GetType().Name);
                 break;
             }
         }
@@ -221,7 +220,7 @@ public class SKInput
             d.Invoke(this, e);
             if (e.Handled)
             {
-                Debug.WriteLine($"Key released {e.Key} processed by " + d.Target.GetType().Name);
+                Debug.WriteLine($"Key released {e.Key} processed by " + d.Target?.GetType().Name);
                 break;
             }
         }

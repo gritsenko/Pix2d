@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Avalonia.Threading;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Import;
@@ -28,13 +28,13 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     private readonly Timer _operationTimer;
 
-    public event EventHandler PlaybackStateChanged;
+    public event EventHandler? PlaybackStateChanged;
 
-    public event EventHandler LayersChanged;
-    public event EventHandler SelectedLayerChanged;
+    public event EventHandler? LayersChanged;
+    public event EventHandler? SelectedLayerChanged;
 
-    public event EventHandler<FramesChangedEventArgs> FramesChanged;
-    public event EventHandler<SpriteFrameChangedEvenArgs> CurrentFrameChanged;
+    public event EventHandler<FramesChangedEventArgs>? FramesChanged;
+    public event EventHandler<SpriteFrameChangedEvenArgs>? CurrentFrameChanged;
 
 
     private readonly IDrawingService _drawingService;
@@ -45,11 +45,11 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
     private readonly Timer _timer;
     private readonly SpriteEditorState _editorState;
 
-    public Pix2dSprite.Layer SelectedLayer => CurrentSprite?.SelectedLayer;
+    public Pix2dSprite.Layer? SelectedLayer => CurrentSprite?.SelectedLayer;
 
-    public int SelectedLayerIndex => CurrentSprite.SelectedLayerIndex;
+    public int SelectedLayerIndex => CurrentSprite?.SelectedLayerIndex ?? -1;
 
-    public Pix2dSprite CurrentSprite { get; private set; }
+    public Pix2dSprite CurrentSprite { get; private set; } = null!;
 
     public SpriteEditor(IDrawingService drawingService, IViewPortRefreshService viewPortRefreshService, IMessenger messenger, AppState state, IOperationService operationService)
     {
@@ -67,69 +67,75 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
         _editorState.WatchFor(x => x.ShowOnionSkin, () =>
         {
-            CurrentSprite.OnionSkinSettings.IsEnabled = _editorState.ShowOnionSkin;
-            _viewPortRefreshService.Refresh();
+            if (CurrentSprite != null)
+            {
+                CurrentSprite.OnionSkinSettings.IsEnabled = _editorState.ShowOnionSkin;
+                _viewPortRefreshService.Refresh();
+            }
         });
 
         _editorState.WatchFor(x => x.FrameRate, () =>
         {
-            CurrentSprite.FrameRate = _editorState.FrameRate;
+            if (CurrentSprite != null)
+            {
+                CurrentSprite.FrameRate = _editorState.FrameRate;
 
-            if(IsPlaying)
-                _timer.Change(1000 / FrameRate, 1000 / FrameRate);
+                if(IsPlaying)
+                    _timer.Change(1000 / FrameRate, 1000 / FrameRate);
 
-            _viewPortRefreshService.Refresh();
+                _viewPortRefreshService.Refresh();
+            }
         });
 
         _operationTimer = new Timer(OnOperationTimerTick, this, -1, -1);
     }
 
-    private void OnOperationTimerTick(object state)
+    private void OnOperationTimerTick(object? state)
     {
         PerformPendingOperation();
     }
 
-    private void OnProjectClose(ProjectCloseMessage obj)
+    private void OnProjectClose(ProjectCloseMessage? obj)
     {
         Stop();
     }
 
-    private void OnOperationInvoked(OperationInvokedMessage e)
+    private void OnOperationInvoked(OperationInvokedMessage? e)
     {
-        if (e.OperationType != OperationEventType.Perform)
+        if (e?.OperationType != OperationEventType.Perform)
         {
-            if (e.Operation is AddAnimationFrameOperation add)
+            if (e?.Operation is AddAnimationFrameOperation add)
             {
                 var changeType = e.OperationType == OperationEventType.Undo
                     ? FramesChangedType.Delete
                     : FramesChangedType.Add;
                 OnFramesChanged(changeType, [add.FrameIndex]);
             }
-            else if (e.Operation is DeleteAnimationFrameOperation del)
+            else if (e?.Operation is DeleteAnimationFrameOperation del)
             {
                 var changeType = e.OperationType == OperationEventType.Undo
                     ? FramesChangedType.Add
                     : FramesChangedType.Delete;
                 OnFramesChanged(changeType, [del.FrameIndex]);
             }
-            else if (e.Operation is DuplicateAnimationFrameOperation per)
+            else if (e?.Operation is DuplicateAnimationFrameOperation per)
             {
                 var changeType = e.OperationType == OperationEventType.Undo
                     ? FramesChangedType.Delete
                     : FramesChangedType.Add;
                 OnFramesChanged(changeType, [per.FrameIndex]);
-                OnFramesChanged(FramesChangedType.Reset, null);
+                OnFramesChanged(FramesChangedType.Reset, null!);
             }
         }
 
-        if (e.Operation.AffectsNodeStructure || e.Operation is ResizeSpriteOperationBase)
+        if (e?.Operation.AffectsNodeStructure == true || e?.Operation is ResizeSpriteOperationBase)
         {
             OnLayersChanged();
             _drawingService.UpdateDrawingTarget();
         }
     }
 
-    private void OnTick(object state)
+    private void OnTick(object? state)
     {
         //todo: exceptions on app closing
         if (FrameRate == 0)
@@ -141,7 +147,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
         // Changing frames modifies the node structure. If this is done not in the UI thread, it can result
         // in race conditions with processing user input.
-        Dispatcher.UIThread.Invoke(() => SetFrameIndex(CurrentSprite.NextFrameIndex));
+        Dispatcher.UIThread.Invoke(() => SetFrameIndex(CurrentSprite?.NextFrameIndex ?? 0));
     }
 
 
@@ -151,13 +157,13 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
         oldSprite?.SetEditMode(false);
 
-        CurrentSprite = node as Pix2dSprite;
+        CurrentSprite = node as Pix2dSprite ?? throw new ArgumentException("Node must be a Pix2dSprite");
 
         CurrentSprite?.SetEditMode(true);
 
         if (oldSprite != CurrentSprite)
         {
-            OnFramesChanged(FramesChangedType.Reset, null);
+            OnFramesChanged(FramesChangedType.Reset, null!);
         }
         _drawingService.UpdateDrawingTarget();
     }
@@ -175,12 +181,12 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
     }
 
 
-    public Pix2dSprite.Layer AddEmptyLayer(Pix2dSprite.Layer addAfter = null)
+    public Pix2dSprite.Layer AddEmptyLayer(Pix2dSprite.Layer? addAfter = null)
     {
         var oldSelectedLayer = SelectedLayer;
-        var newLayer = CurrentSprite.AddLayer();
+        var newLayer = CurrentSprite?.AddLayer() ?? throw new InvalidOperationException("No current sprite");
 
-        var addLayerOperation = new AddLayerOperation(newLayer.Yield(), oldSelectedLayer);
+        var addLayerOperation = new AddLayerOperation(newLayer.Yield(), oldSelectedLayer!);
         _operationService.PushOperations(addLayerOperation);
         OnLayersChanged();
 
@@ -189,9 +195,12 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         return newLayer;
     }
 
-    public void DeleteLayer(Pix2dSprite.Layer layerToDelete = null)
+    public void DeleteLayer(Pix2dSprite.Layer? layerToDelete = null)
     {
-        var layer = layerToDelete ?? SelectedLayer;
+        if (CurrentSprite?.LayersCount <= 1) 
+            return;
+
+        var layer = layerToDelete ?? SelectedLayer ?? throw new InvalidOperationException("No layer selected");
         var operation = new DeleteLayerOperation(layer.Yield());
         _operationService.InvokeAndPushOperations(operation);
         //CurrentSprite.DeleteLayer(layer);
@@ -199,21 +208,23 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         OnLayersChanged();
     }
 
-    public void DuplicateLayer(Pix2dSprite.Layer layer = null, int insertIndex = -1)
+    public void DuplicateLayer(Pix2dSprite.Layer? layer = null, int insertIndex = -1)
     {
         var oldSelectedLayer = SelectedLayer;
-        var newLayer = CurrentSprite.DuplicateLayer(layer ?? SelectedLayer, insertIndex);
-        var operation = new DuplicateLayerOperation(newLayer.Yield(), oldSelectedLayer);
+        var layerToDuplicate = layer ?? SelectedLayer ?? throw new InvalidOperationException("No layer selected");
+        var newLayer = CurrentSprite?.DuplicateLayer(layerToDuplicate, insertIndex) ?? throw new InvalidOperationException("No current sprite");
+        var operation = new DuplicateLayerOperation(newLayer.Yield(), oldSelectedLayer!);
         _operationService.PushOperations(operation);
         OnLayersChanged();
     }
 
-    public void MergeDownLayer(Pix2dSprite.Layer layer = null)
+    public void MergeDownLayer(Pix2dSprite.Layer? layer = null)
     {
-        if (!CanMergeDownLayer(layer ?? SelectedLayer))
+        var layerToMerge = layer ?? SelectedLayer ?? throw new InvalidOperationException("No layer selected");
+        if (!CanMergeDownLayer(layerToMerge))
             return;
 
-        var operation = new MergeLayerOperation((layer ?? SelectedLayer).Yield());
+        var operation = new MergeLayerOperation(layerToMerge.Yield());
         _operationService.InvokeAndPushOperations(operation);
 
         OnLayersChanged();
@@ -221,8 +232,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void SetOpacity(float newOpacity)
     {
-        var operation = new ChangeOpacityOperation([SelectedLayer]);
-        SelectedLayer.Opacity = newOpacity;
+        var selectedLayer = SelectedLayer ?? throw new InvalidOperationException("No layer selected");
+        var operation = new ChangeOpacityOperation([selectedLayer]);
+        selectedLayer.Opacity = newOpacity;
         operation.SetFinalData();
 
         SetDebouncedOperation(operation);
@@ -250,12 +262,15 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
             _operationService.PushOperations(_debouncedOperation);
     }
 
-    public bool CanMergeDownLayer(Pix2dSprite.Layer layer = null)
+    public bool CanMergeDownLayer(Pix2dSprite.Layer? layer = null)
     {
-        return CurrentSprite?.CanMergeDownLayer(layer ?? SelectedLayer) ?? false;
+        var layerToCheck = layer ?? SelectedLayer;
+        if (layerToCheck == null || CurrentSprite == null)
+            return false;
+        return CurrentSprite.CanMergeDownLayer(layerToCheck!);
     }
 
-    public void Rotate(float angle, Pix2dSprite.Layer layer = null)
+    public void Rotate(float angle, Pix2dSprite.Layer? layer = null)
     {
         if (Math.Abs(angle - 90) < 0.1)
         {
@@ -266,8 +281,11 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
             }
             else
             {
-                RotateCurrentFrame(CurrentSprite);
-                _drawingService.UpdateDrawingTarget();
+                if (CurrentSprite != null)
+                {
+                    RotateCurrentFrame(CurrentSprite);
+                    _drawingService.UpdateDrawingTarget();
+                }
             }
 
             _viewPortRefreshService.Refresh();
@@ -276,6 +294,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void RotateSprite()
     {
+        if (CurrentSprite == null)
+            return;
+
         var operation = new EditSpriteOperation(CurrentSprite) { Callback = OnLayersChanged };
         var rotatedNodes = new HashSet<SpriteNode>();
         foreach (var layer in CurrentSprite.Layers)
@@ -305,6 +326,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void RotateCurrentFrame()
     {
+        if (CurrentSprite == null)
+            return;
+
         var operations = new List<IEditOperation>();
         if (Math.Abs(CurrentSprite.Size.Width - CurrentSprite.Size.Height) > 0.1)
         {
@@ -340,7 +364,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         OnLayersChanged();
     }
 
-    public void Flip(FlipMode mode, Pix2dSprite.Layer layer = null)
+    public void Flip(FlipMode mode, Pix2dSprite.Layer? layer = null)
     {
         var selectionEditor = _drawingService.GetSelectionEditor();
         if (selectionEditor.HasSelection)
@@ -349,7 +373,8 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         }
         else
         {
-            FlipLayer(layer ?? SelectedLayer, mode);
+            var layerToFlip = layer ?? SelectedLayer ?? throw new InvalidOperationException("No layer selected");
+            FlipLayer(layerToFlip, mode);
             _drawingService.UpdateDrawingTarget();
         }
 
@@ -374,26 +399,29 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         }
     }
 
-    public void SendLayerBackward(Pix2dSprite.Layer layer = null)
+    public void SendLayerBackward(Pix2dSprite.Layer? layer = null)
     {
-        var targetLayer = layer ?? SelectedLayer;
+        var targetLayer = layer ?? SelectedLayer ?? throw new InvalidOperationException("No layer selected");
         if (targetLayer.Index - 1 < 0)
             return;
 
         ReorderLayers(targetLayer.Index, targetLayer.Index - 1);
     }
 
-    public void BringLayerForward(Pix2dSprite.Layer layer = null)
+    public void BringLayerForward(Pix2dSprite.Layer? layer = null)
     {
-        var targetLayer = layer ?? SelectedLayer;
+        var targetLayer = layer ?? SelectedLayer ?? throw new InvalidOperationException("No layer selected");
 
-        if (targetLayer.Index + 1 >= targetLayer.Parent.Nodes.Count)
+        if (targetLayer.Index + 1 >= targetLayer.Parent!.Nodes.Count)
             return;
 
         ReorderLayers(targetLayer.Index, targetLayer.Index + 1);
     }
     public void ReorderLayers(int oldIndex, int newIndex)
     {
+        if (CurrentSprite == null)
+            return;
+
         var operation = new ReorderLayersOperation(CurrentSprite, oldIndex, newIndex);
         _operationService.InvokeAndPushOperations(operation);
 
@@ -404,7 +432,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void SelectLayer(Pix2dSprite.Layer layer)
     {
-        CurrentSprite.SelectLayer(layer);
+        CurrentSprite?.SelectLayer(layer);
         OnSelectedLayerChanged();
     }
 
@@ -417,7 +445,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
     {
         _drawingService.UpdateDrawingTarget();
         SelectedLayerChanged?.Invoke(this, EventArgs.Empty);
-        _viewPortRefreshService.Refresh();
+        _viewPortRefreshService?.Refresh();
     }
 
 
@@ -432,14 +460,18 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         private set => _editorState.IsPlayingAnimation = value;
     }
 
-    public int CurrentFrameIndex => CurrentSprite.CurrentFrameIndex;
+    public int CurrentFrameIndex => CurrentSprite?.CurrentFrameIndex ?? 0;
 
     public int FramesCount => GetFramesCount();
 
     public int FrameRate
     {
-        get => (int)CurrentSprite.FrameRate;
-        set => CurrentSprite.FrameRate = value;
+        get => CurrentSprite != null ? (int)CurrentSprite.FrameRate : 0;
+        set
+        {
+            if (CurrentSprite != null)
+                CurrentSprite.FrameRate = value;
+        }
     }
 
     public void SetFrameIndex(int currentFrame)
@@ -460,12 +492,18 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void AddFrame()
     {
+        if (CurrentSprite == null)
+            return;
+
         var operation = new AddAnimationFrameOperation(CurrentSprite, CurrentFrameIndex);
         _operationService.InvokeAndPushOperations(operation);
         OnFramesChanged(FramesChangedType.Add, [CurrentFrameIndex]);
     }
     public void DuplicateFrame()
     {
+        if (CurrentSprite == null)
+            return;
+
         var operation = new DuplicateAnimationFrameOperation(CurrentSprite, CurrentFrameIndex);
         _operationService.InvokeAndPushOperations(operation);
         OnFramesChanged(FramesChangedType.Add, [CurrentFrameIndex]);
@@ -473,7 +511,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void DeleteFrame(int index = -1)
     {
-        if (CurrentSprite.GetFramesCount() <= 1)
+        if (CurrentSprite?.GetFramesCount() <= 1)
         {
             return;
         }
@@ -482,6 +520,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         {
             index = CurrentFrameIndex;
         }
+
+        if (CurrentSprite == null)
+            return;
 
         var operation = new DeleteAnimationFrameOperation(CurrentSprite, index);
         _operationService.InvokeAndPushOperations(operation);
@@ -493,6 +534,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void ReorderFrames(int oldIndex, int newIndex)
     {
+        if (CurrentSprite == null)
+            return;
+
         var operation = new ReorderAnimationFramesOperation(CurrentSprite, oldIndex, newIndex);
         _operationService.InvokeAndPushOperations(operation);
 
@@ -517,7 +561,8 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
             _timer.Change(-1, -1);
         }
 
-        CurrentSprite.IsPlaying = IsPlaying;
+        if (CurrentSprite != null)
+            CurrentSprite.IsPlaying = IsPlaying;
         OnPlaybackStateChanged();
     }
 
@@ -534,9 +579,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         OnPlaybackStateChanged();
     }
 
-    protected virtual void OnFramesChanged(FramesChangedType changeType, int[] indexes)
+    protected virtual void OnFramesChanged(FramesChangedType changeType, int[]? indexes)
     {
-        FramesChanged?.Invoke(this, new FramesChangedEventArgs(changeType, indexes));
+        FramesChanged?.Invoke(this, new FramesChangedEventArgs(changeType, indexes!));
     }
 
     protected virtual void OnCurrentFrameChanged()
@@ -559,13 +604,13 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void PrevFrame()
     {
-        CurrentSprite.SetPrevFrame();
+        CurrentSprite?.SetPrevFrame();
         OnCurrentFrameChanged();
     }
 
     public void NextFrame()
     {
-        CurrentSprite.SetNextFrame();
+        CurrentSprite?.SetNextFrame();
         OnCurrentFrameChanged();
     }
 
@@ -573,6 +618,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void Resize(int newWidth, int newHeight)
     {
+        if (CurrentSprite == null)
+            return;
+
         var resizeOperation = new ResizeSpriteOperationBase(CurrentSprite, new SKSize(newWidth, newHeight));
         _operationService.InvokeAndPushOperations(resizeOperation);
         _viewPortRefreshService.Refresh();
@@ -580,6 +628,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void Crop(SKSize newSize, float horizontalAnchor, float verticalAnchor)
     {
+        if (CurrentSprite == null)
+            return;
+
         var l = horizontalAnchor * (CurrentSprite.Size.Width - newSize.Width);
         var t = verticalAnchor * (CurrentSprite.Size.Height - newSize.Height);
         var bounds = new SKRect(l, t, l + newSize.Width, t + newSize.Height);
@@ -590,6 +641,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
     {
         if (newBounds.Width < 0.1 || newBounds.Height < 0.1) return;
 
+        if (CurrentSprite == null)
+            return;
+
         var cropOperation = new CropSpriteOperationBase(CurrentSprite, newBounds);
         _operationService.InvokeAndPushOperations(cropOperation);
         _viewPortRefreshService.Refresh();
@@ -597,7 +651,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void FinishEdit()
     {
-        CurrentSprite.SetEditMode(false);
+        CurrentSprite?.SetEditMode(false);
     }
 
     public void Import(ImportData data)
@@ -610,6 +664,8 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         {
             AddEmptyLayer();
             var layer = SelectedLayer;
+            if (layer == null)
+                throw new InvalidOperationException("No layer selected");
 
             if (data.ReplaceFrames)
                 layer.DeleteFrame(0);
@@ -617,7 +673,10 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
             for (var frameIndex = 0; frameIndex < layerPropertiesInfo.Frames.Count; frameIndex++)
             {
                 var layerFrameInfo = layerPropertiesInfo.Frames[frameIndex];
-                layer.InsertFrameFromBitmap(frameIndex, layerFrameInfo.BitmapProviderFunc());
+#pragma warning disable CS8602
+                var bitmap = layerFrameInfo!.BitmapProviderFunc() ?? new SKBitmap();
+#pragma warning restore CS8602
+                layer.InsertFrameFromBitmap(frameIndex, bitmap);
             }
         }
     }

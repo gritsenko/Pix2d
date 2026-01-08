@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SkiaSharp;
@@ -7,7 +7,7 @@ namespace SkiaNodes.Serialization;
 
 public partial class SKSizeConverter : JsonConverter
 {
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
 
         if (reader.Value is long val)
@@ -18,18 +18,31 @@ public partial class SKSizeConverter : JsonConverter
         if (reader.TokenType == JsonToken.StartObject)
         {
             var jobject = serializer.Deserialize<JObject>(reader);
-            var size = (SKSize) (existingValue ?? serializer.ContractResolver.ResolveContract(objectType).DefaultCreator());
-            
-            if (jobject.TryGetValue("height", StringComparison.InvariantCultureIgnoreCase, out var height) && (height.Type == JTokenType.Float || height.Type == JTokenType.Integer))
+            if (jobject == null)
+                return null;
+
+            SKSize size;
+            if (existingValue == null)
             {
-                size.Height = (float)height.Value<double>();
+                size = new SKSize();
             }
-            
-            if (jobject.TryGetValue("width", StringComparison.InvariantCultureIgnoreCase, out var width) && (width.Type == JTokenType.Float || width.Type == JTokenType.Integer))
+            else
             {
-                size.Width = (float)width.Value<double>();
+                size = (SKSize)existingValue;
             }
-            
+
+            if (jobject.TryGetValue("height", StringComparison.InvariantCultureIgnoreCase, out var height) && height != null && (height.Type == JTokenType.Float || height.Type == JTokenType.Integer))
+            {
+                var hVal = height.Value<double>();
+                size.Height = (float)hVal;
+            }
+
+            if (jobject.TryGetValue("width", StringComparison.InvariantCultureIgnoreCase, out var width) && width != null && (width.Type == JTokenType.Float || width.Type == JTokenType.Integer))
+            {
+                var wVal = width.Value<double>();
+                size.Width = (float)wVal;
+            }
+
             return size;
         }
 
@@ -48,7 +61,7 @@ public partial class SKSizeConverter : JsonConverter
 
     public override bool CanWrite { get; } = false;
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
         throw new NotImplementedException();
     }

@@ -72,19 +72,19 @@ public partial class MainActivity
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            new AlertDialog.Builder(this)
-                .SetTitle("Need permission")
-                .SetMessage("Pix2d needs permission to open this file. Please select file again")
-                .SetPositiveButton("Select file", (dialog, which) =>
-                {
-                    LaunchSafPicker(); 
-                })
-                .SetNegativeButton("Cancel", (dialog, which) =>
-                {
-                    System.Diagnostics.Debug.WriteLine("SAF request cancelled by user.");
-                    _uriAwaitingSafPermission = null; 
-                })
-                .Show();
+            var builder = new AlertDialog.Builder(this);
+            builder.SetTitle("Need permission");
+            builder.SetMessage("Pix2d needs permission to open this file. Please select file again");
+            builder.SetPositiveButton("Select file", (dialog, which) =>
+            {
+                LaunchSafPicker(); 
+            });
+            builder.SetNegativeButton("Cancel", (dialog, which) =>
+            {
+                System.Diagnostics.Debug.WriteLine("SAF request cancelled by user.");
+                _uriAwaitingSafPermission = null; 
+            });
+            builder.Create()?.Show();
         });
     }
 
@@ -92,11 +92,11 @@ public partial class MainActivity
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            new AlertDialog.Builder(this)
-               .SetTitle(title)
-               .SetMessage(message)
-               .SetPositiveButton("ОК", (dialog, which) => { /*do nothing, just close dialog */})
-               .Show();
+            var builder = new AlertDialog.Builder(this);
+            builder.SetTitle(title);
+            builder.SetMessage(message);
+            builder.SetPositiveButton("ОК", (dialog, which) => { /*do nothing, just close dialog */});
+            builder.Create()?.Show();
         });
     }
 
@@ -109,11 +109,13 @@ public partial class MainActivity
         intent.AddCategory(Intent.CategoryOpenable);
         intent.SetType("*/*"); 
 
-        if (_uriAwaitingSafPermission != null && Build.VERSION.SdkInt >= BuildVersionCodes.O)
+        if (_uriAwaitingSafPermission != null && Build.VERSION.SdkInt >= BuildVersionCodes.O) // ExtraInitialUri requires API 26+
         {
             try
             {
+#pragma warning disable CA1416 // ExtraInitialUri requires API 26+, properly guarded above
                 intent.PutExtra(DocumentsContract.ExtraInitialUri, _uriAwaitingSafPermission);
+#pragma warning restore CA1416
                 System.Diagnostics.Debug.WriteLine($"SAF picker hint: using EXTRA_INITIAL_URI = {_uriAwaitingSafPermission}");
             }
             catch (Exception ex)
@@ -189,5 +191,5 @@ public partial class MainActivity
         }
     }
 
-    internal ContentResolver GetContentResolverHelper() => ContentResolver;
+    internal ContentResolver? GetContentResolverHelper() => ContentResolver;
 }

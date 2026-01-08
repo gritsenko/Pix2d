@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 
@@ -6,7 +6,7 @@ namespace Pix2d.Plugins.Drawing.Tools.Shapes;
 
 public abstract class ShapeBuilderBase
 {
-    protected IDrawingLayer DrawingLayer { get; set; }
+    protected IDrawingLayer? DrawingLayer { get; set; }
     protected List<SKPoint> Points = new List<SKPoint>();
 
     public AddPointInputMode AddPointInputMode = AddPointInputMode.PressAndHold;
@@ -27,25 +27,30 @@ public abstract class ShapeBuilderBase
     public abstract void SetNextPointPreview(SKPoint previewPoint);
 
 
-    public void BeginDrawing()
+    public virtual void BeginDrawing()
     {
-        DrawingLayer.BeginDrawing();
+        if (DrawingLayer != null)
+            DrawingLayer.BeginDrawing();
     }
 
     public void Finish()
     {
-        DrawingLayer.FinishDrawing();
+        if (DrawingLayer != null)
+            DrawingLayer.FinishDrawing();
         Points.Clear();
     }
 
     public void Cancel()
     {
-        DrawingLayer.FinishDrawing(cancel: true);
+        if (DrawingLayer != null)
+            DrawingLayer.FinishDrawing(cancel: true);
         Points.Clear();
     }
 
     protected SKPoint GetMirroredPoint(SKPoint p)
     {
+        if (DrawingLayer == null)
+            return p;
         return DrawingLayer.GetMirroredPoint(p.ToSkPointI());
     }
 

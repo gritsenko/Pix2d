@@ -1,4 +1,4 @@
-﻿using Pix2d.Messages;
+using Pix2d.Messages;
 using SkiaNodes;
 using SkiaNodes.Abstract;
 
@@ -18,7 +18,7 @@ public class SceneService : ISceneService
         Messenger.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
     }
 
-    private void SceneManager_SceneCreated(object sender, EventArgs e)
+    private void SceneManager_SceneCreated(object? sender, EventArgs e)
     {
         AppState.CurrentProject.SceneNode = SKApp.SceneManager.GetCurrentScene();
     }
@@ -33,9 +33,11 @@ public class SceneService : ISceneService
         return SKApp.SceneManager.GetRootNode();
     }
 
+    #pragma warning disable CS8766 // Nullability mismatch in return type
     public SKNode GetCurrentScene()
+    #pragma warning restore CS8766 // Nullability mismatch in return type
     {
-        return SKApp.SceneManager.GetCurrentScene();
+        return SKApp.SceneManager.GetCurrentScene()!;
     }
 
     public IList<TContainer> GetCurrentSceneContainers<TContainer>() where TContainer : IContainerNode

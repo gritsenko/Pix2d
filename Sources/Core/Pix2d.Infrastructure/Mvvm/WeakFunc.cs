@@ -1,27 +1,27 @@
-﻿using System;
+using System;
 using System.Reflection;
 
 namespace Mvvm;
 
 public class WeakFunc<TResult>
 {
-    private Func<TResult> _staticFunc;
+    private Func<TResult>? _staticFunc;
 
-    protected MethodInfo Method { get; set; }
+    protected MethodInfo? Method { get; set; }
     public bool IsStatic => _staticFunc != null;
 
-    public virtual string MethodName => _staticFunc != null ? _staticFunc.GetMethodInfo().Name : Method.Name;
+    public virtual string MethodName => _staticFunc != null ? _staticFunc.GetMethodInfo().Name : Method!.Name;
 
-    protected WeakReference FuncReference { get; set; }
+    protected WeakReference? FuncReference { get; set; }
 
-    protected WeakReference Reference { get; set; }
+    protected WeakReference? Reference { get; set; }
 
     protected WeakFunc()
     {
     }
 
     public WeakFunc(Func<TResult> func)
-        : this(func?.Target, func)
+        : this(func.Target!, func)
     {
     }
 
@@ -62,13 +62,13 @@ public class WeakFunc<TResult>
                 return true;
             }
 
-            return Reference.IsAlive;
+            return Reference!.IsAlive;
         }
     }
 
-    public object Target => Reference?.Target;
+    public object? Target => Reference?.Target;
 
-    protected object FuncTarget => FuncReference?.Target;
+    protected object? FuncTarget => FuncReference?.Target;
 
     public TResult Execute()
     {
@@ -79,15 +79,15 @@ public class WeakFunc<TResult>
 
         var funcTarget = FuncTarget;
 
-        if (!IsAlive) return default(TResult);
+        if (!IsAlive) return default!;
         if (Method != null
             && FuncReference != null
             && funcTarget != null)
         {
-            return (TResult)Method.Invoke(funcTarget, null);
+            return (TResult)Method.Invoke(funcTarget, null!)!;
         }
 
-        return default(TResult);
+        return default!;
     }
 
     public void MarkForDeletion()

@@ -1,4 +1,4 @@
-﻿using Pix2d.CommonNodes;
+using Pix2d.CommonNodes;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -8,24 +8,28 @@ namespace Pix2d.Plugins.Drawing.Nodes;
 public class SpriteSelectionNode : BitmapNode
 {
     public int MaxRotSpriteEdgeSize = 256;
-    private SKBitmap _upscaledBitmap;
-    public SKPath SelectionPath { get; set; }
+    private SKBitmap? _upscaledBitmap = null;
+    public SKPath? SelectionPath { get; set; } = null;
 
-    public void Clear()
+    public new void Clear()
     {
         Bitmap?.Clear();
         _upscaledBitmap?.Clear();
         SelectionPath = null;
     }
-
-    protected override void OnBitmapChanged(SKBitmap newBitmap)
+ 
+    protected override void OnBitmapChanged(SKBitmap? newBitmap)
     {
         UpdateScaledBitmap(newBitmap);
     }
 
-    private void UpdateScaledBitmap(SKBitmap newBitmap)
+    private void UpdateScaledBitmap(SKBitmap? newBitmap)
     {
         _upscaledBitmap?.Dispose();
+        _upscaledBitmap = null;
+
+        if (newBitmap == null)
+            return;
 
         //don't apply rotsprite for big sprites
         if (newBitmap.Width > MaxRotSpriteEdgeSize && newBitmap.Height > MaxRotSpriteEdgeSize)

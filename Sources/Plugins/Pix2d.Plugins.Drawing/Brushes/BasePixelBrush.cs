@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 
@@ -6,7 +6,7 @@ namespace Pix2d.Plugins.Drawing.Brushes;
 
 public abstract class BasePixelBrush : IPixelBrush
 {
-    protected SKBitmap Preview;
+    protected SKBitmap? Preview;
     protected float _opacity = 1f;
     protected float _scale = 1f;
     protected SKPointI _lastPos;
@@ -15,8 +15,8 @@ public abstract class BasePixelBrush : IPixelBrush
     protected float Spacing { get; set; } = 0.01f;
     public float AbsoluteSpacing { get; set; } = 1;
 
-    protected SKBitmap _brushBitmap;
-    private SKSurface _surface;
+    protected SKBitmap? _brushBitmap;
+    private SKSurface? _surface;
 
     public int Size => (int) _scale;
     public float Opacity => _opacity;
@@ -42,13 +42,15 @@ public abstract class BasePixelBrush : IPixelBrush
     public SKSurface GetPreviewSurface(SKColor color, float scale)
     {
         var bm = GetBrushBitmap(color, scale);
+        if (bm == null)
+            throw new InvalidOperationException("Brush bitmap could not be created");
         _surface = SKSurface.Create(new SKImageInfo(bm.Width, bm.Height, bm.ColorType));
         using var canvas = _surface.Canvas;
         canvas.DrawBitmap(bm,0,0);
         return _surface;
     }
 
-    public virtual SKBitmap GetBrushBitmap(SKColor color, float scale)
+    public virtual SKBitmap? GetBrushBitmap(SKColor color, float scale)
     {
         if (color.Equals(_cacheColor) && Math.Abs(scale - _cacheSize) < 0.1)
             return _brushBitmap;
@@ -111,6 +113,8 @@ public abstract class BasePixelBrush : IPixelBrush
     protected virtual void EraseCore(IDrawingLayer layer, SKPointI pos, double pressure)
     {
         var bm = GetBrushBitmap(SKColors.White, _scale);
+        if (bm == null)
+            return;
         var destRect = GetRect(pos - CenterPoint, new SKSize(bm.Width, bm.Height));
         layer.DrawWithBitmap(bm, destRect, SKBlendMode.DstOut, (float)(_opacity * pressure));
     }
@@ -118,6 +122,8 @@ public abstract class BasePixelBrush : IPixelBrush
     protected virtual void DrawCore(IDrawingLayer layer, SKPointI pos, SKColor color, double pressure)
     {
         var bm = GetBrushBitmap(color, (float) (_scale * pressure));
+        if (bm == null)
+            return;
         var destRect = GetRect(pos - CenterPoint, new SKSize(bm.Width, bm.Height));
         var composMode = SKBlendMode.SrcOver;
 

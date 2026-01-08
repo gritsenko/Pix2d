@@ -1,4 +1,4 @@
-﻿using Avalonia.Xaml.Interactions.Responsive;
+using Avalonia.Xaml.Interactions.Responsive;
 using Avalonia.Xaml.Interactivity;
 
 namespace Pix2d.Common.Extensions;
@@ -11,7 +11,7 @@ public static class ControlBehaviorExtensions
 
     {
         var collection = Interaction.GetBehaviors(control);
-        collection.Add(behavior as AvaloniaObject);
+        collection.Add((behavior as AvaloniaObject)!);
         return control;
     }
     public static TBehavior Setters<TBehavior>(this TBehavior behavior, params AdaptiveClassSetter[] setters)

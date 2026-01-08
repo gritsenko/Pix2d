@@ -1,4 +1,4 @@
-﻿using Android.Content;
+using Android.Content;
 using Android.Database;
 using Android.Net;
 using Android.Provider;
@@ -16,7 +16,7 @@ public class AndroidFileContentSource : IFileContentSource
     private readonly Uri _contentUri;
 
     // Path для content:// URI не является файловым путем, это строковое представление URI
-    public string Path => _contentUri.ToString();
+    public string Path => _contentUri.ToString() ?? string.Empty;
 
     // Exists и LastModified для content:// URI нужно получать через ContentResolver.Query
     public bool Exists { get; } // Получается в конструкторе
@@ -24,15 +24,15 @@ public class AndroidFileContentSource : IFileContentSource
     public long Size { get; } // Добавим размер файла, если доступен
 
     // Расширение лучше получать из имени файла или MIME типа через ContentResolver
-    public string Extension { get; }
+    public string Extension { get; private set; } = string.Empty;
 
     // Название файла для отображения
-    public string Title { get; set; }
+    public string Title { get; set; } = string.Empty;
 
 
     // Используем статический инстанс MainActivity для получения ContentResolver
     // Это менее чисто, чем передавать ContentResolver напрямую, но соответствует вашей структуре
-    private ContentResolver GetContentResolver()
+    private ContentResolver? GetContentResolver()
     {
         // Используем вспомогательный метод из MainActivity.Instance
         // Это гарантирует, что у нас есть ContentResolver из активной Activity
@@ -48,22 +48,22 @@ public class AndroidFileContentSource : IFileContentSource
         string displayName = _contentUri.LastPathSegment ?? "Untitled"; // Название по умолчанию из последнего сегмента URI
         DateTime lastModified = DateTime.MinValue; // Дата изменения по умолчанию
         long size = -1; // Размер по умолчанию
-        string determinedExtension = defaultExtension; // Расширение по умолчанию
+        string determinedExtension = defaultExtension ?? string.Empty; // Расширение по умолчанию
         bool exists = false; // Существование по умолчанию
 
         var resolver = GetContentResolver();
 
         // Попытка получить метаданные с помощью ContentResolver.Query
         // Работает как для DocumentsContract URI (из SAF) так и для OpenableColumns URI
-        if (resolver != null && contentUri.Scheme == ContentResolver.SchemeContent)
+        if (resolver is not null && contentUri.Scheme == ContentResolver.SchemeContent)
         {
             ICursor? cursor = null;
             try
             {
-                // Запрашиваем стандартные колонки для OpenableColumns и DocumentsContract
+                // Запрашиваем стандартные колонки для IOpenableColumns и DocumentsContract
                 string[] projection = {
-                    OpenableColumns.DisplayName,
-                    OpenableColumns.Size,
+                    Android.Provider.IOpenableColumns.DisplayName,
+                    Android.Provider.IOpenableColumns.Size,
                     // DocumentsContract.Document.ColumnLastModified // Этот столбец доступен для DocumentsContract URI
                 };
 
@@ -73,13 +73,13 @@ public class AndroidFileContentSource : IFileContentSource
                 {
                     exists = true; // Если запрос вернул результат, считаем, что файл существует
 
-                    int displayNameIndex = cursor.GetColumnIndex(OpenableColumns.DisplayName);
+                    int displayNameIndex = cursor.GetColumnIndex(Android.Provider.IOpenableColumns.DisplayName);
                     if (displayNameIndex != -1)
                     {
-                        displayName = cursor.GetString(displayNameIndex);
+                        displayName = cursor.GetString(displayNameIndex) ?? "Untitled";
                     }
 
-                    int sizeIndex = cursor.GetColumnIndex(OpenableColumns.Size);
+                    int sizeIndex = cursor.GetColumnIndex(Android.Provider.IOpenableColumns.Size);
                     if (sizeIndex != -1)
                     {
                         size = cursor.GetLong(sizeIndex);
@@ -121,13 +121,13 @@ public class AndroidFileContentSource : IFileContentSource
             try
             {
                 var filePath = contentUri.Path; // Для file:// используем Path или LocalPath
-                if (filePath != null)
+                if (!string.IsNullOrEmpty(filePath))
                 {
                     var fileInfo = new FileInfo(filePath);
                     if (fileInfo.Exists)
                     {
                         exists = true;
-                        displayName = fileInfo.Name;
+                        displayName = fileInfo.Name ?? "Untitled";
                         size = fileInfo.Length;
                         lastModified = fileInfo.LastWriteTime;
                     }
@@ -166,7 +166,7 @@ public class AndroidFileContentSource : IFileContentSource
                 System.Diagnostics.Debug.WriteLine($"Error getting MIME type for URI {contentUri}: {ex.Message}");
             }
         }
-        Extension = string.IsNullOrEmpty(determinedExtension) ? defaultExtension : determinedExtension;
+        Extension = string.IsNullOrEmpty(determinedExtension) ? (defaultExtension ?? string.Empty) : determinedExtension;
 
         System.Diagnostics.Debug.WriteLine($"Created AndroidFileContentSource for URI: {_contentUri}, Title: {Title}, Extension: {Extension}, Exists: {Exists}, Size: {Size}");
 
@@ -183,7 +183,10 @@ public class AndroidFileContentSource : IFileContentSource
         try
         {
             // Permission Denial (SecurityException) происходит именно здесь
-            var inputStream = GetContentResolver().OpenInputStream(_contentUri);
+            var resolver = GetContentResolver();
+            if (resolver == null)
+                throw new InvalidOperationException("ContentResolver is not available");
+            var inputStream = resolver.OpenInputStream(_contentUri);
             if (inputStream == null)
             {
                 System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.OpenRead: OpenInputStream returned null for {_contentUri}");
@@ -215,7 +218,10 @@ public class AndroidFileContentSource : IFileContentSource
         {
             // Permission Denial (SecurityException) может произойти здесь, если нет разрешения на запись
             // OpenOutputStream с "w", "wt", "wa", "rw"
-            using var outputStream = GetContentResolver().OpenOutputStream(_contentUri, "w"); // "w" - перезаписать
+            var resolver = GetContentResolver();
+            if (resolver == null)
+                throw new InvalidOperationException("ContentResolver is not available");
+            using var outputStream = resolver.OpenOutputStream(_contentUri, "w"); // "w" - перезаписать
             if (outputStream == null)
             {
                 System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.SaveAsync: OpenOutputStream returned null for {_contentUri}");
@@ -255,7 +261,10 @@ public class AndroidFileContentSource : IFileContentSource
         {
             // Permission Denial (SecurityException) может произойти здесь
             // OpenOutputStream с "w" или "rw"
-            var outputStream = GetContentResolver().OpenOutputStream(_contentUri, "w"); // Открыть для перезаписи
+            var resolver = GetContentResolver();
+            if (resolver == null)
+                throw new InvalidOperationException("ContentResolver is not available");
+            var outputStream = resolver.OpenOutputStream(_contentUri, "w"); // Открыть для перезаписи
             if (outputStream == null)
             {
                 System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.OpenWriteAsync: OpenOutputStream returned null for {_contentUri}");

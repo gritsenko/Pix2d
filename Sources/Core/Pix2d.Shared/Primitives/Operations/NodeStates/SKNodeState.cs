@@ -1,14 +1,14 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 
 namespace Pix2d.Primitives.Operations;
 
 public class SKNodeState
 {
-    public SKNode TargetNode { get; set; }
+    public SKNode? TargetNode { get; set; }
 
-    public SkNodeStructureState StructureState { get; set; }
+    public SkNodeStructureState? StructureState { get; set; }
 
-    public SKNodeTransformState TransformState { get; set; }
+    public SKNodeTransformState? TransformState { get; set; }
 
     public SKNodeState(SKNode node)
     {
@@ -17,7 +17,7 @@ public class SKNodeState
 
     public void Apply()
     {
-            StructureState?.ApplyTo(TargetNode);
-            TransformState?.ApplyTo(TargetNode);
+            StructureState?.ApplyTo(TargetNode!);
+            TransformState?.ApplyTo(TargetNode!);
         }
 }

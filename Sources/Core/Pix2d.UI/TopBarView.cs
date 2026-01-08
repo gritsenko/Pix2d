@@ -1,4 +1,4 @@
-﻿using Avalonia.Styling;
+using Avalonia.Styling;
 using Pix2d.Command;
 using Pix2d.Plugins.Sprite.Commands;
 using Pix2d.Messages;
@@ -44,6 +44,7 @@ public class TopBarView : LocalizedComponentBase
                             .Content("\xe91d")
                             .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                             .Command(() => ViewCommands.ToggleMainMenuCommand)
+                            .ToolTip(L(ViewCommands.ToggleMainMenuCommand.Tooltip)())
                     ),
                 //CENTRAL BLOCK
                 new BlurPanel().Name("central-panel")
@@ -56,19 +57,22 @@ public class TopBarView : LocalizedComponentBase
                                     .Command(() => SpriteEditCommands.Clear)
                                     .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Label(L("Clear"))
-                                    .Content("\xe90f"),
+                                    .Content("\xe90f")
+                                    .ToolTip(L(SpriteEditCommands.Clear.Tooltip)()),
                                 new AppButton()
                                     .Name("export-button")
                                     .Label(L("Export"))
                                     .Command(() => ViewCommands.ShowExportDialogCommand)
                                     .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
-                                    .Content("\xe907"),
+                                    .Content("\xe907")
+                                    .ToolTip(L(ViewCommands.ShowExportDialogCommand.Tooltip)()),
                                 new AppToggleButton()
                                     .IsChecked(() => AppState.UiState.ShowExtraTools,
                                         v => AppState.UiState.ShowExtraTools = v)
                                     .Label(L("Tools"))
                                     .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Content("\xe909")
+                                    .ToolTip(L(ViewCommands.ToggleExtraToolsCommand.Tooltip)())
                             )
                     ),
                 //UNDO REDO BLOCK
@@ -80,6 +84,7 @@ public class TopBarView : LocalizedComponentBase
                                 new AppButton().Col(1)
                                     .Command(EditCommands.Undo)
                                     .Label(L("Undo"))
+                                    .ToolTip(L(EditCommands.Undo.Tooltip)())
                                     .Content(
                                         new Grid()
                                             .HorizontalAlignment(HorizontalAlignment.Stretch)
@@ -106,6 +111,7 @@ public class TopBarView : LocalizedComponentBase
                                     .Command(() => EditCommands.Redo)
                                     .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Content("\xe90d")
+                                    .ToolTip(L(EditCommands.Redo.Tooltip)())
                             )
                     )
             );

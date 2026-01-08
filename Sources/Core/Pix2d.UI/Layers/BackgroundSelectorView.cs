@@ -1,5 +1,6 @@
 ﻿using Pix2d.Common.Extensions;
 using Pix2d.CommonNodes;
+using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 
 namespace Pix2d.UI.Layers;
@@ -16,7 +17,7 @@ public class BackgroundSelectorView : LocalizedComponentBase
                     .CornerRadius(32)
                     .BorderThickness(1)
                     .BorderBrush(Colors.White.WithAlpha(0.3f).ToBrush().ToImmutable())
-                    .Background(() => AppState.SpriteEditorState.ShowBackground ? AppState.SpriteEditorState.BackgroundColor.ToBrush() : Brushes.Transparent)
+                    .Background(() => AppState.SpriteEditorState.ShowBackground ? AppState.SpriteEditorState.BackgroundColor.ToBrush() : StaticResources.Brushes.CheckerTilesBrush)
                     .Flyout(
                         new Flyout()
                             .Content(
@@ -41,8 +42,11 @@ public class BackgroundSelectorView : LocalizedComponentBase
                                             .IsChecked(() => AppState.SpriteEditorState.ShowBackground,
                                                 v =>
                                                 {
-                                                    AppState.SpriteEditorState.ShowBackground = v.Value;
-                                                    UpdateSprite();
+                                                    if (v.HasValue)
+                                                    {
+                                                        AppState.SpriteEditorState.ShowBackground = v.Value;
+                                                        UpdateSprite();
+                                                    }
                                                 })
                                             .Content(L("Show background"))
                                     )

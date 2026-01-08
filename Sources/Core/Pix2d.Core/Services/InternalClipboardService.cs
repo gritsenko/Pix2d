@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Pix2d.Abstract.Platform;
 using Pix2d.CommonNodes;
 using Pix2d.Plugins.Sprite.Editors;
@@ -15,7 +15,7 @@ public class InternalClipboardService : IClipboardService
     public IDialogService DialogService { get; }
     private AppState AppState { get; }
 
-    protected SKBitmap SavedBitmap { get; set; }
+    protected SKBitmap? SavedBitmap { get; set; }
 
     public InternalClipboardService(
         IDrawingService drawingService, 
@@ -32,9 +32,9 @@ public class InternalClipboardService : IClipboardService
     public virtual Task<SKBitmap?> GetImageFromClipboard()
     {
         if (SavedBitmap == null)
-            return Task.FromResult<SKBitmap>(null);
+            return Task.FromResult<SKBitmap?>(null);
 
-        return Task.FromResult(SavedBitmap.Copy());
+        return Task.FromResult<SKBitmap?>(SavedBitmap.Copy());
     }
 
     public virtual async void TryPaste()
@@ -45,15 +45,18 @@ public class InternalClipboardService : IClipboardService
             if (img != null)
             {
                 var dln = DrawingService?.DrawingLayer as SKNode;
-                var isResized = await TryToResizeCanvas(dln, img);
-                var localPos = dln.GetLocalPosition(ViewPortService.ViewPort.ViewPortCenterGlobal);
-                if (isResized)
+                if (dln != null)
                 {
-                    localPos = new SKPoint(0, 0);
-                    ViewPortService.ShowAll();
-                }
+                    var isResized = await TryToResizeCanvas(dln, img);
+                    var localPos = dln.GetLocalPosition(ViewPortService.ViewPort.ViewPortCenterGlobal);
+                    if (isResized)
+                    {
+                        localPos = new SKPoint(0, 0);
+                        ViewPortService.ShowAll();
+                    }
 
-                DrawingService?.PasteBitmap(img, localPos);
+                    DrawingService?.PasteBitmap(img, localPos);
+                }
             }
         }
         catch (Exception e)

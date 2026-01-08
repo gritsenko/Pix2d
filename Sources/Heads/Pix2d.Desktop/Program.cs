@@ -5,12 +5,14 @@ using Avalonia.Markup.Declarative;
 using Pix2d.Services;
 using Pix2d.UI;
 using Microsoft.Extensions.DependencyInjection;
+using System.Runtime.Versioning;
 
-#if Windows || WINDOWS_UWP
 using Microsoft.Win32;
-#endif
 
-[assembly: System.Reflection.Metadata.MetadataUpdateHandler(typeof(Avalonia.Markup.Declarative.HotReloadManager))]
+#if DEBUG
+[assembly: System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Hot reload uses RequiresUnreferencedCode; only enabled in Debug builds and suppressed for analyzers.")]
+[assembly: System.Reflection.Metadata.MetadataUpdateHandler(typeof(HotReloadManager))]
+#endif
 
 namespace Pix2d.Desktop;
 
@@ -73,19 +75,21 @@ class Program
         UwpPlatformStuffService.InitStoreContext();
 #endif
 
-#if Windows || WINDOWS_UWP
-        AssociatePix2dFiles();
-#endif
+        // Only attempt to associate files on Windows at runtime so analyzers and cross-platform builds don't warn.
+        if (OperatingSystem.IsWindows())
+        {
+            AssociatePix2dFiles();
+        }
     }
 
-
-#if Windows || WINDOWS_UWP
+    [SupportedOSPlatform("windows")]
     private static void AssociatePix2dFiles()
     {
         if (Environment.ProcessPath != null)
             AssociateFileTypeForCurrentUser(".pix2d", "Pix2d.Project", Environment.ProcessPath, "Pix2d Project File");
     }
 
+    [SupportedOSPlatform("windows")]
     private static void AssociateFileTypeForCurrentUser(string extension, string progId, string applicationPath, string description)
     {
         using (var extKey = Registry.CurrentUser.OpenSubKey($@"Software\Classes\{extension}", writable: false))
@@ -98,7 +102,7 @@ class Program
 
         using (var extKey = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{extension}"))
         {
-            extKey?.SetValue("", progId);
+            extKey.SetValue("", progId);
         }
 
         using (var progIdKey = Registry.CurrentUser.OpenSubKey($@"Software\Classes\{progId}", writable: false))
@@ -111,10 +115,9 @@ class Program
 
         using (var progIdKey = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{progId}"))
         {
-            progIdKey?.SetValue("", description);
-            progIdKey?.CreateSubKey(@"DefaultIcon")?.SetValue("", $"\"{applicationPath}\",0");
-            progIdKey?.CreateSubKey(@"shell\open\command")?.SetValue("", $"\"{applicationPath}\" \"%1\"");
+            progIdKey.SetValue("", description);
+            progIdKey.CreateSubKey(@"DefaultIcon").SetValue("", $"\"{applicationPath}\",0");
+            progIdKey.CreateSubKey(@"shell\open\command").SetValue("", $"\"{applicationPath}\" \"%1\"");
         }
     }
-#endif
 }

@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Avalonia.Platform.Storage;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -48,7 +48,7 @@ public class AvaloniaFileService(
 
     private IStorageProvider GetStorageProvider()
     {
-        return EditorApp.TopLevel.StorageProvider;
+        return EditorApp.TopLevel?.StorageProvider ?? throw new InvalidOperationException("StorageProvider is null");
     }
 
     public async Task<bool> SaveTextToFileWithDialogAsync(string text, string[] fileTypeFilter,

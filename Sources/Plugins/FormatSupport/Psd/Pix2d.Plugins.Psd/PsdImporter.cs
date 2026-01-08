@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Import;
+using Pix2d.Abstract.Import;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Plugins.Psd.PsdReader;
 using SkiaNodes;
@@ -12,7 +12,7 @@ namespace Pix2d.Plugins.Psd
         public async Task ImportToTargetNode(IEnumerable<IFileContentSource> files, IImportTarget targetNode)
         {
             throw new NotImplementedException("Chnage for new IIMpoportServie");
-
+#pragma warning disable CS0162 // Unreachable code detected
             var file = files.FirstOrDefault();
             if (file == null)
                 return;
@@ -37,6 +37,7 @@ namespace Pix2d.Plugins.Psd
 
             //targetNode.SelectedLayerIndex = 0;
             //targetNode.SetFrameIndex(0);
+#pragma warning restore CS0162 // Unreachable code detected
         }
 
         private void LoadFrameBitmaps(IImportTarget targetNode, PsdFile psdFile, SKSize size)
@@ -49,7 +50,6 @@ namespace Pix2d.Plugins.Psd
                 try
                 {
                     var bm = ImageDecoder.DecodeImageToSKBitmap(layer);
-                    var frameIndex = 0;
                     //if (bm != null)
                         //targetNode.UpdateLayerFrameFromBitmap(frameIndex, layerIndex, bm);
                 }

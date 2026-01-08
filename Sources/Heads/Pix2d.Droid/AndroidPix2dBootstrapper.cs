@@ -20,7 +20,11 @@ public class AndroidPix2dBootstrapper : Pix2dBootstrapperDI
         IFileContentSource? startupDoc = string.IsNullOrWhiteSpace(StartupDocument) ? null : new NetFileSource(StartupDocument); //for regular file paths (local app path)
 
         if (StartupDocument?.StartsWith("content:") == true)  // for external files 
-            startupDoc = new AndroidFileContentSource(Android.Net.Uri.Parse(StartupDocument));
+        {
+            var uri = Android.Net.Uri.Parse(StartupDocument);
+            if (uri != null)
+                startupDoc = new AndroidFileContentSource(uri);
+        }
 
         return new Pix2DAppSettings
         {

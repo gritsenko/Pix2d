@@ -1,12 +1,12 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 
 namespace Pix2d.Operations.Effects;
 
 public abstract class ChangeNodeEffectPropertyOperationBase<TValue> : EditOperationBase
 {
-    private SKNode[] _nodes;
-    private TValue[] _initialValues;
-    private TValue[] _finalValues;
+    private SKNode[]? _nodes;
+    private TValue[]? _initialValues;
+    private TValue[]? _finalValues;
 
     protected ChangeNodeEffectPropertyOperationBase(IEnumerable<SKNode> nodes, ISKNodeEffect effect, TValue oldValue, TValue newValue)
     {
@@ -18,33 +18,44 @@ public abstract class ChangeNodeEffectPropertyOperationBase<TValue> : EditOperat
 
     public void SetInitialData(IEnumerable<SKNode> nodes, ISKNodeEffect effect)
     {
+        _nodes = nodes.ToArray();
+        _initialValues = _nodes!.Select(GetValue).ToArray();
     }
     public virtual void SetFinalData()
     {
-        _finalValues = _nodes.Select(GetValue).ToArray();
+        if (_nodes != null)
+        {
+            _finalValues = _nodes!.Select(GetValue).ToArray();
+        }
     }
 
     public override void OnPerform()
     {
-        for (var i = 0; i < _nodes.Length; i++)
+        if (_nodes != null && _finalValues != null)
         {
-            var node = _nodes[i];
-            SetValue(node, _finalValues[i]);
+            for (var i = 0; i < _nodes.Length; i++)
+            {
+                var node = _nodes![i];
+                SetValue(node, _finalValues![i]);
+            }
         }
     }
 
     public override void OnPerformUndo()
     {
-        for (var i = 0; i < _nodes.Length; i++)
+        if (_nodes != null && _initialValues != null)
         {
-            var node = _nodes[i];
-            SetValue(node, _initialValues[i]);
+            for (var i = 0; i < _nodes.Length; i++)
+            {
+                var node = _nodes![i];
+                SetValue(node, _initialValues![i]);
+            }
         }
     }
 
     public override IEnumerable<SKNode> GetEditedNodes()
     {
-        return _nodes;
+        return _nodes ?? Array.Empty<SKNode>();
     }
 
 }

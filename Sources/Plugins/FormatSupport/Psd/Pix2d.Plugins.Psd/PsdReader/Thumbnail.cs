@@ -1,10 +1,10 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 
 namespace Pix2d.Plugins.Psd.PsdReader;
 
 public class Thumbnail : ImageResource
 {
-    public SKBitmap Image { get; private set; }
+    public SKBitmap? Image { get; private set; }
 
     public Thumbnail(ImageResource imageResource) : base(imageResource)
     {
@@ -23,7 +23,7 @@ public class Thumbnail : ImageResource
                 using (var memoryStream = new MemoryStream(dataReader.ReadBytes(
                            (int) (dataReader.BaseStream.Length - dataReader.BaseStream.Position))))
                 {
-                    var skImg = SKBitmap.Decode(memoryStream);
+                    Image = SKBitmap.Decode(memoryStream);
                     //Image = (Bitmap) System.Drawing.Image.FromStream(memoryStream).Clone();
                 }
 

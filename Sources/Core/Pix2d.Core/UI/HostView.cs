@@ -9,13 +9,13 @@ public class HostView : ComponentBase
     protected override object Build() =>
         new Grid()
             .Children(
-                new TextBlock()
+                new TextBlock()!
                     .Ref(out _textBlock)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Foreground(Colors.White.ToBrush())
                     .Text("Loading..."),
-                new ProgressBar()
+                new ProgressBar()!
                     .Ref(out _progressBar)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .HorizontalAlignment(HorizontalAlignment.Center)
@@ -24,8 +24,8 @@ public class HostView : ComponentBase
                     .Margin(top: 50)
             );
 
-    private TextBlock _textBlock;
-    private ProgressBar _progressBar;
+    private TextBlock _textBlock = null!;
+    private ProgressBar _progressBar = null!;
 
     public void LoadMainView(Type mainViewType, IServiceProvider serviceProvider)
     {
@@ -36,7 +36,7 @@ public class HostView : ComponentBase
                 if (ActivatorUtilities.CreateInstance(serviceProvider, mainViewType) is not ViewBase mainLayoutView)
                     throw new Exception("Can't load main view!");
 
-                mainLayoutView.ViewInitialized += () => UpdateCanvas(mainLayoutView, serviceProvider);
+                mainLayoutView.ViewInitialized += () => UpdateCanvas(mainLayoutView!, serviceProvider);
 
                 Child = mainLayoutView;
                 UpdateCanvas(mainLayoutView, serviceProvider);
@@ -44,8 +44,8 @@ public class HostView : ComponentBase
             catch (Exception ex)
             {
                 Logger.LogException(ex);
-                _textBlock.Text = ex.Message;
-                _progressBar.IsVisible = false;
+                if (_textBlock != null) _textBlock.Text = ex.Message;
+                if (_progressBar != null) _progressBar.IsVisible = false;
             }
         });
     }
@@ -58,7 +58,7 @@ public class HostView : ComponentBase
         var container = mainView.Child
             .GetLogicalChildren()
             .OfType<Border>()
-            .FirstOrDefault(x => x.Name == "Pix2dCanvasContainer");
+            .FirstOrDefault(x => x.Name == "Pix2dCanvasContainer")!;
 
         if (container is Decorator dec)
             dec.Child = new SkiaCanvas(serviceProvider);
@@ -74,8 +74,9 @@ public class HostView : ComponentBase
             var layoutTransformControl = Child
                 .GetLogicalDescendants()
                 .OfType<LayoutTransformControl>()
-                .FirstOrDefault(x => x.Name == "LayoutTransformControl");
-            layoutTransformControl.LayoutTransform = new Avalonia.Media.ScaleTransform(scale, scale);
+                .FirstOrDefault(x => x.Name == "LayoutTransformControl")!;
+            if (layoutTransformControl != null)
+                layoutTransformControl.LayoutTransform = new Avalonia.Media.ScaleTransform(scale, scale);
         });
     }
 

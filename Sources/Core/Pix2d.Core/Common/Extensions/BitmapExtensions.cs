@@ -1,4 +1,4 @@
-﻿using Avalonia.Media.Imaging;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using SkiaSharp;
 
@@ -6,7 +6,7 @@ namespace Pix2d.Common.Extensions;
 
 public static class BitmapExtensions
 {
-    public static Bitmap ToBitmap(this SKBitmap bitmap)
+    public static Bitmap? ToBitmap(this SKBitmap bitmap)
     {
         if (bitmap == null)
             return null;

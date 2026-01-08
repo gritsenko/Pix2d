@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Pix2d.Abstract.Operations;
 using SkiaNodes;
@@ -14,8 +14,8 @@ public class BulkEditOperation : EditOperationBase, ISpriteEditorOperation
 
     public bool Empty => !_operations.Any();
 
-    public HashSet<int> AffectedFrameIndexes { get; }
-    public HashSet<int> AffectedLayerIndexes { get; }
+    public HashSet<int> AffectedFrameIndexes { get; private set; } = new();
+    public HashSet<int> AffectedLayerIndexes { get; private set; } = new();
 
     public BulkEditOperation(params IEditOperation[] operations)
     {

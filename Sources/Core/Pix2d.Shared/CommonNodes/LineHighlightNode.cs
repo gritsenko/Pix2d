@@ -11,27 +11,37 @@ public class LineHighlightNode : SKNode, IDisposable
 {
     private SKPoint _offset;
     private SKSize _originalSize;
-    private SKPath Path { get; set; }
-    private NodesSelection TargetSelection { get; set; }
+    private SKPath? Path { get; set; }
+    private NodesSelection? TargetSelection { get; set; }
 
     public LineHighlightNode()
     {
+        Path = new SKPath();
         NodeInvalidated += AdjustToTarget;
     }
 
-    public void SetSelection(NodesSelection targetSelection, SKPath selectionPath)
+    public void SetSelection(NodesSelection? targetSelection, SKPath? selectionPath)
     {
-        TargetSelection = targetSelection;
         Path = selectionPath;
-        _offset = TargetSelection.Frame.PivotPosition - TargetSelection.Frame.Position;
-        _originalSize = TargetSelection.Frame.Size;
+        if (targetSelection?.Frame != null)
+        {
+            TargetSelection = targetSelection;
+            _offset = targetSelection.Frame!.PivotPosition - targetSelection.Frame!.Position;
+            _originalSize = targetSelection.Frame!.Size;
+        }
+        else
+        {
+            TargetSelection = null;
+        }
 
-        AdjustToTarget(null, null);
+        AdjustToTarget(this, EventArgs.Empty);
     }
 
-    private void AdjustToTarget(object sender, EventArgs e)
+    private void AdjustToTarget(object? sender, EventArgs e)
     {
-        var frame = TargetSelection.Frame;
+        if (TargetSelection?.Frame == null) return;
+
+        var frame = TargetSelection!.Frame!;
         Size = frame.Size;
         Position = frame.Position;
         Rotation = frame.Rotation;

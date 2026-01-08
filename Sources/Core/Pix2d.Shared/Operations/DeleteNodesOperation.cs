@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Pix2d.Abstract.Operations;
 using SkiaNodes;
@@ -8,8 +8,8 @@ namespace Pix2d.Operations;
 public class DeleteNodesOperation : EditOperationBase
 {
     private readonly IEnumerable<SKNode> _nodes;
-    private NodeStructureState[] _deletedNodes;
-    private SKNode[] _parentsOfDeletedNodes;
+    private NodeStructureState[] _deletedNodes = [];
+    private SKNode[] _parentsOfDeletedNodes = [];
 
     public override bool AffectsNodeStructure => true;
 
@@ -26,7 +26,7 @@ public class DeleteNodesOperation : EditOperationBase
 
             foreach (var node in _deletedNodes)
             {
-                node.Parent.Nodes.Remove(node.Node);
+                node.Parent?.Nodes.Remove(node.Node);
 
                 //if (node.Node is SymbolNode symbol)
                 //{
@@ -94,7 +94,7 @@ public class DeleteNodesOperation : EditOperationBase
     {
             foreach (var deletedNode in _deletedNodes.OrderBy(n => n.NestingLevel).ThenBy(n => n.Index))
             {
-                deletedNode.Parent.Nodes.Insert(deletedNode.Index, deletedNode.Node);
+                deletedNode.Parent?.Nodes.Insert(deletedNode.Index, deletedNode.Node);
 
                 //if (deletedNode.Node is SymbolNode symbol)
                 //{

@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Pix2d.Messages;
 using System.Diagnostics;
 
@@ -40,7 +40,7 @@ public abstract class ReviewService : IReviewService, IDisposable
         "  👍  "
     };
 
-    private Dictionary<string, string> _lastReviewArgs;
+    private Dictionary<string, string> _lastReviewArgs = null!;
 
     protected ReviewService(ISettingsService settingsService, IMessenger messenger, AppState appState)
     {
@@ -173,7 +173,7 @@ public abstract class ReviewService : IReviewService, IDisposable
             args["buttonText"] = RatePromptButtonText;
             _lastReviewArgs = args;
         }
-        Logger.LogEventWithParams("*Review: " + action, args);
+        Logger.LogEventWithParams("*Review: " + action, (IDictionary<string, string?>?)args);
     }
 
     private static string FormatTimespan(TimeSpan period)

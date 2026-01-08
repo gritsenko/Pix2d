@@ -159,23 +159,16 @@ public class FloodFiller
         var di = 0;
         for (var i = 0; i < pixels.Length; i++, di = i * 4)
         {
-            switch (Pix2DAppSettings.ColorType)
+            var color = Pix2DAppSettings.ColorType switch
             {
-                case SKColorType.Bgra8888:
-                    bytes[di] = pixels[i].Blue;
-                    bytes[di+1] = pixels[i].Green;
-                    bytes[di+2] = pixels[i].Red;
-                    bytes[di+3] = pixels[i].Alpha;
-                    break;
-                case SKColorType.Rgba8888:
-                    bytes[di] = pixels[i].Red;
-                    bytes[di+1] = pixels[i].Green;
-                    bytes[di+2] = pixels[i].Blue;
-                    bytes[di+3] = pixels[i].Alpha;
-                    break;
-                default:
-                    throw new Exception("Sorry, I don't support this color type");
-            }
+                SKColorType.Bgra8888 => (pixels[i].Blue, pixels[i].Green, pixels[i].Red, pixels[i].Alpha),
+                SKColorType.Rgba8888 => (pixels[i].Red, pixels[i].Green, pixels[i].Blue, pixels[i].Alpha),
+                _ => throw new Exception("Sorry, I don't support this color type")
+            };
+            bytes[di] = color.Item1;
+            bytes[di+1] = color.Item2;
+            bytes[di+2] = color.Item3;
+            bytes[di+3] = color.Item4;
         }
         return bytes;
     }

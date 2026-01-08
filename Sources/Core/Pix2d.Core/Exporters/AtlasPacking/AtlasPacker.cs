@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+#nullable enable
+using System.Collections.Generic;
 using System.Linq;
 using SkiaNodes.Common;
 using SkiaSharp;
@@ -18,7 +19,7 @@ public class AtlasNode
     public int Width;
     public int Height;
 
-    public string TextureKey;
+    public string? TextureKey;
     public SplitType SplitType = SplitType.Horizontal;
     public int AtlasIndex;
 
@@ -44,11 +45,11 @@ public class AtlasPacker
     public int Size = 1024;
     public int Padding = 2;
 
-    public List<Atlas> Atlasses;
+    public List<Atlas>? Atlasses;
 
-    public Dictionary<string, SKBitmap> _sourceBitmaps = new Dictionary<string, SKBitmap>();
+    public Dictionary<string, SKBitmap?> _sourceBitmaps = new Dictionary<string, SKBitmap?>();
 
-    public Dictionary<string, SKBitmap> SkippedTextures = new Dictionary<string, SKBitmap>();
+    public Dictionary<string, SKBitmap?> SkippedTextures = new Dictionary<string, SKBitmap?>();
     public void AddBitmap(string key, SKBitmap bm)
     {
         _sourceBitmaps[key] = bm;
@@ -71,24 +72,25 @@ public class AtlasPacker
 
     }
 
-    internal bool TryGetAtlasNode(string key, out AtlasNode node)
-    {
-        node = null;
-        foreach (var atlass in Atlasses)
-            foreach (var atlassNode in atlass.Nodes)
-                if (atlassNode.TextureKey == key)
-                {
-                    node = atlassNode;
-                    return true;
-                }
+     internal bool TryGetAtlasNode(string key, out AtlasNode? node)
+     {
+         node = null;
+         foreach (var atlass in Atlasses ?? [])
+             foreach (var atlassNode in atlass.Nodes)
+                 if (atlassNode.TextureKey == key)
+                 {
+                     node = atlassNode;
+                     return true;
+                 }
 
-        return false;
-    }
+         return false;
+     }
 
     private void UpdateSkippedTextures()
     {
         foreach (var sourceBitmap in _sourceBitmaps.ToArray())
         {
+            if (sourceBitmap.Value == null) continue;
             if (sourceBitmap.Value.Width > Size || sourceBitmap.Value.Height > Size)
             {
                 SkippedTextures[sourceBitmap.Key] = sourceBitmap.Value;
@@ -97,37 +99,38 @@ public class AtlasPacker
         }
     }
 
-    private void LayoutAtlas(ref List<string> textures, Atlas atlas)
-    {
-        var root = new AtlasNode(Size);
-        var freeNodes = new Queue<AtlasNode>(root.Yield());
+     private void LayoutAtlas(ref List<string> textures, Atlas atlas)
+     {
+         var root = new AtlasNode(Size);
+         var freeNodes = new Queue<AtlasNode>(root.Yield());
 
-        while (freeNodes.Count > 0 && textures.Count > 0)
-        {
-            var node = freeNodes.Dequeue();
+         while (freeNodes.Count > 0 && textures.Count > 0)
+         {
+             var node = freeNodes.Dequeue();
 
-            if (TryFindBestFitForNode(node, textures, out var bestFitKey))
-            {
-                var bestFit = _sourceBitmaps[bestFitKey];
+             if (TryFindBestFitForNode(node, textures, out var bestFitKey) && bestFitKey != null)
+             {
+                 var bestFit = _sourceBitmaps[bestFitKey];
+                 if (bestFit == null) continue;
 
-                if (node.SplitType == SplitType.Horizontal)
-                    HorizontalSplit(node, bestFit.Width, bestFit.Height, freeNodes);
-                else
-                    VerticalSplit(node, bestFit.Width, bestFit.Height, freeNodes);
+                 if (node.SplitType == SplitType.Horizontal)
+                     HorizontalSplit(node, bestFit.Width, bestFit.Height, freeNodes);
+                 else
+                     VerticalSplit(node, bestFit.Width, bestFit.Height, freeNodes);
 
-                node.TextureKey = bestFitKey;
-                node.Width = bestFit.Width;
-                node.Height = bestFit.Height;
-                node.AtlasIndex = Atlasses.Count;
+                 node.TextureKey = bestFitKey;
+                 node.Width = bestFit.Width;
+                 node.Height = bestFit.Height;
+                 node.AtlasIndex = Atlasses!.Count;
 
-                textures.Remove(bestFitKey);
-            }
+                 textures.Remove(bestFitKey);
+             }
 
-            atlas.Nodes.Add(node);
-        }
-    }
+             atlas.Nodes.Add(node);
+         }
+     }
 
-    private bool TryFindBestFitForNode(AtlasNode node, List<string> textures, out string bestFitKey)
+    private bool TryFindBestFitForNode(AtlasNode node, List<string> textures, out string? bestFitKey)
     {
         bestFitKey = null;
         float nodeArea = node.Width * node.Height;
@@ -136,7 +139,7 @@ public class AtlasPacker
         foreach (var key in textures)
         {
             var ti = _sourceBitmaps[key];
-            if (ti.Width <= node.Width && ti.Height <= node.Height)
+            if (ti?.Width <= node.Width && ti?.Height <= node.Height)
             {
                 float textureArea = ti.Width * ti.Height;
                 float coverage = textureArea / nodeArea;

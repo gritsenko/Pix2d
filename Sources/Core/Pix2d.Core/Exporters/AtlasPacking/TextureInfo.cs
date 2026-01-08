@@ -1,11 +1,11 @@
-﻿namespace Pix2d.Exporters.AtlasPacking;
+namespace Pix2d.Exporters.AtlasPacking;
 
 public class TextureInfo
 {
-    public string Key;
+    public string? Key;
     public bool IsInAtlas;
-    public string Url;
-    public string AtlasKey;
+    public string? Url;
+    public string? AtlasKey;
     public int X;
     public int Y;
     public int Width;

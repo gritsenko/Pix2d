@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Plugins.Drawing.Common.Drawing;
 using SkiaSharp;
 
@@ -9,7 +9,7 @@ public class SameColorSelector : IPixelSelector
     private readonly SKBitmap _bitmap;
     private SKPointI _pixelPos;
     private SKColor _color;
-    private byte[] _pixelsBuff;
+    private byte[]? _pixelsBuff;
     private int _offsetX;
     private int _offsetY;
     private int _width;
@@ -18,9 +18,9 @@ public class SameColorSelector : IPixelSelector
     private int _imageTop;
     private int _imageRight;
     private int _imageBot;
-    private SKPath _selectionPath;
+    private SKPath? _selectionPath;
 
-    public SKPath GetSelectionPath()
+    public SKPath? GetSelectionPath()
     {
         return _selectionPath;
     }
@@ -87,10 +87,12 @@ public class SameColorSelector : IPixelSelector
                 switch (Pix2DAppSettings.ColorType)
                 {
                     case SKColorType.Bgra8888:
+#pragma warning disable CS0162
                         if (spanSrc[srcIndex] == _color.Blue
                             && spanSrc[srcIndex + 1] == _color.Green
                             && spanSrc[srcIndex + 2] == _color.Red
                             && spanSrc[srcIndex + 3] == _color.Alpha) isSameColor = true;
+#pragma warning restore CS0162
                         break;
                     case SKColorType.Rgba8888:
                         if (spanSrc[srcIndex] == _color.Red
@@ -127,7 +129,7 @@ public class SameColorSelector : IPixelSelector
         _width = Math.Max(0, right - left + 1);
         _height = Math.Max(0, bottom - top + 1);
 
-        if (highlightSelection)
+        if (highlightSelection && _pixelsBuff != null)
         {
             _selectionPath = Algorithms.GetContour(selectionPoints, _pixelsBuff,
                 new SKRectI(0, 0, _bitmap.Width - 1, _bitmap.Height - 1), new SKPointI(0, 0),
@@ -143,8 +145,8 @@ public class SameColorSelector : IPixelSelector
     {
         if (x < _imageLeft || y < _imageTop || x > _imageRight || y > _imageBot)
             return false;
-
-        return _pixelsBuff[x + (y ) * _bitmap.Width] > 0;
+ 
+        return _pixelsBuff != null && _pixelsBuff[x + (y ) * _bitmap.Width] > 0;
     }
 
     public SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap)
@@ -168,7 +170,7 @@ public class SameColorSelector : IPixelSelector
                 var srcY = y + _offsetY;
 
                 if (srcX >= 0 && srcY >= 0 && srcX < sourceBitmap.Width && srcY < sourceBitmap.Height)
-                    if (_pixelsBuff[srcX + srcY * sourceBitmap.Width] > 0)
+                    if (_pixelsBuff![srcX + srcY * sourceBitmap.Width] > 0)
                     {
                         var destIndex = (x + y * _width) * 4;
                         var srcIndex = (srcX + srcY * srcWidth) * 4;

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Pix2d.Abstract.Platform;
 using System.Globalization;
 
@@ -7,7 +7,7 @@ namespace Pix2d.Common;
 public class LocalizationService : ILocalizationService
 {
     static List<LocalizationDictionary> _strings = new();
-    static LocalizationDictionary _currentStrings;
+    static LocalizationDictionary? _currentStrings;
     private readonly AppState _appState;
     private readonly ISettingsService _settingsService;
 
@@ -15,6 +15,9 @@ public class LocalizationService : ILocalizationService
     {
         get
         {
+            if (_currentStrings == null)
+                return name;
+
             if (!_currentStrings.Strings.TryGetValue(name, out var value))
             {
                 foreach (var dict in _strings)
@@ -34,7 +37,7 @@ public class LocalizationService : ILocalizationService
         await fileService.SaveTextToFileWithDialogAsync(stringsJson, [".json"], defaultFileName: "strings");
     }
 
-    public LocalizationService(AppState appState, ISettingsService settingsService, Func<string> getStringsProviderFunc = null)
+    public LocalizationService(AppState appState, ISettingsService settingsService, Func<string>? getStringsProviderFunc = null)
     {
         _appState = appState;
         _settingsService = settingsService;
@@ -42,14 +45,14 @@ public class LocalizationService : ILocalizationService
         //using in tests
         if (getStringsProviderFunc != null)
         {
-            _strings = JsonConvert.DeserializeObject<List<LocalizationDictionary>>(getStringsProviderFunc());
+            _strings = JsonConvert.DeserializeObject<List<LocalizationDictionary>>(getStringsProviderFunc()) ?? new List<LocalizationDictionary>();
         }
         else
         {
             using var stream = ResourceManager.GetAsset("/Assets/strings.json");
             using var sr = new StreamReader(stream);
             var strings = sr.ReadToEnd();
-            _strings = JsonConvert.DeserializeObject<List<LocalizationDictionary>>(strings);
+            _strings = JsonConvert.DeserializeObject<List<LocalizationDictionary>>(strings) ?? new List<LocalizationDictionary>();
         }
 
         if (!_strings.Any())
@@ -63,16 +66,16 @@ public class LocalizationService : ILocalizationService
         _appState.Locale = currentLocale;
 
         _currentStrings =
-            _strings.FirstOrDefault(x => x.Locale.Equals(currentLocale, StringComparison.InvariantCultureIgnoreCase))
-            ?? _strings.FirstOrDefault(x => x.Locale.Equals("en", StringComparison.InvariantCultureIgnoreCase))
-            ?? _strings.First(); // fallback to first available if "en" is missing
+            _strings.FirstOrDefault(x => x.Locale?.Equals(currentLocale, StringComparison.InvariantCultureIgnoreCase) ?? false)
+            ?? _strings.FirstOrDefault(x => x.Locale?.Equals("en", StringComparison.InvariantCultureIgnoreCase) ?? false)
+            ?? _strings.FirstOrDefault()!; // fallback to first available if "en" is missing
     }
 
     public void SetLocale(string locale)
     {
         var currentLocale = locale;
 
-        var dict = _strings.FirstOrDefault(x => x.Locale.Equals(currentLocale, StringComparison.InvariantCultureIgnoreCase));
+        var dict = _strings.FirstOrDefault(x => x.Locale?.Equals(currentLocale, StringComparison.InvariantCultureIgnoreCase) ?? false);
         if (dict != null)
         {
             _currentStrings = dict;
@@ -85,6 +88,6 @@ public class LocalizationService : ILocalizationService
 
 public class LocalizationDictionary
 {
-    public string Locale { get; set; }
+    public string? Locale { get; set; }
     public Dictionary<string, string> Strings = new();
 }

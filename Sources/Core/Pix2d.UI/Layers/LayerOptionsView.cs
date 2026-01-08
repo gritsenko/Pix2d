@@ -1,4 +1,5 @@
-﻿using Pix2d.CommonNodes;
+#pragma warning disable CS8603
+using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.Editors;
@@ -100,8 +101,9 @@ public class LayerOptionsView : LocalizedComponentBase
                                     .ItemsSource(AvailableBlendModes)
                                     .DataTemplates(
                                         new FuncDataTemplate<BlendModeItem>((itemVm, ns) =>
-                                            new TextBlock().Text(L(itemVm.Title)())))
-                                    .SelectedItem(() => BlendMode, v => BlendMode = (BlendModeItem)v)
+                                            (Control)new TextBlock().Text(L(itemVm.Title)()))!
+                                    )!
+                                    .SelectedItem(() => BlendMode, v => BlendMode = v as BlendModeItem)
                             ),
                         new Grid()
                             .Cols("*, 32")
@@ -124,7 +126,7 @@ public class LayerOptionsView : LocalizedComponentBase
                                             .ItemTemplate((IEffectItem item) =>
                                                 new MenuItem()
                                                     .Header(item.Title)
-                                                    .OnClick(_ => EffectsService.AddEffect(Layer, item))
+                                                    .OnClick(_ => EffectsService.AddEffect(Layer!, item))
                                             )
                                     ),
 
@@ -250,12 +252,14 @@ public class LayerOptionsView : LocalizedComponentBase
 
     private void OnEffectDeleted(ISKNodeEffect? effect)
     {
-        EffectsService.RemoveEffect(Layer, effect);
+        if (Layer != null && effect != null)
+            EffectsService.RemoveEffect(Layer, effect);
     }
 
     private void OnEffectBaked(ISKNodeEffect? effect)
     {
-        EffectsService.BakeEffect(Layer, effect);
+        if (Layer != null && effect != null)
+            EffectsService.BakeEffect(Layer, effect);
     }
 
 

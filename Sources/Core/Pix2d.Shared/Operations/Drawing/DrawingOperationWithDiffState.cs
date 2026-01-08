@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
 using Pix2d.Operations;
 using SkiaNodes;
@@ -16,9 +16,11 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
     private int _layerIndex;
     private int _finalFrame;
     private int _finalLayerIndex;
-    private readonly byte[] _initialData;
-    public HashSet<int> AffectedFrameIndexes { get; }
-    public HashSet<int> AffectedLayerIndexes { get; }
+#pragma warning disable CS0169
+    private readonly byte[]? _initialData;
+#pragma warning restore CS0169
+    public HashSet<int> AffectedFrameIndexes { get; } = [];
+    public HashSet<int> AffectedLayerIndexes { get; } = [];
 
     public DrawingOperationWithDiffState(IDrawingTarget drawingTarget, List<DiffBlock> changes)
     {
@@ -71,7 +73,8 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
 
     public override IEnumerable<SKNode> GetEditedNodes()
     {
-        yield return _drawingTarget as SKNode;
+        if (_drawingTarget is SKNode node)
+            yield return node;
     }
 
     public IDrawingTarget GetDrawingTarget() => _drawingTarget;
@@ -83,7 +86,7 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
 
     public void Dispose()
     {
-        _changes = null;
+        _changes.Clear();
     }
 
     public bool CanMerge(DrawingOperationWithDiffState operation)

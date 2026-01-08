@@ -1,10 +1,9 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using Pix2d.Abstract.Platform;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Markup.Declarative;
 using Pix2d.Plugins.PixelText;
@@ -60,9 +59,14 @@ public class TextBarView : ComponentBase
                                             .Width(180)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .ItemsSource(Fonts)
-                                            .SelectedItem(() => SelectedFont, v => SelectedFont = (FontItemViewModel?)v)
-                                            .ItemTemplate((FontItemViewModel item) =>
-                                                new TextBlock().Width(150).Text(item?.Name ?? "")),
+                                            .SelectedItem(() => SelectedFont!, v => 
+                                            {
+                                                if (v is FontItemViewModel font)
+                                                    SelectedFont = font;
+                                            })
+#pragma warning disable CS8603
+                                            .ItemTemplate((FontItemViewModel? item) => CreateFontItemTemplate(item!)),
+#pragma warning restore CS8603
 
                                         new TextBlock()
                                             .Margin(8, 0)
@@ -130,56 +134,92 @@ public class TextBarView : ComponentBase
     [Inject] public IFontService FontService { get; set; } = null!;
     [Inject] public AppState AppState { get; set; } = null!;
 
-    private PixelTextTool _pixelTextTool => AppState.ToolsState.Tools
-        .FirstOrDefault(x => x.ToolType == typeof(PixelTextTool))
-        .ToolInstance as PixelTextTool;
+    private PixelTextTool? _pixelTextTool 
+    { 
+        get 
+        {
+            var tool = AppState.ToolsState.Tools
+                .FirstOrDefault(x => x.ToolType == typeof(PixelTextTool));
+            return tool?.ToolInstance as PixelTextTool;
+        }
+    }
 
     public string Text
     {
         get => _pixelTextTool?.Text ?? "";
         set
         {
-            _pixelTextTool.Text = value;
-            OnPropertyChanged();
-            StateHasChanged();
+            if (_pixelTextTool != null)
+            {
+                _pixelTextTool.Text = value;
+                OnPropertyChanged();
+                StateHasChanged();
+            }
         }
     }
 
     public bool IsBold
     {
         get => _pixelTextTool?.IsBold ?? false;
-        set => _pixelTextTool.IsBold = value;
+        set
+        {
+            if (_pixelTextTool != null)
+                _pixelTextTool.IsBold = value;
+        }
     }
 
 
     public bool IsItalic
     {
         get => _pixelTextTool?.IsItalic ?? false;
-        set => _pixelTextTool.IsItalic = value;
+        set
+        {
+            if (_pixelTextTool != null)
+                _pixelTextTool.IsItalic = value;
+        }
     }
 
 
     public bool IsAliased
     {
         get => _pixelTextTool?.IsAliased ?? false;
-        set => _pixelTextTool.IsAliased = value;
+        set
+        {
+            if (_pixelTextTool != null)
+                _pixelTextTool.IsAliased = value;
+        }
     }
 
     public FontItemViewModel? SelectedFont
     {
-        get => Fonts.FirstOrDefault(x =>
-            x.Name.Equals(_pixelTextTool?.SelectedFont, StringComparison.InvariantCultureIgnoreCase));
+        get
+        {
+            var selectedFontName = _pixelTextTool?.SelectedFont;
+            if (selectedFontName == null)
+                return null;
+            
+            var result = Fonts.FirstOrDefault(x =>
+                x.Name.Equals(selectedFontName, StringComparison.InvariantCultureIgnoreCase))!;
+            return result;
+        }
         set
         {
-            _pixelTextTool.SelectedFont = value?.Name ?? "";
-            OnPropertyChanged();
+            if (_pixelTextTool != null)
+            {
+                _pixelTextTool.SelectedFont = value?.Name ?? "";
+                OnPropertyChanged();
+            }
         }
     }
 
     public int FontSize
     {
         get => (int)(_pixelTextTool?.FontSize ?? 14);
-        set => _pixelTextTool.FontSize = value;
+        set
+        {
+            if (_pixelTextTool != null)
+                _pixelTextTool.FontSize = value;
+        }
     }
 
     private void OnApplyButtonClicked()
@@ -211,19 +251,27 @@ public class TextBarView : ComponentBase
             // Debug.WriteLine(string.Format("Font: {0}", font));
         }
 
-        SelectedFont =
-            Fonts.FirstOrDefault(x => x.Name.Equals("Arial", StringComparison.InvariantCultureIgnoreCase)) ??
-            Fonts.FirstOrDefault();
+        if (_pixelTextTool != null)
+        {
+            SelectedFont =
+                Fonts.FirstOrDefault(x => x.Name.Equals("Arial", StringComparison.InvariantCultureIgnoreCase)) ??
+                Fonts.FirstOrDefault();
+        }
 
         StateHasChanged();
     }
 
     protected virtual void OnTextApplied()
     {
-        if (AppState.ToolsState.CurrentTool.ToolInstance == _pixelTextTool)
+        if (_pixelTextTool != null && AppState.ToolsState.CurrentTool?.ToolInstance == _pixelTextTool)
         {
             _pixelTextTool.ApplyText(Text);
         }
+    }
+
+    private TextBlock CreateFontItemTemplate(FontItemViewModel? item)
+    {
+        return new TextBlock().Width(150).Text(item?.Name ?? "")!;
     }
 
     public class FontItemViewModel(string fontName)
