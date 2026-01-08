@@ -146,7 +146,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
         throw new NotImplementedException();
     }
 
-    public bool HasKeyboard => false;
+    public bool HasKeyboard => true;
     public bool CanShare => true;
     public async void Share(IStreamExporter exporter, double scale)
     {
