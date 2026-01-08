@@ -138,8 +138,9 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
         paint.Color = StrokeColor;
         canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(w / 2), paint);
 
+#if DEBUG
         DrawBoundingBox(canvas, vp, 2, BBoxColor);
-
+#endif
         canvas.Restore();
         //DrawBoundingBox(canvas, vp, 2, StrokeColor);
 

@@ -41,10 +41,6 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
     public void SetFinalData(byte[]? finalData)
     {
         _finalData = finalData;
-        if (_finalData != null && _finalData[0] == 0)
-        {
-            // Debugger.Break();
-        }
 
         if (_drawingTarget is IAnimatedNode sprite)
         {
