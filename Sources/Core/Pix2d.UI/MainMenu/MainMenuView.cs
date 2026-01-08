@@ -56,11 +56,11 @@ public class MainMenuView : LocalizedComponentBase
                 .Icon("\xEADF")
                 .ContentViewType(typeof(InfoView))
                 .OnClicked(SelectMenuItem),
-            //new MainMenuItemView()
-            //    .Header(L("Commands"))
-            //    .Icon("\xEADF")
-            //    .ContentViewType(typeof(InfoView))
-            //    .OnClicked(SelectMenuItem),
+            new MainMenuItemView()
+                .Header(L("Commands"))
+                .Icon("\xE76D")
+                .ContentViewType(typeof(CommandsView))
+                .OnClicked(SelectMenuItem),
             new MainMenuItemView()
                 .Header(L("New"))
                 .Icon("\xE7C3")

@@ -121,13 +121,10 @@ public class InfoView : LocalizedComponentBase
                             .Margin(8, 0, 0, 0)
                             .OnClick(_ => ResetScale())
                             .Content(L("Reset"))
-                    )),
-
-                new TextBlock().Text(L("Keyboard shortcuts:")).Margin(0, 32, 0, 16).FontSize(20)
-                    .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
-
-                new KeyShortcutsView()
-                    .IsVisible(PlatformStuffService.HasKeyboard)
+                    )
+                ),
+                new StackPanel()
+                    .Children()
             ));
 
     [Inject] public IMessenger Messenger { get; set; } = null!;
@@ -159,5 +156,4 @@ public class InfoView : LocalizedComponentBase
         AppState.UiScale = 1.0;
         ApplyScale();
     }
-
 }

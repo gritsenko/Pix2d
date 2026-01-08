@@ -6,7 +6,6 @@ using Pix2d.UI.Resources;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Pix2d.Common.Extensions;
-using Pix2d.UI.Shared;
 using Pix2d.Command;
 
 namespace Pix2d.UI.MainMenu;
