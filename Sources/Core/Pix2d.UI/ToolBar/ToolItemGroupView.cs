@@ -72,7 +72,7 @@ public class ToolItemGroupView : LocalizedComponentBase
         {
             AppState.UiState.ShowToolGroup = false;
             if (ActiveItem != null)
-                ToolService.ActivateTool(ActiveItem.Name);
+                ToolService.ActivateTool(ActiveItem.ToolType);
         }
 
         this.StateHasChanged();

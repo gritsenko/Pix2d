@@ -1,7 +1,6 @@
 using Avalonia.Interactivity;
 using Pix2d.Abstract.Tools;
 using Pix2d.UI.Resources;
-using Pix2d.UI.Shared;
 
 namespace Pix2d.UI.ToolBar;
 
@@ -102,7 +101,7 @@ public class ToolItemView : LocalizedComponentBase
         else
         {
             AppState.UiState.ShowToolProperties = false;
-            ToolService.ActivateTool(this._toolState.Name);
+            ToolService.ActivateTool(_toolState.ToolType);
         }
 
         this.StateHasChanged();

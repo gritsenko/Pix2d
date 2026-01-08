@@ -3,6 +3,6 @@
 public interface IToolService
 {
     void RegisterTool<TTool>(EditContextType contextType) where TTool : ITool;
-    void ActivateTool(string key);
+    void ActivateTool(Type toolType);
     void ActivateTool<TTool>();
 }
