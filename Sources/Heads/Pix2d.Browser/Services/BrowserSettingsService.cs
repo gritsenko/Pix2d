@@ -33,7 +33,7 @@ public class BrowserSettingsService : ISettingsService
         return JsonConvert.DeserializeObject<T>(strValue);
     }
 
-    public void Set<T>(string key, T? value)
+    public void Set<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string key, T? value)
     {
         if (value == null)
             return;
@@ -42,7 +42,7 @@ public class BrowserSettingsService : ISettingsService
         MyLocalStorage.SetItem(key, json);
     }
 
-    public bool TryGet<T>(string key, out T? value)
+    public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string key, out T? value)
     {
         value = default;
         try

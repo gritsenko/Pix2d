@@ -60,6 +60,7 @@ public class AvaloniaClipboardService(
         {
             return;
         }
+        
         var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;
         if (bm != null)
             Clowd.Clipboard.ClipboardGdi.SetImage(bm);

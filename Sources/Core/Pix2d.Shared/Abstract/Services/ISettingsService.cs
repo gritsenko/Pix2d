@@ -8,8 +8,8 @@ public interface ISettingsService
 
     [RequiresUnreferencedCode("JSON serialization uses reflection.")]
     T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string key);
-    bool TryGet<T> (string key, out T? value);
-    void Set<T> (string key, T? value);
+    bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T> (string key, out T? value);
+    void Set<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T> (string key, T? value);
 }
 
 public static class SettingsConstants
