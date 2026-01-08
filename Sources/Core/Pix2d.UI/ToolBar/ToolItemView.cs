@@ -12,12 +12,12 @@ public class ToolItemView : LocalizedComponentBase
     {
         _toolState = toolState;
         Initialize();
+        _button.ToolTip(L(_toolState.ToolTip)());
     }
-    
+
     protected override object Build() =>
         new Button()
             .Ref(out _button)
-            .ToolTip(L(_toolState?.ToolTip)())
             .Classes("toolbar-button")
             .BindClass(() => IsSelected, "selected")
             .OnClick(OnButtonClicked)
@@ -53,22 +53,13 @@ public class ToolItemView : LocalizedComponentBase
     public string ToolIconKey => ToolState?.IconKey ?? "";
     public bool IsSelected => AppState.ToolsState.CurrentToolKey == ToolKey;
 
-    public ToolState ToolState
-    {
-        get => _toolState;
-        set
-        {
-            _toolState = value;
-            StateHasChanged();
-        }
-    }
+    public ToolState ToolState => _toolState;
 
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
         AppState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, StateHasChanged);
         AppState.ToolsState.WatchFor(x => x.CurrentToolKey, UpdateIsSelected);
-
         UpdateIsSelected();
     }
 

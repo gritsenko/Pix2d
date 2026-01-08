@@ -1,21 +1,21 @@
+using Avalonia.Styling; // For styles
 using Pix2d.Common.Extensions;
 using Pix2d.Primitives;
 using Pix2d.UI.Resources;
 using System.Collections.ObjectModel;
-using Avalonia.Styling; // Для стилей
 
 namespace Pix2d.UI.MainMenu;
 
 public class KeyShortcutsView : LocalizedComponentBase
 {
-    // Кисти
+    // Brushes
     private static readonly IImmutableBrush HeaderBrush = Colors.White.WithAlpha(0.6f).ToBrush().ToImmutable();
     private static readonly IImmutableBrush ShortcutBrush = Colors.White.WithAlpha(0.9f).ToBrush().ToImmutable();
     private static readonly IImmutableBrush GroupHeaderBrush = Colors.White.WithAlpha(0.9f).ToBrush().ToImmutable();
 
-    // Фон для "зебры" (еле заметный)
+    // Background for "zebra" (barely noticeable)
     private static readonly IImmutableBrush OddRowBrush = Colors.White.WithAlpha(0.03f).ToBrush().ToImmutable();
-    // Фон при наведении
+    // Background on hover
     private static readonly IImmutableBrush HoverBrush = Colors.White.WithAlpha(0.08f).ToBrush().ToImmutable();
 
     private const double MinColumnWidth = 300;
@@ -29,12 +29,13 @@ public class KeyShortcutsView : LocalizedComponentBase
     protected override StyleGroup? BuildStyles() =>
     [
         new Style<Border>(x => x.Class("ShortcutRow"))
-            .CornerRadius(4),
-
-        new Style<Grid>(x => x.Class("ShortcutRowGrid"))
+            .CornerRadius(4)
             .Background(Brushes.Transparent),
 
-        new Style<Grid>(x => x.Class("ShortcutRowGrid").Class(":pointerover"))
+        new Style<Border>(x => x.Class("ShortcutRow").Class("Odd"))
+            .Background(OddRowBrush),
+
+        new Style<Border>(x => x.Class("ShortcutRow").Class(":pointerover"))
             .Background(HoverBrush)
     ];
 
@@ -46,8 +47,8 @@ public class KeyShortcutsView : LocalizedComponentBase
             .GroupBy(c => c.Groups.Length > 0 ? c.Groups[0] : "Other")
             .OrderBy(g => g.Key)
             .ToList();
-       
-        // --- Логика пересчета колонок (осталась прежней) ---
+
+        // --- Logic for recalculating columns (remains the same) ---
         void RecalculateColumns(double containerWidth)
         {
             if (containerWidth <= 0) return;
@@ -74,7 +75,7 @@ public class KeyShortcutsView : LocalizedComponentBase
             .Children([
                 new ItemsControl()
                     .ItemsSource(_columnsData)
-                    .ItemsPanel(new FuncTemplate<Panel?>(() => new UniformGrid().Rows(1)))
+                    .ItemsPanel(new FuncTemplate<Panel>(() => new UniformGrid().Rows(1)))
                     .ItemTemplate((List<IGrouping<string, Pix2dCommand>> columnGroups) =>
                         new ItemsControl()
                             .Margin(12)
@@ -86,23 +87,23 @@ public class KeyShortcutsView : LocalizedComponentBase
 
     private FuncComponent<IGrouping<string, Pix2dCommand>> RenderGroup(IGrouping<string, Pix2dCommand> group)
     {
-        // Генерируем уникальный цвет для группы на основе её имени
+        // Generate a unique color for the group based on its name
         var groupAccentColor = GetGroupColor(group.Key);
 
-        // Преобразуем данные, добавляя индекс для Зебры
+        // Transform data, adding an index for the zebra effect
         var itemsWithIndex = group.Select((cmd, index) => new { Command = cmd, Index = index }).ToList();
 
         return new FuncComponent<IGrouping<string, Pix2dCommand>>(group, _ =>
             new StackPanel()
                 .Margin(bottom: 24)
-                // Легкая подложка под всю группу (опционально, можно убрать Background)
+                // Light background under the entire group (optional, can remove Background)
                 .Background(Colors.Black.WithAlpha(0.2f).ToBrush())
                 .Children([
                     
-                    // --- ЗАГОЛОВОК ГРУППЫ ---
+                    // --- GROUP HEADER ---
                     new Border()
                         .Padding(left: 10, top: 5, bottom: 5)
-                        // Цветная полоска слева (Accent Color)
+                        // Colored stripe on the left (Accent Color)
                         .BorderThickness(left: 3, top:0, right:0, bottom:0)
                         .BorderBrush(groupAccentColor)
                         .Child(
@@ -114,29 +115,25 @@ public class KeyShortcutsView : LocalizedComponentBase
                                 .FontFamily(StaticResources.Fonts.TextArticlesFontFamily)
                         ),
                     
-                    // --- СПИСОК ЭЛЕМЕНТОВ ---
+                    // --- LIST OF ITEMS ---
                     new ItemsControl()
                         .Margin(top: 8)
-                        .ItemsSource(itemsWithIndex) // Используем список с индексами
+                        .ItemsSource(itemsWithIndex) // Use the list with indices
                         .ItemTemplate((dynamic itemCtx) =>
                         {
                             Pix2dCommand item = itemCtx.Command;
                             int index = itemCtx.Index;
-                            
-                            // Определяем цвет "зебры"
-                            var rowBackground = index % 2 == 0 ? OddRowBrush : Brushes.Transparent;
-
-                            // Используем FuncComponent для производительности
+                            // Use FuncComponent for performance
                             return new FuncComponent<Pix2dCommand>(item, _ =>
                                 new Border()
-                                    .Classes("ShortcutRow") // Применяем CSS класс для Ховера
-                                    .Background(rowBackground)
-                                    .Padding(8, 6) // Внутренний отступ строки
+                                    .Classes("ShortcutRow") // Apply CSS class for Hover
+                                    .Classes(index % 2 != 0 ? "Odd" : "")
+                                    .Padding(8, 6) // Inner padding of the row
                                     .Child(
                                         new Grid().Cols("*,Auto")
                                             .Classes("ShortcutRowGrid")
                                             .Children([
-                                                // Описание
+                                                // Description
                                                 new TextBlock()
                                                     .Text(L(item.Description))
                                                     .Foreground(HeaderBrush)
@@ -145,12 +142,12 @@ public class KeyShortcutsView : LocalizedComponentBase
                                                     .TextWrapping(TextWrapping.Wrap)
                                                     .VerticalAlignment(VerticalAlignment.Center)
                                                     .Margin(right: 12),
-                                                    
-                                                // Шорткат (Кнопка-вид)
+                                                
+                                                // Shortcut (Button-like view)
                                                 new Border()
                                                     .Col(1)
                                                     .CornerRadius(4)
-                                                    .Background(Colors.White.WithAlpha(0.1f).ToBrush()) // Подложка под клавиши
+                                                    .Background(Colors.White.WithAlpha(0.1f).ToBrush()) // Background under keys
                                                     .Padding(6, 2)
                                                     .VerticalAlignment(VerticalAlignment.Center)
                                                     .Child(
@@ -159,7 +156,7 @@ public class KeyShortcutsView : LocalizedComponentBase
                                                             .FontSize(14)
                                                             .Foreground(ShortcutBrush)
                                                             .FontWeight(FontWeight.Bold)
-                                                            .FontFamily("Consolas, Monospace") // Моноширинный для клавиш
+                                                            .FontFamily("Consolas, Monospace") // Monospaced for keys
                                                             .HorizontalAlignment(HorizontalAlignment.Center)
                                                     )
                                             ])
@@ -170,13 +167,13 @@ public class KeyShortcutsView : LocalizedComponentBase
         );
     }
 
-    // Хелпер для генерации детерминированного цвета по строке
+    // Helper for generating a deterministic color based on a string
     private IBrush GetGroupColor(string key)
     {
-        // Простой хеш для выбора цвета
+        // Simple hash for selecting a color
         int hash = Math.Abs(key.GetHashCode());
 
-        // Палитра приятных цветов (можно расширить)
+        // Palette of pleasant colors (can be expanded)
         var colors = new[]
         {
             Colors.CadetBlue, Colors.IndianRed, Colors.MediumSeaGreen,

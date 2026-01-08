@@ -4,7 +4,6 @@ using Avalonia.Styling;
 using Mvvm;
 using Pix2d.Primitives;
 using Pix2d.UI.Resources;
-using Pix2d.UI.Shared;
 
 namespace Pix2d.UI;
 
@@ -12,7 +11,7 @@ public class AppMenuView : LocalizedComponentBase
 {
     protected override StyleGroup? BuildStyles() =>
     [
-        new Style<MenuItem>(s => s.OfType<MenuItem>())
+        new Style<MenuItem>()
         {
             Setters =
             {

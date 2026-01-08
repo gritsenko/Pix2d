@@ -30,6 +30,7 @@ public class ToolBarView : ComponentBase
             .Width(44)
             .Height(44)
             .Foreground(StaticResources.Brushes.ForegroundBrush)
+            .Background(Brushes.Transparent) //to intrecept poiner events
             .Padding(new Thickness(0)),
 
         new Style<Shape>(s => s.Class("toolbar-button").Descendant().Is<Shape>())

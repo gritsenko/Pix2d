@@ -50,7 +50,7 @@ public class FileCommands : CommandsListBase
             .GetRequiredService<ICommandService>()
             .GetCommandList<ViewCommands>()?
             .ShowExportDialogCommand.Execute();
-    }, "Export Image...", new CommandShortcut(VirtualKeys.E, KeyModifier.Ctrl), EditContextType.All);
+    }, "Export Image...", contextType: EditContextType.All);
 
     public Pix2dCommand ExportAnimation => GetCommand(async () =>
     {

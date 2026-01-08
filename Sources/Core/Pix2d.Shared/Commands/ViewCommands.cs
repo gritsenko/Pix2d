@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Mvvm.Messaging;
 using Pix2d.Abstract;
@@ -37,23 +37,24 @@ public class ViewCommands : CommandsListBase
 
     public Pix2dCommand ToggleShowLayersCommand => GetCommand(() => AppState.UiState.ShowLayers = !AppState.UiState.ShowLayers, "Toggle Layers list", new CommandShortcut(VirtualKeys.L, KeyModifier.Ctrl), EditContextType.Sprite);
 
-    public Pix2dCommand HideExportDialogCommand => GetCommand(() => AppState.UiState.ShowExportDialog = false);
-    public Pix2dCommand ShowExportDialogCommand => GetCommand(() => AppState.UiState.ShowExportDialog = true);
+    public Pix2dCommand HideExportDialogCommand => GetCommand(() => AppState.UiState.ShowExportDialog = false, "Hide export dialog");
+    public Pix2dCommand ShowExportDialogCommand => GetCommand(() => AppState.UiState.ShowExportDialog = true, "Show export dialog", new CommandShortcut(VirtualKeys.E, KeyModifier.Ctrl));
 
     public Pix2dCommand ToggleExtraToolsCommand =>
-        GetCommand(() => AppState.UiState.ShowExtraTools = !AppState.UiState.ShowExtraTools);
+        GetCommand(() => AppState.UiState.ShowExtraTools = !AppState.UiState.ShowExtraTools, "Show/Hide extra tools");
 
     public Pix2dCommand ToggleTimelineCommand =>
-        GetCommand(() => AppState.UiState.ShowTimeline = !AppState.UiState.ShowTimeline);
+        GetCommand(() => AppState.UiState.ShowTimeline = !AppState.UiState.ShowTimeline, "Show/Hide timeline");
 
-    public Pix2dCommand ShowMainMenuCommand => GetCommand(() => AppState.UiState.ShowMenu = true);
-    public Pix2dCommand HideMainMenuCommand => GetCommand(() => AppState.UiState.ShowMenu = false);
+    public Pix2dCommand ShowMainMenuCommand => GetCommand(() => AppState.UiState.ShowMenu = true, "Show main menu");
+    public Pix2dCommand HideMainMenuCommand => GetCommand(() => AppState.UiState.ShowMenu = false, "Hide main menu");
 
     public Pix2dCommand ToggleMainMenuCommand =>
-        GetCommand(() => AppState.UiState.ShowMenu = !AppState.UiState.ShowMenu);
+        GetCommand(() => AppState.UiState.ShowMenu = !AppState.UiState.ShowMenu, "Toggle main menu");
 
     public Pix2dCommand ToggleCanvasSizePanelCommand => GetCommand(
         () => AppState.UiState.ShowCanvasResizePanel = !AppState.UiState.ShowCanvasResizePanel,
+        "Toggle canvas size panel",
         behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
     public Pix2dCommand ToggleBrushSettingsCommand => GetCommand(() =>
@@ -65,17 +66,17 @@ public class ViewCommands : CommandsListBase
     }, "Brush settings", null, EditContextType.All);
 
 
-    public Pix2dCommand ShowLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = true);
-    public Pix2dCommand HideLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = false);
+    public Pix2dCommand ShowLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = true, "Show layer options");
+    public Pix2dCommand HideLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = false, "Hide layer options");
 
     public Pix2dCommand ToggleLayerOptionsCommand => GetCommand(() =>
-        AppState.UiState.ShowLayerProperties = !AppState.UiState.ShowLayerProperties);
+        AppState.UiState.ShowLayerProperties = !AppState.UiState.ShowLayerProperties, "Toggle layer options");
 
-    public Pix2dCommand ShowClipboardBarCommand => GetCommand(() => AppState.UiState.ShowClipboardBar = true);
-    public Pix2dCommand HideClipboardBarCommand => GetCommand(() => AppState.UiState.ShowClipboardBar = false);
+    public Pix2dCommand ShowClipboardBarCommand => GetCommand(() => AppState.UiState.ShowClipboardBar = true, "Show clipboard bar");
+    public Pix2dCommand HideClipboardBarCommand => GetCommand(() => AppState.UiState.ShowClipboardBar = false, "Hide clipboard bar");
 
     public Pix2dCommand ToggleClipboardBarCommand =>
-        GetCommand(() => AppState.UiState.ShowClipboardBar = !AppState.UiState.ShowClipboardBar);
+        GetCommand(() => AppState.UiState.ShowClipboardBar = !AppState.UiState.ShowClipboardBar, "Toggle clipboard bar");
 
     public Pix2dCommand ToggleColorEditorCommand => GetCommand(() =>
     {
@@ -89,7 +90,7 @@ public class ViewCommands : CommandsListBase
     {
         ServiceProvider.GetRequiredService<IMessenger>().Send(new ShowMenuItemMessage
             { ItemToShow = ShowMenuItemMessage.MenuItem.Licence });
-    });
+    }, "Show license purchase");
 
     public SnappingCommands Snapping { get; } = new();
 

@@ -25,7 +25,6 @@ public class ToolItemGroupView : LocalizedComponentBase
                     .Child(
                         new Grid()
                             .Ref(out _gridContainer)
-                            .ToolTip(() => ActiveItem?.ToolTip ?? GroupName)
                             .Children(
                                 new ContentControl()
                                     .Name("tool-item-border")

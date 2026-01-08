@@ -1,5 +1,4 @@
 using Avalonia.Styling;
-using Avalonia.Xaml.Interactions.Custom;
 using Pix2d.Command;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
@@ -57,6 +56,11 @@ public class MainMenuView : LocalizedComponentBase
                 .Icon("\xEADF")
                 .ContentViewType(typeof(InfoView))
                 .OnClicked(SelectMenuItem),
+            //new MainMenuItemView()
+            //    .Header(L("Commands"))
+            //    .Icon("\xEADF")
+            //    .ContentViewType(typeof(InfoView))
+            //    .OnClicked(SelectMenuItem),
             new MainMenuItemView()
                 .Header(L("New"))
                 .Icon("\xE7C3")
@@ -83,7 +87,7 @@ public class MainMenuView : LocalizedComponentBase
             //    .OnClicked(SelectMenuItem)
         ];
 
-        return new BlurPanel()
+        return new Border()
             .Child(
                 new Grid()
                     .Cols("200,*")
