@@ -1,4 +1,3 @@
-using Avalonia.Controls.Shapes;
 using Pix2d.Common.Extensions;
 using Pix2d.UI.Resources;
 using SkiaSharp;

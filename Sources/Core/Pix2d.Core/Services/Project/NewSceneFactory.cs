@@ -1,4 +1,3 @@
-#nullable enable
 using System.Collections.Immutable;
 using Pix2d.Abstract.Import;
 using Pix2d.Abstract.Platform.FileSystem;
