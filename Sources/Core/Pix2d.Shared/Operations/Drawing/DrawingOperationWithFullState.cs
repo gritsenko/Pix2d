@@ -64,7 +64,11 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
             sprite.SetFrameIndex(_finalFrame);
         }
 
-        _drawingTarget.SetData(_finalData!);
+        // Only restore if we have valid final data (null means no data captured)
+        if (_finalData != null)
+        {
+            _drawingTarget.SetData(_finalData);
+        }
     }
 
     public override void OnPerformUndo()
@@ -75,7 +79,11 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
             sprite.SetFrameIndex(_frame);
         }
 
-        _drawingTarget.SetData(_initialData!);
+        // Only restore if we have valid initial data (null means no data captured)
+        if (_initialData != null)
+        {
+            _drawingTarget.SetData(_initialData);
+        }
     }
 
     public override IEnumerable<SKNode> GetEditedNodes()

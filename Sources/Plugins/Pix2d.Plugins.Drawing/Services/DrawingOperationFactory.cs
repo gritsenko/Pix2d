@@ -27,7 +27,8 @@ internal class DrawingOperationFactory(IDrawingLayer drawingLayer, IOperationSer
         {
             var finalData = _currentOperationDrawingTarget.GetData();
 
-            if (_initialData == null || finalData == null)
+            // Handle null or empty data
+            if (_initialData == null || finalData == null || _initialData.Length == 0 || finalData.Length == 0)
             {
                 var operation = new DrawingOperationWithFullState(_currentOperationDrawingTarget);
                 operation.SetInitialData(_initialData);
@@ -63,6 +64,10 @@ internal class DrawingOperationFactory(IDrawingLayer drawingLayer, IOperationSer
         var finalPixels = MemoryMarshal.Cast<byte, int>(finalData);
 
         var diffBlocks = new List<DrawingOperationWithDiffState.DiffBlock>();
+
+        // Defensive: ensure arrays have data before accessing index 0
+        if (initialPixels.Length == 0 || finalPixels.Length == 0)
+            return diffBlocks;
 
         var prevDiff = finalPixels[0] - initialPixels[0];
         var blockLen = 0;

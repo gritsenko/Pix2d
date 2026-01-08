@@ -158,7 +158,7 @@ public partial class Pix2dSprite
         {
             var sprite = GetSpriteByFrame(index);
 
-            if (data == null || sprite == null)
+            if (data == null || data.Length == 0 || sprite == null)
             {
                 ClearFrame(index);
                 return;

@@ -45,6 +45,14 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
         if (Bitmap == null)
             throw new InvalidOperationException("Bitmap is null");
 
+        // Allow empty data - treat as "clear bitmap"
+        if (data.Length == 0)
+        {
+            Bitmap.Erase(SKColor.Empty);
+            InvalidateBitmap();
+            return;
+        }
+
         if (data.Length != Bitmap.ByteCount)
         {
             throw new InvalidOperationException(
