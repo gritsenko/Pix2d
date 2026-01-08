@@ -49,7 +49,7 @@ public class MainMenuView : LocalizedComponentBase
         [
             new MainMenuItemView()
                 .Header(L("Back"))
-                .Icon("")
+                .Icon("\xEC52")
                 .OnClicked(_ => Close()),
             new MainMenuItemView()
                 .Header(L("Info"))
@@ -58,7 +58,7 @@ public class MainMenuView : LocalizedComponentBase
                 .OnClicked(SelectMenuItem),
             new MainMenuItemView()
                 .Header(L("Commands"))
-                .Icon("\xE76D")
+                .Icon("\xE71D")
                 .ContentViewType(typeof(CommandsView))
                 .OnClicked(SelectMenuItem),
             new MainMenuItemView()
@@ -103,7 +103,7 @@ public class MainMenuView : LocalizedComponentBase
                                 new MainMenuItemView()
                                     .Name(BackButtonName)
                                     .Header("Back")
-                                    .Icon("")
+                                    .Icon("\xEC52")
                                     .OnClicked(_ => Back()),
                                 new ScrollViewer().Row(1)
                                     .Background(StaticResources.Brushes.MainMenuBackgroundBrush)
