@@ -61,9 +61,11 @@ public class AvaloniaClipboardService(
             return;
         }
         
+#pragma warning disable CA1416
         var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;
         if (bm != null)
             Clowd.Clipboard.ClipboardGdi.SetImage(bm);
+#pragma warning restore CA1416
     }
     
     public override async Task<SKBitmap?> GetImageFromClipboard()
@@ -97,6 +99,7 @@ public class AvaloniaClipboardService(
         //windows specific clipboard format
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
+#pragma warning disable CA1416
             using var image = await Clowd.Clipboard.ClipboardGdi.GetImageAsync();
 
             if (image == null)
@@ -108,6 +111,7 @@ public class AvaloniaClipboardService(
             return skBitmap;
         }
 
+#pragma warning restore CA1416
         return null;
     }
 
