@@ -121,6 +121,7 @@ jobs:
           /p:UapAppxPackageBuildMode=StoreUpload `
           /p:AppxBundlePlatforms="x64|arm64" `
           /p:PackageCertificateKeyFile="$env:WAP_PROJECT_DIR/certificate.pfx" `
+          /p:Platform=x64
           # /p:PackageCertificatePassword="${{ secrets.PFX_KEY }}"
 
     - name: Remove signing certificate
