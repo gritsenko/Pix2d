@@ -54,7 +54,6 @@
 	<PropertyGroup Condition="'$(Configuration)'=='Release'">
 		<RunAOTCompilation>true</RunAOTCompilation>
 	</PropertyGroup>
-	<!-- Removed x86 platform support -->
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
 		<PlatformTarget>x64</PlatformTarget>
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
