@@ -189,8 +189,10 @@ jobs:
         $packagePath = Get-ChildItem -Path ./artifacts -Filter *.msixupload -Recurse -ErrorAction Stop | Select-Object -First 1
         if (-not $packagePath) { throw ".msixupload package not found" }
 
+        # StoreBroker's Update-ApplicationSubmission in some versions requires a JSON file path.
+        $submissionJsonPath = Join-Path $env:RUNNER_TEMP "submission.json"
+
         try {
-            # Use CLIENT_SECRET to create secure string for credential
             $secureSecret = ConvertTo-SecureString $env:CLIENT_SECRET -AsPlainText -Force
             $credential = New-Object System.Management.Automation.PSCredential($env:CLIENT_ID, $secureSecret)
 
@@ -198,30 +200,27 @@ jobs:
             Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential -Verbose
 
             Write-Host "Creating new submission..."
-            $submission = $null # Initialize submission variable
-            try {
-              $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID -Verbose
-            } catch {
-              Write-Error "Cannot create submission. Check if there's an in-progress submission created manually via the Partner Center."
-              Write-Error $_.Exception.ToString()
-              throw
-            }
+            $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID -Verbose
 
             if (-not $submission.fileUploadUrl) {
                 throw "fileUploadUrl is empty. Cannot proceed with uploading the package."
             }
-            $uploadUrl = $submission.fileUploadUrl
 
             Write-Host "Adding package to submission..."
-            Set-SubmissionPackage -PackagePath $packagePath.FullName -UploadUrl $uploadUrl -Verbose
+            Set-SubmissionPackage -PackagePath $packagePath.FullName -UploadUrl $submission.fileUploadUrl -Verbose
 
             # Trigger ingestion: clear packages so the service repopulates from the uploaded blob
             $submission.ApplicationPackages = @()
 
-            Write-Host "Updating submission to trigger package ingestion..."
-            $submission = $submission | Update-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
+            # Persist submission to disk for Update-ApplicationSubmission
+            $submission | ConvertTo-Json -Depth 100 | Out-File -FilePath $submissionJsonPath -Encoding utf8
 
-            # (Optional) check
+            Write-Host "Updating submission to trigger package ingestion..."
+            Update-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -SubmissionDataPath $submissionJsonPath -Verbose
+
+            # Re-fetch the submission to see current state
+            $submission = Get-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
+
             if ($submission.ApplicationPackages.Count -eq 0) {
                  Write-Warning "Warning: No packages found after update. Ingestion might be lagging."
             } else {
