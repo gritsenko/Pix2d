@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Pix2d.Abstract.Platform;
+using Pix2d.Abstract.Services;
 using System.Globalization;
 
 namespace Pix2d.Common;
@@ -29,6 +30,10 @@ public class LocalizationService : ILocalizationService
     }
 
     public string this[string name, params object[] arguments] => name;
+
+    public IReadOnlyList<LocaleInfo> AvailableLocales => _strings
+        .Select(x => new LocaleInfo(x.Locale ?? "", x.LocaleTitle ?? x.Locale ?? "", x.LocaleTitleNative ?? x.LocaleTitle ?? x.Locale ?? ""))
+        .ToList();
 
     public static async Task ExportStrings(IFileService fileService)
     {
@@ -89,5 +94,7 @@ public class LocalizationService : ILocalizationService
 public class LocalizationDictionary
 {
     public string? Locale { get; set; }
+    public string? LocaleTitle { get; set; }
+    public string? LocaleTitleNative { get; set; }
     public Dictionary<string, string> Strings = new();
 }

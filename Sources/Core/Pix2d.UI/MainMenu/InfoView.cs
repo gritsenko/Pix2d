@@ -22,10 +22,10 @@ public class InfoView : LocalizedComponentBase
                         .FontSize(32)
                         .Text(() => $"Pix2d v{PlatformStuffService.GetAppVersion()}"),
                     new Grid().Rows("32,32").Cols("*,Auto").Width(256).Margin(new Thickness(0, 16)).Children(
-                        new TextBlock().Text("Current project").VerticalAlignment(VerticalAlignment.Center),
+                        new TextBlock().Text(L("Current project")).VerticalAlignment(VerticalAlignment.Center),
 
                         new StackPanel().Col(1).Orientation(Orientation.Horizontal)._Children([
-                            new TextBlock().Col(1).Text(() => AppState.CurrentProject?.Title ?? "No project")
+                            new TextBlock().Col(1).Text(() => AppState.CurrentProject?.Title ?? L("No project")())
                                 .VerticalAlignment(VerticalAlignment.Center),
 
 
@@ -57,7 +57,7 @@ public class InfoView : LocalizedComponentBase
                             .HorizontalAlignment(HorizontalAlignment.Center)
                             .Height(40)
                             .Margin(new Thickness(6, 0, 6, 24))
-                            .OnClick(args => { PlatformStuffService.OpenUrlInBrowser("https://t.me/pix2dApp"); })
+                            .OnClick(args => { PlatformStuffService.OpenUrlInBrowser("https://pix2d.com/donate.html"); })
                             .Content(
                                 new StackPanel().Orientation(Orientation.Horizontal).Children(
                                     new Path()
@@ -69,7 +69,7 @@ public class InfoView : LocalizedComponentBase
                                         .VerticalAlignment(VerticalAlignment.Center)
                                         .Stretch(Stretch.Uniform),
                                     new TextBlock()
-                                        .Text(L("TELEGRAM"))
+                                        .Text(L("SUPPORT PIX2D"))
                                         .VerticalAlignment(VerticalAlignment.Center)
                                         .Margin(12, 0)
                                 )
@@ -83,12 +83,12 @@ public class InfoView : LocalizedComponentBase
                         .Margin(bottom: 10)
                         .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
                     new ComboBox()
-                        .ItemsSource(AppState.AvailableLocales)
-                        .SelectedItem(() => AppState.Locale, v =>
+                        .ItemsSource(()=>AvailableLocales)
+                        .DisplayMemberBinding(new Binding("FullTitle"))
+                        .SelectedItem(() => AvailableLocales.FirstOrDefault(l => l.Code == (AppState?.Locale ?? "en"), new LocaleInfo("en","English", "English")), v =>
                         {
-                            var value = v as string;
-                            if (value != null && !AppState.Locale.Equals(value))
-                                LocalizationService.SetLocale(value);
+                            if (v != null && v is LocaleInfo info && !AppState.Locale.Equals(info.Code))
+                                LocalizationService.SetLocale(info.Code);
                         })
                         .Margin(0, 0, 0, 12),
 
@@ -136,6 +136,8 @@ public class InfoView : LocalizedComponentBase
 
     private FileCommands FileCommands => CommandService.GetCommandList<FileCommands>()!;
 
+    public IReadOnlyList<LocaleInfo> AvailableLocales { get; private set; } = [];
+
     protected override void OnAfterInitialized()
     {
         AppState.WatchFor(x => x.LicenseType, StateHasChanged);
@@ -144,6 +146,8 @@ public class InfoView : LocalizedComponentBase
 
         Messenger.Register(this, (ProjectLoadedMessage msg) => StateHasChanged());
         Messenger.Register(this, (ProjectSavedMessage msg) => StateHasChanged());
+
+        AvailableLocales = LocalizationService.AvailableLocales;
     }
 
     private void ApplyScale()

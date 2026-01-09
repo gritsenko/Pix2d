@@ -62,6 +62,7 @@
 		<AvaloniaResource Include="Assets\proIcon1.png" />
 		<AvaloniaResource Include="Assets\StoreLogo.png" />
 		<AvaloniaResource Include="Assets\strings.json" />
+		<AvaloniaResource Include="Assets\strings_old_2025.json" />
 		<AvaloniaResource Include="Assets\ULTIMATE.png" />
 		<AvaloniaResource Include="Assets\untitled.png" />
 		<AvaloniaResource Include="Assets\no_preview.png" />

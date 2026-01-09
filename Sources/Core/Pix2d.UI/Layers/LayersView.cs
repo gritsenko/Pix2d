@@ -55,8 +55,7 @@ public class LayersView : ComponentBase
                             RightPointerPressed = () => ItemRightPointerPressed(itemVm),
                             LeftPointerPressed = () => ItemClicked(itemVm)
                         }
-                            .AddBehavior(new ItemsListContextDragBehavior()
-                            { Orientation = Orientation.Vertical });
+                        .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Vertical });
                     }),
                 new BackgroundSelectorView().Row(2)
             )
@@ -101,8 +100,6 @@ public class LayersView : ComponentBase
 
     private class ItemReorderInfo<TItem>
     {
-        public TItem[] Items { get; set; } = [];
-
         public int OldIndex { get; set; }
 
         public int NewIndex { get; set; }
@@ -110,23 +107,19 @@ public class LayersView : ComponentBase
 
     private void Layers_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
+        //new atomic move operation.
+        if (e.Action == NotifyCollectionChangedAction.Move)
         {
             _reorderInfo = new ItemReorderInfo<LayerItemViewModel>()
             {
-                Items = e.OldItems.OfType<LayerItemViewModel>().ToArray(),
-                OldIndex = e.OldStartingIndex
+                OldIndex = e.OldStartingIndex,
+                NewIndex = e.NewStartingIndex
             };
+
+
             _reorderingStarted = true;
-        }
-
-        if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted && _reorderInfo != null)
-        {
-            _reorderInfo.NewIndex = e.NewStartingIndex;
             OnLayersReordered(_reorderInfo);
-
             _reorderingStarted = false;
-            _reorderInfo = null;
         }
     }
 
@@ -142,14 +135,9 @@ public class LayersView : ComponentBase
     {
         if (operation.Operation is AddLayerOperation or DeleteLayerOperation or ReorderLayersOperation or MergeLayerOperation)
         {
-            //drag and drop reorder - skip reloading
-            if (_reorderingStarted) return;
-
-            ReloadLayers();
-            return;
+            ReloadLayers(operation.Operation is ReorderLayersOperation);
         }
-
-        if (operation.Operation is ISpriteEditorOperation spriteEditorOperation)
+        else if (operation.Operation is ISpriteEditorOperation spriteEditorOperation)
         {
             InvalidateThumbnailItems(spriteEditorOperation.AffectedLayerIndexes);
             UpdateSelectedLayerIndex();
@@ -192,7 +180,7 @@ public class LayersView : ComponentBase
         ReloadLayers();
     }
 
-    private void ReloadLayers()
+    private void ReloadLayers(bool isReordering = false)
     {
         try
         {
@@ -204,7 +192,7 @@ public class LayersView : ComponentBase
                 PreviewProvider = PreviewProvider
             }).ToList();
 
-            Layers.ReloadItems(layers);
+            Layers.ReloadItems(layers, silent: isReordering); //not to trigger collection changed event during reordering
             UpdateSelectedLayerIndex();
         }
         finally

@@ -16,7 +16,6 @@ public class AppState : StateBase
         set => Set(value);
     }
 
-    public IReadOnlyList<string> AvailableLocales { get; } = ["en", "ru"];
     public string Locale
     {
         get => Get<string>();

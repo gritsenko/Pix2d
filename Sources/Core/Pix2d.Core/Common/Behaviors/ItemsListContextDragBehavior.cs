@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.Xaml.Interactivity;
+using Pix2d.Primitives;
 
 namespace Pix2d.Common.Behaviors;
 
@@ -88,7 +89,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
         if (!_waitingForDragStart)
             return;
 
-         var diff = _latestPointerDownPoint - _latestMovePoint;
+        var diff = _latestPointerDownPoint - _latestMovePoint;
 
         if (Math.Abs(diff.X) <= _thresholdDelta && Math.Abs(diff.Y) <= _thresholdDelta)
         {
@@ -115,9 +116,9 @@ public class ItemsListContextDragBehavior : Behavior<Control>
     private void AssociatedObject_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         e.PreventGestureRecognition();
-        
+
         _waitingForDragStart = false;
-        
+
         //if (!Equals(e.Pointer.Captured, AssociatedObject)) return;
         if (_readyToDrag) //если дошли до _readyToDrag, значит уже схватились за контрол и нужно в любом случае откатить прозрачность и трансформации
         {
@@ -130,7 +131,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
             if (_draggedIndex >= 0 && _targetIndex >= 0 && _draggedIndex != _targetIndex)
             {
-                Debug.WriteLine($"MoveItem {_draggedIndex} -> {_targetIndex}");
+                //Debug.WriteLine($"MoveItem {_draggedIndex} -> {_targetIndex}");
                 MoveDraggedItem(_itemsControl, _draggedIndex, _targetIndex);
             }
 
@@ -168,9 +169,18 @@ public class ItemsListContextDragBehavior : Behavior<Control>
             return;
         }
 
-        var draggedItem = items[draggedIndex];
-        items.RemoveAt(draggedIndex);
-        items.Insert(targetIndex, draggedItem);
+        //this condition added when item conrols got ItemSource and it causes race conditions when change observable collection from code
+        //so we use move to preven app from crashing
+        if (items is IObservableCollection obsCol)
+        {
+            obsCol.Move(draggedIndex, targetIndex);
+        }
+        else
+        {
+            var draggedItem = items[draggedIndex];
+            items.RemoveAt(draggedIndex);
+            items.Insert(targetIndex, draggedItem);
+        }
 
         if (itemsControl is SelectingItemsControl selectingItemsControl)
         {
@@ -180,8 +190,8 @@ public class ItemsListContextDragBehavior : Behavior<Control>
 
     private void AssociatedObject_PointerMoved(object? sender, PointerEventArgs e)
     {
-        if(_readyToDrag)
-			e.PreventGestureRecognition();
+        if (_readyToDrag)
+            e.PreventGestureRecognition();
 
         _latestMovePoint = e.GetPosition(null);
 
@@ -200,7 +210,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
             }
         }
 
-        if (isCaptured) 
+        if (isCaptured)
             DragItem(diff);
     }
 
@@ -248,14 +258,14 @@ public class ItemsListContextDragBehavior : Behavior<Control>
                     targetTransform.X = -draggedBounds.Width;
 
                     _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex > _targetIndex ? targetIndex : _targetIndex;
-                    Debug.WriteLine($"Moved Right {_draggedIndex} -> {_targetIndex}");
+                    //Debug.WriteLine($"Moved Right {_draggedIndex} -> {_targetIndex}");
                 }
                 else if (targetStart < draggedStart && draggedDeltaStart <= targetMid)
                 {
                     targetTransform.X = draggedBounds.Width;
 
                     _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex < _targetIndex ? targetIndex : _targetIndex;
-                    Debug.WriteLine($"Moved Left {_draggedIndex} -> {_targetIndex}");
+                    //Debug.WriteLine($"Moved Left {_draggedIndex} -> {_targetIndex}");
                 }
                 else
                 {
@@ -264,7 +274,7 @@ public class ItemsListContextDragBehavior : Behavior<Control>
             }
         }
 
-        Debug.WriteLine($"Moved {_draggedIndex} -> {_targetIndex}");
+        //Debug.WriteLine($"Moved {_draggedIndex} -> {_targetIndex}");
     }
 
     private void DragItemY(double delta)
@@ -299,14 +309,14 @@ public class ItemsListContextDragBehavior : Behavior<Control>
                     targetTransform.Y = -draggedBounds.Height;
 
                     _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex > _targetIndex ? targetIndex : _targetIndex;
-                    Debug.WriteLine($"Moved Right {_draggedIndex} -> {_targetIndex}");
+                    //Debug.WriteLine($"Moved Right {_draggedIndex} -> {_targetIndex}");
                 }
                 else if (targetStart < draggedStart && draggedDeltaStart <= targetMid)
                 {
                     targetTransform.Y = draggedBounds.Height;
 
                     _targetIndex = _targetIndex == -1 ? targetIndex : targetIndex < _targetIndex ? targetIndex : _targetIndex;
-                    Debug.WriteLine($"Moved Left {_draggedIndex} -> {_targetIndex}");
+                    //Debug.WriteLine($"Moved Left {_draggedIndex} -> {_targetIndex}");
                 }
                 else
                 {
@@ -315,6 +325,6 @@ public class ItemsListContextDragBehavior : Behavior<Control>
             }
         }
 
-        Debug.WriteLine($"Moved {_draggedIndex} -> {_targetIndex}");
+        //Debug.WriteLine($"Moved {_draggedIndex} -> {_targetIndex}");
     }
 }
