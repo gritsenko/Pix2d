@@ -213,24 +213,31 @@ jobs:
             $uploadUrl = $submission.fileUploadUrl
 
             Write-Host "Adding package to submission..."
+            
             Set-SubmissionPackage -PackagePath $packagePath.FullName -UploadUrl $uploadUrl -Verbose
 
-            # 1. Очищаем список старых пакетов в локальном объекте, 
-            # чтобы при обновлении Store API понял, что мы хотим заменить их на новый.
+            # 1. Очищаем список старых пакетов в локальном объекте
             $submission.ApplicationPackages = @()
 
-            # 2. Вызываем Update. Это ключевой момент!
-            # Именно этот вызов заставляет Store API просканировать папку загрузки (UploadUrl),
-            # найти там твой .msixupload и добавить его в сабмишен.
+            # 2. Вызываем Update с ПРАВИЛЬНЫМ именем параметра (-ApplicationSubmissionObject)
             Write-Host "Updating submission to trigger package ingestion..."
-            $submission = Update-ApplicationSubmission -ApplicationSubmission $submission -Verbose
+            
+            $submission = Update-ApplicationSubmission `
+                -AppId $env:PRODUCT_ID `
+                -SubmissionId $submission.Id `
+                -ApplicationSubmissionObject $submission `
+                -Verbose
 
-            # (Опционально) Проверяем, что пакет появился
+            # (Опционально) Проверка
             if ($submission.ApplicationPackages.Count -eq 0) {
-                 Write-Warning "Warning: No packages found after update. The ingestion might take a moment or failed."
+                 Write-Warning "Warning: No packages found after update. Ingestion might be lagging."
             } else {
                  Write-Host "Success: Found $($submission.ApplicationPackages.Count) packages linked to submission."
             }
+
+            # 3. Коммитим
+            Write-Host "Completing submission..."
+            Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
 
             # --- NEW DEBUGGING STEP ---
             # Write-Host "--- Verifying Submission Packages after upload ---"
@@ -252,8 +259,8 @@ jobs:
             # if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
             #     Write-Host "Skipping Complete-ApplicationSubmission because this run was triggered manually (workflow_dispatch). Review the submission in Partner Center."
             # } else {
-                Write-Host "Completing submission..."
-                Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
+                # Write-Host "Completing submission..."
+                # Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
             # }
 
             Write-Host "Success!"
