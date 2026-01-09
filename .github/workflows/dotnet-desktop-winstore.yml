@@ -232,12 +232,12 @@ jobs:
             # --- END NEW DEBUGGING STEP ---
 
 
-            if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
-                Write-Host "Skipping Complete-ApplicationSubmission because this run was triggered manually (workflow_dispatch). Review the submission in Partner Center."
-            } else {
+            # if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
+            #     Write-Host "Skipping Complete-ApplicationSubmission because this run was triggered manually (workflow_dispatch). Review the submission in Partner Center."
+            # } else {
                 Write-Host "Completing submission..."
                 Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
-            }
+            # }
 
             Write-Host "Success!"
         }
