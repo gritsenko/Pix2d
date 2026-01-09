@@ -225,7 +225,7 @@ jobs:
             $submission = Update-ApplicationSubmission `
                 -AppId $env:PRODUCT_ID `
                 -SubmissionId $submission.Id `
-                -ApplicationSubmissionObject $submission `
+                -ApplicationSubmission $submission `
                 -Verbose
 
             # (Опционально) Проверка

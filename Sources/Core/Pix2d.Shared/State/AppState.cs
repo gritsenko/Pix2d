@@ -1,4 +1,5 @@
-﻿using Pix2d.Primitives;
+using Pix2d.Primitives;
+using Pix2d.Primitives.ViewPort;
 
 namespace Pix2d.State;
 
@@ -25,6 +26,12 @@ public class AppState : StateBase
     public double UiScale
     {
         get => Get<double>(1.0); 
+        set => Set(value);
+    }
+
+    public MouseWheelBehavior MouseWheelBehavior
+    {
+        get => Get<MouseWheelBehavior>(MouseWheelBehavior.Scroll);
         set => Set(value);
     }
 

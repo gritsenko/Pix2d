@@ -43,6 +43,7 @@ public class SkiaCanvas : Control
     private double _oldScale;
     private SKPoint _oldVpPos;
     private readonly IViewPortService _viewPortService = null!;
+    private readonly AppState _appState;
 
     public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
@@ -67,6 +68,7 @@ public class SkiaCanvas : Control
     public SkiaCanvas(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
+        _appState = serviceProvider.GetRequiredService<AppState>();
         ClipToBounds = true;
         if (Design.IsDesignMode)
             return;
@@ -256,9 +258,18 @@ public class SkiaCanvas : Control
 
         var scroll = e.Delta * 30f * ViewPort.ScaleFactor;
 
-        if ((e.KeyModifiers & KeyModifiers.Control) > 0)
+        bool shouldZoom;
+        if (_appState.MouseWheelBehavior == Pix2d.Primitives.ViewPort.MouseWheelBehavior.Zoom)
         {
-            //mouse wheel with control
+            shouldZoom = (e.KeyModifiers & KeyModifiers.Control) == 0;
+        }
+        else
+        {
+            shouldZoom = (e.KeyModifiers & KeyModifiers.Control) > 0;
+        }
+
+        if (shouldZoom)
+        {
             if (e.Delta.Y > 0)
                 ViewPort.ZoomIn(Input.Pointer.ViewportPosition);
             else if (e.Delta.Y < 0)
@@ -266,12 +277,10 @@ public class SkiaCanvas : Control
         }
         else if ((e.KeyModifiers & KeyModifiers.Shift) > 0 && scroll.Y != 0 && scroll.X == 0)
         {
-            //mouse wheel with shift
             ViewPort.ChangePan(-(float)scroll.Y, 0);
         }
         else
         {
-            //touch pad
             ViewPort.ChangePan(-(float)scroll.X, -(float)scroll.Y);
         }
 

@@ -275,6 +275,9 @@
       "To share your art, suggestions or complains, please join us in:": "To share your art, suggestions or complains, please join us in:",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "UI Scale:",
+      "Mouse wheel behavior:": "Mouse wheel behavior:",
+      "Scroll": "Scroll",
+      "Zoom": "Zoom",
       "Add new layer": "Add new layer",
       "Current project": "Current project"
     },
@@ -558,6 +561,9 @@
       "To share your art, suggestions or complains, please join us in:": "Ресурсы:",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "Масштаб интерфейса:",
+      "Mouse wheel behavior:": "Поведение колесика мыши:",
+      "Scroll": "Прокрутка",
+      "Zoom": "Масштаб",
       "Add new layer": "Добавить новый слой",
       "Current project": "Текущий проект"
     },
@@ -841,6 +847,9 @@
       "To share your art, suggestions or complains, please join us in:": "Um deine Kunst, Vorschläge oder Beschwerden zu teilen, join uns hier:",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "UI-Skalierung:",
+      "Mouse wheel behavior:": "Mausrad-Verhalten:",
+      "Scroll": "Scrollen",
+      "Zoom": "Zoom",
       "Add new layer": "Neue Ebene hinzufügen",
       "Current project": "Aktuelles Projekt"
     },
@@ -1124,6 +1133,9 @@
       "To share your art, suggestions or complains, please join us in:": "Comparte tu arte, sugerencias o quejas en:",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "Escala UI:",
+      "Mouse wheel behavior:": "Comportamiento de la rueda del ratón:",
+      "Scroll": "Desplazar",
+      "Zoom": "Zoom",
       "Add new layer": "Nueva capa",
       "Current project": "Proyecto actual"
     },
@@ -1407,6 +1419,9 @@
       "To share your art, suggestions or complains, please join us in:": "分享你的作品、建议或投诉，请加入我们：",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "UI缩放：",
+      "Mouse wheel behavior:": "鼠标滚轮行为:",
+      "Scroll": "滚动",
+      "Zoom": "缩放",
       "Add new layer": "添加新图层",
       "Current project": "当前项目"
     },
@@ -1690,6 +1705,9 @@
       "To share your art, suggestions or complains, please join us in:": "Para compartilhar sua arte, sugestões ou reclamações, junte-se a nós em:",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "Escala da UI:",
+      "Mouse wheel behavior:": "Comportamento da roda do mouse:",
+      "Scroll": "Rolar",
+      "Zoom": "Zoom",
       "Add new layer": "Adicionar Nova Camada",
       "Current project": "Projeto atual"
     },
@@ -1973,6 +1991,9 @@
       "To share your art, suggestions or complains, please join us in:": "作品の共有、提案、不具合報告はこちら:",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "UIスケール:",
+      "Mouse wheel behavior:": "マウスホイールの動作:",
+      "Scroll": "スクロール",
+      "Zoom": "ズーム",
       "Add new layer": "新規レイヤー追加",
       "Current project": "現在のプロジェクト"
     },
@@ -2256,6 +2277,9 @@
       "To share your art, suggestions or complains, please join us in:": "Pour partager vos créations, suggestions ou plaintes, rejoignez-nous:",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "Échelle UI:",
+      "Mouse wheel behavior:": "Comportement de la molette de la souris:",
+      "Scroll": "Défiler",
+      "Zoom": "Zoom",
       "Add new layer": "Ajouter un calque",
       "Current project": "Projet actuel"
     },
@@ -2539,6 +2563,9 @@
       "To share your art, suggestions or complains, please join us in:": "작품 공유, 제안 또는 문의사항이 있으시면 여기로 오세요:",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "UI 크기:",
+      "Mouse wheel behavior:": "마우스 휠 동작:",
+      "Scroll": "스크롤",
+      "Zoom": "확대/축소",
       "Add new layer": "새 레이어 추가",
       "Current project": "현재 프로젝트"
     },
@@ -2822,6 +2849,9 @@
       "To share your art, suggestions or complains, please join us in:": "Per condividere la tua arte, suggerimenti o reclami, unisciti a noi su:",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "Scala UI:",
+      "Mouse wheel behavior:": "Comportamento della rotellina del mouse:",
+      "Scroll": "Scorrimento",
+      "Zoom": "Zoom",
       "Add new layer": "Aggiungi nuovo livello",
       "Current project": "Progetto attuale"
     },
@@ -3105,6 +3135,9 @@
       "To share your art, suggestions or complains, please join us in:": "Sanatınızı, önerilerinizi veya şikayetlerinizi paylaşmak için bize katılın:",
       "TELEGRAM": "TELEGRAM",
       "UI Scale:": "Arayüz Ölçeği:",
+      "Mouse wheel behavior:": "Fare tekerleği davranışı:",
+      "Scroll": "Kaydırma",
+      "Zoom": "Yakınlaştırma",
       "Add new layer": "Yeni Katman Ekle",
       "Current project": "Mevcut proje"
     },

@@ -121,7 +121,23 @@ public class InfoView : LocalizedComponentBase
                             .Margin(8, 0, 0, 0)
                             .OnClick(_ => ResetScale())
                             .Content(L("Reset"))
-                    )
+                    ),
+
+                    new TextBlock()
+                        .Text(L("Mouse wheel behavior:"))
+                        .Margin(0, 16, 0, 10)
+                        .FontSize(20)
+                        .VerticalAlignment(VerticalAlignment.Center)
+                        .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
+                    new ComboBox()
+                        .ItemsSource(() => AvailableMouseWheelBehaviors)
+                        .DisplayMemberBinding(new Binding("Title"))
+                        .SelectedItem(() => AvailableMouseWheelBehaviors.FirstOrDefault(b => b.Behavior == AppState.MouseWheelBehavior) ?? AvailableMouseWheelBehaviors[0], v =>
+                        {
+                            if (v != null && v is MouseWheelBehaviorItem item && AppState.MouseWheelBehavior != item.Behavior)
+                                AppState.MouseWheelBehavior = item.Behavior;
+                        })
+                        .Margin(0, 0, 0, 12)
                 ),
                 new StackPanel()
                     .Children()
@@ -133,6 +149,7 @@ public class InfoView : LocalizedComponentBase
     [Inject] IPlatformStuffService PlatformStuffService { get; set; } = null!;
     [Inject] private IUiScaleService UiScaleService { get; set; } = null!;
     [Inject] private ICommandService CommandService { get; set; } = null!;
+    [Inject] private ISettingsService SettingsService { get; set; } = null!;
 
     private FileCommands FileCommands => CommandService.GetCommandList<FileCommands>()!;
 
@@ -148,6 +165,11 @@ public class InfoView : LocalizedComponentBase
         Messenger.Register(this, (ProjectSavedMessage msg) => StateHasChanged());
 
         AvailableLocales = LocalizationService.AvailableLocales;
+
+        AppState.WatchFor(x => x.MouseWheelBehavior, () => {
+            StateHasChanged();
+            SettingsService.Set(nameof(AppState.MouseWheelBehavior), AppState.MouseWheelBehavior);
+        });
     }
 
     private void ApplyScale()
@@ -160,4 +182,16 @@ public class InfoView : LocalizedComponentBase
         AppState.UiScale = 1.0;
         ApplyScale();
     }
+
+    private class MouseWheelBehaviorItem(Pix2d.Primitives.ViewPort.MouseWheelBehavior behavior, string title)
+    {
+        public Pix2d.Primitives.ViewPort.MouseWheelBehavior Behavior { get; } = behavior;
+        public string Title => title;
+    }
+
+    private static IReadOnlyList<MouseWheelBehaviorItem> AvailableMouseWheelBehaviors { get; } = [
+        new(Pix2d.Primitives.ViewPort.MouseWheelBehavior.Scroll, "Scroll"),
+        new(Pix2d.Primitives.ViewPort.MouseWheelBehavior.Zoom, "Zoom")
+    ];
 }
+
