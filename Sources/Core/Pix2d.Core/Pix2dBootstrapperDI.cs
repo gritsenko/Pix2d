@@ -127,7 +127,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
 
         var settingsService = serviceProvider.GetRequiredService<ISettingsService>();
         _appState.UiState.ShowLayers = settingsService.Get<bool>(nameof(AppState.UiState.ShowLayers));
-        _appState.MouseWheelBehavior = settingsService.Get<Pix2d.Primitives.ViewPort.MouseWheelBehavior>(nameof(AppState.MouseWheelBehavior));
+        _appState.MouseWheelBehavior =  settingsService.Get<Pix2d.Primitives.ViewPort.MouseWheelBehavior>(nameof(AppState.MouseWheelBehavior));
 
         var commandService = serviceProvider.GetRequiredService<ICommandService>();
         commandService.Initialize();

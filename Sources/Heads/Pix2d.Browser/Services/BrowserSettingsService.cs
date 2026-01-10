@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices.JavaScript;
-using Newtonsoft.Json;
+using System.Text.Json;
 using Pix2d.Abstract.Services;
 
 namespace Pix2d.Browser.Services;
@@ -30,7 +30,7 @@ public class BrowserSettingsService : ISettingsService
         if (strValue == null)
             return default;
 
-        return JsonConvert.DeserializeObject<T>(strValue);
+        return JsonSerializer.Deserialize<T>(strValue);
     }
 
     public void Set<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string key, T? value)
@@ -38,7 +38,7 @@ public class BrowserSettingsService : ISettingsService
         if (value == null)
             return;
 
-        var json = JsonConvert.SerializeObject(value);
+        var json = JsonSerializer.Serialize(value);
         MyLocalStorage.SetItem(key, json);
     }
 

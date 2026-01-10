@@ -1,5 +1,5 @@
-﻿#nullable enable
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Threading;
 
 namespace Pix2d.Services;
 
@@ -7,36 +7,49 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
     public const string DbName = "pix2d_settings.json";
     private string DbFullPath => System.IO.Path.Combine(platformStuffService.GetAppFolderPath(), DbName);
 
-    public Dictionary<string, object?> Settings { get; set; } = new();
+    private Dictionary<string, JsonElement> Settings = new();
 
-    private readonly JsonSerializerSettings _serializerSettings = new()
+    private readonly JsonSerializerOptions _serializerOptions = new()
     {
-        TypeNameHandling = TypeNameHandling.Auto,
-        TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple
+        PropertyNameCaseInsensitive = true,
+        IncludeFields = true,
+        WriteIndented = true
     };
 
     private bool _isSettingsInitialized;
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    private void LoadJson()
+    private async Task LoadJson()
     {
-        _isSettingsInitialized = true;
-        if (!File.Exists(DbFullPath))
-        {
-            Settings = new Dictionary<string, object?>();
-            SaveJson();
-            return;
-        }
-
+        await _semaphore.WaitAsync();
         try
         {
-            var json = File.ReadAllText(DbFullPath);
-            var settings = JsonConvert.DeserializeObject<Dictionary<string, object?>>(json, _serializerSettings);
-            if (settings != null) 
-                Settings = settings;
+            if (_isSettingsInitialized)
+                return;
+
+            _isSettingsInitialized = true;
+            if (!File.Exists(DbFullPath))
+            {
+                Settings = new Dictionary<string, JsonElement>();
+                return;
+            }
+
+            try
+            {
+                var json = File.ReadAllText(DbFullPath);
+                var settings = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, _serializerOptions);
+                if (settings != null) 
+                    Settings = settings;
+            }
+            catch(Exception ex)
+            {
+                Logger.LogException(ex);
+                Settings = new Dictionary<string, JsonElement>();
+            }
         }
-        catch(Exception ex)
+        finally
         {
-            Logger.LogException(ex);
+            _semaphore.Release();
         }
     }
 
@@ -44,10 +57,9 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
         try {
             EnsureSettingsInitialized();
 
-            if (Settings.TryGetValue(key, out var value))
+            if (Settings.TryGetValue(key, out var jsonElement))
             {
-                if(value is T tValue)
-                    return tValue;
+                return jsonElement.Deserialize<T>(_serializerOptions);
             }
         }
         catch (Exception ex) {
@@ -60,12 +72,16 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
     public bool TryGet<T>(string key, out T? value)
     {
         EnsureSettingsInitialized();
-        if (Settings.TryGetValue(key, out var storedValue))
+        if (Settings.TryGetValue(key, out var jsonElement))
         {
-            if (storedValue is T tValue)
+            try
             {
-                value = tValue;
+                value = jsonElement.Deserialize<T>(_serializerOptions);
                 return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
             }
         }
 
@@ -77,24 +93,55 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
     {
         //ensure the settings were loaded
         if (!_isSettingsInitialized)
-            LoadJson();
+            LoadJson().GetAwaiter().GetResult();
     }
 
     public void Set<T>(string key, T? value)
     {
         EnsureSettingsInitialized();
-        Settings[key] = value;
-        SaveJson();
+        _semaphore.Wait();
+        try
+        {
+            Settings[key] = JsonSerializer.SerializeToElement(value, _serializerOptions);
+            
+            var json = JsonSerializer.Serialize(Settings, _serializerOptions);
+
+            var dir = platformStuffService.GetAppFolderPath();
+            if (!Directory.Exists(dir)) 
+                Directory.CreateDirectory(dir);
+
+            var tempFile = DbFullPath + ".tmp";
+            var backupFile = DbFullPath + ".bak";
+
+            try
+            {
+                File.WriteAllText(tempFile, json);
+                
+                if (File.Exists(DbFullPath))
+                    File.Replace(tempFile, DbFullPath, backupFile);
+                else
+                    File.Move(tempFile, DbFullPath);
+            }
+            catch (Exception ex)
+            {
+                if (File.Exists(tempFile))
+                    File.Delete(tempFile);
+                Logger.LogException(ex);
+                throw;
+            }
+            finally
+            {
+                if (File.Exists(backupFile))
+                    File.Delete(backupFile);
+            }
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
-    private void SaveJson()
-    {
-        var json = JsonConvert.SerializeObject(Settings, _serializerSettings);
+    
 
-        var dir = platformStuffService.GetAppFolderPath();
-        if (!Directory.Exists(dir)) 
-            Directory.CreateDirectory(dir);
-
-        File.WriteAllText(DbFullPath, json);
-    }
+    
 }
