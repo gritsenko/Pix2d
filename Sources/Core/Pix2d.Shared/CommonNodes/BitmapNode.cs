@@ -90,7 +90,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     }
 
     public float GetOpacity() => Opacity;
-    public SKColor PickColorByPoint(int localPosX, int localPosY) => 
+    public SKColor PickColorByPoint(int localPosX, int localPosY) =>
         Bitmap?.GetPixel(localPosX, localPosY) ?? SKColor.Empty;
 
     public void Draw(Action<SKCanvas> drawAction)
@@ -159,9 +159,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
             }
             else
             {
-#pragma warning disable CS0618
-                    canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect, new SKPaint() { FilterQuality = SKFilterQuality.Low });
-#pragma warning restore CS0618
+                canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect, new SKPaint() { FilterQuality = SKFilterQuality.Low });
             }
         }
     }
@@ -208,8 +206,10 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     public void FlipVertical()
         => ReplaceBitmap(Bitmap!.FlipVertical());
 
+    public void Resize(SKSize newSize)
+        => ReplaceBitmap(Bitmap!.Resize(newSize.ToSizeI(), new SKSamplingOptions(SKFilterMode.Linear)), true);
     public void Resize(SKSize newSize, float horizontalAnchor, float verticalAnchor)
-        => ReplaceBitmap(Bitmap!.Resize(newSize.ToSizeI(), horizontalAnchor, verticalAnchor), true);
+        => ReplaceBitmap(Bitmap!.CropByAnchor(newSize.ToSizeI(), horizontalAnchor, verticalAnchor), true);
 
     public void Crop(SKRect targetBounds)
         => ReplaceBitmap(Bitmap!.Crop(targetBounds), true);

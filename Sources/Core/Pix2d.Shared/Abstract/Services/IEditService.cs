@@ -1,4 +1,4 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 using SkiaNodes.Abstract;
 using SkiaSharp;
 
@@ -16,4 +16,5 @@ public interface IEditService
     void Resize(IContainerNode containerNode, SKSize size);
     void CropCurrentSprite(SKSize size, float horizontalAnchor, float verticalAnchor);
     void CropCurrentSprite(SKRect newBounds);
+    void ResizeCurrentSprite(SKSize size);
 }

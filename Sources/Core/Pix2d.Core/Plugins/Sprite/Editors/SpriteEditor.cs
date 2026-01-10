@@ -80,7 +80,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
             {
                 CurrentSprite.FrameRate = _editorState.FrameRate;
 
-                if(IsPlaying)
+                if (IsPlaying)
                     _timer.Change(1000 / FrameRate, 1000 / FrameRate);
 
                 _viewPortRefreshService.Refresh();
@@ -197,7 +197,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void DeleteLayer(Pix2dSprite.Layer? layerToDelete = null)
     {
-        if (CurrentSprite?.LayersCount <= 1) 
+        if (CurrentSprite?.LayersCount <= 1)
             return;
 
         var layer = layerToDelete ?? SelectedLayer ?? throw new InvalidOperationException("No layer selected");
@@ -333,11 +333,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         if (Math.Abs(CurrentSprite.Size.Width - CurrentSprite.Size.Height) > 0.1)
         {
             var size = Math.Max(CurrentSprite.Size.Width, CurrentSprite.Size.Height);
-            var resizeOperation = new ResizeSpriteOperationBase(CurrentSprite, new SKSize(size, size))
-            {
-                VerticalAnchor = 0.5f,
-                HorizontalAnchor = 0.5f
-            };
+            var resizeOperation = new ResizeSpriteOperationBase(CurrentSprite, new SKSize(size, size));
             resizeOperation.OnPerform();
             operations.Add(resizeOperation);
         }

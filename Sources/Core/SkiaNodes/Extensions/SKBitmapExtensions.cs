@@ -68,7 +68,7 @@ public static class SKBitmapExtensions
 
 
     public static SKBitmap FlipHorizontal(this SKBitmap bitmap)
-    { 
+    {
         return ProcessBitmap(bitmap, canvas =>
         {
             canvas.Scale(-1, 1, bitmap.Width / 2f, bitmap.Height / 2f);
@@ -77,7 +77,7 @@ public static class SKBitmapExtensions
     }
 
     public static SKBitmap FlipVertical(this SKBitmap bitmap)
-    { 
+    {
         return ProcessBitmap(bitmap, canvas =>
         {
             canvas.Scale(1, -1, bitmap.Width / 2f, bitmap.Height / 2f);
@@ -87,17 +87,17 @@ public static class SKBitmapExtensions
 
     public static SKBitmap Rotate90(this SKBitmap bitmap)
     {
-       var w = bitmap.Height;
-       var h = bitmap.Width;
+        var w = bitmap.Height;
+        var h = bitmap.Width;
 
-       return ProcessBitmap(new SKSizeI(w, h), canvas =>
-       {
-           canvas.RotateDegrees(90, w / 2f, h / 2f);
-           canvas.DrawBitmap(bitmap, (w - bitmap.Width) / 2f, (h - bitmap.Height) / 2f);
-       });
+        return ProcessBitmap(new SKSizeI(w, h), canvas =>
+        {
+            canvas.RotateDegrees(90, w / 2f, h / 2f);
+            canvas.DrawBitmap(bitmap, (w - bitmap.Width) / 2f, (h - bitmap.Height) / 2f);
+        });
     }
 
-    public static SKBitmap Resize(this SKBitmap bitmap, SKSizeI newSize, float horizontalAnchor, float verticalAnchor)
+    public static SKBitmap CropByAnchor(this SKBitmap bitmap, SKSizeI newSize, float horizontalAnchor, float verticalAnchor)
     {
         return ProcessBitmap(newSize, canvas =>
         {
@@ -116,7 +116,7 @@ public static class SKBitmapExtensions
 
     }
 
-    private static SKBitmap ProcessBitmap(SKBitmap bitmap, Action<SKCanvas> processAction) 
+    private static SKBitmap ProcessBitmap(SKBitmap bitmap, Action<SKCanvas> processAction)
         => ProcessBitmap(new SKSizeI(bitmap.Width, bitmap.Height), processAction);
 
     private static SKBitmap ProcessBitmap(SKSizeI newSize, Action<SKCanvas> processAction)

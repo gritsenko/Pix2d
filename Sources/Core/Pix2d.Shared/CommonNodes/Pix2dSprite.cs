@@ -412,6 +412,15 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
         }
     }
 
+    public void ResizeImage(SKSize newSize)
+    {
+        this.Size = newSize;
+        foreach (var layer in Layers)
+        {
+            layer.ResizeImage(newSize);
+        }
+    }
+
     public override void Crop(SKRect targetBounds)
     {
         this.Size = targetBounds.Size;

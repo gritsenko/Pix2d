@@ -429,6 +429,13 @@ public partial class Pix2dSprite
             foreach (var bmNode in Nodes.OfType<BitmapNode>())
                 bmNode.Resize(newSize, horizontalAnchor, verticalAnchor);
         }
+        public void ResizeImage(SKSize newSize)
+        {
+            Size = newSize;
+            foreach (var bmNode in Nodes.OfType<BitmapNode>())
+                bmNode.Resize(newSize);
+        }
+
         public void Crop(SKRect targetBounds)
         {
             Size = targetBounds.Size;

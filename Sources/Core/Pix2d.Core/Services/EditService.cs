@@ -210,6 +210,16 @@ public class EditService : IEditService
         UpdateEditors();
     }
 
+    public void ResizeCurrentSprite(SKSize newSize)
+    {
+        if (!(GetCurrentEditor() is SpriteEditor editor)) return;
+
+        editor.Resize((int)newSize.Width, (int)newSize.Height);
+        UpdateEditors();
+
+        _messenger.Send(new CanvasSizeChangedMessage());
+    }
+
     public INodeEditor GetCurrentEditor()
     {
         return CurrentNodeEditor!;

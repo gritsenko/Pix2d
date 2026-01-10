@@ -7,12 +7,9 @@ public class ResizeSpriteOperationBase(Pix2dSprite targetSprite, SKSize newSize)
 {
     private SKSize _oldSize = targetSprite.Size;
 
-    public float VerticalAnchor { get; init; }
-    public float HorizontalAnchor { get; init; }
-
     public override void OnPerform()
     {
-        _targetSprite.Resize(newSize, VerticalAnchor, HorizontalAnchor);
+        _targetSprite.ResizeImage(newSize);
 
         if (!HasFinalStates)
             SetFinalData();

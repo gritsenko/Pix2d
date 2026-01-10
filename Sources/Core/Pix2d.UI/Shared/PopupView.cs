@@ -41,30 +41,28 @@ public class PopupView : ComponentBase
         get => _isOpen;
         set
         {
-            // if (value && (DateTime.Now - _autoCloseTime < AutoCloseTimeout))
-            // {
-            //     SetAndRaise(IsOpenProperty, ref _isOpen, false);
-            //     return;
-            // }
-
             SetAndRaise(IsOpenProperty, ref _isOpen, value);
-            IsVisible = value;
-            if (value)
-            {
-                if (ShowPinButton)
-                {
-                    Messenger.Register<WindowClickedMessage>(this, OnWindowClicked);
-                    Messenger.Register<CloseUnpinnedPopups>(this, CloseUnpinned);
-                }
 
-                _onShowAction?.Invoke();
-            }
-            else
+            if (IsVisible != value)
             {
-                if (ShowPinButton)
+                IsVisible = value;
+                if (value)
                 {
-                    Messenger.Unregister<WindowClickedMessage>(this, OnWindowClicked);
-                    Messenger.Unregister<CloseUnpinnedPopups>(this, CloseUnpinned);
+                    if (ShowPinButton)
+                    {
+                        Messenger.Register<WindowClickedMessage>(this, OnWindowClicked);
+                        Messenger.Register<CloseUnpinnedPopups>(this, CloseUnpinned);
+                    }
+
+                    _onShowAction?.Invoke();
+                }
+                else
+                {
+                    if (ShowPinButton)
+                    {
+                        Messenger.Unregister<WindowClickedMessage>(this, OnWindowClicked);
+                        Messenger.Unregister<CloseUnpinnedPopups>(this, CloseUnpinned);
+                    }
                 }
             }
         }

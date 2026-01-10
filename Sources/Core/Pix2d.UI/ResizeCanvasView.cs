@@ -1,105 +1,139 @@
-using System.Globalization;
 using Pix2d.Messages;
-using Pix2d.UI.Shared;
 using SkiaSharp;
 
 namespace Pix2d.UI;
 
 public class ResizeCanvasView : LocalizedComponentBase
 {
+    protected override StyleGroup? BuildStyles() => 
+    [
+        new Style<Button>()
+            .CornerRadius(6)
+            .FontSize(12)
+    ];
     protected override object Build()
     {
         return new Border()
+            .Padding(16)
             .Child(
                 new StackPanel()
-                    .Margin(8)
+                    .Spacing(12)
                     .Children(
-                        new Grid()
-                            .Cols("*,*,*")
-                            .Rows("20,*")
+                        // Секция размеров
+                        new Grid().Cols("*, 16, *").Rows("Auto, Auto")
                             .Children(
-                                new TextBlock()
-                                    .Text(L("Width")),
-                                new NumericUpDown()
-                                    .Row(1)
-                                    .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
-                                    .Increment(1)
-                                    .Value(() => CanvasWidth, v => CanvasWidth = (int)(v ?? 0)),
-                                new TextBlock().Col(1)
-                                    .Row(1)
-                                    .VerticalAlignment(VerticalAlignment.Center)
-                                    .HorizontalAlignment(HorizontalAlignment.Center)
-                                    .Text("✕"),
-                                new TextBlock()
-                                    .Col(2)
-                                    .Text(L("Height")),
-                                new NumericUpDown().Col(2)
-                                    .Row(1)
-                                    .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
-                                    .Increment(1)
-                                    .Value(() => CanvasHeight, v => CanvasHeight = (int)(v ?? 0))
+                                new TextBlock().Text(L("Width")).FontSize(12).Foreground(Brushes.Gray),
+                                new NumericUpDown().Row(1)
+                                    .FormatString("N0")
+                                    .Value(() => CanvasWidth, v =>
+                                    {
+                                        CanvasWidth = (int)(v ?? 0);
+                                        if (KeepAspect)
+                                            CanvasHeight = (int)(CanvasWidth / _aspectRatio);
+                                    }),
+
+                                new TextBlock().Col(2).Text(L("Height")).FontSize(12).Foreground(Brushes.Gray),
+                                new NumericUpDown().Col(2).Row(1)
+                                    .FormatString("N0")
+                                    .Value(() => CanvasHeight, v =>
+                                    {
+                                        CanvasHeight = (int)(v ?? 0);
+                                        if (KeepAspect)
+                                            CanvasWidth = (int)(CanvasHeight * _aspectRatio);
+                                    })
                             ),
 
-                        new TextBlock()
-                            .Margin(0, 16, 0, 0)
-                            .Text(L("Horizontal anchor")),
+                        new ToggleSwitch()
+                            .Content(L("Keep aspect ratio"))
+                            .IsChecked(() => KeepAspect, v =>
+                            {
+                                KeepAspect = (bool)v!;
 
-                        // The initial values are not displayed right away due to https://github.com/AvaloniaUI/CrossPlatformDesktop/issues/4610
+                                if (CanvasWidth != OriginalWidth)
+                                    CanvasHeight = (int)(CanvasWidth / _aspectRatio);
+
+                                if (_canvasHeight != OriginalHeight)
+                                    CanvasWidth = (int)(CanvasHeight * _aspectRatio);
+                            }),
+
+                        new Separator().Height(1).Opacity(0.2),
+
+                        new TextBlock().Text(L("Resize mode")).FontSize(12).Foreground(Brushes.Gray),
                         new ComboBox()
-                            .Margin(0, 8, 0, 0)
-                            .SelectedIndex(() => HorizontalAnchor, v => HorizontalAnchor = (int)v!)
-                            .HorizontalAlignment(HorizontalAlignment.Left)
-                            .Width(100)
+                            .HorizontalAlignment(HorizontalAlignment.Stretch)
                             .Items(
-                                new ComboBoxItem().Content(L("Left")),
-                                new ComboBoxItem().Content(L("Center")),
-                                new ComboBoxItem().Content(L("Right"))
-                            ),
+                                new ComboBoxItem().Content(L("Canvas (Crop/Expand)")),
+                                new ComboBoxItem().Content(L("Image (Rescale)"))
+                            )
+                            .SelectedIndex(() => ResizeMode, v => ResizeMode = (int)v!),
 
-                        new TextBlock()
-                            .Margin(0, 16, 0, 0)
-                            .Text(L("Vertical anchor")),
+                        // Секция Якоря (Anchor)
+                        new TextBlock().Text(L("Anchor")).FontSize(12).Foreground(Brushes.Gray)
+                            .IsVisible(() => ResizeMode == 0),
 
-                        new ComboBox()
-                            .Margin(0, 8, 0, 0)
-                            .SelectedIndex(() => VerticalAnchor, v => VerticalAnchor = (int)v!)
-                            .HorizontalAlignment(HorizontalAlignment.Left)
-                            .Width(100)
-                            .Items(
-                                new ComboBoxItem().Content(L("Top")),
-                                new ComboBoxItem().Content(L("Center")),
-                                new ComboBoxItem().Content(L("Bottom"))
-                            ),
-
-                        new TextBlock()
-                            .Margin(0, 16, 0, 0)
-                            .Text(L("Keep aspect ratio")),
-
-                        new ToggleSwitch().Margin(0, 0, 0, 0)
-                            .IsChecked(() => KeepAspect, v => KeepAspect = (bool)v!),
+                        new Border()
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .IsVisible(() => ResizeMode == 0)
+                            .Child(CreateAnchorGrid()), // Метод создания сетки 3х3
 
                         new StackPanel()
+                            .Margin(0, 10, 0, 0)
                             .Orientation(Orientation.Horizontal)
+                            .HorizontalAlignment(HorizontalAlignment.Right)
                             .Spacing(8)
                             .Children(
-                                new Button()
-                                    .Classes("btn")
-                                    .Content(L("Apply"))
+                                new Button().Content(L("Reset")).OnClick(_ => OnResetCommandExecute()).Classes("btn")
+                                    .Width(80)
+                                    .Height(30)
+                                    .IsEnabled(() => OriginalWidth != CanvasWidth || OriginalHeight != CanvasHeight),
+                                new Button().Content(L("Apply")).Classes("accent") // Используйте акцентный цвет темы
+                                    .Width(80)
+                                    .Height(30)
                                     .Background(Brushes.CornflowerBlue)
-                                    .Width(80)
-                                    .Height(30)
-                                    .OnClick(_ => OnResizeCanvasCommandExecute()),
-                                new Button()
-                                    .Classes("btn")
-                                    .Content(L("Reset"))
-                                    .Background(Brushes.Gray)
-                                    .Width(80)
-                                    .Height(30)
-                                    .IsEnabled(() => OriginalWidth != CanvasWidth || OriginalHeight != CanvasHeight)
-                                    .OnClick(_ => OnResetCommandExecute())
+                                    .OnClick(_ => OnResizeCanvasCommandExecute())
                             )
                     )
             );
+    }
+
+    private Control CreateAnchorGrid()
+    {
+        var grid = new Grid()
+            .Width(72).Height(72)
+            .Cols("24, 24, 24").Rows("24, 24, 24");
+
+        for (int y = 0; y < 3; y++) // 0: Top/Left, 1: Center, 2: Bottom/Right
+        {
+            for (int x = 0; x < 3; x++)
+            {
+                int row = y;
+                int col = x;
+
+                var btn = new Button()
+                    .Row(row).Col(col)
+                    .Padding(0)
+                    .Margin(1)
+                    .HorizontalContentAlignment(HorizontalAlignment.Center)
+                    .VerticalContentAlignment(VerticalAlignment.Center)
+                    // Логика подсветки активного якоря
+                    .Background(() => (VerticalAnchor == row && HorizontalAnchor == col)
+                        ? Brushes.CornflowerBlue : Brushes.Transparent)
+                    .BorderBrush(Brushes.Gray)
+                    .BorderThickness(1)
+                    .OnClick(_ =>
+                    {
+                        VerticalAnchor = row;
+                        HorizontalAnchor = col;
+                        StateHasChanged();
+                    });
+
+                // Добавим маленькую точку в центр для наглядности
+                if (row == 1 && col == 1) btn.Content("•");
+
+                grid.Children(btn);
+            }
+        }
+        return grid;
     }
 
     public void UpdateData()
@@ -115,69 +149,17 @@ public class ResizeCanvasView : LocalizedComponentBase
 
     private double _aspectRatio;
 
-    private int _canvasWidth;
     private int _canvasHeight;
     private int _horizontalAnchor = 0;
     private int _verticalAnchor = 0;
-    private bool _keepAspect;
-    private string _originalSizeStr = null!;
-
-    public string OriginalSizeStr
-    {
-        get => _originalSizeStr;
-        set
-        {
-            if (value == _originalSizeStr) return;
-            _originalSizeStr = value;
-            OnPropertyChanged();
-        }
-    }
+    public string OriginalSizeStr { get; set; }
 
     private bool HasActiveArtboard => SelectionService.GetActiveContainer() != null;
     private int OriginalWidth => HasActiveArtboard ? (int)SelectionService.GetActiveContainer().Size.Width : 0;
     private int OriginalHeight => HasActiveArtboard ? (int)SelectionService.GetActiveContainer().Size.Height : 0;
 
-    public int CanvasWidth
-    {
-        get => _canvasWidth;
-        set
-        {
-            if (_canvasWidth == value)
-                return;
-
-            _canvasWidth = value;
-
-            OnPropertyChanged();
-
-            if (KeepAspect)
-            {
-                _canvasHeight = (int)(CanvasWidth / _aspectRatio);
-                OnPropertyChanged(nameof(CanvasHeight));
-            }
-            StateHasChanged();
-        }
-    }
-
-    public int CanvasHeight
-    {
-        get => _canvasHeight;
-        set
-        {
-            if (_canvasHeight == value)
-                return;
-
-            _canvasHeight = value;
-
-            OnPropertyChanged();
-
-            if (KeepAspect)
-            {
-                _canvasWidth = (int)(CanvasHeight * _aspectRatio);
-                OnPropertyChanged(nameof(CanvasWidth));
-            }
-            StateHasChanged();
-        }
-    }
+    public int CanvasWidth { get; set; }
+    public int CanvasHeight { get; set; }
 
     public int HorizontalAnchor
     {
@@ -199,32 +181,9 @@ public class ResizeCanvasView : LocalizedComponentBase
         }
     }
 
-    public bool KeepAspect
-    {
-        get => _keepAspect;
-        set
-        {
-            _keepAspect = value;
+    public int ResizeMode { get; set; }
 
-            OnPropertyChanged();
-
-            if (!value) return;
-
-            if (_canvasWidth != OriginalWidth)
-            {
-                _canvasHeight = (int)(CanvasWidth / _aspectRatio);
-                OnPropertyChanged(nameof(CanvasHeight));
-            }
-
-            if (_canvasHeight != OriginalHeight)
-            {
-                _canvasWidth = (int)(CanvasHeight * _aspectRatio);
-                OnPropertyChanged(nameof(CanvasWidth));
-            }
-
-            StateHasChanged();
-        }
-    }
+    public bool KeepAspect { get; set; }
 
     protected override void OnAfterInitialized()
     {
@@ -233,6 +192,8 @@ public class ResizeCanvasView : LocalizedComponentBase
 
         VerticalAnchor = 1;
         HorizontalAnchor = 1;
+
+        StateHasChanged();
     }
 
     private void NodesSelected(NodesSelectedMessage obj)
@@ -248,12 +209,23 @@ public class ResizeCanvasView : LocalizedComponentBase
         _aspectRatio = (double)OriginalWidth / OriginalHeight;
 
         OriginalSizeStr = $"{OriginalWidth}x{OriginalHeight}";
+
+        StateHasChanged();
     }
 
     private void OnResizeCanvasCommandExecute()
     {
         AppState.UiState.ShowCanvasResizePanel = false;
-        EditService.CropCurrentSprite(new SKSize(CanvasWidth, CanvasHeight), HorizontalAnchor * 0.5f, VerticalAnchor * 0.5f);
+
+        if (ResizeMode == 0)
+        {
+            EditService.CropCurrentSprite(new SKSize(CanvasWidth, CanvasHeight), HorizontalAnchor * 0.5f, VerticalAnchor * 0.5f);
+        }
+        else
+        {
+            EditService.ResizeCurrentSprite(new SKSize(CanvasWidth, CanvasHeight));
+        }
+
         ViewPortService.ShowAll();
     }
 
