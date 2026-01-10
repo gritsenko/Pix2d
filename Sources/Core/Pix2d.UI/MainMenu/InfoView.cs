@@ -170,6 +170,7 @@ public class InfoView : LocalizedComponentBase
             StateHasChanged();
             SettingsService.Set(nameof(AppState.MouseWheelBehavior), AppState.MouseWheelBehavior);
         });
+        StateHasChanged();
     }
 
     private void ApplyScale()

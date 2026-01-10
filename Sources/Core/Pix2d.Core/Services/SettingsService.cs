@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Threading;
 
 namespace Pix2d.Services;
 
@@ -140,8 +139,4 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
             _semaphore.Release();
         }
     }
-
-    
-
-    
 }

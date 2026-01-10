@@ -31,7 +31,10 @@ public class TimeLineView : LocalizedComponentBase
             .FontSize(14)
             .Width(44)
             .Height(44)
-            .Padding(0)
+            .Padding(0),
+
+        new Style<ListBoxItem>()
+            .CornerRadius(4)
     ];
 
     protected override object Build() =>
@@ -62,6 +65,8 @@ public class TimeLineView : LocalizedComponentBase
                         new FuncComponent<AnimationFrameViewModel>(itemVm, vm =>
                             new Border()
                                 .Background(StaticResources.Brushes.CheckerTilesBrush)
+                                .CornerRadius(4)
+                                .ClipToBounds(true)
                                 .Child(
                                     new Rectangle()
                                         .Width(52)
