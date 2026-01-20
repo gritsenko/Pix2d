@@ -7,6 +7,10 @@ on:
         description: 'App version (format: 3.3.3.0)'
         required: false
         default: ''
+      commit_submission:
+        description: 'Отправить на сертификацию сразу? (true/false)'
+        required: false
+        default: 'true'
   push:
     tags:
       - 'v*'
@@ -38,10 +42,7 @@ jobs:
       id: get_version
       shell: pwsh
       run: |
-        # Default version
         $version = ""
-
-        # If triggered by tag, extract version from tag (e.g., v3.3.3 -> 3.3.3.0)
         if ($env:GITHUB_REF -like 'refs/tags/v*') {
           $tag = $env:GITHUB_REF -replace 'refs/tags/v', ''
           if ($tag -match '^\d+\.\d+\.\d+$') {
@@ -49,12 +50,10 @@ jobs:
           }
         }
 
-        # If triggered manually and input is provided, use it
         if ("${{ github.event_name }}" -eq "workflow_dispatch" -and "${{ github.event.inputs.version }}") {
           $version = "${{ github.event.inputs.version }}"
         }
 
-        # Fallback if still empty
         if (-not $version) {
           $version = "0.0.0.0"
         }
@@ -70,35 +69,26 @@ jobs:
         Write-Host "Patching manifest at $manifestPath with version $newVersion"
 
         try {
-            # Load the XML document
             [xml]$manifest = New-Object System.Xml.XmlDocument
             $manifest.Load($manifestPath)
-
-            # Find the Identity element and update its Version attribute
             $identityNode = $manifest.SelectSingleNode("//*[local-name()='Package']/*[local-name()='Identity']")
             if ($identityNode -ne $null -and $identityNode.Attributes['Version'] -ne $null) {
                 $identityNode.Attributes['Version'].Value = $newVersion
-                Write-Host "Updated Version attribute to: $($identityNode.Attributes['Version'].Value)"
             } else {
                 throw "Could not find 'Identity' element or 'Version' attribute in Package.appxmanifest."
             }
 
-            # Save the XML document back, preserving original encoding and formatting if possible.
-            # Using Save() without explicit encoding usually preserves the original.
-            # However, for explicit UTF-8 without BOM (common for AppxManifest):
             $xmlWriter = New-Object System.Xml.XmlTextWriter($manifestPath, (New-Object System.Text.UTF8Encoding($false)))
-            $xmlWriter.Formatting = [System.Xml.Formatting]::Indented # Keep indentation
+            $xmlWriter.Formatting = [System.Xml.Formatting]::Indented
             $manifest.Save($xmlWriter)
-            $xmlWriter.Close() # Close the writer to flush contents
-            Write-Host "Manifest patched and saved successfully."
+            $xmlWriter.Close()
+            Write-Host "Manifest patched successfully."
         } catch {
             Write-Error "Failed to patch Package.appxmanifest: $_"
-            Write-Error $_.Exception.ToString()
             exit 1
         }
 
     - name: Restore NuGet packages
-      # Явно указываем восстановить для arm64 и x64, чтобы OnnxRuntime распаковался корректно
       run: |
         dotnet restore $env:SOLUTION_NAME -r win-x64
         dotnet restore $env:SOLUTION_NAME -r win-arm64
@@ -122,7 +112,6 @@ jobs:
           /p:AppxBundlePlatforms="x64|arm64" `
           /p:PackageCertificateKeyFile="$env:WAP_PROJECT_DIR/certificate.pfx" `
           /p:Platform=x64
-          # /p:PackageCertificatePassword="${{ secrets.PFX_KEY }}"
 
     - name: Remove signing certificate
       shell: pwsh
@@ -155,19 +144,7 @@ jobs:
 
     - name: Unzip downloaded package
       shell: pwsh
-      run: |
-        Expand-Archive -Path ./artifacts/msix-package.zip -DestinationPath ./artifacts -Force
-
-    - name: Setup PowerShell environment
-      shell: pwsh
-      run: |
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-
-        Install-Module -Name StoreBroker -Force -AllowClobber -Scope AllUsers
-
-        Import-Module StoreBroker -Force
-
-        Get-Command -Module StoreBroker
+      run: Expand-Archive -Path ./artifacts/msix-package.zip -DestinationPath ./artifacts -Force
 
     - name: Upload to Microsoft Store
       shell: pwsh
@@ -176,6 +153,7 @@ jobs:
         CLIENT_ID: ${{ secrets.CLIENT_ID }}
         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
         PRODUCT_ID: ${{ secrets.PRODUCT_ID }}
+        COMMIT_OVERRIDE: ${{ github.event.inputs.commit_submission }}
       run: |
         $VerbosePreference = "Continue"
 
@@ -183,56 +161,37 @@ jobs:
             Install-PackageProvider -Name NuGet -Force
             Install-Module -Name StoreBroker -Force -AllowClobber
         }
-
         Import-Module StoreBroker -Force
 
-        $packagePath = Get-ChildItem -Path ./artifacts -Filter *.msixupload -Recurse -ErrorAction Stop | Select-Object -First 1
-        if (-not $packagePath) { throw ".msixupload package not found" }
-
-        # StoreBroker's Update-ApplicationSubmission in some versions requires a JSON file path.
-        $submissionJsonPath = Join-Path $env:RUNNER_TEMP "submission.json"
+        $packageFile = Get-ChildItem -Path ./artifacts -Filter *.msixupload -Recurse | Select-Object -First 1
+        if (-not $packageFile) { throw ".msixupload file not found" }
 
         try {
             $secureSecret = ConvertTo-SecureString $env:CLIENT_SECRET -AsPlainText -Force
             $credential = New-Object System.Management.Automation.PSCredential($env:CLIENT_ID, $secureSecret)
 
             Write-Host "Authenticating..."
-            Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential -Verbose
+            Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential
 
-            Write-Host "Creating new submission..."
-            $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID -Verbose
+            Write-Host "Creating new submission (cloning last published)..."
+            $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID
 
-            if (-not $submission.fileUploadUrl) {
-                throw "fileUploadUrl is empty. Cannot proceed with uploading the package."
-            }
+            Write-Host "Uploading package to Store storage..."
+            # Эта команда загружает файл и автоматически связывает его с текущим черновиком сабмита.
+            Set-SubmissionPackage -PackagePath $packageFile.FullName -UploadUrl $submission.fileUploadUrl -Verbose
 
-            Write-Host "Adding package to submission..."
-            Set-SubmissionPackage -PackagePath $packagePath.FullName -UploadUrl $submission.fileUploadUrl -Verbose
-
-            # Trigger ingestion: clear packages so the service repopulates from the uploaded blob
-            $submission.ApplicationPackages = @()
-
-            # Persist submission to disk for Update-ApplicationSubmission
-            $submission | ConvertTo-Json -Depth 100 | Out-File -FilePath $submissionJsonPath -Encoding utf8
-
-            Write-Host "Updating submission to trigger package ingestion..."
-            Update-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -SubmissionDataPath $submissionJsonPath -Verbose
-
-            # Re-fetch the submission to see current state
-            $submission = Get-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
-
-            if ($submission.ApplicationPackages.Count -eq 0) {
-                 Write-Warning "Warning: No packages found after update. Ingestion might be lagging."
+            # ВАЖНО: В режиме "Manual Publish" вызов Complete-ApplicationSubmission НЕ опубликует приложение сразу.
+            # Он отправит его на обработку (Ingestion) и сертификацию. Только после этого шага 
+            # новый пакет появится в списке "Packages" в Partner Center.
+            if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch" -and $env:COMMIT_OVERRIDE -ne "true") {
+                Write-Host "Skipping Complete-ApplicationSubmission. Package uploaded but NOT submitted for ingestion."
             } else {
-                 Write-Host "Success: Found $($submission.ApplicationPackages.Count) packages linked to submission."
+                Write-Host "Completing submission to trigger ingestion and certification..."
+                Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
+                Write-Host "Success! Check Partner Center for certification progress."
             }
-
-            Write-Host "Completing submission..."
-            Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
-
-            Write-Host "Success!"
         }
         catch {
-            Write-Error "Failed: $_"
+            Write-Error "Failed to upload to Store: $_"
             exit 1
         }
