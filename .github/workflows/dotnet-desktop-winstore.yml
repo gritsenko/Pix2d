@@ -42,24 +42,30 @@ jobs:
       id: get_version
       shell: pwsh
       run: |
-        $version = ""
+        $rawVersion = ""
+
+        # 1. Берем версию из тега
         if ($env:GITHUB_REF -like 'refs/tags/v*') {
-          $tag = $env:GITHUB_REF -replace 'refs/tags/v', ''
-          if ($tag -match '^\d+\.\d+\.\d+$') {
-            $version = "$tag.0"
-          }
+          $rawVersion = $env:GITHUB_REF -replace 'refs/tags/v', ''
         }
-
+        # 2. Если ручной запуск, приоритет у ввода
         if ("${{ github.event_name }}" -eq "workflow_dispatch" -and "${{ github.event.inputs.version }}") {
-          $version = "${{ github.event.inputs.version }}"
+          $rawVersion = "${{ github.event.inputs.version }}"
         }
+        # 3. Фолбэк
+        if (-not $rawVersion) { $rawVersion = "1.0.0.0" }
 
-        if (-not $version) {
-          $version = "0.0.0.0"
+        # ГАРАНТИРУЕМ 4 ЧИСЛА (x.x.x.x)
+        $parts = $rawVersion.Split('.')
+        $v = @(0, 0, 0, 0)
+        for ($i = 0; $i -lt [Math]::Min($parts.Count, 4); $i++) {
+            $val = 0
+            if ([int]::TryParse($parts[$i], [ref]$val)) { $v[$i] = $val }
         }
+        $finalVersion = $v -join '.'
 
-        echo "Using version: $version"
-        echo "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+        Write-Host "Final Version for MSIX: $finalVersion"
+        echo "APP_VERSION=$finalVersion" | Out-File -FilePath $env:GITHUB_ENV -Append
 
     - name: Patch AppxManifest version
       shell: pwsh
@@ -75,7 +81,7 @@ jobs:
             if ($identityNode -ne $null -and $identityNode.Attributes['Version'] -ne $null) {
                 $identityNode.Attributes['Version'].Value = $newVersion
             } else {
-                throw "Could not find 'Identity' element or 'Version' attribute in Package.appxmanifest."
+                throw "Could not find 'Identity' element or 'Version' attribute."
             }
 
             $xmlWriter = New-Object System.Xml.XmlTextWriter($manifestPath, (New-Object System.Text.UTF8Encoding($false)))
@@ -157,10 +163,18 @@ jobs:
       run: |
         $VerbosePreference = "Continue"
 
+        # Принудительно используем TLS 1.2 для работы с галереей
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+        # Проверяем наличие модуля StoreBroker
         if (-not (Get-Module -ListAvailable -Name StoreBroker)) {
-            Install-PackageProvider -Name NuGet -Force
-            Install-Module -Name StoreBroker -Force -AllowClobber
+            Write-Host "Installing StoreBroker module..."
+            # Устанавливаем доверие к PSGallery, чтобы не было запросов на подтверждение
+            Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
+            # Устанавливаем модуль (NuGet провайдер подтянется сам если нужно)
+            Install-Module -Name StoreBroker -Force -AllowClobber -Scope CurrentUser
         }
+        
         Import-Module StoreBroker -Force
 
         $packageFile = Get-ChildItem -Path ./artifacts -Filter *.msixupload -Recurse | Select-Object -First 1
@@ -174,17 +188,13 @@ jobs:
             Set-StoreBrokerAuthentication -TenantId $env:TENANT_ID -Credential $credential
 
             Write-Host "Creating new submission (cloning last published)..."
-            $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID
+            $submission = New-ApplicationSubmission -AppId $env:PRODUCT_ID -Verbose
 
             Write-Host "Uploading package to Store storage..."
-            # Эта команда загружает файл и автоматически связывает его с текущим черновиком сабмита.
             Set-SubmissionPackage -PackagePath $packageFile.FullName -UploadUrl $submission.fileUploadUrl -Verbose
 
-            # ВАЖНО: В режиме "Manual Publish" вызов Complete-ApplicationSubmission НЕ опубликует приложение сразу.
-            # Он отправит его на обработку (Ingestion) и сертификацию. Только после этого шага 
-            # новый пакет появится в списке "Packages" в Partner Center.
             if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch" -and $env:COMMIT_OVERRIDE -ne "true") {
-                Write-Host "Skipping Complete-ApplicationSubmission. Package uploaded but NOT submitted for ingestion."
+                Write-Host "Submission created and package uploaded. Skipping Complete (Manual review required in Partner Center)."
             } else {
                 Write-Host "Completing submission to trigger ingestion and certification..."
                 Complete-ApplicationSubmission -AppId $env:PRODUCT_ID -SubmissionId $submission.Id -Verbose
