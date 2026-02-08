@@ -159,7 +159,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
             }
             else
             {
-                canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect, new SKPaint() { FilterQuality = SKFilterQuality.Low });
+                canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect);
             }
         }
     }
@@ -207,7 +207,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
         => ReplaceBitmap(Bitmap!.FlipVertical());
 
     public void Resize(SKSize newSize)
-        => ReplaceBitmap(Bitmap!.Resize(newSize.ToSizeI(), new SKSamplingOptions(SKFilterMode.Linear)), true);
+        => ReplaceBitmap(Bitmap!.Resize(newSize.ToSizeI(), new SKSamplingOptions(SKFilterMode.Nearest)), true);
     public void Resize(SKSize newSize, float horizontalAnchor, float verticalAnchor)
         => ReplaceBitmap(Bitmap!.CropByAnchor(newSize.ToSizeI(), horizontalAnchor, verticalAnchor), true);
 
