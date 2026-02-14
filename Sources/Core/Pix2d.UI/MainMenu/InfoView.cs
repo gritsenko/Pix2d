@@ -137,7 +137,40 @@ public class InfoView : LocalizedComponentBase
                             if (v != null && v is MouseWheelBehaviorItem item && AppState.MouseWheelBehavior != item.Behavior)
                                 AppState.MouseWheelBehavior = item.Behavior;
                         })
-                        .Margin(0, 0, 0, 12)
+                        .Margin(0, 0, 0, 12),
+
+                    new TextBlock()
+                        .Text(L("Two-finger double-tap undo:"))
+                        .Margin(0, 8, 0, 8)
+                        .FontSize(20)
+                        .VerticalAlignment(VerticalAlignment.Center)
+                        .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
+                    new ToggleSwitch()
+                        .IsChecked(() => AppState.IsTwoFingerDoubleTapUndoEnabled, v =>
+                        {
+                            AppState.IsTwoFingerDoubleTapUndoEnabled = (bool)(v ?? true);
+                        })
+                        .Margin(0, 0, 0, 12),
+
+                    new TextBlock()
+                        .Text(L("Double-tap timeout (ms):"))
+                        .Margin(0, 8, 0, 8)
+                        .FontSize(20)
+                        .VerticalAlignment(VerticalAlignment.Center)
+                        .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
+                    new Grid().Rows("32").Cols("*,Auto").Margin(0, 0, 0, 12).Children(
+                        new Slider().Col(0)
+                            .Minimum(200)
+                            .Maximum(1000)
+                            .TickFrequency(50)
+                            .IsSnapToTickEnabled(true)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .Value(() => AppState.TwoFingerDoubleTapTimeoutMs, v => AppState.TwoFingerDoubleTapTimeoutMs = (int)v),
+                        new TextBlock().Col(1)
+                            .Margin(8, 0, 0, 0)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .Text(() => $"{AppState.TwoFingerDoubleTapTimeoutMs} ms")
+                    )
                 ),
                 new StackPanel()
                     .Children()
@@ -170,6 +203,19 @@ public class InfoView : LocalizedComponentBase
             StateHasChanged();
             SettingsService.Set(nameof(AppState.MouseWheelBehavior), AppState.MouseWheelBehavior);
         });
+
+        AppState.WatchFor(x => x.IsTwoFingerDoubleTapUndoEnabled, () =>
+        {
+            StateHasChanged();
+            SettingsService.Set(nameof(AppState.IsTwoFingerDoubleTapUndoEnabled), AppState.IsTwoFingerDoubleTapUndoEnabled);
+        });
+
+        AppState.WatchFor(x => x.TwoFingerDoubleTapTimeoutMs, () =>
+        {
+            StateHasChanged();
+            SettingsService.Set(nameof(AppState.TwoFingerDoubleTapTimeoutMs), AppState.TwoFingerDoubleTapTimeoutMs);
+        });
+
         StateHasChanged();
     }
 

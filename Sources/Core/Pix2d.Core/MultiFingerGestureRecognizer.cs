@@ -11,8 +11,10 @@ namespace Pix2d;
 
 public class MultiFingerGestureRecognizer : GestureRecognizer
 {
+    private const int DefaultDoubleTapIntervalMs = 500;
     private int _fingersCount = 2;
     private int _tapCount = 1;
+    private int _doubleTapIntervalMs = DefaultDoubleTapIntervalMs;
     private int _currentTapCount = 0;
     private int _maxFingersDown = 0;
     
@@ -21,10 +23,10 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
     private DispatcherTimer? _doubleTapTimer;
     
     private const int TapDurationMs = 800;
-    private const int DoubleTapIntervalMs = 800;
-    private const double MaxMovement = 50;
+    private const double MaxMovement = 15; // Stricter movement threshold to prevent pinch/zoom from being detected as taps
 
     private long _startTime;
+    private long _lastTapTimeMs = -1;
     private bool _tracking = false;
 
     public int FingersCount
@@ -39,12 +41,42 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
         set => _tapCount = value;
     }
 
+    public int DoubleTapIntervalMs
+    {
+        get => _doubleTapIntervalMs;
+        set
+        {
+            _doubleTapIntervalMs = Math.Max(100, value);
+            if (_doubleTapTimer != null)
+                _doubleTapTimer.Interval = TimeSpan.FromMilliseconds(_doubleTapIntervalMs);
+        }
+    }
+
+    public bool IsGestureEnabled { get; set; } = true;
+
     public RoutedEvent? RoutedEventToRaise { get; set; }
 
     public event EventHandler? Recognized;
 
+    public void ResetTapSequence()
+    {
+        Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] ResetTapSequence() called");
+        _tracking = false;
+        _pointers.Clear();
+        _maxFingersDown = 0;
+        _currentTapCount = 0;
+        _lastTapTimeMs = -1;
+        _doubleTapTimer?.Stop();
+    }
+
     protected override void PointerPressed(PointerPressedEventArgs e)
     {
+        if (!IsGestureEnabled)
+        {
+            ResetTapSequence();
+            return;
+        }
+
         if (Target == null || !(Target is Visual target)) return;
 
         Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] PointerPressed: Id={e.Pointer.Id}, Type={e.Pointer.Type}");
@@ -86,6 +118,9 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
 
     protected override void PointerReleased(PointerReleasedEventArgs e)
     {
+        if (!IsGestureEnabled)
+            return;
+
         Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] PointerReleased: Id={e.Pointer.Id}, tracking={_tracking}, containsKey={_pointers.ContainsKey(e.Pointer.Id)}");
         
         if (_tracking && _pointers.ContainsKey(e.Pointer.Id))
@@ -101,40 +136,7 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
                 
                 if (_maxFingersDown == FingersCount && duration < TapDurationMs)
                 {
-                    // Valid tap!
-                    _currentTapCount++;
-                    Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Valid tap! TapCount={_currentTapCount}/{TapCount}");
-                    
-                    if (_currentTapCount == TapCount)
-                    {
-                        Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] *** GESTURE RECOGNIZED! ***");
-                        Recognized?.Invoke(this, EventArgs.Empty);
-                        if (RoutedEventToRaise != null && Target is Interactive interactive)
-                        {
-                            Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Raising routed event");
-                            interactive.RaiseEvent(new RoutedEventArgs(RoutedEventToRaise));
-                        }
-                        _currentTapCount = 0;
-                        _doubleTapTimer?.Stop();
-                    }
-                    else
-                    {
-                        // Start timer for double tap
-                        if (_doubleTapTimer == null)
-                        {
-                            _doubleTapTimer = new DispatcherTimer();
-                            _doubleTapTimer.Interval = TimeSpan.FromMilliseconds(DoubleTapIntervalMs);
-                            _doubleTapTimer.Tick += (s, args) => 
-                            {
-                                Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Double tap timer expired, resetting");
-                                _currentTapCount = 0;
-                                _doubleTapTimer.Stop();
-                            };
-                        }
-                        _doubleTapTimer.Stop();
-                        _doubleTapTimer.Start();
-                        Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Waiting for next tap...");
-                    }
+                    HandleValidTap();
                     _tracking = false; // Ready for next tap
                 }
                 else
@@ -148,6 +150,9 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
 
     protected override void PointerCaptureLost(IPointer pointer)
     {
+        if (!IsGestureEnabled)
+            return;
+
         Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] PointerCaptureLost: Id={pointer.Id}");
         // Treat capture lost as a pointer release
         if (_tracking && _pointers.ContainsKey(pointer.Id))
@@ -163,40 +168,7 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
                 
                 if (_maxFingersDown == FingersCount && duration < TapDurationMs)
                 {
-                    // Valid tap!
-                    _currentTapCount++;
-                    Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Valid tap (capture lost)! TapCount={_currentTapCount}/{TapCount}");
-                    
-                    if (_currentTapCount == TapCount)
-                    {
-                        Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] *** GESTURE RECOGNIZED (capture lost)! ***");
-                        Recognized?.Invoke(this, EventArgs.Empty);
-                        if (RoutedEventToRaise != null && Target is Interactive interactive)
-                        {
-                            Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Raising routed event");
-                            interactive.RaiseEvent(new RoutedEventArgs(RoutedEventToRaise));
-                        }
-                        _currentTapCount = 0;
-                        _doubleTapTimer?.Stop();
-                    }
-                    else
-                    {
-                        // Start timer for double tap
-                        if (_doubleTapTimer == null)
-                        {
-                            _doubleTapTimer = new DispatcherTimer();
-                            _doubleTapTimer.Interval = TimeSpan.FromMilliseconds(DoubleTapIntervalMs);
-                            _doubleTapTimer.Tick += (s, args) => 
-                            {
-                                Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Double tap timer expired, resetting");
-                                _currentTapCount = 0;
-                                _doubleTapTimer.Stop();
-                            };
-                        }
-                        _doubleTapTimer.Stop();
-                        _doubleTapTimer.Start();
-                        Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Waiting for next tap...");
-                    }
+                    HandleValidTap();
                     _tracking = false; // Ready for next tap
                 }
                 else
@@ -215,6 +187,57 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
         _pointers.Clear();
         _maxFingersDown = 0;
         _currentTapCount = 0;
+        _lastTapTimeMs = -1;
         _doubleTapTimer?.Stop();
+    }
+
+    private void HandleValidTap()
+    {
+        var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (_currentTapCount > 0 && _lastTapTimeMs > 0 && nowMs - _lastTapTimeMs > _doubleTapIntervalMs)
+        {
+            Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Tap gap exceeded {_doubleTapIntervalMs}ms. Resetting tap sequence.");
+            _currentTapCount = 0;
+        }
+
+        _currentTapCount++;
+        _lastTapTimeMs = nowMs;
+        Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Valid tap! TapCount={_currentTapCount}/{TapCount}");
+
+        if (_currentTapCount == TapCount)
+        {
+            Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] *** GESTURE RECOGNIZED! ***");
+            Recognized?.Invoke(this, EventArgs.Empty);
+            if (RoutedEventToRaise != null && Target is Interactive interactive)
+            {
+                Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Raising routed event");
+                interactive.RaiseEvent(new RoutedEventArgs(RoutedEventToRaise));
+            }
+            _currentTapCount = 0;
+            _lastTapTimeMs = -1;
+            _doubleTapTimer?.Stop();
+        }
+        else
+        {
+            if (_doubleTapTimer == null)
+            {
+                _doubleTapTimer = new DispatcherTimer();
+                _doubleTapTimer.Interval = TimeSpan.FromMilliseconds(_doubleTapIntervalMs);
+                _doubleTapTimer.Tick += (s, args) =>
+                {
+                    Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Double tap timer expired, resetting");
+                    _currentTapCount = 0;
+                    _lastTapTimeMs = -1;
+                    _doubleTapTimer.Stop();
+                };
+            }
+            else
+            {
+                _doubleTapTimer.Interval = TimeSpan.FromMilliseconds(_doubleTapIntervalMs);
+            }
+            _doubleTapTimer.Stop();
+            _doubleTapTimer.Start();
+            Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] Waiting for next tap...");
+        }
     }
 }

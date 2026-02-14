@@ -35,6 +35,18 @@ public class AppState : StateBase
         set => Set(value);
     }
 
+    public bool IsTwoFingerDoubleTapUndoEnabled
+    {
+        get => Get(true);
+        set => Set(value);
+    }
+
+    public int TwoFingerDoubleTapTimeoutMs
+    {
+        get => Get(500);
+        set => Set(value);
+    }
+
 
     public LicenseType LicenseType
     {

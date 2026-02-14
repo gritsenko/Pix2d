@@ -69,6 +69,11 @@ public class SkiaCanvas : Control
     {
         _serviceProvider = serviceProvider;
         _appState = serviceProvider.GetRequiredService<AppState>();
+        ApplyUndoGestureSettings();
+
+        _appState.WatchFor(x => x.IsTwoFingerDoubleTapUndoEnabled, ApplyUndoGestureSettings);
+        _appState.WatchFor(x => x.TwoFingerDoubleTapTimeoutMs, ApplyUndoGestureSettings);
+
         ClipToBounds = true;
         if (Design.IsDesignMode)
             return;
@@ -374,6 +379,12 @@ public class SkiaCanvas : Control
 
     private void OnUndoGesture(object? sender, RoutedEventArgs e)
     {
+        if (!_appState.IsTwoFingerDoubleTapUndoEnabled)
+        {
+            e.Handled = true;
+            return;
+        }
+
         _serviceProvider.GetRequiredService<IOperationService>().Undo();
         e.Handled = true;
     }
@@ -386,6 +397,8 @@ public class SkiaCanvas : Control
 
     private void OnPinch(object? sender, PinchEventArgs e)
     {
+        _undoGesture.ResetTapSequence();
+
         if (!_isPinching)
         {
             _isPinching = true;
@@ -408,9 +421,21 @@ public class SkiaCanvas : Control
 
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
     {
+        if (_isPinching)
+            _undoGesture.ResetTapSequence();
+
         Input.PanMode = false;
         _isPinching = false;
         e.Handled = true;
+    }
+
+    private void ApplyUndoGestureSettings()
+    {
+        _undoGesture.IsGestureEnabled = _appState.IsTwoFingerDoubleTapUndoEnabled;
+        _undoGesture.DoubleTapIntervalMs = Math.Max(100, Math.Min(1500, _appState.TwoFingerDoubleTapTimeoutMs));
+
+        if (!_undoGesture.IsGestureEnabled)
+            _undoGesture.ResetTapSequence();
     }
 
 
