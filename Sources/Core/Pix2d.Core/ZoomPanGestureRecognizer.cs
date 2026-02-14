@@ -7,12 +7,16 @@ namespace Pix2d;
 
 public class ZoomPanGestureRecognizer : GestureRecognizer
 {
+    private const float PinchMovementThreshold = 5.0f;
+
     private float _initialDistance;
     private IPointer? _firstContact;
     private Point _firstPoint;
     private IPointer? _secondContact;
     private Point _secondPoint;
     private Point _origin;
+    private bool _hasCaptured = false;
+    private bool _isPinching = false;
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e) => this.PointerPressed(e);
 
@@ -24,13 +28,15 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
     {
         this._firstContact = null;
         this._secondContact = null;
+        this._hasCaptured = false;
+        this._isPinching = false;
     }
 
     protected override void PointerMoved(PointerEventArgs e)
     {
         if (this.Target == null || !(this.Target is Visual target))
             return;
-        
+
         if (this._firstContact == e.Pointer)
         {
             this._firstPoint = e.GetPosition(target);
@@ -39,16 +45,36 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
         {
             if (this._secondContact != e.Pointer)
                 return;
-            
+
             this._secondPoint = e.GetPosition(target);
         }
 
         if (this._firstContact == null || this._secondContact == null)
             return;
-        
+
+        if (!_isPinching)
+        {
+            var currentDistance = this.GetDistance(this._firstPoint, this._secondPoint);
+            var movement = Math.Abs(currentDistance - _initialDistance);
+            if (movement > PinchMovementThreshold)
+            {
+                _isPinching = true;
+                if (!_hasCaptured)
+                {
+                    this.Capture(this._firstContact);
+                    this.Capture(this._secondContact);
+                    _hasCaptured = true;
+                }
+            }
+            else
+            {
+                return;
+            }
+        }
+
         var origin = new Point((this._firstPoint.X + this._secondPoint.X) / 2.0,
             (this._firstPoint.Y + this._secondPoint.Y) / 2.0);
-        
+
         PinchEventArgs e1 =
             new PinchEventArgs(
                 (double) this.GetDistance(this._firstPoint, this._secondPoint) / (double) this._initialDistance,

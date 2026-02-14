@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
@@ -18,6 +19,8 @@ namespace Pix2d;
 
 public class SkiaCanvas : Control
 {
+    private const int UndoGestureTouchCooldownMs = 220;
+    private const int UndoTapPinchGuardMs = 140;
     private readonly IServiceProvider _serviceProvider;
     private ViewPort? ViewPort { get; set; }
     private RootNode? _rootNode;
@@ -38,6 +41,10 @@ public class SkiaCanvas : Control
     public static readonly RoutedEvent<RoutedEventArgs> RedoGestureEvent = RoutedEvent.Register<SkiaCanvas, RoutedEventArgs>("RedoGesture", RoutingStrategies.Bubble);
 
     private readonly MultiFingerGestureRecognizer _undoGesture = new() { FingersCount = 2, TapCount = 2, RoutedEventToRaise = UndoGestureEvent };
+    private bool _isUndoGestureTracking = false;
+    private bool _isTouchDrawingSuppressed = false;
+    private readonly HashSet<int> _activeTouchPointers = [];
+    private long _touchSuppressionUntilMs;
     // TODO: 3-finger gesture doesn't work reliably on Android/Windows - need alternative approach
     //private readonly MultiFingerGestureRecognizer _redoGesture = new() { FingersCount = 3, TapCount = 2, RoutedEventToRaise = RedoGestureEvent };
     private double _oldScale;
@@ -83,6 +90,7 @@ public class SkiaCanvas : Control
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
         PointerReleased += OnPointerReleased;
+        PointerCaptureLost += OnPointerCaptureLost;
         PointerWheelChanged += OnPointerWheelChanged;
 
         GestureRecognizers.Add(_undoGesture);
@@ -94,6 +102,9 @@ public class SkiaCanvas : Control
 
         AddHandler(Gestures.PinchEvent, OnPinch);
         AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
+
+        _undoGesture.TrackingStarted += OnUndoGestureTrackingStarted;
+        _undoGesture.TrackingEnded += OnUndoGestureTrackingEnded;
 
         AttachedToVisualTree += SkiaCanvas_AttachedToVisualTree;
 
@@ -295,19 +306,35 @@ public class SkiaCanvas : Control
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        var pointerType = e.Pointer.Type;
+        if (pointerType == PointerType.Touch)
+        {
+            _activeTouchPointers.Remove(e.Pointer.Id);
+            TryEndTouchSuppression();
+        }
+
         if (_isPinching)
+        {
+            _isPointerPressed = false;
             return;
+        }
+
+        if (ShouldBlockTouchDrawing(pointerType))
+        {
+            _isPointerPressed = false;
+            TryEndTouchSuppression();
+            return;
+        }
 
         _isPointerPressed = false;
-        var props = e.GetCurrentPoint(this).Properties;
-        var pointerType = e.Pointer.Type;
-
-        var isTouch = pointerType == PointerType.Touch;
 
         if (Input.PanMode)
         {
-            Input.PanMode = false;
-            UpdateCursor();
+            if (!_isUndoGestureTracking)
+            {
+                Input.PanMode = false;
+                UpdateCursor();
+            }
             return;
         }
 
@@ -315,11 +342,41 @@ public class SkiaCanvas : Control
         InvalidateVisual();
     }
 
+    private void OnPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        if (e.Pointer.Type != PointerType.Touch)
+            return;
+
+        _activeTouchPointers.Remove(e.Pointer.Id);
+        _isPointerPressed = false;
+        TryEndTouchSuppression();
+    }
+
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        var pointerType = e.Pointer.Type;
+        if (pointerType == PointerType.Touch)
+        {
+            if (_isTouchDrawingSuppressed && !_isUndoGestureTracking && !_isPinching && _activeTouchPointers.Count < 2)
+            {
+                _isTouchDrawingSuppressed = false;
+            }
+
+            _activeTouchPointers.Add(e.Pointer.Id);
+
+            if (_activeTouchPointers.Count >= 2)
+            {
+                BeginTouchUndoSuppression();
+            }
+        }
+
+        if (ShouldBlockTouchDrawing(pointerType))
+        {
+            return;
+        }
+
         _isPointerPressed = true;
         _initialPos = e.GetPosition(this);
-        var pointerType = e.Pointer.Type;
         var props = e.GetCurrentPoint(this).Properties;
 
         if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed)
@@ -329,7 +386,7 @@ public class SkiaCanvas : Control
 
         var position = e.GetPosition(this);
 
-        if (Input.PanMode)
+        if (Input.PanMode || _isUndoGestureTracking)
         {
             if (ViewPort != null)
                 _initialPan = ViewPort.Pan;
@@ -347,7 +404,7 @@ public class SkiaCanvas : Control
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (_isPinching)
+        if (_isPinching || _isUndoGestureTracking || ShouldBlockTouchDrawing(e.Pointer.Type))
         {
             return;
         }
@@ -385,8 +442,23 @@ public class SkiaCanvas : Control
             return;
         }
 
+        BeginTouchUndoSuppression();
+        ExtendTouchSuppressionCooldown(UndoGestureTouchCooldownMs);
+
         _serviceProvider.GetRequiredService<IOperationService>().Undo();
         e.Handled = true;
+    }
+
+    private void OnUndoGestureTrackingStarted(object? sender, EventArgs e)
+    {
+        _isUndoGestureTracking = true;
+        BeginTouchUndoSuppression();
+    }
+
+    private void OnUndoGestureTrackingEnded(object? sender, EventArgs e)
+    {
+        _isUndoGestureTracking = false;
+        TryEndTouchSuppression();
     }
 
     private void OnRedoGesture(object? sender, RoutedEventArgs e)
@@ -397,10 +469,31 @@ public class SkiaCanvas : Control
 
     private void OnPinch(object? sender, PinchEventArgs e)
     {
-        _undoGesture.ResetTapSequence();
+        if (_isUndoGestureTracking)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        if (IsUndoTapSequencePending())
+        {
+            var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var elapsedSinceTap = nowMs - _undoGesture.LastTapTimeMs;
+            if (_undoGesture.LastTapTimeMs > 0 && elapsedSinceTap <= UndoTapPinchGuardMs)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            _undoGesture.ResetTapSequence();
+            _isUndoGestureTracking = false;
+            _isTouchDrawingSuppressed = false;
+            _touchSuppressionUntilMs = 0;
+        }
 
         if (!_isPinching)
         {
+            _undoGesture.ResetTapSequence();
             _isPinching = true;
             _oldScale = e.Scale;
             _oldVpPos = e.ScaleOrigin.ToSKPoint();
@@ -421,11 +514,10 @@ public class SkiaCanvas : Control
 
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
     {
-        if (_isPinching)
-            _undoGesture.ResetTapSequence();
-
         Input.PanMode = false;
         _isPinching = false;
+        _activeTouchPointers.Clear();
+        _isTouchDrawingSuppressed = false;
         e.Handled = true;
     }
 
@@ -435,7 +527,54 @@ public class SkiaCanvas : Control
         _undoGesture.DoubleTapIntervalMs = Math.Max(100, Math.Min(1500, _appState.TwoFingerDoubleTapTimeoutMs));
 
         if (!_undoGesture.IsGestureEnabled)
+        {
             _undoGesture.ResetTapSequence();
+            _isUndoGestureTracking = false;
+            _activeTouchPointers.Clear();
+            _isTouchDrawingSuppressed = false;
+        }
+    }
+
+    private bool ShouldBlockTouchDrawing(PointerType pointerType)
+    {
+        return pointerType == PointerType.Touch && (_isTouchDrawingSuppressed || IsUndoTapSequencePending() || IsSuppressionCooldownActive());
+    }
+
+    private bool IsSuppressionCooldownActive()
+    {
+        return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < _touchSuppressionUntilMs;
+    }
+
+    private void ExtendTouchSuppressionCooldown(int durationMs)
+    {
+        var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var candidate = nowMs + durationMs;
+        if (candidate > _touchSuppressionUntilMs)
+            _touchSuppressionUntilMs = candidate;
+    }
+
+    private bool IsUndoTapSequencePending()
+    {
+        return _appState.IsTwoFingerDoubleTapUndoEnabled && _undoGesture.IsGestureEnabled && _undoGesture.IsTapSequenceInProgress;
+    }
+
+    private void BeginTouchUndoSuppression()
+    {
+        _isTouchDrawingSuppressed = true;
+        ExtendTouchSuppressionCooldown(UndoGestureTouchCooldownMs);
+        _isPointerPressed = false;
+        _serviceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation();
+        Input.CapturedPointerBy = null;
+        InvalidateVisual();
+    }
+
+    private void TryEndTouchSuppression()
+    {
+        if (_isUndoGestureTracking)
+            return;
+
+        if (_activeTouchPointers.Count == 0 && !IsSuppressionCooldownActive())
+            _isTouchDrawingSuppressed = false;
     }
 
 
