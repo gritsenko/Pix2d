@@ -1,21 +1,23 @@
 using Avalonia.Controls.Shapes;
 using Avalonia.Media.Transformation;
 using Avalonia.Styling;
+using Mvvm;
+using Pix2d.Abstract.Edit;
+using Pix2d.Abstract.Operations;
 using Pix2d.Common.Behaviors;
 using Pix2d.Common.Extensions;
+using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;
+using Pix2d.Plugins.Sprite.Operations;
+using Pix2d.Plugins.Sprite.Operations.Layers;
 using Pix2d.Primitives;
+using Pix2d.Primitives.SpriteEditor;
+using Pix2d.UI.Layers;
 using Pix2d.UI.Resources;
 using SkiaSharp;
 using System.Collections.Specialized;
 using System.Diagnostics;
-using Pix2d.Abstract.Operations;
-using Pix2d.Plugins.Sprite.Operations;
-using Pix2d.Primitives.SpriteEditor;
-using Mvvm;
-using Pix2d.Abstract.Edit;
-using Pix2d.CommonNodes;
 
 namespace Pix2d.UI.Animation;
 
@@ -107,7 +109,7 @@ public class TimeLineView : LocalizedComponentBase
         ReloadFrames(_editor);
     }
 
-    private void ReloadFrames(SpriteEditor? editor)
+    private void ReloadFrames(SpriteEditor? editor, bool isReordering = false)
     {
         if (editor != null)
         {
@@ -116,7 +118,8 @@ public class TimeLineView : LocalizedComponentBase
             var frames = Enumerable
                 .Range(0, cnt)
                 .Select(_ => new AnimationFrameViewModel { PreviewProvider = PreviewProvider });
-            Frames.ReloadItems(frames);
+
+            Frames.ReloadItems(frames, silent: isReordering);
 
             AppState.SpriteEditorState.CurrentFrameIndex = _editor?.CurrentFrameIndex ?? 0;
             AppState.SpriteEditorState.FramesCount = Frames.Count;
@@ -134,7 +137,8 @@ public class TimeLineView : LocalizedComponentBase
     {
         if (operation.Operation is AddAnimationFrameOperation
             || operation.Operation is DuplicateAnimationFrameOperation
-            || operation.Operation is DeleteAnimationFrameOperation)
+            || operation.Operation is DeleteAnimationFrameOperation
+            || operation.Operation is ReorderAnimationFramesOperation)
         {
             try
             {
@@ -160,25 +164,20 @@ public class TimeLineView : LocalizedComponentBase
     private ItemReorderInfo<AnimationFrameViewModel>? _reorderInfo;
     private void Frames_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
+        //new atomic move operation.
+        if (e.Action == NotifyCollectionChangedAction.Move)
         {
             _reorderInfo = new ItemReorderInfo<AnimationFrameViewModel>()
             {
-                Items = e.OldItems.OfType<AnimationFrameViewModel>().ToArray(),
-                OldIndex = e.OldStartingIndex
+                OldIndex = e.OldStartingIndex,
+                NewIndex = e.NewStartingIndex
             };
             _reorderingStarted = true;
-        }
-
-        if (e.Action == NotifyCollectionChangedAction.Add && _reorderingStarted && _reorderInfo != null)
-        {
-            _reorderInfo.NewIndex = e.NewStartingIndex;
             OnFramesReordered(_reorderInfo);
-
             _reorderingStarted = false;
-            _reorderInfo = null;
         }
     }
+
     private void OnFramesReordered(ItemReorderInfo<AnimationFrameViewModel> reorderInfo)
     {
         Debug.WriteLine($"Reordered frames from {reorderInfo.OldIndex} to {reorderInfo.NewIndex}");
