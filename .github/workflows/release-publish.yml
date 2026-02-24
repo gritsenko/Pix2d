@@ -39,7 +39,7 @@ on:
         required: false
         default: false
       deploy_to_play_store:
-        description: 'Deploy Android .aab to Google Play (Internal Track)'
+        description: 'Deploy Android .aab to Google Play (Release Track)'
         type: boolean
         required: false
         default: false
