@@ -19,7 +19,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_GlobalItems", "_GlobalItem
 		..\.github\workflows\dotnet-desktop-winstore.yml = ..\.github\workflows\dotnet-desktop-winstore.yml
 		nuget.config = nuget.config
 		..\.github\workflows\release-publish.yml = ..\.github\workflows\release-publish.yml
-		..\TODO.md = ..\TODO.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pix2d.Core.Tests", "Tests\Pix2d.Core.Tests\Pix2d.Core.Tests.csproj", "{80152140-2300-4314-8AE3-F4A3E9C386AC}"
