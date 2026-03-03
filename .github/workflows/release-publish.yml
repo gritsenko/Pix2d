@@ -499,11 +499,18 @@ jobs:
       run: |
         if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
           VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version from git tag: $VERSION"
+        elif [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+          echo "Using version from manual input: $VERSION"
         else
-          echo "Error: Release can only be created from a version tag"
+          echo "Error: Release version not specified (no tag and no manual input)"
           exit 1
         fi
+        
+        # Clean version to match other jobs format if needed, 
+        # but here we just pass it to outputs
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
