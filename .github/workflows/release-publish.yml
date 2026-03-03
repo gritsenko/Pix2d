@@ -1,4 +1,4 @@
-﻿name: Multi-Platform Release
+name: Multi-Platform Release
 
 on:
   workflow_dispatch:
@@ -40,6 +40,11 @@ on:
         default: false
       deploy_to_play_store:
         description: 'Deploy Android .aab to Google Play (Release Track)'
+        type: boolean
+        required: false
+        default: false
+      trigger_release:
+        description: 'Create a GitHub release with artifacts'
         type: boolean
         required: false
         default: false
@@ -481,7 +486,7 @@ jobs:
     # Depends on all build and deploy jobs
     needs: [build_android, build_windows, build_linux, build_macos_intel, build_macos_arm, deploy_wasm_to_gh_pages]
     # Only run if a tag is pushed
-    if: startsWith(github.ref, 'refs/tags/')
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event.inputs.trigger_release == 'true' }}
     steps:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
@@ -644,3 +649,5 @@ jobs:
         name: macos-arm
         path: Pix2d_macOS-${{ env.VERSION }}.dmg
     
+
+
