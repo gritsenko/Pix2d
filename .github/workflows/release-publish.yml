@@ -183,23 +183,19 @@ jobs:
         $version = $env:VERSION
         cd ${{ env.OUTPUT_PATH }}
 
-        # Find any .aab or .apk files (recursively). Prefer .aab when available.
+        # Find any .aab or .apk files (recursively)
         $files = Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.aab', '.apk' }
         if (-not $files -or $files.Count -eq 0) {
             Write-Host "No .aab or .apk files found in $PWD"
             exit 0
         }
 
-        $aab = $files | Where-Object { $_.Extension -eq '.aab' } | Select-Object -First 1
-        if ($aab) {
-            $src = $aab
-        } else {
-            $src = $files | Select-Object -First 1
+        # Rename all found files (both APK and AAB if both exist)
+        foreach ($file in $files) {
+            $destPath = Join-Path $PWD "pix2d_v$version$($file.Extension)"
+            Move-Item -Path $file.FullName -Destination $destPath -Force
+            Write-Host "Renamed $($file.Name) -> $(Split-Path $destPath -Leaf)"
         }
-
-        $destPath = Join-Path $PWD "pix2d_v$version$($src.Extension)"
-        Move-Item -Path $src.FullName -Destination $destPath -Force
-        Write-Host "Renamed $($src.Name) -> $(Split-Path $destPath -Leaf)"
 
     - name: Upload Android Artifacts
       uses: actions/upload-artifact@v4
