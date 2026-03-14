@@ -160,11 +160,14 @@ public class AvaloniaFileService(
     {
         try
         {
-            var mruList = settingsService.Get<HashSet<MruRecord>>("mru")?.ToHashSet() ?? [];
-            mruList.Add(new MruRecord(fileSource));
-            settingsService.Set("mru", mruList);
-
-            messenger.Send(new MruChangedMessage());
+            var mruList = settingsService.Get<List<MruRecord>>("mru") ?? [];
+            var newRecord = new MruRecord(fileSource);
+            if (!mruList.Any(x => x.Path == newRecord.Path))
+            {
+                mruList.Insert(0, newRecord);
+                settingsService.Set("mru", mruList);
+                messenger.Send(new MruChangedMessage());
+            }
         }
         catch (Exception ex)
         {
@@ -176,7 +179,7 @@ public class AvaloniaFileService(
     {
         try
         {
-            var mruList = settingsService.Get<HashSet<MruRecord>>("mru")?.ToHashSet();
+            var mruList = settingsService.Get<List<MruRecord>>("mru");
 
             return Task.FromResult(mruList?
                 .Where(x => !string.IsNullOrWhiteSpace(x.Path) && !string.IsNullOrWhiteSpace(x.Name))
@@ -197,8 +200,8 @@ public class AvaloniaFileService(
     {
         try
         {
-            var mruList = settingsService.Get<HashSet<MruRecord>>("mru")?.ToHashSet() ?? [];
-            mruList.RemoveWhere(x => x.Path == sourcePath);
+            var mruList = settingsService.Get<List<MruRecord>>("mru") ?? [];
+            mruList.RemoveAll(x => x.Path == sourcePath);
             settingsService.Set("mru", mruList);
 
             messenger.Send(new MruChangedMessage());

@@ -41,7 +41,7 @@ public class AndroidPix2dBootstrapper : Pix2dBootstrapperDI
 
         services.AddSingleton<IPlatformStuffService, AndroidPlatformStuffService>();
         services.AddSingleton<IFileService, AndroidAvaloniaFileService>();
-        services.AddSingleton<IClipboardService, InternalClipboardService>();
+        services.AddSingleton<IClipboardService, AndroidClipboardService>();
         services.AddSingleton<IFontService, AndroidFontService>();
         services.AddSingleton<IReviewService, AndroidReviewService>();
 

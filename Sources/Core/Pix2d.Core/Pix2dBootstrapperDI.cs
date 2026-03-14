@@ -20,6 +20,7 @@ using System.Reflection;
 using Pix2d.Command;
 using Pix2d.Messages.ViewPort;
 using Pix2d.Common.FileSystem;
+using Pix2d.Primitives.ViewPort;
 
 namespace Pix2d;
 
@@ -126,8 +127,9 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         UiBlocker.Initialize((busy, msg) => _appState.IsBusy = busy);
 
         var settingsService = serviceProvider.GetRequiredService<ISettingsService>();
+
         _appState.UiState.ShowLayers = settingsService.Get<bool>(nameof(AppState.UiState.ShowLayers));
-        _appState.MouseWheelBehavior =  settingsService.Get<Pix2d.Primitives.ViewPort.MouseWheelBehavior>(nameof(AppState.MouseWheelBehavior));
+        _appState.MouseWheelBehavior =  (MouseWheelBehavior) settingsService.Get<int>(nameof(AppState.MouseWheelBehavior));
         _appState.IsTwoFingerDoubleTapUndoEnabled = settingsService.Get<bool?>(nameof(AppState.IsTwoFingerDoubleTapUndoEnabled)) ?? true;
         _appState.TwoFingerDoubleTapTimeoutMs = settingsService.Get<int?>(nameof(AppState.TwoFingerDoubleTapTimeoutMs)) ?? 500;
 
