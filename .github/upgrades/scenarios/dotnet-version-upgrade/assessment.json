@@ -1,0 +1,2740 @@
+{
+  "settings": {
+    "components": {
+      "code": true,
+      "binaries": false
+    },
+    "targetId": "net10.0",
+    "targetDisplayName": ".NETCoreApp,Version=v10.0"
+  },
+  "analysisStartTime": "2026-03-14T13:09:19.4219287Z",
+  "analysisEndTime": "2026-03-14T13:09:22.302807Z",
+  "privacyModeHelpUrl": "https://go.microsoft.com/fwlink/?linkid=2270980",
+  "stats": {
+    "summary": {
+      "projects": 18,
+      "issues": 7,
+      "incidents": 90,
+      "effort": 90
+    },
+    "charts": {
+      "severity": {
+        "Mandatory": 20,
+        "Optional": 1,
+        "Potential": 51,
+        "Information": 18
+      },
+      "category": {
+        "NuGet": 21,
+        "Project": 18,
+        "Api": 51
+      }
+    }
+  },
+  "projects": [
+    {
+      "path": "Heads\\Pix2d.Browser\\Pix2d.Browser.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 4,
+      "properties": {
+        "appName": "Pix2d.Browser",
+        "projectKind": "DotNetCoreApp",
+        "frameworks": [
+          "net9.0-browser"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 19,
+        "numberOfCodeFiles": 7,
+        "linesTotal": 882,
+        "linesOfCode": 280,
+        "totalApiScanned": 179,
+        "minLinesOfCodeToChange": 2,
+        "maxLinesOfCodeToChange": 2
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "b4c84378-69e6-422f-a257-1a69d888ec8d",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Heads\\Pix2d.Browser\\Pix2d.Browser.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "3b3bcc75-6133-4b9e-a0db-226470bb4184",
+          "ruleId": "Project.0002",
+          "projectPath": "Heads\\Pix2d.Browser\\Pix2d.Browser.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0-browser\nRecommended target framework: net10.0--browser",
+              "protected": "Current target framework: net9.0-browser\nRecommended target framework: net10.0--browser"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Browser\\Pix2d.Browser.csproj",
+            "snippet": "Current target framework: net9.0-browser\nRecommended target framework: net10.0--browser",
+            "protectedSnippet": "Current target framework: net9.0-browser\nRecommended target framework: net10.0--browser",
+            "properties": {
+              "CurrentTargetFramework": "net9.0-browser",
+              "RecommendedTargetFramework": "net10.0--browser"
+            }
+          }
+        },
+        {
+          "incidentId": "d709e0f5-73d1-42e1-a266-d377f4876d66",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Heads\\Pix2d.Browser\\Pix2d.Browser.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var uri = new Uri(url);",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Browser\\Services\\BrowserPlatformStuffService.cs",
+            "snippet": "var uri = new Uri(url);",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 63,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "1458efe1-fe94-49cf-8175-8a73eedb4b22",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Heads\\Pix2d.Browser\\Pix2d.Browser.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var uri = new Uri(url);",
+              "protected": "M:System.Uri.#ctor(System.String)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Browser\\Services\\BrowserPlatformStuffService.cs",
+            "snippet": "var uri = new Uri(url);",
+            "protectedSnippet": "M:System.Uri.#ctor(System.String)",
+            "label": "M:System.Uri.#ctor(System.String)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 63,
+            "column": 8
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+      "startingProject": true,
+      "issues": 4,
+      "storyPoints": 16,
+      "properties": {
+        "appName": "Pix2d.Core",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 106,
+        "numberOfCodeFiles": 104,
+        "linesTotal": 11716,
+        "linesOfCode": 11622,
+        "totalApiScanned": 11411,
+        "minLinesOfCodeToChange": 14,
+        "maxLinesOfCodeToChange": 14
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "f538e0bd-cd33-4ae5-940f-f2ab9ce20105",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "fb778c76-371f-4e50-9fc4-225c575bfe14",
+          "ruleId": "Project.0002",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "0e73db41-c3d0-4e4e-b7a4-0088baae9b99",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "if (!await _saveLock.WaitAsync(criticalSave ? TimeSpan.FromSeconds(5) : TimeSpan.Zero))\r\n        {\r\n            if (criticalSave)\r\n            {\r\n                Logger.Log($\u0022Critical save blocked: app busy or lock held\u0022);\r\n            }\r\n            return;\r\n        }",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Int64)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Services\\SessionService.cs",
+            "snippet": "if (!await _saveLock.WaitAsync(criticalSave ? TimeSpan.FromSeconds(5) : TimeSpan.Zero))\r\n        {\r\n            if (criticalSave)\r\n            {\r\n                Logger.Log($\u0022Critical save blocked: app busy or lock held\u0022);\r\n            }\r\n            return;\r\n        }",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Int64)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Int64)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 76,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "59a88185-7cc5-47f0-a0e3-6b94bfceaa5d",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: Ambiguous overload resolution affecting StringValues implicit operators ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "filePath = System.IO.Path.Combine(System.IO.Path.GetFileNameWithoutExtension(name) \u002B \u0022_\u0022 \u002B i \u002B \u0022.\u0022 \u002B extension);",
+              "protected": "M:System.IO.Path.Combine(System.ReadOnlySpan{System.String})"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Common\\FileSystem\\AvaloniaFolder.cs",
+            "snippet": "filePath = System.IO.Path.Combine(System.IO.Path.GetFileNameWithoutExtension(name) \u002B \u0022_\u0022 \u002B i \u002B \u0022.\u0022 \u002B extension);",
+            "protectedSnippet": "M:System.IO.Path.Combine(System.ReadOnlySpan{System.String})",
+            "label": "M:System.IO.Path.Combine(System.ReadOnlySpan{System.String})",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/ambiguous-overload.md",
+                "isCustom": false
+              }
+            ],
+            "line": 54,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "b32b5845-2610-4524-8b84-323e184ed029",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: Ambiguous overload resolution affecting StringValues implicit operators ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var filePath = System.IO.Path.Combine(System.IO.Path.GetFileNameWithoutExtension(name) \u002B \u0022.\u0022 \u002B extension);",
+              "protected": "M:System.IO.Path.Combine(System.ReadOnlySpan{System.String})"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Common\\FileSystem\\AvaloniaFolder.cs",
+            "snippet": "var filePath = System.IO.Path.Combine(System.IO.Path.GetFileNameWithoutExtension(name) \u002B \u0022.\u0022 \u002B extension);",
+            "protectedSnippet": "M:System.IO.Path.Combine(System.ReadOnlySpan{System.String})",
+            "label": "M:System.IO.Path.Combine(System.ReadOnlySpan{System.String})",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/ambiguous-overload.md",
+                "isCustom": false
+              }
+            ],
+            "line": 49,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "638ed3e5-0010-48d5-bbfb-1b840005cc57",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "folder.Path",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Common\\FileSystem\\AvaloniaFolder.cs",
+            "snippet": "folder.Path",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 7,
+            "column": 26
+          }
+        },
+        {
+          "incidentId": "6b45fc54-b77b-4292-96ba-304211be3e68",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "folder.Path.AbsolutePath",
+              "protected": "P:System.Uri.AbsolutePath"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Common\\FileSystem\\AvaloniaFolder.cs",
+            "snippet": "folder.Path.AbsolutePath",
+            "protectedSnippet": "P:System.Uri.AbsolutePath",
+            "label": "P:System.Uri.AbsolutePath",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 7,
+            "column": 26
+          }
+        },
+        {
+          "incidentId": "0ab242f5-e7a0-4be2-868a-ac1c98d8b327",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "public static Uri GetEmbeddedResourceURI(string path)",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Common\\ResourceManager.cs",
+            "snippet": "public static Uri GetEmbeddedResourceURI(string path)",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 8,
+            "column": 4
+          }
+        },
+        {
+          "incidentId": "a8a9a05e-0bb3-4374-830c-26e1fbcc43fc",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "new($\u0022avares://Pix2d.Core/{path.TrimStart(\u0027/\u0027)}\u0022)",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Common\\ResourceManager.cs",
+            "snippet": "new($\u0022avares://Pix2d.Core/{path.TrimStart(\u0027/\u0027)}\u0022)",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 8,
+            "column": 61
+          }
+        },
+        {
+          "incidentId": "555b471b-735a-4563-bcf7-637dd875a81f",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "new($\u0022avares://Pix2d.Core/{path.TrimStart(\u0027/\u0027)}\u0022)",
+              "protected": "M:System.Uri.#ctor(System.String)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Common\\ResourceManager.cs",
+            "snippet": "new($\u0022avares://Pix2d.Core/{path.TrimStart(\u0027/\u0027)}\u0022)",
+            "protectedSnippet": "M:System.Uri.#ctor(System.String)",
+            "label": "M:System.Uri.#ctor(System.String)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 8,
+            "column": 61
+          }
+        },
+        {
+          "incidentId": "5be68c3e-face-458c-b119-4c3b25173c8e",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "public static Stream GetAsset(Uri uri)",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Common\\ResourceManager.cs",
+            "snippet": "public static Stream GetAsset(Uri uri)",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 7,
+            "column": 4
+          }
+        },
+        {
+          "incidentId": "449c964b-619d-4b4a-89f1-1df818e070c7",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "GetEmbeddedResourceURI(path)",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\Common\\ResourceManager.cs",
+            "snippet": "GetEmbeddedResourceURI(path)",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 6,
+            "column": 59
+          }
+        },
+        {
+          "incidentId": "81f004c9-f537-4e61-953b-082783f3f33d",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "_doubleTapTimer.Interval = TimeSpan.FromMilliseconds(_doubleTapIntervalMs);",
+              "protected": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\MultiFingerGestureRecognizer.cs",
+            "snippet": "_doubleTapTimer.Interval = TimeSpan.FromMilliseconds(_doubleTapIntervalMs);",
+            "protectedSnippet": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)",
+            "label": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 277,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "d662c7f3-4d63-4d81-934e-30ed3ddb0df2",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "_doubleTapTimer.Interval = TimeSpan.FromMilliseconds(_doubleTapIntervalMs);",
+              "protected": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\MultiFingerGestureRecognizer.cs",
+            "snippet": "_doubleTapTimer.Interval = TimeSpan.FromMilliseconds(_doubleTapIntervalMs);",
+            "protectedSnippet": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)",
+            "label": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 263,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "7d6e8d1b-c00a-4c6b-98de-2c5dd26da0b0",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "_doubleTapTimer.Interval = TimeSpan.FromMilliseconds(_doubleTapIntervalMs);",
+              "protected": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\MultiFingerGestureRecognizer.cs",
+            "snippet": "_doubleTapTimer.Interval = TimeSpan.FromMilliseconds(_doubleTapIntervalMs);",
+            "protectedSnippet": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)",
+            "label": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 51,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "9e3ebec3-8d61-4829-9df6-2deee071104f",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "Core\\Pix2d.Core\\Pix2d.Core.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "if (DateTime.Now - _initTime \u003C TimeSpan.FromMilliseconds(2000))\r\n            {\r\n                _viewPortService.ShowAll();\r\n            }",
+              "protected": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Core\\SkiaCanvas.cs",
+            "snippet": "if (DateTime.Now - _initTime \u003C TimeSpan.FromMilliseconds(2000))\r\n            {\r\n                _viewPortService.ShowAll();\r\n            }",
+            "protectedSnippet": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)",
+            "label": "M:System.TimeSpan.FromMilliseconds(System.Int64,System.Int64)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 193,
+            "column": 12
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Tests\\Pix2d.Core.Tests\\Pix2d.Core.Tests.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 3,
+      "properties": {
+        "appName": "Pix2d.Core.Tests",
+        "projectKind": "DotNetCoreApp",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 7,
+        "numberOfCodeFiles": 4,
+        "linesTotal": 2894,
+        "linesOfCode": 203,
+        "totalApiScanned": 158,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "f487a7dc-2113-4048-9ba7-668cd39fef64",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Tests\\Pix2d.Core.Tests\\Pix2d.Core.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "5f925251-1477-4927-8180-961ffd55d112",
+          "ruleId": "NuGet.0005",
+          "projectPath": "Tests\\Pix2d.Core.Tests\\Pix2d.Core.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xunit, 2.9.3\n\nRecommendation:\n\nThis package will only be updated for security issues. All future feature work has moved onto v3.\n\nGuide for migrating from xUnit.net v2 to v3: https://xunit.net/docs/getting-started/v3/migration\nRemove xunit, and replace with new package xunit, 2.9.3",
+              "protected": "xunit, 2.9.3\n\nRecommendation:\n\nThis package will only be updated for security issues. All future feature work has moved onto v3.\n\nGuide for migrating from xUnit.net v2 to v3: https://xunit.net/docs/getting-started/v3/migration\nRemove xunit, and replace with new package xunit, 2.9.3"
+            },
+            "kind": "File",
+            "path": "Tests\\Pix2d.Core.Tests\\Pix2d.Core.Tests.csproj",
+            "snippet": "xunit, 2.9.3\n\nRecommendation:\n\nThis package will only be updated for security issues. All future feature work has moved onto v3.\n\nGuide for migrating from xUnit.net v2 to v3: https://xunit.net/docs/getting-started/v3/migration\nRemove xunit, and replace with new package xunit, 2.9.3",
+            "protectedSnippet": "xunit, 2.9.3\n\nRecommendation:\n\nThis package will only be updated for security issues. All future feature work has moved onto v3.\n\nGuide for migrating from xUnit.net v2 to v3: https://xunit.net/docs/getting-started/v3/migration\nRemove xunit, and replace with new package xunit, 2.9.3",
+            "label": "xunit 2.9.3",
+            "properties": {
+              "PackageId": "xunit",
+              "PackageVersion": "2.9.3",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "14e4aa65-3339-4095-931f-b49ae80f0e01",
+          "ruleId": "Project.0002",
+          "projectPath": "Tests\\Pix2d.Core.Tests\\Pix2d.Core.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Tests\\Pix2d.Core.Tests\\Pix2d.Core.Tests.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 10,
+      "properties": {
+        "appName": "Pix2d.Desktop",
+        "projectKind": "WinForms",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 3,
+        "numberOfCodeFiles": 3,
+        "linesTotal": 410,
+        "linesOfCode": 410,
+        "totalApiScanned": 383,
+        "minLinesOfCodeToChange": 8,
+        "maxLinesOfCodeToChange": 8
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "c003bee6-d4e6-438a-a591-a31e0a0060e9",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "ed237c2c-e80f-44a0-bf88-3d578ab16d74",
+          "ruleId": "Project.0002",
+          "projectPath": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0-windows",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0-windows"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0-windows",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0-windows",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0-windows"
+            }
+          }
+        },
+        {
+          "incidentId": "9ba816f2-d73a-440f-a695-2320b9b4b1b0",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Task.Run(() =\u003E sessionService.ForceSaveAsync(TimeSpan.FromSeconds(5))).GetAwaiter().GetResult();",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Int64)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Desktop\\DesktopPix2dBootstrapperDI.cs",
+            "snippet": "Task.Run(() =\u003E sessionService.ForceSaveAsync(TimeSpan.FromSeconds(5))).GetAwaiter().GetResult();",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Int64)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Int64)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 52,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "435035c3-6439-40c3-b286-8ed9b2d36999",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Drawing.Common, 8.0.6. Add package reference to System.Drawing.Common, 8.0.6",
+          "projectPath": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "image.Save(ms, ImageFormat.Png);",
+              "protected": "T:System.Drawing.Imaging.ImageFormat"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Desktop\\Services\\AvaloniaClipboardService.cs",
+            "snippet": "image.Save(ms, ImageFormat.Png);",
+            "protectedSnippet": "T:System.Drawing.Imaging.ImageFormat",
+            "label": "T:System.Drawing.Imaging.ImageFormat",
+            "properties": {
+              "PackageId": "System.Drawing.Common",
+              "PackageNewVersion": "8.0.6"
+            },
+            "line": 108,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "520efdd1-f1d9-47c9-95bc-f5521a045120",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Drawing.Common, 8.0.6. Add package reference to System.Drawing.Common, 8.0.6",
+          "projectPath": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "image.Save(ms, ImageFormat.Png);",
+              "protected": "T:System.Drawing.Imaging.ImageFormat"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Desktop\\Services\\AvaloniaClipboardService.cs",
+            "snippet": "image.Save(ms, ImageFormat.Png);",
+            "protectedSnippet": "T:System.Drawing.Imaging.ImageFormat",
+            "label": "T:System.Drawing.Imaging.ImageFormat",
+            "properties": {
+              "PackageId": "System.Drawing.Common",
+              "PackageNewVersion": "8.0.6"
+            },
+            "line": 108,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "8a9214ca-fa4d-420f-ad7d-25113a0dc76a",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Drawing.Common, 8.0.6. Add package reference to System.Drawing.Common, 8.0.6",
+          "projectPath": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "image.Save(ms, ImageFormat.Png);",
+              "protected": "P:System.Drawing.Imaging.ImageFormat.Png"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Desktop\\Services\\AvaloniaClipboardService.cs",
+            "snippet": "image.Save(ms, ImageFormat.Png);",
+            "protectedSnippet": "P:System.Drawing.Imaging.ImageFormat.Png",
+            "label": "P:System.Drawing.Imaging.ImageFormat.Png",
+            "properties": {
+              "PackageId": "System.Drawing.Common",
+              "PackageNewVersion": "8.0.6"
+            },
+            "line": 108,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "31565650-c7e2-4dfd-8553-e95b5910bfd8",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Drawing.Common, 8.0.6. Add package reference to System.Drawing.Common, 8.0.6",
+          "projectPath": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "image.Save(ms, ImageFormat.Png);",
+              "protected": "M:System.Drawing.Image.Save(System.IO.Stream,System.Drawing.Imaging.ImageFormat)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Desktop\\Services\\AvaloniaClipboardService.cs",
+            "snippet": "image.Save(ms, ImageFormat.Png);",
+            "protectedSnippet": "M:System.Drawing.Image.Save(System.IO.Stream,System.Drawing.Imaging.ImageFormat)",
+            "label": "M:System.Drawing.Image.Save(System.IO.Stream,System.Drawing.Imaging.ImageFormat)",
+            "properties": {
+              "PackageId": "System.Drawing.Common",
+              "PackageNewVersion": "8.0.6"
+            },
+            "line": 108,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "771b1813-54d7-463c-836d-b4cac4ed2ab4",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Drawing.Common, 8.0.6. Add package reference to System.Drawing.Common, 8.0.6",
+          "projectPath": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;",
+              "protected": "T:System.Drawing.Image"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Desktop\\Services\\AvaloniaClipboardService.cs",
+            "snippet": "var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;",
+            "protectedSnippet": "T:System.Drawing.Image",
+            "label": "T:System.Drawing.Image",
+            "properties": {
+              "PackageId": "System.Drawing.Common",
+              "PackageNewVersion": "8.0.6"
+            },
+            "line": 64,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "6e894d41-cce0-4c89-a6e3-2df862c340a5",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Drawing.Common, 8.0.6. Add package reference to System.Drawing.Common, 8.0.6",
+          "projectPath": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;",
+              "protected": "T:System.Drawing.Image"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Desktop\\Services\\AvaloniaClipboardService.cs",
+            "snippet": "var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;",
+            "protectedSnippet": "T:System.Drawing.Image",
+            "label": "T:System.Drawing.Image",
+            "properties": {
+              "PackageId": "System.Drawing.Common",
+              "PackageNewVersion": "8.0.6"
+            },
+            "line": 64,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "d620df8a-13de-44d5-ab86-049973dd3965",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Drawing.Common, 8.0.6. Add package reference to System.Drawing.Common, 8.0.6",
+          "projectPath": "Heads\\Pix2d.Desktop\\Pix2d.Desktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;",
+              "protected": "M:System.Drawing.Image.FromStream(System.IO.Stream)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Desktop\\Services\\AvaloniaClipboardService.cs",
+            "snippet": "var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;",
+            "protectedSnippet": "M:System.Drawing.Image.FromStream(System.IO.Stream)",
+            "label": "M:System.Drawing.Image.FromStream(System.IO.Stream)",
+            "properties": {
+              "PackageId": "System.Drawing.Common",
+              "PackageNewVersion": "8.0.6"
+            },
+            "line": 64,
+            "column": 8
+          }
+        }
+      ],
+      "features": [
+        {
+          "featureId": "GdiDrawing",
+          "incidents": [
+            "d620df8a-13de-44d5-ab86-049973dd3965",
+            "6e894d41-cce0-4c89-a6e3-2df862c340a5",
+            "771b1813-54d7-463c-836d-b4cac4ed2ab4",
+            "31565650-c7e2-4dfd-8553-e95b5910bfd8",
+            "8a9214ca-fa4d-420f-ad7d-25113a0dc76a",
+            "520efdd1-f1d9-47c9-95bc-f5521a045120",
+            "435035c3-6439-40c3-b286-8ed9b2d36999"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "Heads\\Pix2d.Desktop.Wap\\Pix2d.Desktop.Wap.wapproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "Pix2d.Desktop.Wap",
+        "projectKind": "DotNetCoreApp",
+        "frameworks": [
+          "net451"
+        ],
+        "languages": [
+          ""
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 9,
+        "numberOfCodeFiles": 0,
+        "linesTotal": 2560,
+        "linesOfCode": 0,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "2ceb299f-381f-4a5f-a8b8-081d515274f2",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Heads\\Pix2d.Desktop.Wap\\Pix2d.Desktop.Wap.wapproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "5022f485-0aac-4330-830b-dbfb2fc9664d",
+          "ruleId": "Project.0002",
+          "projectPath": "Heads\\Pix2d.Desktop.Wap\\Pix2d.Desktop.Wap.wapproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net451\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net451\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Desktop.Wap\\Pix2d.Desktop.Wap.wapproj",
+            "snippet": "Current target framework: net451\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net451\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net451",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+      "startingProject": true,
+      "issues": 5,
+      "storyPoints": 19,
+      "properties": {
+        "appName": "Pix2d.Droid",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0-android"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 11,
+        "numberOfCodeFiles": 11,
+        "linesTotal": 1303,
+        "linesOfCode": 1303,
+        "totalApiScanned": 1449,
+        "minLinesOfCodeToChange": 15,
+        "maxLinesOfCodeToChange": 15
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "00d77e2c-5edd-461b-96fa-026cf40488e6",
+          "ruleId": "NuGet.0001",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Avalonia.Android, 11.3.12\n\nRecommendation:\n\nNo supported version found",
+              "protected": "Avalonia.Android, 11.3.12\n\nRecommendation:\n\nNo supported version found"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+            "snippet": "Avalonia.Android, 11.3.12\n\nRecommendation:\n\nNo supported version found",
+            "protectedSnippet": "Avalonia.Android, 11.3.12\n\nRecommendation:\n\nNo supported version found",
+            "label": "Avalonia.Android 11.3.12",
+            "properties": {
+              "PackageId": "Avalonia.Android",
+              "PackageVersion": "11.3.12",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "cf8c03f7-cf01-425e-805e-d5d1516aa669",
+          "ruleId": "NuGet.0001",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Xamarin.AndroidX.Core.SplashScreen, 1.2.0.2\n\nRecommendation:\n\nNo supported version found",
+              "protected": "Xamarin.AndroidX.Core.SplashScreen, 1.2.0.2\n\nRecommendation:\n\nNo supported version found"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+            "snippet": "Xamarin.AndroidX.Core.SplashScreen, 1.2.0.2\n\nRecommendation:\n\nNo supported version found",
+            "protectedSnippet": "Xamarin.AndroidX.Core.SplashScreen, 1.2.0.2\n\nRecommendation:\n\nNo supported version found",
+            "label": "Xamarin.AndroidX.Core.SplashScreen 1.2.0.2",
+            "properties": {
+              "PackageId": "Xamarin.AndroidX.Core.SplashScreen",
+              "PackageVersion": "1.2.0.2",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "4d3ca6a0-aeaf-4ce6-a096-24ccd2a2b117",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "959b34c6-a313-4c77-9f09-443a76e0a678",
+          "ruleId": "Project.0002",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0-android\nRecommended target framework: net10.0-android",
+              "protected": "Current target framework: net9.0-android\nRecommended target framework: net10.0-android"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+            "snippet": "Current target framework: net9.0-android\nRecommended target framework: net10.0-android",
+            "protectedSnippet": "Current target framework: net9.0-android\nRecommended target framework: net10.0-android",
+            "properties": {
+              "CurrentTargetFramework": "net9.0-android",
+              "RecommendedTargetFramework": "net10.0-android"
+            }
+          }
+        },
+        {
+          "incidentId": "d4beb2c7-9751-49a0-8317-7fb534cb2207",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "throw new InvalidOperationException($\u0022Could not parse URI from file path: {file.Path.AbsoluteUri}\u0022);",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\Services\\AndroidAvaloniaFileService.cs",
+            "snippet": "throw new InvalidOperationException($\u0022Could not parse URI from file path: {file.Path.AbsoluteUri}\u0022);",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 25,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "177ba5d6-9930-40bb-8262-e230aa7b7ad3",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "throw new InvalidOperationException($\u0022Could not parse URI from file path: {file.Path.AbsoluteUri}\u0022);",
+              "protected": "P:System.Uri.AbsoluteUri"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\Services\\AndroidAvaloniaFileService.cs",
+            "snippet": "throw new InvalidOperationException($\u0022Could not parse URI from file path: {file.Path.AbsoluteUri}\u0022);",
+            "protectedSnippet": "P:System.Uri.AbsoluteUri",
+            "label": "P:System.Uri.AbsoluteUri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 25,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "05cb0308-08cb-4865-9c18-4f1eca8d2ba5",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var uri = Uri.Parse(file.Path.AbsoluteUri);",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\Services\\AndroidAvaloniaFileService.cs",
+            "snippet": "var uri = Uri.Parse(file.Path.AbsoluteUri);",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 23,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "10741b8a-07a2-44f2-9c33-0944a9490433",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var uri = Uri.Parse(file.Path.AbsoluteUri);",
+              "protected": "P:System.Uri.AbsoluteUri"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\Services\\AndroidAvaloniaFileService.cs",
+            "snippet": "var uri = Uri.Parse(file.Path.AbsoluteUri);",
+            "protectedSnippet": "P:System.Uri.AbsoluteUri",
+            "label": "P:System.Uri.AbsoluteUri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 23,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "aa09a558-f854-48e3-ba38-635a16b01f4e",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "return new Pix2DAppSettings\r\n        {\r\n            AppMode = Pix2DAppMode.SpriteEditor,\r\n            AutoSaveInterval = TimeSpan.FromSeconds(30),\r\n            StartupDocument = startupDoc,\r\n            UseInternalFolder = true,\r\n        };",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Int64)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\AndroidPix2dBootstrapper.cs",
+            "snippet": "return new Pix2DAppSettings\r\n        {\r\n            AppMode = Pix2DAppMode.SpriteEditor,\r\n            AutoSaveInterval = TimeSpan.FromSeconds(30),\r\n            StartupDocument = startupDoc,\r\n            UseInternalFolder = true,\r\n        };",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Int64)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Int64)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 28,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "a384719d-ef0a-4ab0-989d-fdc688909976",
+          "ruleId": "Api.0002",
+          "description": "API is available in package Microsoft.Maui.Essentials, 8.0.40. Add package reference to Microsoft.Maui.Essentials, 8.0.40",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "MainThread.BeginInvokeOnMainThread(async () =\u003E\r\n                        {\r\n                            await AttemptOpenFile(safUri, isRetry: true);\r\n                        });",
+              "protected": "T:Microsoft.Maui.ApplicationModel.MainThread"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\MainActivity.FIleHandle.cs",
+            "snippet": "MainThread.BeginInvokeOnMainThread(async () =\u003E\r\n                        {\r\n                            await AttemptOpenFile(safUri, isRetry: true);\r\n                        });",
+            "protectedSnippet": "T:Microsoft.Maui.ApplicationModel.MainThread",
+            "label": "T:Microsoft.Maui.ApplicationModel.MainThread",
+            "properties": {
+              "PackageId": "Microsoft.Maui.Essentials",
+              "PackageNewVersion": "8.0.40"
+            },
+            "line": 163,
+            "column": 24
+          }
+        },
+        {
+          "incidentId": "9793f728-da92-47ba-b668-9416e66876e2",
+          "ruleId": "Api.0002",
+          "description": "API is available in package Microsoft.Maui.Essentials, 8.0.40. Add package reference to Microsoft.Maui.Essentials, 8.0.40",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "MainThread.BeginInvokeOnMainThread(async () =\u003E\r\n                        {\r\n                            await AttemptOpenFile(safUri, isRetry: true);\r\n                        });",
+              "protected": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\MainActivity.FIleHandle.cs",
+            "snippet": "MainThread.BeginInvokeOnMainThread(async () =\u003E\r\n                        {\r\n                            await AttemptOpenFile(safUri, isRetry: true);\r\n                        });",
+            "protectedSnippet": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)",
+            "label": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)",
+            "properties": {
+              "PackageId": "Microsoft.Maui.Essentials",
+              "PackageNewVersion": "8.0.40"
+            },
+            "line": 163,
+            "column": 24
+          }
+        },
+        {
+          "incidentId": "83b24e36-9b27-46cb-bd30-2058cf962db7",
+          "ruleId": "Api.0002",
+          "description": "API is available in package Microsoft.Maui.Essentials, 8.0.40. Add package reference to Microsoft.Maui.Essentials, 8.0.40",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "MainThread.BeginInvokeOnMainThread(() =\u003E\r\n        {\r\n            var builder = new AlertDialog.Builder(this);\r\n            builder.SetTitle(title);\r\n            builder.SetMessage(message);\r\n            builder.SetPositiveButton(\u0022\u041E\u041A\u0022, (dialog, which) =\u003E { /*do nothing, just close dialog */});\r\n            builder.Create()?.Show();\r\n        });",
+              "protected": "T:Microsoft.Maui.ApplicationModel.MainThread"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\MainActivity.FIleHandle.cs",
+            "snippet": "MainThread.BeginInvokeOnMainThread(() =\u003E\r\n        {\r\n            var builder = new AlertDialog.Builder(this);\r\n            builder.SetTitle(title);\r\n            builder.SetMessage(message);\r\n            builder.SetPositiveButton(\u0022\u041E\u041A\u0022, (dialog, which) =\u003E { /*do nothing, just close dialog */});\r\n            builder.Create()?.Show();\r\n        });",
+            "protectedSnippet": "T:Microsoft.Maui.ApplicationModel.MainThread",
+            "label": "T:Microsoft.Maui.ApplicationModel.MainThread",
+            "properties": {
+              "PackageId": "Microsoft.Maui.Essentials",
+              "PackageNewVersion": "8.0.40"
+            },
+            "line": 92,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "d1d69c15-c7ab-4f53-841e-73c0a1290e68",
+          "ruleId": "Api.0002",
+          "description": "API is available in package Microsoft.Maui.Essentials, 8.0.40. Add package reference to Microsoft.Maui.Essentials, 8.0.40",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "MainThread.BeginInvokeOnMainThread(() =\u003E\r\n        {\r\n            var builder = new AlertDialog.Builder(this);\r\n            builder.SetTitle(title);\r\n            builder.SetMessage(message);\r\n            builder.SetPositiveButton(\u0022\u041E\u041A\u0022, (dialog, which) =\u003E { /*do nothing, just close dialog */});\r\n            builder.Create()?.Show();\r\n        });",
+              "protected": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\MainActivity.FIleHandle.cs",
+            "snippet": "MainThread.BeginInvokeOnMainThread(() =\u003E\r\n        {\r\n            var builder = new AlertDialog.Builder(this);\r\n            builder.SetTitle(title);\r\n            builder.SetMessage(message);\r\n            builder.SetPositiveButton(\u0022\u041E\u041A\u0022, (dialog, which) =\u003E { /*do nothing, just close dialog */});\r\n            builder.Create()?.Show();\r\n        });",
+            "protectedSnippet": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)",
+            "label": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)",
+            "properties": {
+              "PackageId": "Microsoft.Maui.Essentials",
+              "PackageNewVersion": "8.0.40"
+            },
+            "line": 92,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "21c7e110-0d80-48ed-9057-8c9e7ad1a6fc",
+          "ruleId": "Api.0002",
+          "description": "API is available in package Microsoft.Maui.Essentials, 8.0.40. Add package reference to Microsoft.Maui.Essentials, 8.0.40",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "MainThread.BeginInvokeOnMainThread(() =\u003E\r\n        {\r\n            var builder = new AlertDialog.Builder(this);\r\n            builder.SetTitle(\u0022Need permission\u0022);\r\n            builder.SetMessage(\u0022Pix2d needs permission to open this file. Please select file again\u0022);\r\n            builder.SetPositiveButton(\u0022Select file\u0022, (dialog, which) =\u003E\r\n            {\r\n                LaunchSafPicker(); \r\n            });\r\n            builder.SetNegativeButton(\u0022Cancel\u0022, (dialog, which) =\u003E\r\n            {\r\n                System.Diagnostics.Debug.WriteLine(\u0022SAF request cancelled by user.\u0022);\r\n                _uriAwaitingSafPermission = null; \r\n            });\r\n            builder.Create()?.Show();\r\n        });",
+              "protected": "T:Microsoft.Maui.ApplicationModel.MainThread"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\MainActivity.FIleHandle.cs",
+            "snippet": "MainThread.BeginInvokeOnMainThread(() =\u003E\r\n        {\r\n            var builder = new AlertDialog.Builder(this);\r\n            builder.SetTitle(\u0022Need permission\u0022);\r\n            builder.SetMessage(\u0022Pix2d needs permission to open this file. Please select file again\u0022);\r\n            builder.SetPositiveButton(\u0022Select file\u0022, (dialog, which) =\u003E\r\n            {\r\n                LaunchSafPicker(); \r\n            });\r\n            builder.SetNegativeButton(\u0022Cancel\u0022, (dialog, which) =\u003E\r\n            {\r\n                System.Diagnostics.Debug.WriteLine(\u0022SAF request cancelled by user.\u0022);\r\n                _uriAwaitingSafPermission = null; \r\n            });\r\n            builder.Create()?.Show();\r\n        });",
+            "protectedSnippet": "T:Microsoft.Maui.ApplicationModel.MainThread",
+            "label": "T:Microsoft.Maui.ApplicationModel.MainThread",
+            "properties": {
+              "PackageId": "Microsoft.Maui.Essentials",
+              "PackageNewVersion": "8.0.40"
+            },
+            "line": 72,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "30c0ef02-4a3e-4688-8ac6-cb77dc2634be",
+          "ruleId": "Api.0002",
+          "description": "API is available in package Microsoft.Maui.Essentials, 8.0.40. Add package reference to Microsoft.Maui.Essentials, 8.0.40",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "MainThread.BeginInvokeOnMainThread(() =\u003E\r\n        {\r\n            var builder = new AlertDialog.Builder(this);\r\n            builder.SetTitle(\u0022Need permission\u0022);\r\n            builder.SetMessage(\u0022Pix2d needs permission to open this file. Please select file again\u0022);\r\n            builder.SetPositiveButton(\u0022Select file\u0022, (dialog, which) =\u003E\r\n            {\r\n                LaunchSafPicker(); \r\n            });\r\n            builder.SetNegativeButton(\u0022Cancel\u0022, (dialog, which) =\u003E\r\n            {\r\n                System.Diagnostics.Debug.WriteLine(\u0022SAF request cancelled by user.\u0022);\r\n                _uriAwaitingSafPermission = null; \r\n            });\r\n            builder.Create()?.Show();\r\n        });",
+              "protected": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\MainActivity.FIleHandle.cs",
+            "snippet": "MainThread.BeginInvokeOnMainThread(() =\u003E\r\n        {\r\n            var builder = new AlertDialog.Builder(this);\r\n            builder.SetTitle(\u0022Need permission\u0022);\r\n            builder.SetMessage(\u0022Pix2d needs permission to open this file. Please select file again\u0022);\r\n            builder.SetPositiveButton(\u0022Select file\u0022, (dialog, which) =\u003E\r\n            {\r\n                LaunchSafPicker(); \r\n            });\r\n            builder.SetNegativeButton(\u0022Cancel\u0022, (dialog, which) =\u003E\r\n            {\r\n                System.Diagnostics.Debug.WriteLine(\u0022SAF request cancelled by user.\u0022);\r\n                _uriAwaitingSafPermission = null; \r\n            });\r\n            builder.Create()?.Show();\r\n        });",
+            "protectedSnippet": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)",
+            "label": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)",
+            "properties": {
+              "PackageId": "Microsoft.Maui.Essentials",
+              "PackageNewVersion": "8.0.40"
+            },
+            "line": 72,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "ff354337-e670-4ef2-830d-1113ae8b37af",
+          "ruleId": "Api.0002",
+          "description": "API is available in package Microsoft.Maui.Essentials, 8.0.40. Add package reference to Microsoft.Maui.Essentials, 8.0.40",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "MainThread.BeginInvokeOnMainThread(async void () =\u003E\r\n            {\r\n                try\r\n                {\r\n                    await AttemptOpenFile(uri, isRetry: false);\r\n                }\r\n                catch (Exception e)\r\n                {\r\n                    System.Diagnostics.Debug.WriteLine($\u0022Error while loading file form url{uri}, {e.Message}\u0022);\r\n                }\r\n            });",
+              "protected": "T:Microsoft.Maui.ApplicationModel.MainThread"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\MainActivity.FIleHandle.cs",
+            "snippet": "MainThread.BeginInvokeOnMainThread(async void () =\u003E\r\n            {\r\n                try\r\n                {\r\n                    await AttemptOpenFile(uri, isRetry: false);\r\n                }\r\n                catch (Exception e)\r\n                {\r\n                    System.Diagnostics.Debug.WriteLine($\u0022Error while loading file form url{uri}, {e.Message}\u0022);\r\n                }\r\n            });",
+            "protectedSnippet": "T:Microsoft.Maui.ApplicationModel.MainThread",
+            "label": "T:Microsoft.Maui.ApplicationModel.MainThread",
+            "properties": {
+              "PackageId": "Microsoft.Maui.Essentials",
+              "PackageNewVersion": "8.0.40"
+            },
+            "line": 21,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "e6fa018d-ee75-4264-ba49-f0a64a23efff",
+          "ruleId": "Api.0002",
+          "description": "API is available in package Microsoft.Maui.Essentials, 8.0.40. Add package reference to Microsoft.Maui.Essentials, 8.0.40",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "MainThread.BeginInvokeOnMainThread(async void () =\u003E\r\n            {\r\n                try\r\n                {\r\n                    await AttemptOpenFile(uri, isRetry: false);\r\n                }\r\n                catch (Exception e)\r\n                {\r\n                    System.Diagnostics.Debug.WriteLine($\u0022Error while loading file form url{uri}, {e.Message}\u0022);\r\n                }\r\n            });",
+              "protected": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\MainActivity.FIleHandle.cs",
+            "snippet": "MainThread.BeginInvokeOnMainThread(async void () =\u003E\r\n            {\r\n                try\r\n                {\r\n                    await AttemptOpenFile(uri, isRetry: false);\r\n                }\r\n                catch (Exception e)\r\n                {\r\n                    System.Diagnostics.Debug.WriteLine($\u0022Error while loading file form url{uri}, {e.Message}\u0022);\r\n                }\r\n            });",
+            "protectedSnippet": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)",
+            "label": "M:Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(System.Action)",
+            "properties": {
+              "PackageId": "Microsoft.Maui.Essentials",
+              "PackageNewVersion": "8.0.40"
+            },
+            "line": 21,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "518b306e-b0de-45b9-b6e6-50067537a813",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "await sessionService.ForceSaveAsync(TimeSpan.FromSeconds(3));",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Int64)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\MainActivity.cs",
+            "snippet": "await sessionService.ForceSaveAsync(TimeSpan.FromSeconds(3));",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Int64)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Int64)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 301,
+            "column": 24
+          }
+        },
+        {
+          "incidentId": "b3d7622c-0684-44a6-8f73-38359112ff8b",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "Heads\\Pix2d.Droid\\Pix2d.Droid.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "if (last != 0 \u0026\u0026 new TimeSpan(now - last) \u003C TimeSpan.FromSeconds(2))\r\n            {\r\n                System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);\r\n                return;\r\n            }",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Int64)"
+            },
+            "kind": "File",
+            "path": "Heads\\Pix2d.Droid\\MainActivity.cs",
+            "snippet": "if (last != 0 \u0026\u0026 new TimeSpan(now - last) \u003C TimeSpan.FromSeconds(2))\r\n            {\r\n                System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);\r\n                return;\r\n            }",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Int64)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Int64)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 275,
+            "column": 12
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Core\\Pix2d.Infrastructure\\Pix2d.Infrastructure.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "Pix2d.Infrastructure",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 29,
+        "numberOfCodeFiles": 29,
+        "linesTotal": 1452,
+        "linesOfCode": 1452,
+        "totalApiScanned": 1400,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "9bef4899-a4d8-4cec-b276-493b7c02ca7b",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Core\\Pix2d.Infrastructure\\Pix2d.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "3827ead5-7277-4c8c-8f29-1476cd5039f2",
+          "ruleId": "Project.0002",
+          "projectPath": "Core\\Pix2d.Infrastructure\\Pix2d.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Infrastructure\\Pix2d.Infrastructure.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Plugins\\Pix2d.Plugins.Ai\\Pix2d.Plugins.Ai.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 3,
+      "properties": {
+        "appName": "Pix2d.Plugins.Ai",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 7,
+        "numberOfCodeFiles": 6,
+        "linesTotal": 34033,
+        "linesOfCode": 589,
+        "totalApiScanned": 591,
+        "minLinesOfCodeToChange": 1,
+        "maxLinesOfCodeToChange": 1
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "8f155607-4bfd-4a95-8391-7682a79d7590",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Plugins\\Pix2d.Plugins.Ai\\Pix2d.Plugins.Ai.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "22f94392-0867-4b21-ac03-238ac90e271d",
+          "ruleId": "Project.0002",
+          "projectPath": "Plugins\\Pix2d.Plugins.Ai\\Pix2d.Plugins.Ai.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Plugins\\Pix2d.Plugins.Ai\\Pix2d.Plugins.Ai.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "4f1ec5bc-7ce9-4a4b-b9f4-606fbf57e944",
+          "ruleId": "Api.0003",
+          "description": "Breaking change - Streaming HTTP responses enabled by default in browser HTTP clients ",
+          "projectPath": "Plugins\\Pix2d.Plugins.Ai\\Pix2d.Plugins.Ai.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "string responseBody = await response.Content.ReadAsStringAsync();",
+              "protected": "T:System.Net.Http.HttpContent"
+            },
+            "kind": "File",
+            "path": "Plugins\\Pix2d.Plugins.Ai\\UI\\ImageGenerateSettingsView.cs",
+            "snippet": "string responseBody = await response.Content.ReadAsStringAsync();",
+            "protectedSnippet": "T:System.Net.Http.HttpContent",
+            "label": "T:System.Net.Http.HttpContent",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/default-http-streaming.md",
+                "isCustom": false
+              }
+            ],
+            "line": 44,
+            "column": 16
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Plugins\\Effects\\Pix2d.Plugins.BaseEffectsSettings\\Pix2d.Plugins.BaseEffects.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "Pix2d.Plugins.BaseEffects",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 9,
+        "numberOfCodeFiles": 9,
+        "linesTotal": 240,
+        "linesOfCode": 240,
+        "totalApiScanned": 495,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "272e3e1d-0bf8-4af1-98fb-21476c730ffd",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Plugins\\Effects\\Pix2d.Plugins.BaseEffectsSettings\\Pix2d.Plugins.BaseEffects.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "30dbfae8-5575-43d6-bfff-1bc1b36e9aa6",
+          "ruleId": "Project.0002",
+          "projectPath": "Plugins\\Effects\\Pix2d.Plugins.BaseEffectsSettings\\Pix2d.Plugins.BaseEffects.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Plugins\\Effects\\Pix2d.Plugins.BaseEffectsSettings\\Pix2d.Plugins.BaseEffects.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Plugins\\Pix2d.Plugins.Drawing\\Pix2d.Plugins.Drawing.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "Pix2d.Plugins.Drawing",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 46,
+        "numberOfCodeFiles": 46,
+        "linesTotal": 4386,
+        "linesOfCode": 4386,
+        "totalApiScanned": 4194,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "2831153d-d60f-4741-89da-6ef0c2804f1f",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Plugins\\Pix2d.Plugins.Drawing\\Pix2d.Plugins.Drawing.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "3bc74cd6-b1b6-4359-9ade-5304d82a63d3",
+          "ruleId": "Project.0002",
+          "projectPath": "Plugins\\Pix2d.Plugins.Drawing\\Pix2d.Plugins.Drawing.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Plugins\\Pix2d.Plugins.Drawing\\Pix2d.Plugins.Drawing.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Plugins\\Pix2d.Plugins.OpenCv\\Pix2d.Plugins.OpenCv.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "Pix2d.Plugins.OpenCv",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 3,
+        "numberOfCodeFiles": 3,
+        "linesTotal": 107,
+        "linesOfCode": 107,
+        "totalApiScanned": 66,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "1b404530-16db-40b2-8bc5-18492bd3acf2",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Plugins\\Pix2d.Plugins.OpenCv\\Pix2d.Plugins.OpenCv.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "6169d0c6-54a5-475b-aa1b-6ed980d799c4",
+          "ruleId": "Project.0002",
+          "projectPath": "Plugins\\Pix2d.Plugins.OpenCv\\Pix2d.Plugins.OpenCv.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Plugins\\Pix2d.Plugins.OpenCv\\Pix2d.Plugins.OpenCv.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Plugins\\Pix2d.Plugins.PixelText\\Pix2d.Plugins.PixelText.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "Pix2d.Plugins.PixelText",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 3,
+        "numberOfCodeFiles": 3,
+        "linesTotal": 532,
+        "linesOfCode": 532,
+        "totalApiScanned": 794,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "fd6caa21-5bcb-46b2-bf4c-f55f483ec1c5",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Plugins\\Pix2d.Plugins.PixelText\\Pix2d.Plugins.PixelText.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "0c15b58c-ce17-4525-9c8e-992ec58dfbb2",
+          "ruleId": "Project.0002",
+          "projectPath": "Plugins\\Pix2d.Plugins.PixelText\\Pix2d.Plugins.PixelText.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Plugins\\Pix2d.Plugins.PixelText\\Pix2d.Plugins.PixelText.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Plugins\\Pix2d.Plugins.PngCompress\\Pix2d.Plugins.PngCompress.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 4,
+      "properties": {
+        "appName": "Pix2d.Plugins.PngCompress",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 3,
+        "numberOfCodeFiles": 3,
+        "linesTotal": 268,
+        "linesOfCode": 268,
+        "totalApiScanned": 331,
+        "minLinesOfCodeToChange": 2,
+        "maxLinesOfCodeToChange": 2
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "1d41c3ee-996d-43c3-84d1-47307136f75f",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Plugins\\Pix2d.Plugins.PngCompress\\Pix2d.Plugins.PngCompress.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "cb67c623-47b2-4af4-be06-607da312b22a",
+          "ruleId": "Project.0002",
+          "projectPath": "Plugins\\Pix2d.Plugins.PngCompress\\Pix2d.Plugins.PngCompress.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Plugins\\Pix2d.Plugins.PngCompress\\Pix2d.Plugins.PngCompress.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "617e360d-b917-49ee-8ed5-0218dcae1d27",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Plugins\\Pix2d.Plugins.PngCompress\\Pix2d.Plugins.PngCompress.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Plugins\\Pix2d.Plugins.PngCompress\\UI\\PngCompressView.cs",
+            "snippet": "var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 154,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "638db757-5eb4-45a7-95fd-0e9ad6fa5c1b",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Plugins\\Pix2d.Plugins.PngCompress\\Pix2d.Plugins.PngCompress.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);",
+              "protected": "P:System.Uri.AbsolutePath"
+            },
+            "kind": "File",
+            "path": "Plugins\\Pix2d.Plugins.PngCompress\\UI\\PngCompressView.cs",
+            "snippet": "var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);",
+            "protectedSnippet": "P:System.Uri.AbsolutePath",
+            "label": "P:System.Uri.AbsolutePath",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 154,
+            "column": 12
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Plugins\\FormatSupport\\Psd\\Pix2d.Plugins.Psd\\Pix2d.Plugins.Psd.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "Pix2d.Plugins.Psd",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 16,
+        "numberOfCodeFiles": 16,
+        "linesTotal": 1874,
+        "linesOfCode": 1874,
+        "totalApiScanned": 1348,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "db15c030-6fbd-4b5a-a1f9-d141514ef268",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Plugins\\FormatSupport\\Psd\\Pix2d.Plugins.Psd\\Pix2d.Plugins.Psd.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "bcdfc727-f11d-486e-9dd8-50b4e8d1aa61",
+          "ruleId": "Project.0002",
+          "projectPath": "Plugins\\FormatSupport\\Psd\\Pix2d.Plugins.Psd\\Pix2d.Plugins.Psd.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Plugins\\FormatSupport\\Psd\\Pix2d.Plugins.Psd\\Pix2d.Plugins.Psd.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Plugins\\Pix2d.Plugins.SimplePlugin\\Pix2d.Plugins.Simple.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "Pix2d.Plugins.Simple",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 2,
+        "numberOfCodeFiles": 2,
+        "linesTotal": 32,
+        "linesOfCode": 32,
+        "totalApiScanned": 10,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "fe1448be-0090-4fe1-9c13-603e352e6c03",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Plugins\\Pix2d.Plugins.SimplePlugin\\Pix2d.Plugins.Simple.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "3b82d93b-2182-4996-b3d6-1ca62e59cd6b",
+          "ruleId": "Project.0002",
+          "projectPath": "Plugins\\Pix2d.Plugins.SimplePlugin\\Pix2d.Plugins.Simple.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Plugins\\Pix2d.Plugins.SimplePlugin\\Pix2d.Plugins.Simple.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Core\\Pix2d.Shared\\Pix2d.Shared.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 8,
+      "properties": {
+        "appName": "Pix2d.Shared",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 199,
+        "numberOfCodeFiles": 199,
+        "linesTotal": 8627,
+        "linesOfCode": 8627,
+        "totalApiScanned": 6749,
+        "minLinesOfCodeToChange": 6,
+        "maxLinesOfCodeToChange": 6
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "537d4dc5-b9ba-49ac-a6e0-bfc6c6f3f405",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Core\\Pix2d.Shared\\Pix2d.Shared.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "df61a025-e79a-4ea6-900b-a230ee9134fc",
+          "ruleId": "Project.0002",
+          "projectPath": "Core\\Pix2d.Shared\\Pix2d.Shared.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Shared\\Pix2d.Shared.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "bdcb3230-85c4-4a77-8cb0-e9695e576a08",
+          "ruleId": "Api.0003",
+          "description": "ZipArchiveEntry names and comments respect UTF8 flag ",
+          "projectPath": "Core\\Pix2d.Shared\\Pix2d.Shared.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var zip = new ZipArchive(fileStream, ZipArchiveMode.Read, true, ZipEncoding);",
+              "protected": "M:System.IO.Compression.ZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean,System.Text.Encoding)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Shared\\Project\\ProjectUnpacker.cs",
+            "snippet": "using var zip = new ZipArchive(fileStream, ZipArchiveMode.Read, true, ZipEncoding);",
+            "protectedSnippet": "M:System.IO.Compression.ZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean,System.Text.Encoding)",
+            "label": "M:System.IO.Compression.ZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean,System.Text.Encoding)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/ziparchiveentry-encoding.md",
+                "isCustom": false
+              }
+            ],
+            "line": 112,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "1c21190f-b068-45c1-968b-3cc776fb9d25",
+          "ruleId": "Api.0003",
+          "description": "ZipArchiveEntry names and comments respect UTF8 flag ",
+          "projectPath": "Core\\Pix2d.Shared\\Pix2d.Shared.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var zip = new ZipArchive(fileStream, ZipArchiveMode.Read, true, ZipEncoding);",
+              "protected": "M:System.IO.Compression.ZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean,System.Text.Encoding)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Shared\\Project\\ProjectUnpacker.cs",
+            "snippet": "using var zip = new ZipArchive(fileStream, ZipArchiveMode.Read, true, ZipEncoding);",
+            "protectedSnippet": "M:System.IO.Compression.ZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean,System.Text.Encoding)",
+            "label": "M:System.IO.Compression.ZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean,System.Text.Encoding)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/ziparchiveentry-encoding.md",
+                "isCustom": false
+              }
+            ],
+            "line": 27,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "06cb6e00-5573-41f5-bfb6-201b4711de62",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: Adding a ZipArchiveEntry with CompressionLevel sets ZIP central directory header general-purpose bit flags ",
+          "projectPath": "Core\\Pix2d.Shared\\Pix2d.Shared.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "await using var previewStream = zip.CreateEntry(\u0022__project_thumbnail.jpg\u0022, CompressionLevel.NoCompression).Open();",
+              "protected": "M:System.IO.Compression.ZipArchive.CreateEntry(System.String,System.IO.Compression.CompressionLevel)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Shared\\Project\\ProjectPacker.cs",
+            "snippet": "await using var previewStream = zip.CreateEntry(\u0022__project_thumbnail.jpg\u0022, CompressionLevel.NoCompression).Open();",
+            "protectedSnippet": "M:System.IO.Compression.ZipArchive.CreateEntry(System.String,System.IO.Compression.CompressionLevel)",
+            "label": "M:System.IO.Compression.ZipArchive.CreateEntry(System.String,System.IO.Compression.CompressionLevel)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/compressionlevel-bits.md",
+                "isCustom": false
+              }
+            ],
+            "line": 36,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "c49c9d3f-6faa-44a4-a34b-4a936391331d",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: Adding a ZipArchiveEntry with CompressionLevel sets ZIP central directory header general-purpose bit flags ",
+          "projectPath": "Core\\Pix2d.Shared\\Pix2d.Shared.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "await using (var entryStream = zip.CreateEntry(key, CompressionLevel.NoCompression).Open())\n                bitmap.Encode(entryStream, SKEncodedImageFormat.Png, 100);",
+              "protected": "M:System.IO.Compression.ZipArchive.CreateEntry(System.String,System.IO.Compression.CompressionLevel)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Shared\\Project\\ProjectPacker.cs",
+            "snippet": "await using (var entryStream = zip.CreateEntry(key, CompressionLevel.NoCompression).Open())\n                bitmap.Encode(entryStream, SKEncodedImageFormat.Png, 100);",
+            "protectedSnippet": "M:System.IO.Compression.ZipArchive.CreateEntry(System.String,System.IO.Compression.CompressionLevel)",
+            "label": "M:System.IO.Compression.ZipArchive.CreateEntry(System.String,System.IO.Compression.CompressionLevel)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/compressionlevel-bits.md",
+                "isCustom": false
+              }
+            ],
+            "line": 30,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "89bcbfe2-21db-4eee-836f-a4fa353d5c5a",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: Adding a ZipArchiveEntry with CompressionLevel sets ZIP central directory header general-purpose bit flags ",
+          "projectPath": "Core\\Pix2d.Shared\\Pix2d.Shared.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var projectZipEntry = zip.CreateEntry(\u0022project.json\u0022, CompressionLevel.Fastest);",
+              "protected": "M:System.IO.Compression.ZipArchive.CreateEntry(System.String,System.IO.Compression.CompressionLevel)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Shared\\Project\\ProjectPacker.cs",
+            "snippet": "var projectZipEntry = zip.CreateEntry(\u0022project.json\u0022, CompressionLevel.Fastest);",
+            "protectedSnippet": "M:System.IO.Compression.ZipArchive.CreateEntry(System.String,System.IO.Compression.CompressionLevel)",
+            "label": "M:System.IO.Compression.ZipArchive.CreateEntry(System.String,System.IO.Compression.CompressionLevel)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/compressionlevel-bits.md",
+                "isCustom": false
+              }
+            ],
+            "line": 23,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "7b1e3a8c-00ba-4705-928d-6effddcb4ff5",
+          "ruleId": "Api.0003",
+          "description": "ZipArchiveEntry names and comments respect UTF8 flag ",
+          "projectPath": "Core\\Pix2d.Shared\\Pix2d.Shared.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var zip = new ZipArchive(outputFileStream, ZipArchiveMode.Create, true, ZipEncoding);",
+              "protected": "M:System.IO.Compression.ZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean,System.Text.Encoding)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.Shared\\Project\\ProjectPacker.cs",
+            "snippet": "using var zip = new ZipArchive(outputFileStream, ZipArchiveMode.Create, true, ZipEncoding);",
+            "protectedSnippet": "M:System.IO.Compression.ZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean,System.Text.Encoding)",
+            "label": "M:System.IO.Compression.ZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean,System.Text.Encoding)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/ziparchiveentry-encoding.md",
+                "isCustom": false
+              }
+            ],
+            "line": 22,
+            "column": 8
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Core\\Pix2d.UI\\Pix2d.UI.csproj",
+      "startingProject": true,
+      "issues": 4,
+      "storyPoints": 5,
+      "properties": {
+        "appName": "Pix2d.UI",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 58,
+        "numberOfCodeFiles": 58,
+        "linesTotal": 7448,
+        "linesOfCode": 7448,
+        "totalApiScanned": 15707,
+        "minLinesOfCodeToChange": 3,
+        "maxLinesOfCodeToChange": 3
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "47b651bb-964b-4a1e-a662-1c777015bf96",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Core\\Pix2d.UI\\Pix2d.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "a5bf0e29-d818-4466-9144-32ed11c56f56",
+          "ruleId": "Project.0002",
+          "projectPath": "Core\\Pix2d.UI\\Pix2d.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.UI\\Pix2d.UI.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "d6ae1bbc-bc3a-4479-a7d5-384ca5cc15be",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Core\\Pix2d.UI\\Pix2d.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.UI\\MainView.cs",
+            "snippet": "var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "4819ab6d-06a4-4c59-8aa2-c9e3f4c54604",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "Core\\Pix2d.UI\\Pix2d.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);",
+              "protected": "P:System.Uri.AbsolutePath"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.UI\\MainView.cs",
+            "snippet": "var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);",
+            "protectedSnippet": "P:System.Uri.AbsolutePath",
+            "label": "P:System.Uri.AbsolutePath",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "3533ed15-6b9e-44e4-b288-da30ac38bc98",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "Core\\Pix2d.UI\\Pix2d.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "TimeSpan.FromSeconds(0.3)",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "Core\\Pix2d.UI\\MainView.cs",
+            "snippet": "TimeSpan.FromSeconds(0.3)",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 145,
+            "column": 55
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Core\\SkiaNodes\\SkiaNodes.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "SkiaNodes",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net9.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 62,
+        "numberOfCodeFiles": 62,
+        "linesTotal": 4064,
+        "linesOfCode": 4064,
+        "totalApiScanned": 3116,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "30cd26b3-8b71-42f7-9d86-8fa3f8b86168",
+          "ruleId": "NuGet.0006",
+          "projectPath": "Core\\SkiaNodes\\SkiaNodes.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+              "protected": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+            },
+            "kind": "File",
+            "path": "NuGet.config",
+            "snippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n",
+            "protectedSnippet": "Found 1 files matching the rule:\r\n\r\nNuGet.config\r\n"
+          }
+        },
+        {
+          "incidentId": "121cf9c7-73e8-43c9-9844-f87e67e1bb8a",
+          "ruleId": "Project.0002",
+          "projectPath": "Core\\SkiaNodes\\SkiaNodes.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net9.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net9.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "Core\\SkiaNodes\\SkiaNodes.csproj",
+            "snippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net9.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net9.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    }
+  ],
+  "rules": {
+    "NuGet.0006": {
+      "id": "NuGet.0006",
+      "isFeature": false,
+      "description": "NuGet package source mappings are recommended.\n\nWhen NuGet.config contains multiple package sources, Package Source Mapping is a tool that can be used to improve your supply chain security, especially if you use a mix of public and private package sources.\n\nBy default, NuGet will search all configured package sources when it needs to download a package. When a package exists on multiple sources, it may not be deterministic which source the package will be downloaded from. With Package Source Mapping, you can filter, per package, which source(s) NuGet will search.",
+      "label": "NuGet package source mappings are recommended",
+      "severity": "Information",
+      "effort": 1,
+      "links": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2288407",
+          "isCustom": false
+        }
+      ]
+    },
+    "Project.0002": {
+      "id": "Project.0002",
+      "isFeature": false,
+      "description": "Project\u0027s target framework(s) needs to be changed to the new target framework that you selected for this upgrade.\n\nDuring upgrade target framework will be adjusted to corresponding platform when applicable. In some cases project would result in multiple target frameworks after the upgrade if it was using features that now have their own platforms in modern .NET frameworks (windows, iOS, Android etc).",
+      "label": "Project\u0027s target framework(s) needs to be changed",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "title": "Overview of porting from .NET Framework to .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265227",
+          "isCustom": false
+        },
+        {
+          "title": ".NET project SDKs",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265226",
+          "isCustom": false
+        }
+      ]
+    },
+    "Api.0003": {
+      "id": "Api.0003",
+      "isFeature": false,
+      "description": "API has a behavioral change in selected .NET version: code and binaries may behave differently at runtime without needing recompilation, but the new behavior might be undesirable and require updates.",
+      "label": "Behavioral change in selected .NET version",
+      "severity": "Potential",
+      "effort": 1
+    },
+    "Api.0002": {
+      "id": "Api.0002",
+      "isFeature": false,
+      "description": "API is source incompatible for selected .NET version: requires code changes to compile successfully when targeting a new version, such as removing obsolete APIs or changing method signatures.",
+      "label": "Source incompatible for selected .NET version",
+      "severity": "Potential",
+      "effort": 1,
+      "links": [
+        {
+          "title": "Breaking changes in .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262679",
+          "isCustom": false
+        }
+      ]
+    },
+    "NuGet.0005": {
+      "id": "NuGet.0005",
+      "isFeature": false,
+      "description": "NuGet package is deprecated.\n\nGo to its documentation and if there is a guidance for replacement of functionality provided by this package.",
+      "label": "NuGet package is deprecated",
+      "severity": "Optional",
+      "effort": 1,
+      "links": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262531",
+          "isCustom": false
+        }
+      ]
+    },
+    "GdiDrawing": {
+      "id": "GdiDrawing",
+      "isFeature": false,
+      "description": "System.Drawing APIs for 2D graphics, imaging, and printing that are available via NuGet package System.Drawing.Common. Note: Not recommended for server scenarios due to Windows dependencies; consider cross-platform alternatives like SkiaSharp or ImageSharp for new code.",
+      "label": "GDI\u002B / System.Drawing",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "title": "System.Drawing.Common only supported on Windows",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2341701",
+          "isCustom": false
+        }
+      ]
+    },
+    "NuGet.0001": {
+      "id": "NuGet.0001",
+      "isFeature": false,
+      "description": "NuGet package is incompatible with selected target framework.\n\nPackage needs to be upgraded to a version supporting selected project target framework. If there no new package versions supporting new target framework, different package needs to be used and all code needs to be upgraded to new API.",
+      "label": "NuGet package is incompatible",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262529",
+          "isCustom": false
+        }
+      ]
+    }
+  }
+}
