@@ -45,16 +45,7 @@ public abstract class BaseAvaloniaClipboardService(
         if (bitmap == null || Clipboard == null)
             return;
 
-        var bytes = bitmap.Encode(SKEncodedImageFormat.Png, 100).ToArray();
-#pragma warning disable CS0618
-        var dataObject = new DataObject();
-        dataObject.Set("PNG", bytes);
-        // Add a marker to identify our own data in the system clipboard
-        dataObject.Set(Pix2DClipboardMarker, "true");
-
-        await Clipboard.ClearAsync();
-        await Clipboard.SetDataObjectAsync(dataObject);
-#pragma warning restore CS0618
+        await Clipboard.SetBitmapAsync(bitmap.ToBitmap());
     }
 
     public override async Task<SKBitmap?> GetImageFromClipboard()
@@ -62,9 +53,8 @@ public abstract class BaseAvaloniaClipboardService(
         if (Clipboard == null)
             return await base.GetImageFromClipboard();
 
-#pragma warning disable CS0618
-        var formats = await Clipboard.GetFormatsAsync();
-        bool isOurInternalData = formats != null && formats.Contains(Pix2DClipboardMarker);
+        var formats = await Clipboard.GetDataFormatsAsync();
+        bool isOurInternalData = formats != null && formats.Any(f => f.ToString() == Pix2DClipboardMarker);
 
         // 1. If it's our internal data, use SavedBitmap directly to preserve transparency/quality
         if (isOurInternalData)
@@ -102,22 +92,32 @@ public abstract class BaseAvaloniaClipboardService(
         }
         catch { /* ignored */ }
 
-        // 4. Fallback to format-based GetDataAsync
+        // 4. Fallback to format-based TryGetDataAsync
         if (formats != null)
         {
-            foreach (var format in formats)
+            var dataTransfer = await Clipboard.TryGetDataAsync();
+            if (dataTransfer != null)
             {
-                if (supportedFormats.Contains(format))
+                foreach (var format in formats)
                 {
-                    var data = await Clipboard.GetDataAsync(format);
-                    if (data is byte[] byteData)
+                    var formatName = format.ToString();
+                    if (formatName != null && supportedFormats.Contains(formatName))
                     {
-                        return SKBitmap.Decode(byteData);
+                        foreach (var item in dataTransfer.Items)
+                        {
+                            if (item.Formats.Any(f => f.ToString() == formatName))
+                            {
+                                var data = await item.TryGetRawAsync(format);
+                                if (data is byte[] byteData)
+                                {
+                                    return SKBitmap.Decode(byteData);
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-#pragma warning restore CS0618
 
         // 5. Final fallback to base (only if not already tried as internal)
         if (!isOurInternalData)
