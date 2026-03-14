@@ -28,7 +28,7 @@ public class DesktopPix2dBootstrapperDI : Pix2dBootstrapperDI // Inherits: Pix2d
         base.ConfigureServices(services); // Calls base class registration (see Pix2dBootstrapperDI)
 
         services.AddSingleton<IPlatformStuffService, PlatformStuffService>(); // Depends on: AppState
-        services.AddSingleton<IClipboardService, AvaloniaClipboardService>(); // Depends on: IDrawingService, IViewPortService, IDialogService, AppState
+        services.AddSingleton<IClipboardService, DesktopClipboardService>(); // Depends on: IDrawingService, IViewPortService, IDialogService, AppState
     }
     
     protected override void LoadPlugins()

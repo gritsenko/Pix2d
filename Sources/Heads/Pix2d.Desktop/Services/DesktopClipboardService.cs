@@ -1,0 +1,65 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using Avalonia.Input.Platform;
+using Pix2d.Abstract.Services;
+using Pix2d.State;
+using SkiaNodes.Extensions;
+using SkiaSharp;
+
+namespace Pix2d.Services;
+
+public class DesktopClipboardService(
+    IDrawingService drawingService,
+    IViewPortService viewPortService,
+    IDialogService dialogService,
+    AppState appState)
+    : BaseAvaloniaClipboardService(drawingService, viewPortService, dialogService, appState)
+{
+    protected override IClipboard? Clipboard => EditorApp.TopLevel?.Clipboard;
+
+    protected override async Task PutImageIntoClipboard(SKBitmap? bitmap)
+    {
+        await base.PutImageIntoClipboard(bitmap);
+
+        if (bitmap == null || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return;
+        }
+        
+#pragma warning disable CA1416
+        var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;
+        if (bm != null)
+            Clowd.Clipboard.ClipboardGdi.SetImage(bm);
+#pragma warning restore CA1416
+    }
+    
+    public override async Task<SKBitmap?> GetImageFromClipboard()
+    {
+        var result = await base.GetImageFromClipboard();
+        if (result != null)
+            return result;
+
+        //windows specific clipboard format
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+#pragma warning disable CA1416
+            using var image = await Clowd.Clipboard.ClipboardGdi.GetImageAsync();
+
+            if (image == null)
+                return null;
+
+            using var ms = new MemoryStream();
+            image.Save(ms, ImageFormat.Png);
+            var skBitmap = SKBitmap.Decode(ms.GetBuffer());
+            return skBitmap;
+        }
+
+#pragma warning restore CA1416
+        return null;
+    }
+}

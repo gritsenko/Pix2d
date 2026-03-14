@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace Pix2d.Services;
 
@@ -6,7 +7,7 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
     public const string DbName = "pix2d_settings.json";
     private string DbFullPath => System.IO.Path.Combine(platformStuffService.GetAppFolderPath(), DbName);
 
-    private Dictionary<string, JsonElement> Settings = new();
+    private AppSettings Settings = new();
 
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
@@ -29,21 +30,31 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
             _isSettingsInitialized = true;
             if (!File.Exists(DbFullPath))
             {
-                Settings = new Dictionary<string, JsonElement>();
+                Settings = new AppSettings();
                 return;
             }
 
             try
             {
                 var json = File.ReadAllText(DbFullPath);
-                var settings = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, _serializerOptions);
-                if (settings != null) 
-                    Settings = settings;
+
+                if (json.Contains("\"$type\"") || json.Contains("\"$values\""))
+                {
+                    var oldSettings = JsonConvert.DeserializeObject<AppSettings>(json);
+                    if (oldSettings != null)
+                    {
+                        Settings = oldSettings;
+                        Save();
+                    }
+                    return;
+                }
+
+                Settings = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(json, _serializerOptions) ?? new AppSettings();
             }
             catch(Exception ex)
             {
                 Logger.LogException(ex);
-                Settings = new Dictionary<string, JsonElement>();
+                Settings = new AppSettings();
             }
         }
         finally
@@ -56,9 +67,14 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
         try {
             EnsureSettingsInitialized();
 
-            if (Settings.TryGetValue(key, out var jsonElement))
+            var property = typeof(AppSettings).GetProperty(key, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            if (property != null)
             {
-                return jsonElement.Deserialize<T>(_serializerOptions);
+                var value = property.GetValue(Settings);
+                if (value is T typedValue)
+                    return typedValue;
+                if (value != null)
+                    return (T)Convert.ChangeType(value, typeof(T));
             }
         }
         catch (Exception ex) {
@@ -70,18 +86,29 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
 
     public bool TryGet<T>(string key, out T? value)
     {
-        EnsureSettingsInitialized();
-        if (Settings.TryGetValue(key, out var jsonElement))
+        try
         {
-            try
+            EnsureSettingsInitialized();
+
+            var property = typeof(AppSettings).GetProperty(key, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            if (property != null)
             {
-                value = jsonElement.Deserialize<T>(_serializerOptions);
-                return true;
+                var propValue = property.GetValue(Settings);
+                if (propValue is T typedValue)
+                {
+                    value = typedValue;
+                    return true;
+                }
+                if (propValue != null)
+                {
+                    value = (T)Convert.ChangeType(propValue, typeof(T));
+                    return true;
+                }
             }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
         }
 
         value = default;
@@ -90,9 +117,42 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
 
     private void EnsureSettingsInitialized()
     {
-        //ensure the settings were loaded
         if (!_isSettingsInitialized)
             LoadJson().GetAwaiter().GetResult();
+    }
+
+    private void Save()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(Settings, _serializerOptions);
+
+        var dir = platformStuffService.GetAppFolderPath();
+        if (!Directory.Exists(dir)) 
+            Directory.CreateDirectory(dir);
+
+        var tempFile = DbFullPath + ".tmp";
+        var backupFile = DbFullPath + ".bak";
+
+        try
+        {
+            File.WriteAllText(tempFile, json);
+            
+            if (File.Exists(DbFullPath))
+                File.Replace(tempFile, DbFullPath, backupFile);
+            else
+                File.Move(tempFile, DbFullPath);
+        }
+        catch (Exception ex)
+        {
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
+            Logger.LogException(ex);
+            throw;
+        }
+        finally
+        {
+            if (File.Exists(backupFile))
+                File.Delete(backupFile);
+        }
     }
 
     public void Set<T>(string key, T? value)
@@ -101,37 +161,11 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
         _semaphore.Wait();
         try
         {
-            Settings[key] = JsonSerializer.SerializeToElement(value, _serializerOptions);
-            
-            var json = JsonSerializer.Serialize(Settings, _serializerOptions);
-
-            var dir = platformStuffService.GetAppFolderPath();
-            if (!Directory.Exists(dir)) 
-                Directory.CreateDirectory(dir);
-
-            var tempFile = DbFullPath + ".tmp";
-            var backupFile = DbFullPath + ".bak";
-
-            try
+            var property = typeof(AppSettings).GetProperty(key, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            if (property != null && property.CanWrite)
             {
-                File.WriteAllText(tempFile, json);
-                
-                if (File.Exists(DbFullPath))
-                    File.Replace(tempFile, DbFullPath, backupFile);
-                else
-                    File.Move(tempFile, DbFullPath);
-            }
-            catch (Exception ex)
-            {
-                if (File.Exists(tempFile))
-                    File.Delete(tempFile);
-                Logger.LogException(ex);
-                throw;
-            }
-            finally
-            {
-                if (File.Exists(backupFile))
-                    File.Delete(backupFile);
+                property.SetValue(Settings, value);
+                Save();
             }
         }
         finally

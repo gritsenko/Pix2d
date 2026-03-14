@@ -213,7 +213,7 @@ namespace Pix2d.Services
                 var status = await Xamarin.Essentials.Permissions.RequestAsync<Xamarin.Essentials.Permissions.StorageRead>();
 
                 var settingService = DefaultServiceLocator.ServiceLocatorProvider().GetInstance<ISettingsService>();
-                var mruList = settingService.Get<HashSet<MruRecord>>("mru")?.ToHashSet();
+                var mruList = settingService.Get<List<MruRecord>>("mru");
 
                 return mruList?
                            .Where(x => !string.IsNullOrWhiteSpace(x.Path) && !string.IsNullOrWhiteSpace(x.Name))

@@ -22,7 +22,7 @@ public class BrowserPix2dBootstrapper : Pix2dBootstrapperDI
         base.ConfigureServices(services); // Calls base class registration (see Pix2dBootstrapperDI)
 
         services.AddSingleton<IPlatformStuffService, BrowserPlatformStuffService>(); // Depends on: AppState
-        services.AddSingleton<IClipboardService, InternalClipboardService>(); // Depends on: IDrawingService, IViewPortService, IDialogService, AppState
+        services.AddSingleton<IClipboardService, BrowserClipboardService>(); // Depends on: IDrawingService, IViewPortService, IDialogService, AppState
         services.AddSingleton<ISettingsService, BrowserSettingsService>();
         services.AddSingleton<IFileService, BrowserFileService>();
     }

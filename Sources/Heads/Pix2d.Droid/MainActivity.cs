@@ -245,19 +245,19 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
 
     protected override void OnPause()
     {
-        base.OnPause();
         SaveSessionSafely(critical: true);
+        base.OnPause();
     }
 
     protected override void OnStop()
     {
-        base.OnStop();
         SaveSessionSafely(critical: true);
+        base.OnStop();
     }
 
     protected override void OnDestroy()
     {
-        SaveSessionSafely(critical: true);
+        //SaveSessionSafely(critical: true);
         base.OnDestroy();
     }
 
