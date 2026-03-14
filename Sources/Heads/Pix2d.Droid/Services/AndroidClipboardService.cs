@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Android.Content;
+using Avalonia.Input.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.State;
 using SkiaNodes;
@@ -16,82 +18,45 @@ public class AndroidClipboardService(
     IViewPortService viewPortService,
     IDialogService dialogService,
     AppState appState)
-    : InternalClipboardService(drawingService, viewPortService, dialogService, appState)
+    : BaseAvaloniaClipboardService(drawingService, viewPortService, dialogService, appState)
 {
-    private ClipboardManager? Clipboard => Android.App.Application.Context.GetSystemService(Context.ClipboardService) as ClipboardManager;
+    protected override IClipboard? Clipboard => EditorApp.TopLevel?.Clipboard;
 
-    public override async Task<bool> TryCopyNodesAsBitmapAsync(IEnumerable<SKNode> nodes, SKColor backgroundColor)
-    {
-        var result = await base.TryCopyNodesAsBitmapAsync(nodes, backgroundColor);
-        if (result && SavedBitmap != null)
-        {
-            await PutImageIntoClipboard(SavedBitmap);
-        }
-        return result;
-    }
-
-    public override async Task<bool> TryCutNodesAsBitmapAsync(IEnumerable<SKNode> nodes, SKColor backgroundColor)
-    {
-        var result = await base.TryCutNodesAsBitmapAsync(nodes, backgroundColor);
-        if (result && SavedBitmap != null)
-        {
-            await PutImageIntoClipboard(SavedBitmap);
-        }
-        return result;
-    }
-
-    private Task PutImageIntoClipboard(SKBitmap bitmap)
-    {
-        if (Clipboard == null)
-            return Task.CompletedTask;
-
-        try
-        {
-            // Android clipboard doesn't directly support images in the same way as Windows/macOS.
-            // Usually we'd use a ContentProvider to share the image URI.
-            // For now, let's focus on getting images FROM the clipboard, 
-            // as copying TO external apps from Android might require more setup (ContentProvider).
-        }
-        catch (Exception ex)
-        {
-            Logger.LogException(ex);
-        }
-        return Task.CompletedTask;
-    }
+    private ClipboardManager? AndroidClipboard => Android.App.Application.Context.GetSystemService(Context.ClipboardService) as ClipboardManager;
 
     public override async Task<SKBitmap?> GetImageFromClipboard()
     {
-        if (Clipboard == null || !Clipboard.HasPrimaryClip)
+        // 1. Try base Avalonia-based logic first (internal + Avalonia API)
+        var result = await base.GetImageFromClipboard();
+        if (result != null)
+            return result;
+
+        // 2. Fallback to Android-specific logic (URI, ContentProvider, etc.)
+        if (AndroidClipboard == null || !AndroidClipboard.HasPrimaryClip)
             return null;
 
-        var clipData = Clipboard.PrimaryClip;
+        var clipData = AndroidClipboard.PrimaryClip;
         if (clipData == null)
             return null;
 
-        // --- Шаг 1: Проверяем extras в ClipDescription ---
-        // Chrome и ряд других приложений кладут content:// URI изображения сюда
+        // --- Step 1: Check extras in ClipDescription ---
         var description = clipData.Description;
         if (description != null)
         {
             var extras = description.Extras;
             if (extras != null)
             {
-                // PersistableBundle поддерживает только примитивы и строки,
-                // поэтому URI может быть только строкой
                 Android.Net.Uri? extraUri = null;
-
-                // Перебираем все ключи — не знаем точный ключ заранее
                 var keys = extras.KeySet();
                 if (keys != null)
                 {
                     foreach (var key in keys)
                     {
-                        System.Diagnostics.Debug.WriteLine($"  extras key='{key}' value='{extras.GetString(key)}'");
                         var val = extras.GetString(key);
                         if (!string.IsNullOrEmpty(val))
                         {
                             var parsed = Android.Net.Uri.Parse(val);
-                            if (parsed?.Scheme != null)
+                            if (parsed != null && parsed.Scheme != null)
                             {
                                 extraUri = parsed;
                                 break;
@@ -106,69 +71,41 @@ public class AndroidClipboardService(
                     if (bmp != null) return bmp;
                 }
             }
-
-            // --- Шаг 2: Смотрим MIME-типы в описании ---
-            // Если есть image/* MIME — URI должен быть где-то в item
-            bool hasImageMime = false;
-            for (int m = 0; m < description.MimeTypeCount; m++)
-            {
-                var mime = description.GetMimeType(m);
-                if (mime != null && mime.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-                {
-                    hasImageMime = true;
-                    break;
-                }
-            }
-
-            // Логируем для диагностики
-            System.Diagnostics.Debug.WriteLine(
-                $"ClipDescription MIME count: {description.MimeTypeCount}");
-            for (int m = 0; m < description.MimeTypeCount; m++)
-                System.Diagnostics.Debug.WriteLine($"  MIME[{m}]: {description.GetMimeType(m)}");
         }
-
-        // --- Шаг 3: Стандартный перебор items ---
+        
         for (int i = 0; i < clipData.ItemCount; i++)
         {
             var item = clipData.GetItemAt(i);
             if (item == null) continue;
 
-            System.Diagnostics.Debug.WriteLine(
-                $"Item[{i}]: Uri={item.Uri}, Text={item.Text}, Intent={item.Intent}");
-
-            // Priority 1: Direct URI
+            // Priority: Direct URI
             if (item.Uri != null)
             {
                 var bitmap = await TryGetBitmapFromUriAsync(item.Uri);
                 if (bitmap != null) return bitmap;
             }
 
-            // Priority 2: coerceToText может вернуть URI строкой
-            // (когда item.Text == null, но внутри есть URI)
+            // Fallback: Coerced text (might be a URI string)
             if (item.Text == null && item.Uri == null)
             {
                 try
                 {
                     var context = Android.App.Application.Context;
                     var coerced = item.CoerceToText(context)?.ToString();
-                    System.Diagnostics.Debug.WriteLine($"  CoercedText: {coerced}");
                     if (!string.IsNullOrWhiteSpace(coerced))
                     {
                         var parsed = Android.Net.Uri.Parse(coerced);
-                        if (parsed?.Scheme != null)
+                        if (parsed != null && parsed.Scheme != null)
                         {
                             var bmp = await TryGetBitmapFromUriAsync(parsed);
                             if (bmp != null) return bmp;
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"CoerceToText failed: {ex.Message}");
-                }
+                catch { /* ignored */ }
             }
 
-            // Priority 3: Text как URL
+            // Fallback: Text as URL/Content URI
             if (item.Text != null)
             {
                 var text = item.Text.ToString();
@@ -180,13 +117,13 @@ public class AndroidClipboardService(
                     try
                     {
                         var uri = Android.Net.Uri.Parse(text);
-                        var bitmap = await TryGetBitmapFromUriAsync(uri);
-                        if (bitmap != null) return bitmap;
+                        if (uri != null)
+                        {
+                            var bitmap = await TryGetBitmapFromUriAsync(uri);
+                            if (bitmap != null) return bitmap;
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Failed to parse text as URI: {ex.Message}");
-                    }
+                    catch { /* ignored */ }
                 }
             }
         }
@@ -196,6 +133,7 @@ public class AndroidClipboardService(
 
     private async Task<SKBitmap?> TryGetBitmapFromUriAsync(Android.Net.Uri uri)
     {
+        if (uri == null) return null;
         try
         {
             var scheme = uri.Scheme?.ToLowerInvariant();
@@ -204,7 +142,6 @@ public class AndroidClipboardService(
             if (scheme == "http" || scheme == "https")
             {
                 using var client = new HttpClient();
-                // Download the image data
                 var bytes = await client.GetByteArrayAsync(uri.ToString());
                 return SKBitmap.Decode(bytes);
             }
@@ -213,7 +150,6 @@ public class AndroidClipboardService(
             var contentResolver = Android.App.Application.Context.ContentResolver;
             if (contentResolver == null) return null;
 
-            // Verify MIME type if possible
             var type = contentResolver.GetType(uri);
             if (type != null && !type.StartsWith("image/"))
             {

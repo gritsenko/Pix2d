@@ -21,6 +21,7 @@ public abstract class BaseAvaloniaClipboardService(
     AppState appState)
     : InternalClipboardService(drawingService, viewPortService, dialogService, appState)
 {
+    private const string Pix2DClipboardMarker = "Pix2D_Internal_Data_Marker";
     protected abstract IClipboard? Clipboard { get; }
 
     public override async Task<bool> TryCopyNodesAsBitmapAsync(IEnumerable<SKNode> nodes, SKColor backgroundColor)
@@ -48,6 +49,8 @@ public abstract class BaseAvaloniaClipboardService(
 #pragma warning disable CS0618
         var dataObject = new DataObject();
         dataObject.Set("PNG", bytes);
+        // Add a marker to identify our own data in the system clipboard
+        dataObject.Set(Pix2DClipboardMarker, "true");
 
         await Clipboard.ClearAsync();
         await Clipboard.SetDataObjectAsync(dataObject);
@@ -56,16 +59,27 @@ public abstract class BaseAvaloniaClipboardService(
 
     public override async Task<SKBitmap?> GetImageFromClipboard()
     {
+        if (Clipboard == null)
+            return await base.GetImageFromClipboard();
+
+#pragma warning disable CS0618
+        var formats = await Clipboard.GetFormatsAsync();
+        bool isOurInternalData = formats != null && formats.Contains(Pix2DClipboardMarker);
+
+        // 1. If it's our internal data, use SavedBitmap directly to preserve transparency/quality
+        if (isOurInternalData)
+        {
+            var internalImage = await base.GetImageFromClipboard();
+            if (internalImage != null)
+                return internalImage;
+        }
+
         var supportedFormats = new HashSet<string>(new[]
         {
             "PNG", "image/png", "image/webp", "image/jpeg", "image/bmp", "image/ico", "image/icon", "image/tiff"
         });
 
-        if (Clipboard == null)
-            return await base.GetImageFromClipboard();
-
-#pragma warning disable CS0618
-        // 1. Try TryGetBitmapAsync
+        // 2. Try TryGetBitmapAsync (External or Internal fallback)
         try
         {
             var bitmap = await Clipboard.TryGetBitmapAsync();
@@ -76,7 +90,7 @@ public abstract class BaseAvaloniaClipboardService(
         }
         catch { /* ignored */ }
 
-        // 2. Try TryGetFileAsync
+        // 3. Try TryGetFileAsync
         try
         {
             var storageItem = await Clipboard.TryGetFileAsync();
@@ -88,8 +102,7 @@ public abstract class BaseAvaloniaClipboardService(
         }
         catch { /* ignored */ }
 
-        // 3. Fallback to format-based GetDataAsync
-        var formats = await Clipboard.GetFormatsAsync();
+        // 4. Fallback to format-based GetDataAsync
         if (formats != null)
         {
             foreach (var format in formats)
@@ -106,6 +119,12 @@ public abstract class BaseAvaloniaClipboardService(
         }
 #pragma warning restore CS0618
 
-        return await base.GetImageFromClipboard();
+        // 5. Final fallback to base (only if not already tried as internal)
+        if (!isOurInternalData)
+        {
+            return await base.GetImageFromClipboard();
+        }
+
+        return null;
     }
 }
