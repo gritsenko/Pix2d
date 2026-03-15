@@ -599,12 +599,13 @@ jobs:
     - name: Create DMG
       run: |
         bash Sources/Heads/Pix2d.Desktop/make-dmg.sh Pix2D.app ${{ env.VERSION }}
+        mv Pix2d_macOS-${{ env.VERSION }}.dmg Pix2d_macOS-x64-${{ env.VERSION }}.dmg
 
     - name: Upload macOS Artifact
       uses: actions/upload-artifact@v4
       with:
         name: macos-intel
-        path: Pix2d_macOS-${{ env.VERSION }}.dmg
+        path: Pix2d_macOS-x64-${{ env.VERSION }}.dmg
 
   build_macos_arm:
     needs: determine_build_scope
@@ -657,12 +658,13 @@ jobs:
     - name: Create DMG
       run: |
         bash Sources/Heads/Pix2d.Desktop/make-dmg.sh Pix2D.app ${{ env.VERSION }}
+        mv Pix2d_macOS-${{ env.VERSION }}.dmg Pix2d_macOS-arm64-${{ env.VERSION }}.dmg
 
     - name: Upload macOS Artifact
       uses: actions/upload-artifact@v4
       with:
         name: macos-arm
-        path: Pix2d_macOS-${{ env.VERSION }}.dmg
+        path: Pix2d_macOS-arm64-${{ env.VERSION }}.dmg
     
 
 
