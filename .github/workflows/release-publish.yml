@@ -184,18 +184,29 @@ jobs:
         $version = $env:VERSION
         cd ${{ env.OUTPUT_PATH }}
 
-        # Find any .aab or .apk files (recursively)
-        $files = Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.aab', '.apk' }
-        if (-not $files -or $files.Count -eq 0) {
-            Write-Host "No .aab or .apk files found in $PWD"
-            exit 0
+        $allPackages = Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.aab', '.apk' }
+        if (-not $allPackages -or $allPackages.Count -eq 0) {
+          Write-Host "No .aab or .apk files found in $PWD"
+          exit 0
         }
 
-        # Rename all found files (both APK and AAB if both exist)
-        foreach ($file in $files) {
-            $destPath = Join-Path $PWD "pix2d_v$version$($file.Extension)"
-            Move-Item -Path $file.FullName -Destination $destPath -Force
-            Write-Host "Renamed $($file.Name) -> $(Split-Path $destPath -Leaf)"
+        $signedAab = $allPackages | Where-Object { $_.Extension -eq '.aab' -and $_.BaseName -like '*-Signed' } | Select-Object -First 1
+        if (-not $signedAab) {
+          Write-Error "No signed .aab found in $PWD. Publish output must include a *-Signed.aab bundle for Google Play upload."
+          exit 1
+        }
+
+        $signedApk = $allPackages | Where-Object { $_.Extension -eq '.apk' -and $_.BaseName -like '*-Signed' } | Select-Object -First 1
+
+        $renameTargets = @($signedAab)
+        if ($signedApk) {
+          $renameTargets += $signedApk
+        }
+
+        foreach ($file in $renameTargets) {
+          $destPath = Join-Path $PWD "pix2d_v$version$($file.Extension)"
+          Move-Item -Path $file.FullName -Destination $destPath -Force
+          Write-Host "Renamed signed package $($file.Name) -> $(Split-Path $destPath -Leaf)"
         }
 
     - name: Upload Android Artifacts
