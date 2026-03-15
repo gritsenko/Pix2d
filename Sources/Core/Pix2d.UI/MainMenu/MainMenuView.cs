@@ -102,7 +102,7 @@ public class MainMenuView : LocalizedComponentBase
                             .Children(
                                 new MainMenuItemView()
                                     .Name(BackButtonName)
-                                    .Header("Back")
+                                    .Header(L("Back"))
                                     .Icon("\xEC52")
                                     .OnClicked(_ => Back()),
                                 new ScrollViewer().Row(1)

@@ -26,6 +26,7 @@ public class MainMenuItemView : ComponentBase
                     )
             )
             .Padding(8, 8, 8, 8)
+            .Background(StaticResources.Brushes.MainMenuBackgroundBrush)
             .HorizontalContentAlignment(HorizontalAlignment.Left)
             .OnClick(_ => { OnClick(this); });
 
