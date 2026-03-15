@@ -109,7 +109,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
 
     - name: Install Android workload
       shell: pwsh
@@ -168,7 +168,7 @@ jobs:
         $keyStorePath = "$env:RUNNER_TEMP/keystore/Pix2d.keystore"
         [System.Convert]::FromBase64String($env:ANDROID_KEYSTORE) | Set-Content -Path $keyStorePath -AsByteStream
         # Publish for Android - creates both APK and AAB signed with provided keystore
-        dotnet publish ${{ env.ANDROID_PROJECT_PATH }} -f net9.0-android -c Release `
+        dotnet publish ${{ env.ANDROID_PROJECT_PATH }} -f net10.0-android -c Release `
           -p:AndroidKeyStore=true `
           -p:AndroidSigningKeyStore=$keyStorePath `
           -p:AndroidSigningStorePass=$env:ANDROID_KEYSTORE_PASSWORD `
@@ -228,7 +228,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
 
     - name: Get Version
       id: version
@@ -287,7 +287,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
 
     - name: Get Version
       id: version
@@ -349,7 +349,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
 
     - name: Install WASM workload
       run: dotnet workload restore ${{ env.BROWSER_PROJECT_PATH }}
@@ -391,7 +391,7 @@ jobs:
         # This will create a 'wasm' subdirectory within the general OUTPUT_PATH
         OutputDir="${{ env.OUTPUT_PATH }}/${{ env.WASM_OUTPUT_DIR_NAME }}"
         mkdir -p "$OutputDir" # Ensure the directory exists
-        dotnet publish -c Release -f net9.0-browser -o "$OutputDir" "$BROWSER_PROJECT_PATH" \
+        dotnet publish -c Release -f net10.0-browser -o "$OutputDir" "$BROWSER_PROJECT_PATH" \
           --property WarningLevel=0
 
     - name: Upload WASM Artifact
@@ -546,7 +546,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
 
     - name: Get Version
       id: version
@@ -604,7 +604,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
 
     - name: Get Version
       id: version
