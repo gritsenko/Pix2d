@@ -216,7 +216,18 @@ public class ProjectService : IProjectService, ISessionProjectLoader
         CloseCurrentProject();
 
         using var uiBlocker = new UiBlocker("Loading project...");
-        var scene = await NewSceneFactory.GetNewSceneFromFiles(fileContentSources, ImportService);
+        SKNode scene;
+        try
+        {
+            scene = await NewSceneFactory.GetNewSceneFromFiles(fileContentSources, ImportService);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+            // show error to user and abort loading
+            try { DialogService.Alert($"Failed to load project: {ex.Message}", "Load project error"); } catch { }
+            return;
+        }
 
         var file = fileContentSources.First();
         if (!OperatingSystem.IsBrowser())

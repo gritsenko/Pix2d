@@ -9,7 +9,6 @@ using SkiaNodes.Interactive;
 using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,7 +61,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
             ds.Alert($"Error in file opening \"{fileSource?.Title ?? "неизвестный файл"}\": \n{ex.Message}", "Error in file opening");
         }
     }
-    
+
     public void OpenUrlInBrowser(string url)
     {
         var uri = global::Android.Net.Uri.Parse(url);
@@ -83,7 +82,16 @@ public class AndroidPlatformStuffService : IPlatformStuffService
 
     public void SetWindowTitle(string title)
     {
-
+        try
+        {
+            if (MainActivity.Instance != null)
+            {
+                MainActivity.Instance.Title = title + " - Pix2d v" + GetAppVersion();
+            }
+        }
+        catch
+        {
+        }
     }
 
     public MemoryInfo GetMemoryInfo()
@@ -96,50 +104,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
         return key.ToString();
     }
 
-    public string GetAppVersion()
-    {
-        _appVersion ??= CalculateAppVersionString();
-        return _appVersion;
-    }
-
-    private string CalculateAppVersionString()
-    {
-        Assembly? assembly = Assembly.GetEntryAssembly();
-
-        if (assembly == null)
-        {
-            return "Unknown Version (N/A)";
-        }
-
-        string versionString;
-        string buildString;
-
-        var informationalVersionAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-
-        if (informationalVersionAttribute != null)
-        {
-            versionString = informationalVersionAttribute.InformationalVersion;
-            var assemblyName = assembly.GetName();
-            buildString = assemblyName?.Version != null ? assemblyName.Version.Build.ToString() : "N/A";
-        }
-        else
-        {
-            var assemblyName = assembly.GetName();
-
-            if (assemblyName?.Version != null)
-            {
-                versionString = assemblyName.Version.ToString(3);
-                buildString = assemblyName.Version.Build.ToString();
-            }
-            else
-            {
-                versionString = "N/A";
-                buildString = "N/A";
-            }
-        }
-
-        return $"{versionString} ({buildString})";
-    }
+    public string GetAppVersion() => $"{Pix2d.Common.BuildInfo.Version} droid";
 
     public void ToggleTopmostWindow()
     {
@@ -156,7 +121,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
             var externalCacheDir = Application.Context.ExternalCacheDir?.AbsolutePath;
             if (externalCacheDir == null)
                 throw new InvalidOperationException("External cache directory is not available");
-                
+
             var sdCardPath = Path.Combine(externalCacheDir, "tmp");
             if (!Directory.Exists(sdCardPath))
             {

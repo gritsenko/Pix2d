@@ -6,7 +6,6 @@ using Newtonsoft.Json;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Common.FileSystem;
-using Pix2d.UI;
 using SkiaNodes.Interactive;
 
 namespace Pix2d.Services;
@@ -102,7 +101,7 @@ public class PlatformStuffService : IPlatformStuffService
 
     public void SetWindowTitle(string title)
     {
-        if (EditorApp.TopLevel is MainWindow wnd)
+        if (EditorApp.TopLevel is Window wnd)
         {
             Dispatcher.UIThread.Post(() => { wnd.Title = title + " - Pix2d v" + GetAppVersion(); });
         }
@@ -139,30 +138,8 @@ public class PlatformStuffService : IPlatformStuffService
         return key.ToString();
     }
 
-    public string GetAppVersion()
-    {
-        try
-        {
-            var appPath = AppContext.BaseDirectory;
-            var asm = this.GetType().Assembly.GetName().Version;
-            if (asm != null)
-            {
-                return $"{asm.Major}.{asm.Minor}.{asm.Build}";
-            }
-
-            var assemblyPath = Path.Combine(appPath, "pix2d.exe");
-            var fvi = FileVersionInfo.GetVersionInfo(assemblyPath);
-            var version = fvi.ProductVersion;
-            return version ?? "unknown desktop";
-        }
-        catch (Exception ex)
-        {
-            Logger.LogException(ex);
-        }
-
-        return "unknown desktop";
-    }
-
+    public string GetAppVersion() => Pix2d.Common.BuildInfo.Version;
+    
     public void ToggleTopmostWindow()
     {
         if (EditorApp.TopLevel is MainWindow wnd)

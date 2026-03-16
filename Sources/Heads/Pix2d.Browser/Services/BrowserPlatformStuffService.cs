@@ -4,14 +4,24 @@ using Pix2d.Abstract.Services;
 using Pix2d.State;
 using SkiaNodes.Interactive;
 using System;
+using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 
 namespace Pix2d.Browser.Services;
 
+internal static partial class BrowserInterop
+{
+    [JSImport("setTitle", "main.js")]
+    internal static partial void SetTitle(string title);
+
+    [JSImport("openUrl", "main.js")]
+    internal static partial void OpenUrl(string url);
+}
+
 public class BrowserPlatformStuffService : IPlatformStuffService
 {
-    private string _appVersion = string.Empty;
+    private string? _appVersion;
 
     public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;
 
@@ -20,15 +30,7 @@ public class BrowserPlatformStuffService : IPlatformStuffService
         return key.ToString();
     }
 
-    public string GetAppVersion()
-    {
-        string GetAppVer()
-        {
-            return $"0.0";
-        }
-
-        return _appVersion ??= GetAppVer();
-    }
+    public string GetAppVersion() => $"{Pix2d.Common.BuildInfo.Version} Web";
 
     public void ToggleTopmostWindow()
     {
@@ -59,27 +61,19 @@ public class BrowserPlatformStuffService : IPlatformStuffService
 
     public PlatformType CurrentPlatform => PlatformType.WASM;
 
-    public async void OpenUrlInBrowser(string url)
+    public void OpenUrlInBrowser(string url)
     {
-        var uri = new Uri(url);
-        throw new NotImplementedException();
-        //var success = await Windows.System.Launcher.LaunchUriAsync(uri);
+        BrowserInterop.OpenUrl(url);
     }
 
     public void SetWindowTitle(string title)
     {
         try
         {
-            //if (_appView == null)
-            //{
-            //    _appView = ApplicationView.GetForCurrentView();
-            //}
-
-            //_appView.Title = title + " - v" + GetAppVersion();
+            BrowserInterop.SetTitle($"{title} - Pix2d v{GetAppVersion()}");
         }
         catch
         {
-            //whatever!
         }
     }
 

@@ -23,7 +23,9 @@ setModuleImports("main.js", {
         console.log("Saved: ", key, value);
     },
     remvoe: (key) => localStorage.removeItem(key),
-    clear: (key) => localStorage.clear()
+    clear: (key) => localStorage.clear(),
+    setTitle: (title) => { document.title = title; },
+    openUrl: (url) => { window.open(url, '_blank'); }
 });
 
 const config = dotnetRuntime.getConfig();
