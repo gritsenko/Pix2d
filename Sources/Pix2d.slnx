@@ -1,0 +1,92 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Core/">
+    <Project Path="Core/Pix2d.Core/Pix2d.Core.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Core/Pix2d.Infrastructure/Pix2d.Infrastructure.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Core/Pix2d.Shared/Pix2d.Shared.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Core/Pix2d.UI/Pix2d.UI.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Core/SkiaNodes/SkiaNodes.csproj">
+      <Platform Solution="Debug|ARM64" Project="ARM64" />
+      <Platform Solution="Debug|x64" Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/Heads/">
+    <Project Path="Heads/Pix2d.Browser/Pix2d.Browser.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Heads/Pix2d.Desktop.Wap/Pix2d.Desktop.Wap.wapproj" Type="c7167f0d-bc9f-4e6e-afe1-012c56b48db5">
+      <Deploy />
+    </Project>
+    <Project Path="Heads/Pix2d.Desktop/Pix2d.Desktop.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Heads/Pix2d.Droid/Pix2d.Droid.csproj">
+      <Deploy />
+    </Project>
+  </Folder>
+  <Folder Name="/Plugins/">
+    <Project Path="Plugins/Pix2d.Plugins.Ai/Pix2d.Plugins.Ai.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Plugins/Pix2d.Plugins.Drawing/Pix2d.Plugins.Drawing.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Plugins/Pix2d.Plugins.OpenCv/Pix2d.Plugins.OpenCv.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Plugins/Pix2d.Plugins.PixelText/Pix2d.Plugins.PixelText.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Plugins/Pix2d.Plugins.PngCompress/Pix2d.Plugins.PngCompress.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="Plugins/Pix2d.Plugins.SimplePlugin/Pix2d.Plugins.Simple.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/Plugins/Effects/">
+    <Project Path="Plugins/Effects/Pix2d.Plugins.BaseEffectsSettings/Pix2d.Plugins.BaseEffects.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/Plugins/Formats/">
+    <Project Path="Plugins/FormatSupport/Psd/Pix2d.Plugins.Psd/Pix2d.Plugins.Psd.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Pix2d.Core.Tests/Pix2d.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/_GlobalItems/">
+    <File Path="../.github/workflows/dotnet-desktop-winstore.yml" />
+    <File Path="../.github/workflows/release-publish.yml" />
+    <File Path="Directory.Build.props" />
+    <File Path="nuget.config" />
+  </Folder>
+</Solution>
