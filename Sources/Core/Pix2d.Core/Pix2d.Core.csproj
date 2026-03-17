@@ -9,8 +9,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<Compile Remove="UI\Animation\FrameItemsListBoxDropHandler.cs" />
 		<Compile Remove="Common\BarPlotter.cs" />
 		<Compile Remove="Common\Label.cs" />
+		<Compile Remove="UI\Layers\ItemsListBoxDropHandler.cs" />
+		<Compile Remove="UI\Layers\LayerItemView.Model.cs" />
+		<Compile Remove="UI\Layers\LayersView.Model.cs" />
 		<Compile Remove="Logging\SentryLoggerTarget.cs" />
 		<Compile Remove="PinchGestureRecognizer.cs" />
 		<Compile Remove="Pix2dBootstrapperBase.cs" />

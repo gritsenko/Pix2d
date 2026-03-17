@@ -17,10 +17,6 @@
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="Core/Pix2d.UI/Pix2d.UI.csproj">
-      <Platform Solution="*|ARM64" Project="ARM64" />
-      <Platform Solution="*|x64" Project="x64" />
-    </Project>
     <Project Path="Core/SkiaNodes/SkiaNodes.csproj">
       <Platform Solution="Debug|ARM64" Project="ARM64" />
       <Platform Solution="Debug|x64" Project="x64" />
@@ -47,15 +43,7 @@
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="Plugins/Pix2d.Plugins.Drawing/Pix2d.Plugins.Drawing.csproj">
-      <Platform Solution="*|ARM64" Project="ARM64" />
-      <Platform Solution="*|x64" Project="x64" />
-    </Project>
     <Project Path="Plugins/Pix2d.Plugins.OpenCv/Pix2d.Plugins.OpenCv.csproj">
-      <Platform Solution="*|ARM64" Project="ARM64" />
-      <Platform Solution="*|x64" Project="x64" />
-    </Project>
-    <Project Path="Plugins/Pix2d.Plugins.PixelText/Pix2d.Plugins.PixelText.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
@@ -64,12 +52,6 @@
       <Platform Solution="*|x64" Project="x64" />
     </Project>
     <Project Path="Plugins/Pix2d.Plugins.SimplePlugin/Pix2d.Plugins.Simple.csproj">
-      <Platform Solution="*|ARM64" Project="ARM64" />
-      <Platform Solution="*|x64" Project="x64" />
-    </Project>
-  </Folder>
-  <Folder Name="/Plugins/Effects/">
-    <Project Path="Plugins/Effects/Pix2d.Plugins.BaseEffectsSettings/Pix2d.Plugins.BaseEffects.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>

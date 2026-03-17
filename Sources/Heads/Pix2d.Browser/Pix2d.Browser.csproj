@@ -33,11 +33,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="../../Core/Pix2d.Shared/Pix2d.Shared.csproj" />
-		<ProjectReference Include="../../Core/Pix2d.UI/Pix2d.UI.csproj" />
-		<ProjectReference Include="../../Plugins/Pix2d.Plugins.PixelText/Pix2d.Plugins.PixelText.csproj" />
-		<ProjectReference Include="../../Plugins/Pix2d.Plugins.Drawing/Pix2d.Plugins.Drawing.csproj" />
 		<ProjectReference Include="../../Plugins/Pix2d.Plugins.Ai/Pix2d.Plugins.Ai.csproj" />
-		<ProjectReference Include="../../Plugins\Effects\Pix2d.Plugins.BaseEffectsSettings\Pix2d.Plugins.BaseEffects.csproj" />
 		<ProjectReference Include="../../Plugins\FormatSupport\Psd\Pix2d.Plugins.Psd\Pix2d.Plugins.Psd.csproj" />
 		<ProjectReference Include="../../Plugins\Pix2d.Plugins.OpenCv\Pix2d.Plugins.OpenCv.csproj" />
 		<ProjectReference Include="../../Plugins\Pix2d.Plugins.PngCompress\Pix2d.Plugins.PngCompress.csproj" />
