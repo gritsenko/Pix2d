@@ -89,23 +89,26 @@
 		<Using Include="Pix2d.Abstract.State" />
 	</ItemGroup>
 
-	<Target Name="GenerateVersionClass" BeforeTargets="BeforeBuild">
+	<Target Name="GenerateVersionClass" BeforeTargets="PrepareForBuild" Condition="'$(BuildInfoGenerated)' == ''">
 		<PropertyGroup>
+			<BuildInfoGenerated>true</BuildInfoGenerated>
 			<VersionSource>
-				namespace Pix2d.Common%3B
-				[System.CodeDom.Compiler.GeneratedCode("MSBuild", "1.0")]
-				public static class BuildInfo
-				{
-				public const string Version = "$(Pix2dVersion)"%3B
-				}
+namespace Pix2d.Common%3B
+[System.CodeDom.Compiler.GeneratedCode("MSBuild", "1.0")]
+public static class BuildInfo
+{
+    public const string Version = "$(Pix2dVersion)"%3B
+}
 			</VersionSource>
 			<VersionFilePath>$(IntermediateOutputPath)BuildInfo.g.cs</VersionFilePath>
 		</PropertyGroup>
 
-		<WriteLinesToFile File="$(VersionFilePath)" Lines="$(VersionSource)" Overwrite="true" />
+		<WriteLinesToFile File="$(VersionFilePath)" Lines="$(VersionSource)" Overwrite="true" WriteOnlyWhenDifferent="true" />
 
 		<ItemGroup>
-			<Compile Include="$(VersionFilePath)" />
+			<Compile Include="$(VersionFilePath)">
+				<Visible>false</Visible>
+			</Compile>
 			<FileWrites Include="$(VersionFilePath)" />
 		</ItemGroup>
 	</Target>
