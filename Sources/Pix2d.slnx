@@ -80,9 +80,6 @@
       <Platform Solution="*|x64" Project="x64" />
     </Project>
   </Folder>
-  <Folder Name="/Tests/">
-    <Project Path="Tests/Pix2d.Core.Tests/Pix2d.Core.Tests.csproj" />
-  </Folder>
   <Folder Name="/_GlobalItems/">
     <File Path="../.github/workflows/dotnet-desktop-winstore.yml" />
     <File Path="../.github/workflows/release-publish.yml" />
