@@ -26,11 +26,6 @@
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
 	<ItemGroup>
-		<Compile Remove="Logging\AppCenterLoggerTarget.cs" />
-		<Compile Remove="Services\AndroidFileService.cs" />
-		<Compile Remove="SplashActivity.cs" />
-	</ItemGroup>
-	<ItemGroup>
 		<None Remove="Assets\Fonts\v31\zed-mono-extended.ttf" />
 		<None Remove="Assets\Fonts\v31\zed-mono-extendedbold.ttf" />
 		<None Remove="Assets\Fonts\v31\zed-mono-extendedbolditalic.ttf" />
@@ -45,7 +40,7 @@
 			<Link>Resources\drawable\Icon.png</Link>
 		</AndroidResource>
 		<AndroidResource Include="res/xml/file_paths.xml" />
-		<AndroidResource Include="res\xml\file_associations.xml" />
+		<AndroidResource Include="res/xml/file_associations.xml" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Avalonia.Android" Version="11.3.12" />

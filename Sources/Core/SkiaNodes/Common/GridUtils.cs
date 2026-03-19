@@ -10,7 +10,7 @@ public static class GridUtils
     /// <param name="targetScreenSize">Desired size of the grid cell on screen in pixels (default is 24px).</param>
     /// <param name="minStep">Minimum allowable step size in local coordinates (default is 1).</param>
     /// <returns>Calculated step size in local coordinates.</returns>
-    public static float CalculateAdaptiveStep(float zoom, float targetScreenSize = 24f, float minStep = 1f)
+    public static float CalculateAdaptiveStep(float zoom, float targetScreenSize = 48f, float minStep = 1f)
     {
         float idealLocalSize = targetScreenSize / zoom;
         float exponent = MathF.Round(MathF.Log2(idealLocalSize));
