@@ -55,9 +55,6 @@
 		<ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
 		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
 	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Logging\" />
-	</ItemGroup>
 	<Target Name="ConfigureTrimming" BeforeTargets="PrepareForILLink">
 		<ItemGroup>
 			<ManagedAssemblyToLink Condition="'%(Filename)' == 'System.Private.CoreLib'">

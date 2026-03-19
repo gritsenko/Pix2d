@@ -19,7 +19,7 @@ namespace Pix2d.Droid;
 
 [Activity(
     Label = "Pix2d",
-    Theme = "@style/MyTheme.NoActionBar",
+    Theme = "@style/MyTheme.Splash",
     Icon = "@mipmap/ic_launcher",
     MainLauncher = true,
     LaunchMode = LaunchMode.SingleTop,
@@ -65,6 +65,8 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
+        SetTheme(Resource.Style.MyTheme_NoActionBar);
+
         if (PendingFileUri != null)
             _bootstrapper.StartupDocument = PendingFileUri.ToString();
 

@@ -9,7 +9,7 @@
 
 	<item>
 		<bitmap
-			android:src="@drawable/icon"
+			android:src="@drawable/splash_icon"
 			android:gravity="center" />
 	</item>
 
