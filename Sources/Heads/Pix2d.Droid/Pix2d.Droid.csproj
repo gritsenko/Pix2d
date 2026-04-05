@@ -47,7 +47,7 @@
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
 		<PackageReference Include="Microsoft.Maui.Essentials" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
-		<PackageReference Update="Microsoft.Maui.Essentials" Version="10.0.50" />
+		<PackageReference Update="Microsoft.Maui.Essentials" Version="10.0.51" />
 		<PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.2.0.2" />
 	</ItemGroup>
 	<ItemGroup>

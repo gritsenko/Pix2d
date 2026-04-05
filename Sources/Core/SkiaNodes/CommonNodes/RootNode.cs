@@ -32,15 +32,36 @@ public class RootNode : SKNode
         float startX = MathF.Floor(bounds.Left / step) * step;
         float startY = MathF.Floor(bounds.Top / step) * step;
 
-        for (float x = startX; x < bounds.Right; x += step)
+        // Pre-calculate the number of vertical lines needed
+        int verticalLineCount = (int)MathF.Ceiling((bounds.Right - startX) / step);
+
+        // Collect all vertical line points
+        var verticalPoints = new List<SKPoint>(verticalLineCount * 2);
+        for (int i = 0; i < verticalLineCount; i++)
         {
-            canvas.DrawLine(x, bounds.Top, x, bounds.Bottom, paint);
+            float x = startX + (i * step);
+            verticalPoints.Add(new SKPoint(x, bounds.Top));
+            verticalPoints.Add(new SKPoint(x, bounds.Bottom));
         }
 
-        for (float y = startY; y < bounds.Bottom; y += step)
+        // Pre-calculate the number of horizontal lines needed
+        int horizontalLineCount = (int)MathF.Ceiling((bounds.Bottom - startY) / step);
+
+        // Collect all horizontal line points
+        var horizontalPoints = new List<SKPoint>(horizontalLineCount * 2);
+        for (int i = 0; i < horizontalLineCount; i++)
         {
-            canvas.DrawLine(bounds.Left, y, bounds.Right, y, paint);
+            float y = startY + (i * step);
+            horizontalPoints.Add(new SKPoint(bounds.Left, y));
+            horizontalPoints.Add(new SKPoint(bounds.Right, y));
         }
+
+        // Draw all vertical lines in one call
+        if (verticalPoints.Count > 0)
+            canvas.DrawPoints(SKPointMode.Lines, verticalPoints.ToArray(), paint);
+
+        // Draw all horizontal lines in one call
+        if (horizontalPoints.Count > 0)
+            canvas.DrawPoints(SKPointMode.Lines, horizontalPoints.ToArray(), paint);
     }
-
 }

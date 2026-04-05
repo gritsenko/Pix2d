@@ -171,8 +171,10 @@ public class ViewPort
 
     public void SetPan(float rawX, float rawY)
     {
-        rawX = (float)Math.Floor(rawX);
-        rawY = (float)Math.Floor(rawY);
+        // rawX = (float)Math.Floor(rawX);
+        // rawY = (float)Math.Floor(rawY);
+        // Pan = new SKPoint(rawX, rawY);
+        // OnPanChanged();
         Pan = new SKPoint(rawX, rawY);
         OnPanChanged();
     }
@@ -303,7 +305,7 @@ public class ViewPort
 
     private void CalculateTransform()
     {
-        var trans = SKMatrix.CreateTranslation(-Pan.X, -Pan.Y);
+        var trans = SKMatrix.CreateTranslation(-(float)Math.Round(Pan.X), -(float)Math.Round(Pan.Y));
         var scale = SKMatrix.CreateScale(DpiEffectiveZoom, DpiEffectiveZoom);
         SKMatrix.Concat(ref TransformMatrix, trans, scale);
     }
