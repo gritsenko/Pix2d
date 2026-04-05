@@ -3,6 +3,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Markup.Declarative;
 using Pix2d.Services;
+using Pix2d.Desktop.Services;
 using Pix2d.UI;
 using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.Versioning;
@@ -63,6 +64,7 @@ class Program
     {
         if (root is MainWindow wnd)
         {
+            TouchHelper.ConfigureTouchHandling(wnd);
 #if DEBUG
             wnd.AttachDevTools();
 #endif
