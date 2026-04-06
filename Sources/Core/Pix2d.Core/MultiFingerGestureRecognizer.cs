@@ -88,6 +88,12 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
             return;
         }
 
+        if (e.Pointer.Type != PointerType.Touch)
+        {
+            ResetTapSequence();
+            return;
+        }
+
         if (Target == null || !(Target is Visual target)) return;
 
         Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] PointerPressed: Id={e.Pointer.Id}, Type={e.Pointer.Type}, currently tracking={_tracking}");
@@ -128,6 +134,13 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
 
     protected override void PointerMoved(PointerEventArgs e)
     {
+        if (e.Pointer.Type != PointerType.Touch)
+        {
+            if (_tracking)
+                Cancel();
+            return;
+        }
+
         if (Target == null || !(Target is Visual target)) return;
 
         if (_tracking && _pointerStartPositions.TryGetValue(e.Pointer.Id, out var startPos))
@@ -146,6 +159,13 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
     {
         if (!IsGestureEnabled)
             return;
+
+        if (e.Pointer.Type != PointerType.Touch)
+        {
+            if (_tracking)
+                Cancel();
+            return;
+        }
 
         Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] PointerReleased: Id={e.Pointer.Id}, tracking={_tracking}, containsKey={_pointers.ContainsKey(e.Pointer.Id)}, total pointers={_pointers.Count}");
 
@@ -183,6 +203,13 @@ public class MultiFingerGestureRecognizer : GestureRecognizer
     {
         if (!IsGestureEnabled)
             return;
+
+        if (pointer.Type != PointerType.Touch)
+        {
+            if (_tracking)
+                Cancel();
+            return;
+        }
 
         Debug.WriteLine($"[MultiFingerGesture-{FingersCount}] PointerCaptureLost: Id={pointer.Id}");
         // Treat capture lost as a pointer release

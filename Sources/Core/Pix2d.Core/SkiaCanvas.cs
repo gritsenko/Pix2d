@@ -104,6 +104,7 @@ public class SkiaCanvas : Control
 
         AddHandler(Gestures.PinchEvent, OnPinch);
         AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
+        AddHandler(Gestures.PointerTouchPadGestureMagnifyEvent, OnPointerTouchPadGestureMagnify);
 
         _undoGesture.TrackingStarted += OnUndoGestureTrackingStarted;
         _undoGesture.TrackingEnded += OnUndoGestureTrackingEnded;
@@ -274,7 +275,13 @@ public class SkiaCanvas : Control
         if (ViewPort == null /*|| SKInput.Pointer == null*/)
             return;
 
+        if (e.Pointer.Type != PointerType.Touch)
+        {
+            CancelTouchOnlyGestureState();
+        }
+
         var scroll = e.Delta * 30f * ViewPort.ScaleFactor;
+        var zoomOrigin = ToSKPoint(e.GetPosition(this));
 
         bool shouldZoom;
         if (_appState.MouseWheelBehavior == Pix2d.Primitives.ViewPort.MouseWheelBehavior.Zoom)
@@ -289,9 +296,9 @@ public class SkiaCanvas : Control
         if (shouldZoom)
         {
             if (e.Delta.Y > 0)
-                ViewPort.ZoomIn(Input.Pointer.ViewportPosition);
+                ViewPort.ZoomIn(zoomOrigin);
             else if (e.Delta.Y < 0)
-                ViewPort.ZoomOut(Input.Pointer.ViewportPosition);
+                ViewPort.ZoomOut(zoomOrigin);
         }
         else if ((e.KeyModifiers & KeyModifiers.Shift) > 0 && scroll.Y != 0 && scroll.X == 0)
         {
@@ -303,6 +310,32 @@ public class SkiaCanvas : Control
         }
 
         InvalidateVisual();
+    }
+
+    private void OnPointerTouchPadGestureMagnify(object? sender, PointerDeltaEventArgs e)
+    {
+        if (ViewPort == null)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        CancelTouchOnlyGestureState();
+
+        var magnification = (float)e.Delta.Y;
+        if (Math.Abs(magnification) < 0.0001f)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var zoomFactor = Math.Max(0.01f, 1f + magnification);
+        var zoomOrigin = ToSKPoint(e.GetPosition(this));
+
+        ViewPort.ChangeZoom(zoomFactor, zoomOrigin);
+        InvalidateVisual();
+
+        e.Handled = true;
     }
 
 
@@ -357,7 +390,11 @@ public class SkiaCanvas : Control
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         var pointerType = e.Pointer.Type;
-        if (pointerType == PointerType.Touch)
+        if (pointerType != PointerType.Touch)
+        {
+            CancelTouchOnlyGestureState();
+        }
+        else
         {
             if (_isTouchDrawingSuppressed && !_isUndoGestureTracking && !_isPinching && _activeTouchPointers.Count < 2)
             {
@@ -523,6 +560,7 @@ public class SkiaCanvas : Control
         _isPinching = false;
         _activeTouchPointers.Clear();
         _isTouchDrawingSuppressed = false;
+        _touchSuppressionUntilMs = 0;
         e.Handled = true;
     }
 
@@ -533,11 +571,47 @@ public class SkiaCanvas : Control
 
         if (!_undoGesture.IsGestureEnabled)
         {
-            _undoGesture.ResetTapSequence();
-            _isUndoGestureTracking = false;
-            _activeTouchPointers.Clear();
-            _isTouchDrawingSuppressed = false;
+            CancelTouchOnlyGestureState();
         }
+    }
+
+    private bool HasTouchOnlyGestureState()
+    {
+        return _isPinching
+               || _isUndoGestureTracking
+               || _isTouchDrawingSuppressed
+               || _activeTouchPointers.Count > 0
+               || _undoGesture.IsTapSequenceInProgress;
+    }
+
+    private void CancelTouchOnlyGestureState()
+    {
+        if (!HasTouchOnlyGestureState())
+            return;
+
+        var wasPinching = _isPinching;
+
+        _pinchRecognizer.Reset();
+        _undoGesture.ResetTapSequence();
+
+        _activeTouchPointers.Clear();
+        _touchSuppressionUntilMs = 0;
+        _isTouchDrawingSuppressed = false;
+        _isUndoGestureTracking = false;
+        _isPointerPressed = false;
+        _isPinching = false;
+        _oldScale = 0;
+        _oldVpPos = default;
+
+        if (wasPinching)
+        {
+            Input.PanMode = false;
+            UpdateCursor();
+        }
+
+        _serviceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation();
+        Input.CapturedPointerBy = null;
+        InvalidateVisual();
     }
 
     private bool ShouldBlockTouchDrawing(PointerType pointerType)

@@ -7,6 +7,7 @@ namespace Pix2d;
 
 public class ZoomPanGestureRecognizer : GestureRecognizer
 {
+    private const PointerType SupportedPointerType = PointerType.Touch;
     private float _initialDistance;
     private IPointer? _firstContact;
     private Point _firstPoint;
@@ -26,13 +27,24 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
     {
         this._firstContact = null;
         this._secondContact = null;
+        this._firstPoint = default;
+        this._secondPoint = default;
         this._origin = default;
+        this._initialDistance = 0;
         this._hasCaptured = false;
         this._isPinching = false;
     }
 
+    public void Reset() => this.RemoveAllContacts();
+
     protected override void PointerMoved(PointerEventArgs e)
     {
+        if (e.Pointer.Type != SupportedPointerType)
+        {
+            Reset();
+            return;
+        }
+
         if (this.Target == null || !(this.Target is Visual target))
             return;
 
@@ -67,8 +79,13 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
 
     protected override void PointerPressed(PointerPressedEventArgs e)
     {
-        if (this.Target == null || !(this.Target is Visual target) ||
-            e.Pointer.Type != PointerType.Touch && e.Pointer.Type != PointerType.Pen)
+        if (e.Pointer.Type != SupportedPointerType)
+        {
+            Reset();
+            return;
+        }
+
+        if (this.Target == null || !(this.Target is Visual target))
             return;
         
         if (this._firstContact == null)
@@ -107,7 +124,16 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
         }
     }
 
-    protected override void PointerReleased(PointerReleasedEventArgs e) => this.RemoveContact(e.Pointer);
+    protected override void PointerReleased(PointerReleasedEventArgs e)
+    {
+        if (e.Pointer.Type != SupportedPointerType)
+        {
+            Reset();
+            return;
+        }
+
+        this.RemoveContact(e.Pointer);
+    }
 
     private void RemoveContact(IPointer pointer)
     {

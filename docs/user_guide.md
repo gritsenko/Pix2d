@@ -25,7 +25,7 @@ Choose your platform:
 
 ### Navigation
 - Pan: Hold Space + Left Mouse Button or Middle Mouse Button
-- Zoom: Mouse Wheel or Ctrl + Mouse Wheel
+- Zoom: Mouse Wheel or Ctrl + Mouse Wheel, or pinch on a trackpad
 - Reset View: Press Home
 
 ## Core Features

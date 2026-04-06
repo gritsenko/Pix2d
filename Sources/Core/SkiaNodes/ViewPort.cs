@@ -10,6 +10,8 @@ public class ViewPortSettings
 
 public class ViewPort
 {
+    private const int ZoomPrecisionDigits = 4;
+    private const float ZoomGridTolerance = 0.00005f;
 
     private readonly List<float> _zoomGrid =
     [
@@ -73,13 +75,15 @@ public class ViewPort
 
     public int GetZoomGridIndex(float zoom)
     {
-        for (var i = 1; i < _zoomGrid.Count; i++)
+        var normalizedZoom = NormalizeZoom(zoom);
+
+        for (var i = _zoomGrid.Count - 1; i >= 0; i--)
         {
-            if (zoom < (float)(Math.Round(_zoomGrid[i] / 100f, 2)))
-                return i - 1;
+            if (normalizedZoom + ZoomGridTolerance >= GetZoomGridValue(i))
+                return i;
         }
 
-        return _zoomGrid.Count - 1;
+        return 0;
     }
 
     public int CoerceZoomIndex(int zoomIndex)
@@ -98,14 +102,39 @@ public class ViewPort
 
     public void ZoomByGrid(float direction, SKPoint centerPointOnViewport = default(SKPoint))
     {
-        var i = GetZoomGridIndex(Zoom);
+        var step = Math.Sign(direction);
+        if (step == 0)
+            return;
 
-        if (i > -1)
+        var normalizedZoom = NormalizeZoom(Zoom);
+
+        if (step > 0)
         {
-            i = CoerceZoomIndex(i + Math.Sign(direction));
-            var newZoom = _zoomGrid[i] / 100f;
-            SetZoom(newZoom, centerPointOnViewport);
+            for (var i = 0; i < _zoomGrid.Count; i++)
+            {
+                var gridZoom = GetZoomGridValue(i);
+                if (gridZoom > normalizedZoom + ZoomGridTolerance)
+                {
+                    SetZoom(gridZoom, centerPointOnViewport);
+                    return;
+                }
+            }
+
+            SetZoom(GetZoomGridValue(_zoomGrid.Count - 1), centerPointOnViewport);
+            return;
         }
+
+        for (var i = _zoomGrid.Count - 1; i >= 0; i--)
+        {
+            var gridZoom = GetZoomGridValue(i);
+            if (gridZoom < normalizedZoom - ZoomGridTolerance)
+            {
+                SetZoom(gridZoom, centerPointOnViewport);
+                return;
+            }
+        }
+
+        SetZoom(Math.Min(normalizedZoom, GetZoomGridValue(0)), centerPointOnViewport);
     }
 
     public void ZoomAddPercent(int percent, SKPoint centerPointOnViewport = default(SKPoint))
@@ -142,7 +171,7 @@ public class ViewPort
         //{
         //    Zoom = (float)Math.Round(newZoom, 4);
         //}
-        Zoom = (float)Math.Round(newZoom, 4);
+        Zoom = NormalizeZoom(newZoom);
         //OnZoomChanged();
         CalculateTransform();
 
@@ -157,6 +186,17 @@ public class ViewPort
     {
         return (float)Math.Round(x * gridStep) / gridStep;
     }
+
+    private static float NormalizeZoom(float zoom)
+    {
+        return (float)Math.Round(zoom, ZoomPrecisionDigits);
+    }
+
+    private float GetZoomGridValue(int index)
+    {
+        return NormalizeZoom(_zoomGrid[index] / 100f);
+    }
+
     public static double Floor(double value, int decimalPlaces)
     {
         double adjustment = Math.Pow(10, decimalPlaces);
