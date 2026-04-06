@@ -7,8 +7,6 @@ namespace Pix2d;
 
 public class ZoomPanGestureRecognizer : GestureRecognizer
 {
-    private const float PinchMovementThreshold = 5.0f;
-
     private float _initialDistance;
     private IPointer? _firstContact;
     private Point _firstPoint;
@@ -28,6 +26,7 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
     {
         this._firstContact = null;
         this._secondContact = null;
+        this._origin = default;
         this._hasCaptured = false;
         this._isPinching = false;
     }
@@ -53,24 +52,7 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
             return;
 
         if (!_isPinching)
-        {
-            var currentDistance = this.GetDistance(this._firstPoint, this._secondPoint);
-            var movement = Math.Abs(currentDistance - _initialDistance);
-            if (movement > PinchMovementThreshold)
-            {
-                _isPinching = true;
-                if (!_hasCaptured)
-                {
-                    this.Capture(this._firstContact);
-                    this.Capture(this._secondContact);
-                    _hasCaptured = true;
-                }
-            }
-            else
-            {
-                return;
-            }
-        }
+            return;
 
         var origin = new Point((this._firstPoint.X + this._secondPoint.X) / 2.0,
             (this._firstPoint.Y + this._secondPoint.Y) / 2.0);
@@ -109,8 +91,19 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
             this._initialDistance = this.GetDistance(this._firstPoint, this._secondPoint);
             this._origin = new Point((this._firstPoint.X + this._secondPoint.X) / 2.0,
                 (this._firstPoint.Y + this._secondPoint.Y) / 2.0);
-            this.Capture(this._firstContact);
-            this.Capture(this._secondContact);
+
+            if (!_hasCaptured)
+            {
+                this.Capture(this._firstContact);
+                this.Capture(this._secondContact);
+                _hasCaptured = true;
+            }
+
+            _isPinching = true;
+
+            PinchEventArgs e1 = new PinchEventArgs(1.0, this._origin);
+            this.Target?.RaiseEvent((RoutedEventArgs)e1);
+            e.Handled = e1.Handled;
         }
     }
 
@@ -133,12 +126,16 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
             this._secondContact = null;
         }
 
+        this._origin = default;
+        this._hasCaptured = false;
+        this._isPinching = false;
+
         this.Target?.RaiseEvent((RoutedEventArgs) new PinchEndedEventArgs());
     }
 
     private float GetDistance(Point a, Point b)
     {
-        Point point = this._secondPoint - this._firstPoint;
+        Point point = b - a;
         return (float) new Vector(point.X, point.Y).Length;
     }
 }

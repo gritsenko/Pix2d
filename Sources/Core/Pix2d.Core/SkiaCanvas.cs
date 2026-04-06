@@ -36,6 +36,8 @@ public class SkiaCanvas : Control
     //pinch gesture stuff
     bool _isPinching = false;
     private readonly ZoomPanGestureRecognizer _pinchRecognizer = new();
+    private float _gestureStartZoom;
+    private SKPoint _gestureStartPan;
 
     public static readonly RoutedEvent<RoutedEventArgs> UndoGestureEvent = RoutedEvent.Register<SkiaCanvas, RoutedEventArgs>("UndoGesture", RoutingStrategies.Bubble);
     public static readonly RoutedEvent<RoutedEventArgs> RedoGestureEvent = RoutedEvent.Register<SkiaCanvas, RoutedEventArgs>("RedoGesture", RoutingStrategies.Bubble);
@@ -54,7 +56,7 @@ public class SkiaCanvas : Control
 
     public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
-    
+
     // Safe area insets (e.g., notch, status bar)
     private Thickness _safeAreaInsets = new Thickness(0);
     public Thickness SafeAreaInsets
@@ -181,7 +183,7 @@ public class SkiaCanvas : Control
         {
             return;
         }
-        
+
         if (Math.Abs(finalRect.Size.Width - ViewPort.Size.Width) > 0 ||
             Math.Abs(finalRect.Size.Height - ViewPort.Size.Height) > 0)
         {
@@ -204,7 +206,7 @@ public class SkiaCanvas : Control
 
         if (ViewPort != null && !IsBoundsEmpty())
         {
-            ViewPort.ScaleFactor = (float) VisualRoot!.RenderScaling;
+            ViewPort.ScaleFactor = (float)VisualRoot!.RenderScaling;
             ViewPort.Size = GetViewPortSize();
             ViewPort.Refresh();
         }
@@ -221,7 +223,7 @@ public class SkiaCanvas : Control
         _initTime = DateTime.Now;
         InitializeCanvas();
         InitializeViewport();
-        
+
         _rootNode = SKApp.SceneManager.GetRootNode() as RootNode;
         if (_rootNode != null)
             _rootNode.ShowGrid = true;
@@ -445,6 +447,18 @@ public class SkiaCanvas : Control
         BeginTouchUndoSuppression();
         ExtendTouchSuppressionCooldown(UndoGestureTouchCooldownMs);
 
+        // Откат камеры
+        if (ViewPort != null)
+        {
+            ViewPort.SetZoom(_gestureStartZoom);
+            ViewPort.SetPan(_gestureStartPan.X, _gestureStartPan.Y); 
+        }
+
+        if (_isPinching)
+        {
+            _isPinching = false;
+            Input.PanMode = false;        }
+
         _serviceProvider.GetRequiredService<IOperationService>().Undo();
         e.Handled = true;
     }
@@ -453,6 +467,12 @@ public class SkiaCanvas : Control
     {
         _isUndoGestureTracking = true;
         BeginTouchUndoSuppression();
+
+        if (ViewPort != null)
+        {
+            _gestureStartZoom = ViewPort.Zoom;
+            _gestureStartPan = ViewPort.Pan;
+        }
     }
 
     private void OnUndoGestureTrackingEnded(object? sender, EventArgs e)
@@ -469,46 +489,31 @@ public class SkiaCanvas : Control
 
     private void OnPinch(object? sender, PinchEventArgs e)
     {
-        if (_isUndoGestureTracking)
+        if (ViewPort == null)
         {
             e.Handled = true;
             return;
         }
 
-        if (IsUndoTapSequencePending())
-        {
-            var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var elapsedSinceTap = nowMs - _undoGesture.LastTapTimeMs;
-            if (_undoGesture.LastTapTimeMs > 0 && elapsedSinceTap <= UndoTapPinchGuardMs)
-            {
-                e.Handled = true;
-                return;
-            }
-
-            _undoGesture.ResetTapSequence();
-            _isUndoGestureTracking = false;
-            _isTouchDrawingSuppressed = false;
-            _touchSuppressionUntilMs = 0;
-        }
+        var origin = ToSKPoint(e.ScaleOrigin);
 
         if (!_isPinching)
         {
-            _undoGesture.ResetTapSequence();
             _isPinching = true;
             _oldScale = e.Scale;
-            _oldVpPos = e.ScaleOrigin.ToSKPoint();
+            _oldVpPos = origin;
             Input.PanMode = true;
+            e.Handled = true;
+            return;
         }
 
-        var deltaPan = _oldVpPos - e.ScaleOrigin.ToSKPoint();
-        if (ViewPort != null)
-        {
-            ViewPort.ChangePan(deltaPan.X * ViewPort.ScaleFactor, deltaPan.Y * ViewPort.ScaleFactor);
-            ViewPort.ChangeZoom((float)(e.Scale / _oldScale), e.ScaleOrigin.ToSKPoint().Multiply(ViewPort.ScaleFactor));
-        }
+        var deltaPan = _oldVpPos - origin;
+        ViewPort.ChangePan(deltaPan.X, deltaPan.Y);
+        ViewPort.ChangeZoom((float)(e.Scale / _oldScale), origin);
 
-        _oldVpPos = e.ScaleOrigin.ToSKPoint();
+        _oldVpPos = origin;
         _oldScale = e.Scale;
+
         e.Handled = true;
     }
 
@@ -590,7 +595,7 @@ public class SkiaCanvas : Control
         {
             return;
         }
-        
+
         // Sometimes, particularly on load, UI scale factor can change without triggering size change events. So wee need
         // to check that the size is not changed here to prevent broken UI on load.
         var size = GetViewPortSize();
@@ -647,11 +652,11 @@ public class SkiaCanvas : Control
                 return;
             try
             {
- 
+
                 canvas.Save();
 
                 canvas.Clear(_bgColor);
-                
+
                 if (parent is { _rootNode: not null, ViewPort: not null })
                 {
                     if (_lastTransform != context.CurrentTransform)

@@ -134,15 +134,15 @@ public class ViewPort
             newZoom = MaxZoom;
         }
 
-        if (Math.Abs(newZoom - Zoom) > 0.01)
-        {
-            Zoom = (float)Math.Round(newZoom, 2);
-        }
-        else
-        {
-            Zoom = (float)Math.Round(newZoom, 4);
-        }
-
+        //if (Math.Abs(newZoom - Zoom) > 0.01)
+        //{
+        //    Zoom = (float)Math.Round(newZoom, 2);
+        //}
+        //else
+        //{
+        //    Zoom = (float)Math.Round(newZoom, 4);
+        //}
+        Zoom = (float)Math.Round(newZoom, 4);
         //OnZoomChanged();
         CalculateTransform();
 
@@ -171,10 +171,6 @@ public class ViewPort
 
     public void SetPan(float rawX, float rawY)
     {
-        // rawX = (float)Math.Floor(rawX);
-        // rawY = (float)Math.Floor(rawY);
-        // Pan = new SKPoint(rawX, rawY);
-        // OnPanChanged();
         Pan = new SKPoint(rawX, rawY);
         OnPanChanged();
     }
