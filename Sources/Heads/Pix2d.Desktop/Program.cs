@@ -61,6 +61,7 @@ class Program
             {
                 // Пытаемся принудительно включить GPU
                 RenderingMode = [
+                    Win32RenderingMode.Vulkan,
                     Win32RenderingMode.AngleEgl,
                     Win32RenderingMode.Wgl,
                     Win32RenderingMode.Software
