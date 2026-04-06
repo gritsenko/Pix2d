@@ -61,7 +61,7 @@ class Program
             {
                 // Пытаемся принудительно включить GPU
                 RenderingMode = [
-                    //Win32RenderingMode.AngleEgl,
+                    Win32RenderingMode.AngleEgl,
                     Win32RenderingMode.Wgl,
                     Win32RenderingMode.Software
                     ],
@@ -75,12 +75,6 @@ class Program
     {
         if (root is MainWindow wnd)
         {
-            var graphics = Application.Current?.TryGetFeature(typeof(Avalonia.Platform.IPlatformGraphics)) as Avalonia.Platform.IPlatformGraphics;
-            var backendName = graphics?.GetType().Name.Replace("PlatformGraphics", "") ?? "Software";
-            Console.WriteLine($"[INFO] Pix2d Desktop Rendering Backend: {backendName}");
-            // Log for debug output as well
-            System.Diagnostics.Debug.WriteLine($"[INFO] Pix2d Desktop Rendering Backend: {backendName}");
-
             TouchHelper.ConfigureTouchHandling(wnd);
 #if DEBUG
             wnd.AttachDevTools();
