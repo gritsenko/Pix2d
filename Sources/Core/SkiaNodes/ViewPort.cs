@@ -12,6 +12,7 @@ public class ViewPort
 {
     private const int ZoomPrecisionDigits = 4;
     private const float ZoomGridTolerance = 0.00005f;
+    private const float ViewStateTolerance = 0.01f;
 
     private readonly List<float> _zoomGrid =
     [
@@ -62,6 +63,10 @@ public class ViewPort
     public float DpiEffectiveZoom => ScaleFactor * Zoom;
 
     public SKSize Size { get; set; }
+
+    public Func<SKRect?>? ContentBoundsProvider { get; set; }
+
+    public float MinVisibleContentPixels { get; set; }
 
     public ViewPort(int width, int height)
     {
@@ -152,6 +157,7 @@ public class ViewPort
             centerPointOnViewport = ViewPortCenter.Multiply(ScaleFactor);
         }
 
+        var oldZoom = Zoom;
         var oldPos = ViewportToWorld(centerPointOnViewport);
 
         if (newZoom <= MinZoom)
@@ -171,15 +177,35 @@ public class ViewPort
         //{
         //    Zoom = (float)Math.Round(newZoom, 4);
         //}
-        Zoom = NormalizeZoom(newZoom);
-        //OnZoomChanged();
+        newZoom = NormalizeZoom(newZoom);
+
+        if (Math.Abs(newZoom - Zoom) < ZoomGridTolerance)
+        {
+            ClampPanToVisibleContent();
+            return;
+        }
+
+        Zoom = newZoom;
         CalculateTransform();
 
         var deltaPan = (ViewportToWorld(centerPointOnViewport) - oldPos).Multiply(new SKPoint(TransformMatrix.ScaleX,
             TransformMatrix.ScaleY));
 
-        if (Math.Abs(deltaPan.X) > 0.01 || Math.Abs(deltaPan.Y) > 0.01)
-            ChangePan(-deltaPan.X, -deltaPan.Y);
+        var newPan = Pan;
+        if (Math.Abs(deltaPan.X) > ViewStateTolerance || Math.Abs(deltaPan.Y) > ViewStateTolerance)
+        {
+            newPan = new SKPoint(Pan.X - deltaPan.X, Pan.Y - deltaPan.Y);
+        }
+
+        var clampedPan = CoercePan(newPan);
+        var panChanged = !AreClose(Pan, clampedPan);
+
+        Pan = clampedPan;
+
+        if (Math.Abs(Zoom - oldZoom) > ZoomGridTolerance || panChanged)
+        {
+            OnViewChanged();
+        }
     }
 
     private float Snap(float x, float gridStep)
@@ -211,8 +237,65 @@ public class ViewPort
 
     public void SetPan(float rawX, float rawY)
     {
-        Pan = new SKPoint(rawX, rawY);
+        var newPan = CoercePan(new SKPoint(rawX, rawY));
+        if (AreClose(Pan, newPan))
+            return;
+
+        Pan = newPan;
         OnPanChanged();
+    }
+
+    public void UpdateViewportMetrics(SKSize newSize, float newScaleFactor, bool preserveFraming = true)
+    {
+        var sizeChanged = !AreClose(Size, newSize);
+        var scaleChanged = Math.Abs(_scaleFactor - newScaleFactor) > ZoomGridTolerance;
+
+        if (!sizeChanged && !scaleChanged)
+        {
+            ClampPanToVisibleContent();
+            return;
+        }
+
+        var hasOldMetrics = HasValidViewportMetrics(Size, _scaleFactor);
+        var hasNewMetrics = HasValidViewportMetrics(newSize, newScaleFactor);
+        var preserveViewState = preserveFraming && hasOldMetrics && hasNewMetrics;
+
+        var centerWorld = preserveViewState ? ViewPortCenterGlobal : default;
+        var newZoom = Zoom;
+
+        if (preserveViewState)
+        {
+            var widthRatio = (newSize.Width * newScaleFactor) / (Size.Width * _scaleFactor);
+            var heightRatio = (newSize.Height * newScaleFactor) / (Size.Height * _scaleFactor);
+            var zoomRatio = Math.Min(widthRatio, heightRatio);
+
+            if (!float.IsNaN(zoomRatio) && !float.IsInfinity(zoomRatio) && zoomRatio > 0)
+            {
+                newZoom = NormalizeZoom(Math.Max(MinZoom, Math.Min(MaxZoom, Zoom * zoomRatio)));
+            }
+        }
+
+        Size = newSize;
+        _scaleFactor = newScaleFactor;
+        Zoom = newZoom;
+
+        if (preserveViewState)
+        {
+            Pan = GetPanForCenter(centerWorld);
+        }
+
+        Pan = CoercePan(Pan);
+        OnViewChanged();
+    }
+
+    public void ClampPanToVisibleContent()
+    {
+        var clampedPan = CoercePan(Pan);
+        if (AreClose(Pan, clampedPan))
+            return;
+
+        Pan = clampedPan;
+        OnViewChanged();
     }
 
     public void ScrollTo(SKRect bounds, float topLeftMargin)
@@ -349,6 +432,81 @@ public class ViewPort
     protected virtual void OnPanChanged()
     {
         OnViewChanged();
+    }
+
+    private SKPoint CoercePan(SKPoint rawPan)
+    {
+        if (!TryGetPanClampBounds(out var minPanX, out var maxPanX, out var minPanY, out var maxPanY))
+            return rawPan;
+
+        var x = Math.Max(minPanX, Math.Min(maxPanX, rawPan.X));
+        var y = Math.Max(minPanY, Math.Min(maxPanY, rawPan.Y));
+
+        return new SKPoint(x, y);
+    }
+
+    private bool TryGetPanClampBounds(out float minPanX, out float maxPanX, out float minPanY, out float maxPanY)
+    {
+        minPanX = maxPanX = minPanY = maxPanY = 0;
+
+        if (ContentBoundsProvider == null || MinVisibleContentPixels <= 0)
+            return false;
+
+        var bounds = ContentBoundsProvider();
+        if (!bounds.HasValue)
+            return false;
+
+        var contentBounds = bounds.Value;
+        if (contentBounds.Width <= 0 || contentBounds.Height <= 0)
+            return false;
+
+        var viewportWidth = Size.Width * ScaleFactor;
+        var viewportHeight = Size.Height * ScaleFactor;
+        if (viewportWidth <= 0 || viewportHeight <= 0 || DpiEffectiveZoom <= 0)
+            return false;
+
+        var scaledLeft = contentBounds.Left * DpiEffectiveZoom;
+        var scaledRight = contentBounds.Right * DpiEffectiveZoom;
+        var scaledTop = contentBounds.Top * DpiEffectiveZoom;
+        var scaledBottom = contentBounds.Bottom * DpiEffectiveZoom;
+
+        var visibleWidth = Math.Min(MinVisibleContentPixels, Math.Min(viewportWidth, scaledRight - scaledLeft));
+        var visibleHeight = Math.Min(MinVisibleContentPixels, Math.Min(viewportHeight, scaledBottom - scaledTop));
+
+        if (visibleWidth <= 0 || visibleHeight <= 0)
+            return false;
+
+        minPanX = scaledLeft - (viewportWidth - visibleWidth);
+        maxPanX = scaledRight - visibleWidth;
+        minPanY = scaledTop - (viewportHeight - visibleHeight);
+        maxPanY = scaledBottom - visibleHeight;
+
+        return minPanX <= maxPanX && minPanY <= maxPanY;
+    }
+
+    private SKPoint GetPanForCenter(SKPoint centerWorld)
+    {
+        var viewportWidth = Size.Width * ScaleFactor;
+        var viewportHeight = Size.Height * ScaleFactor;
+
+        return new SKPoint(
+            centerWorld.X * DpiEffectiveZoom - viewportWidth / 2,
+            centerWorld.Y * DpiEffectiveZoom - viewportHeight / 2);
+    }
+
+    private static bool HasValidViewportMetrics(SKSize size, float scaleFactor)
+    {
+        return size.Width > 0 && size.Height > 0 && scaleFactor > 0;
+    }
+
+    private static bool AreClose(SKPoint left, SKPoint right)
+    {
+        return Math.Abs(left.X - right.X) < ViewStateTolerance && Math.Abs(left.Y - right.Y) < ViewStateTolerance;
+    }
+
+    private static bool AreClose(SKSize left, SKSize right)
+    {
+        return Math.Abs(left.Width - right.Width) < ViewStateTolerance && Math.Abs(left.Height - right.Height) < ViewStateTolerance;
     }
 
     public void SnapToPercentGrid(int perecentStep, SKPoint viewPortViewPortCenter)

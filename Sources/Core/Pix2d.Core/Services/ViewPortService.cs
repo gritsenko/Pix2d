@@ -1,3 +1,4 @@
+using Pix2d.Messages;
 using Pix2d.Messages.ViewPort;
 using SkiaNodes;
 using SkiaSharp;
@@ -34,6 +35,8 @@ public class ViewPortService : IViewPortService
     public void Initialize(ViewPort viewPort)
     {
         ViewPort = viewPort;
+        ViewPort.ContentBoundsProvider = GetSceneBounds;
+        ViewPort.MinVisibleContentPixels = 50;
         SkiaNodes.AdornerLayer.Initialize(this);
         OnViewPortInitialized();
     }
@@ -43,6 +46,8 @@ public class ViewPortService : IViewPortService
         _messenger = messenger;
         _state = state;
         _viewPortChangeTimer = new Timer(OnViewportTimerTick, null, -1, -1);
+        _messenger.Register<ProjectLoadedMessage>(this, _ => EnsureContentVisibility());
+        _messenger.Register<OperationInvokedMessage>(this, _ => EnsureContentVisibility());
     }
 
     private void OnViewportTimerTick(object? state)
@@ -71,5 +76,19 @@ public class ViewPortService : IViewPortService
         var vpBBox = ViewPort.Size;
         ViewPort.ShowArea(bBox, new SKSize(vpBBox.Width / 3, vpBBox.Height / 3));
         ViewPort.Refresh();
+    }
+
+    private SKRect? GetSceneBounds()
+    {
+        var scene = _state.CurrentProject.SceneNode;
+        if (scene == null)
+            return null;
+
+        return scene.GetBoundingBoxWithContent();
+    }
+
+    private void EnsureContentVisibility()
+    {
+        ViewPort?.ClampPanToVisibleContent();
     }
 }

@@ -207,9 +207,7 @@ public class SkiaCanvas : Control
 
         if (ViewPort != null && !IsBoundsEmpty())
         {
-            ViewPort.ScaleFactor = (float)VisualRoot!.RenderScaling;
-            ViewPort.Size = GetViewPortSize();
-            ViewPort.Refresh();
+            ViewPort.UpdateViewportMetrics(GetViewPortSize(), GetScale());
         }
     }
 
@@ -673,10 +671,12 @@ public class SkiaCanvas : Control
         // Sometimes, particularly on load, UI scale factor can change without triggering size change events. So wee need
         // to check that the size is not changed here to prevent broken UI on load.
         var size = GetViewPortSize();
-        if (ViewPort?.Size != size)
+        var scale = GetScale();
+        if (Math.Abs(ViewPort.Size.Width - size.Width) > 0.01f
+            || Math.Abs(ViewPort.Size.Height - size.Height) > 0.01f
+            || Math.Abs(ViewPort.ScaleFactor - scale) > 0.0001f)
         {
-            if (ViewPort != null)
-                ViewPort.Size = size;
+            ViewPort.UpdateViewportMetrics(size, scale);
         }
 
         if (Design.IsDesignMode)
