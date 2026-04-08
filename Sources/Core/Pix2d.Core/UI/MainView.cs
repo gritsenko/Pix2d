@@ -131,7 +131,7 @@ public class MainView : LocalizedComponentBase
                         .Cols("Auto, *, Auto")
                         .Rows("Auto, Auto, *, Auto, Auto")
                         .Children([
-                            //new AppMenuView().Ref(out _appMenuView).IsVisible(true).ColSpan(3),
+                            //new AppMenuView().IsVisible(true).ColSpan(3),
 
                             new TopBarView().Ref(out _topBarView).Row(1).ColSpan(3)
                                 .Margin(0, 0, 0, 1),
@@ -286,7 +286,6 @@ public class MainView : LocalizedComponentBase
 
     private Canvas _panelsContainer = null!;
     private Grid _rootGrid = null!;
-    private AppMenuView _appMenuView = null!;
     private TopBarView _topBarView = null!;
     private LayoutTransformControl _layoutTransformControl = null!;
     private PopupView _colorPickerPopup = null!;

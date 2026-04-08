@@ -149,10 +149,10 @@ public class ResizeCanvasView : LocalizedComponentBase
 
     private double _aspectRatio;
 
-    private int _canvasHeight;
+    private int _canvasHeight = 0;
     private int _horizontalAnchor = 0;
     private int _verticalAnchor = 0;
-    public string OriginalSizeStr { get; set; }
+    public string OriginalSizeStr { get; set; } = string.Empty;
 
     private bool HasActiveArtboard => SelectionService.GetActiveContainer() != null;
     private int OriginalWidth => HasActiveArtboard ? (int)SelectionService.GetActiveContainer().Size.Width : 0;

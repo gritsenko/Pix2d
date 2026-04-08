@@ -94,7 +94,6 @@ public class TimeLineView : LocalizedComponentBase
     [Inject] private AppState AppState { get; set; } = null!;
 
     private SpriteEditor? _editor;
-    private bool _reorderingStarted;
 
     public BulkAddObservableCollection<AnimationFrameViewModel> Frames { get; set; } = [];
 
@@ -189,9 +188,7 @@ public class TimeLineView : LocalizedComponentBase
                 OldIndex = e.OldStartingIndex,
                 NewIndex = e.NewStartingIndex
             };
-            _reorderingStarted = true;
             OnFramesReordered(_reorderInfo);
-            _reorderingStarted = false;
         }
     }
 

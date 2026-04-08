@@ -20,7 +20,6 @@ public class AndroidPlatformStuffService : IPlatformStuffService
 {
     //not using direct services injection to prevent circular dependencies
     private readonly IServiceProvider _serviceProvider;
-    private string? _appVersion;
 
     public PlatformType CurrentPlatform => PlatformType.Android;
     public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;

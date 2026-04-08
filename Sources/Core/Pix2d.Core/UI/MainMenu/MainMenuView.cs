@@ -87,7 +87,8 @@ public class MainMenuView : LocalizedComponentBase
             //    .OnClicked(SelectMenuItem)
         ];
 
-        return new Border()
+        return new BlurPanel()
+            .DisableBlur(false)
             .Child(
                 new Grid()
                     .Cols("200,*")

@@ -95,7 +95,6 @@ public class LayersView : ComponentBase
 
     private int ReverseIndex(int index) => Layers.Count - index - 1;
 
-    private bool _reorderingStarted;
     private ItemReorderInfo<LayerItemViewModel>? _reorderInfo;
 
     private class ItemReorderInfo<TItem>
@@ -116,10 +115,7 @@ public class LayersView : ComponentBase
                 NewIndex = e.NewStartingIndex
             };
 
-
-            _reorderingStarted = true;
             OnLayersReordered(_reorderInfo);
-            _reorderingStarted = false;
         }
     }
 

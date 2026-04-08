@@ -124,7 +124,7 @@ public class BlurBehindRenderOperation(Rect bounds, float cornerRadius, SKColor 
         };
 
         // 4. Магия Skia: создаем слой с фильтрацией фона
-        canvas.SaveLayer(ref rec);
+        canvas.SaveLayer(in rec);
 
         // 5. Заливаем полупрозрачным цветом (Tint) ПОВЕРХ размытого фона
         using var tintPaint = new SKPaint { Color = _backgroundColor, Style = SKPaintStyle.Fill };
