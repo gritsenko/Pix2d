@@ -1,13 +1,24 @@
-﻿using Pix2d.Command;
+﻿using Avalonia.Styling;
+using Pix2d.Command;
 using Pix2d.Messages.ViewPort;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
+using Pix2d.UI.Styles;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.UI;
 
 public class ZoomPanelView : ComponentBase
 {
+    protected override StyleGroup BuildStyles() =>
+    [
+        new StyleGroup(_ => VisualStates.Narrow())
+        {
+            new Style<BlurPanel>(s=>s.Name("ZoomButtonsPanel"))
+                .IsVisible(false)
+        }
+    ];
+
     protected override object Build() =>
         new Grid()
             .Styles(
@@ -30,6 +41,7 @@ public class ZoomPanelView : ComponentBase
                         ),
 
                 new BlurPanel().Col(1)
+                    .Name("ZoomButtonsPanel")
                     .Margin(6, 0, 0, 0)
                     .ClipToBounds(true)
                     .Content(

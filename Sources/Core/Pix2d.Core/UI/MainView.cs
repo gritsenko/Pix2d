@@ -1,6 +1,5 @@
 ﻿using Avalonia.Animation;
 using Avalonia.Animation.Easings;
-using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -48,10 +47,19 @@ public class MainView : LocalizedComponentBase
             .VerticalAlignment(VerticalAlignment.Center)
             .RowSpan(1),
 
+        new Style<AdditionalTopBarView>()
+            .Row(3)
+            .Margin(0, 0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin),
+
+        new Style<ZoomPanelView>()
+            .Col(0).ColSpan(3).Row(3)
+            .Margin(StaticResources.Measures.PanelMargin)
+            .HorizontalAlignment(HorizontalAlignment.Center),
+
         new StyleGroup(_ => VisualStates.Narrow())
         {
             new Style<LayersView>()
-                .Margin(0,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12)
+                .Margin(0,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 24 + 56)
                 .VerticalAlignment(VerticalAlignment.Bottom)
                 .RowSpan(2),
 
@@ -60,13 +68,19 @@ public class MainView : LocalizedComponentBase
                 .Col(0)
                 .Row(3)
                 .RowSpan(1)
-                .ColSpan(2),
+                .ColSpan(4),
 
             new Style<InfoPanelView>()
                 .IsVisible(false),
 
             new Style<ZoomPanelView>()
-                .IsVisible(false)
+                .Col(0).ColSpan(1)
+                .VerticalAlignment(VerticalAlignment.Bottom)
+                .Margin(StaticResources.Measures.PanelMargin * 2 + 56 ,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12),
+
+            new Style<AdditionalTopBarView>()
+                .Margin(0,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12)
+
         }
     ];
 
@@ -101,8 +115,7 @@ public class MainView : LocalizedComponentBase
                                 .HorizontalAlignment(HorizontalAlignment.Left)
                                 .VerticalAlignment(VerticalAlignment.Center),
 
-                            new AdditionalTopBarView().Col(2).Row(3)
-                                .Margin(0, 0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin),
+                            new AdditionalTopBarView().Col(2),//.Row(3) - defined in styles for narrow/wide
 
                             new RatePromptView().Col(1).Row(2)
                                 .IsVisible(() => UiState.ShowRatePrompt),
@@ -112,10 +125,7 @@ public class MainView : LocalizedComponentBase
                                 .HorizontalAlignment(HorizontalAlignment.Left)
                                 .VerticalAlignment(VerticalAlignment.Bottom),
 
-                            new ZoomPanelView().Col(0).ColSpan(3).Row(3)
-                                .Margin(StaticResources.Measures.PanelMargin)
-                                .HorizontalAlignment(HorizontalAlignment.Center),
-
+                            new ZoomPanelView(),
 
                             new Grid().Col(0).ColSpan(3).Row(2).Rows("auto,auto")
                                 .Margin(StaticResources.Measures.PanelMargin)

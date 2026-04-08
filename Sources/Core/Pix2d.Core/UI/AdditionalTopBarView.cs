@@ -1,5 +1,4 @@
 ﻿using Avalonia.Styling;
-using Pix2d.Messages;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using Pix2d.UI.Styles;
@@ -10,7 +9,7 @@ public class AdditionalTopBarView : LocalizedComponentBase
 {
     protected override StyleGroup BuildStyles() =>
     [
-        new Style<AdditionalTopBarView>(s => s.OfType<AdditionalTopBarView>())
+        new Style<AdditionalTopBarView>()
             .VerticalAlignment(VerticalAlignment.Bottom)
             .HorizontalAlignment(HorizontalAlignment.Right),
 
@@ -58,7 +57,8 @@ public class AdditionalTopBarView : LocalizedComponentBase
         AppState.CurrentProject.ViewPortState.WatchFor(x => x.ShowGrid, StateHasChanged);
         AppState.CurrentProject.WatchFor(x => x.CurrentContextType, StateHasChanged);
         AppState.UiState.WatchFor(x => x.ShowPreviewPanel, StateHasChanged);
-        AppState.UiState.WatchFor(x => x.ShowLayers, () => {
+        AppState.UiState.WatchFor(x => x.ShowLayers, () =>
+        {
             StateHasChanged();
             SettingsService.Set(nameof(AppState.UiState.ShowLayers), AppState.UiState.ShowLayers);
         });

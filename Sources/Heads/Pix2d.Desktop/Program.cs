@@ -1,14 +1,14 @@
-using System;
-using System.Linq;
 using Avalonia;
 using Avalonia.Markup.Declarative;
-using Pix2d.Services;
-using Pix2d.Desktop.Services;
-using Pix2d.UI;
 using Microsoft.Extensions.DependencyInjection;
-using System.Runtime.Versioning;
-
 using Microsoft.Win32;
+using Pix2d.Desktop.Services;
+using Pix2d.Services;
+using Pix2d.UI;
+using System;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 #if DEBUG
 [assembly: System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Hot reload uses RequiresUnreferencedCode; only enabled in Debug builds and suppressed for analyzers.")]
@@ -53,24 +53,33 @@ class Program
 
     // CrossPlatformDesktop configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<EditorApp>()
-            .UsePlatformDetect()
-            .UseViewInitializationStrategy(ViewInitializationStrategy.Immediate)
-            //.UseManagedSystemDialogs()
-            .With(new Win32PlatformOptions
-            {
-                // Пытаемся принудительно включить GPU
-                RenderingMode = [
-                    Win32RenderingMode.Vulkan,
-                    Win32RenderingMode.AngleEgl,
-                    Win32RenderingMode.Wgl,
-                    Win32RenderingMode.Software
-                    ],
-                // Важно для Snapdragon: управление отрисовкой через GPU
-                CompositionMode = [Win32CompositionMode.WinUIComposition, Win32CompositionMode.DirectComposition]
-            })
-            .LogToTrace();
+    {
+        var builder = AppBuilder.Configure<EditorApp>()
+                .UsePlatformDetect()
+                .UseViewInitializationStrategy(ViewInitializationStrategy.Immediate)
+                .LogToTrace();
 
+        // Проверяем, запущено ли приложение на Windows и архитектуре ARM64
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
+            RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+        {
+            builder.With(new Win32PlatformOptions
+            {
+                RenderingMode = [
+                    Win32RenderingMode.Wgl,
+                Win32RenderingMode.AngleEgl,
+                Win32RenderingMode.Vulkan,
+                Win32RenderingMode.Software
+                ],
+                CompositionMode = [
+                    Win32CompositionMode.WinUIComposition,
+                Win32CompositionMode.DirectComposition
+                ]
+            });
+        }
+
+        return builder;
+    }
 
     static void OnAppStarted(object root)
     {
