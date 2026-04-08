@@ -10,11 +10,9 @@ using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Plugins.Sprite.Operations;
-using Pix2d.Plugins.Sprite.Operations.Layers;
-using Pix2d.Primitives;
 using Pix2d.Primitives.SpriteEditor;
-using Pix2d.UI.Layers;
 using Pix2d.UI.Resources;
+using Pix2d.UI.Styles;
 using SkiaSharp;
 using System.Collections.Specialized;
 using System.Diagnostics;
@@ -36,7 +34,19 @@ public class TimeLineView : LocalizedComponentBase
             .Padding(0),
 
         new Style<ListBoxItem>()
-            .CornerRadius(4)
+            .CornerRadius(4),
+
+            new StyleGroup(_ => VisualStates.Narrow())
+            {
+                new Style<Button>(s => s.Class("anim-btn"))
+                    .CornerRadius(10)
+                    .Foreground(StaticResources.Brushes.ForegroundBrush)
+                    .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                    .FontSize(14)
+                    .Width(32)
+                    .Height(32)
+                    .Padding(0),
+            }
     ];
 
     protected override object Build() =>
@@ -91,9 +101,16 @@ public class TimeLineView : LocalizedComponentBase
     protected override void OnAfterInitialized()
     {
         Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
+        Messenger.Register<SelectedFrameChangedMessage>(this, OnSelectedFrameChanged);
         AppState.CurrentProject.WatchFor(x => x.CurrentNodeEditor, () => OnEditorChanged(AppState.CurrentProject.CurrentNodeEditor));
 
         Frames.CollectionChanged += Frames_CollectionChanged;
+    }
+
+    private void OnSelectedFrameChanged(SelectedFrameChangedMessage message)
+    {
+        AppState.SpriteEditorState.CurrentFrameIndex = _editor?.CurrentFrameIndex ?? 0;
+        StateHasChanged();
     }
 
     private void OnEditorChanged(INodeEditor? editor)

@@ -56,6 +56,18 @@ public class MainView : LocalizedComponentBase
             .Margin(StaticResources.Measures.PanelMargin)
             .HorizontalAlignment(HorizontalAlignment.Center),
 
+        new Style<Canvas>(s => s.Name("PopupContainer"))
+            .Col(1)
+            .ColSpan(2)
+            .Row(2)
+            .RowSpan(2),
+
+        new Style<ToolGroupContainerView>().Col(1).Row(2)
+            .HorizontalAlignment(HorizontalAlignment.Left)
+            .VerticalAlignment(VerticalAlignment.Center)
+            .Margin(8, 0, 120, 0),
+
+
         new StyleGroup(_ => VisualStates.Narrow())
         {
             new Style<LayersView>()
@@ -79,7 +91,20 @@ public class MainView : LocalizedComponentBase
                 .Margin(StaticResources.Measures.PanelMargin * 2 + 56 ,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12),
 
             new Style<AdditionalTopBarView>()
-                .Margin(0,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12)
+                .Margin(0,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12),
+
+            new Style<Canvas>(s => s.Name("PopupContainer"))
+                .Col(0)
+                .ColSpan(3)
+                .RowSpan(2),
+
+            new Style<ToolGroupContainerView>()
+                .Col(0)
+                .ColSpan(3)
+                .Row(3)
+                .HorizontalAlignment(HorizontalAlignment.Center)
+                .VerticalAlignment(VerticalAlignment.Top)
+                .Margin(StaticResources.Measures.PanelMargin, 0, StaticResources.Measures.PanelMargin, 0)
 
         }
     ];
@@ -117,7 +142,7 @@ public class MainView : LocalizedComponentBase
 
                             new AdditionalTopBarView().Col(2),//.Row(3) - defined in styles for narrow/wide
 
-                            new RatePromptView().Col(1).Row(2)
+                            new RatePromptView().Col(0).ColSpan(3).Row(2)
                                 .IsVisible(() => UiState.ShowRatePrompt),
 
                             new InfoPanelView().Col(0).Row(3).ColSpan(2)
@@ -167,65 +192,71 @@ public class MainView : LocalizedComponentBase
                                 .IsVisible(() => UiState.ShowLayers)
                                 .HorizontalAlignment(HorizontalAlignment.Right),
 
-                            new Canvas().Col(1).Row(2).ColSpan(2).Name("PopupContainer")
+                            new Canvas().Name("PopupContainer")
                                 .Ref(out _panelsContainer)
                                 .Children(new Control[]
                                 {
 
                                     new PopupView().Name("ColorPicker")
+                                        .Ref(out _colorPickerPopup)
                                         .Header(L("Color"))
                                         .Canvas_Top(10)
                                         .Canvas_Left(10)
+                                        .UseCenteredPositionOnNarrowScreen(true)
                                         .IsOpen(() => UiState.ShowColorEditor, v => UiState.ShowColorEditor = v)
                                         .CloseButtonCommand(ViewCommands.ToggleColorEditorCommand)
                                         .ShowPinButton(true)
                                         .Content(new ColorPickerView()),
 
                                     new PopupView().Name("BrushSettings")
+                                        .Ref(out _brushSettingsPopup)
                                         .Header(L("Brush"))
                                         .IsOpen(() => UiState.ShowBrushSettings, v => UiState.ShowBrushSettings = v)
                                         .CloseButtonCommand(ViewCommands.ToggleBrushSettingsCommand)
                                         .Width(258)
+                                        .UseCenteredPositionOnNarrowScreen(true)
                                         .ShowPinButton(true)
                                         .Content(new BrushSettingsView()),
 
                                     new PopupView().Name("ArtworkPreview")
+                                        .Ref(out _artworkPreviewPopup)
                                         .Header(L("Preview"))
                                         .IsOpen(() => UiState.ShowPreviewPanel)
                                         .CloseButtonCommand(ViewCommands.TogglePreviewPanelCommand)
                                         .Canvas_Top(40)
                                         .Canvas_Right(100)
+                                        .UseCenteredPositionOnNarrowScreen(true)
                                         .Content(new ArtworkPreviewView()),
 
                                     new PopupView()
+                                        .Ref(out _resizeCanvasPopup)
                                         .Header(L("Image/Canvas size"))
                                         .IsOpen(() => UiState.ShowCanvasResizePanel)
                                         .CloseButtonCommand(ViewCommands.ToggleCanvasSizePanelCommand)
                                         .Width(220)
                                         .Canvas_Top(100)
                                         .Canvas_Right(100)
+                                        .UseCenteredPositionOnNarrowScreen(true)
                                         .Content(new ResizeCanvasView().Ref(out var resizeCanvasView))
                                         .OnShow(() => resizeCanvasView.UpdateData()),
 
                                     new PopupView()
+                                        .Ref(out _layerOptionsPopup)
                                         .Header(L("Layer options"))
                                         .IsOpen(() => UiState.ShowLayerProperties)
                                         .CloseButtonCommand(ViewCommands.HideLayerOptionsCommand)
                                         .Width(300)
                                         .Canvas_Top(40)
                                         .Canvas_Right(120)
+                                        .UseCenteredPositionOnNarrowScreen(true)
                                         .Content(new LayerOptionsView())
 
                                 }),
 
                             new ToolGroupContainerView()
-                                .Col(1).Row(2)
                                 .IsVisible(() => UiState.ShowToolGroup)
-                                .Margin(left: 8, top: 120)
                                 .MinWidth(40)
-                                .MinHeight(40)
-                                .HorizontalAlignment(HorizontalAlignment.Left)
-                                .VerticalAlignment(VerticalAlignment.Top),
+                                .MinHeight(40),
 
                             new ExportView().ColSpan(3).RowSpan(5).IsVisible(() => UiState.ShowExportDialog),
 
@@ -258,6 +289,11 @@ public class MainView : LocalizedComponentBase
     private AppMenuView _appMenuView = null!;
     private TopBarView _topBarView = null!;
     private LayoutTransformControl _layoutTransformControl = null!;
+    private PopupView _colorPickerPopup = null!;
+    private PopupView _brushSettingsPopup = null!;
+    private PopupView _artworkPreviewPopup = null!;
+    private PopupView _resizeCanvasPopup = null!;
+    private PopupView _layerOptionsPopup = null!;
 
     [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
@@ -305,6 +341,7 @@ public class MainView : LocalizedComponentBase
         //force recalculation on window width to check if it's Narrow state now
         StateHasChanged();
         AppState.UiState.VisualState = _rootGrid.Classes.Contains(nameof(VisualStates.Narrow)) ? nameof(VisualStates.Narrow) : nameof(VisualStates.Wide);
+        RepositionFloatingPanels();
     }
 
     private void OnDragLeave(object? sender, DragEventArgs e)
@@ -374,6 +411,15 @@ public class MainView : LocalizedComponentBase
                 }
             }
         }
+    }
+
+    private void RepositionFloatingPanels()
+    {
+        _colorPickerPopup?.ResetPositionForCurrentLayout();
+        _brushSettingsPopup?.ResetPositionForCurrentLayout();
+        _artworkPreviewPopup?.ResetPositionForCurrentLayout();
+        _resizeCanvasPopup?.ResetPositionForCurrentLayout();
+        _layerOptionsPopup?.ResetPositionForCurrentLayout();
     }
 
     private static SkiaCanvas? FindSkiaCanvas(Visual? visual)

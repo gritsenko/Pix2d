@@ -39,6 +39,8 @@
 		<AndroidResource Include="Icon.png">
 			<Link>Resources\drawable\Icon.png</Link>
 		</AndroidResource>
+        <AndroidResource Include="res/xml/backup_rules.xml" />
+		<AndroidResource Include="res/xml/data_extraction_rules.xml" />
 		<AndroidResource Include="res/xml/file_paths.xml" />
 		<AndroidResource Include="res/xml/file_associations.xml" />
 	</ItemGroup>

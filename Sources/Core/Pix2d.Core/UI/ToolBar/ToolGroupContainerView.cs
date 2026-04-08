@@ -2,6 +2,7 @@ using System.Linq;
 using Avalonia.Controls.Shapes;
 using Avalonia.Styling;
 using Pix2d.UI.Resources;
+using Pix2d.UI.Styles;
 
 namespace Pix2d.UI.ToolBar;
 
@@ -13,6 +14,9 @@ public class ToolGroupContainerView : ComponentBase
             .Width(44)
             .Height(44)
             .Margin(6),
+
+        new Style<StackPanel>(s => s.OfType<ToolGroupContainerView>().Descendant().OfType<StackPanel>())
+            .Orientation(Orientation.Vertical),
 
         new Style<Shape>(s => s.Class("toolbar-button").Descendant().Is<Shape>())
             .Fill(StaticResources.Brushes.ForegroundBrush.ToImmutable()),
@@ -28,6 +32,12 @@ public class ToolGroupContainerView : ComponentBase
             .Foreground(StaticResources.Brushes.ForegroundBrush)
             .TextAlignment(TextAlignment.Center)
             .FontSize(22),
+
+        new StyleGroup(_ => VisualStates.Narrow())
+        {
+            new Style<StackPanel>(s => s.OfType<ToolGroupContainerView>().Descendant().OfType<StackPanel>())
+                .Orientation(Orientation.Horizontal)
+        }
 
     ];
 

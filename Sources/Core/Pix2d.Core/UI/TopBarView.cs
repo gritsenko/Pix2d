@@ -48,6 +48,7 @@ public class TopBarView : LocalizedComponentBase
                     ),
                 //CENTRAL BLOCK
                 new BlurPanel().Name("central-panel")
+                    .DisableBlur(true)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Content(
                         new StackPanel()

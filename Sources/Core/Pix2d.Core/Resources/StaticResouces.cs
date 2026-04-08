@@ -1,6 +1,4 @@
-﻿using Avalonia.Markup.Declarative;
-using Avalonia.Media.Imaging;
-using Pix2d.Common.Converters;
+﻿using Pix2d.Common.Converters;
 using Pix2d.Common.Extensions;
 using Pix2d.Resources;
 using SkiaSharp;
@@ -28,6 +26,7 @@ public static class StaticResources
         public static Color BrushButtonColor { get; } = "#FFFFFF".ToColor().WithAlpha(0.2f);
         public static Color BrushItemColor { get; } = "#FFFFFF".ToColor().WithAlpha(0.1f);
         public static Color InnerPanelBackgroundColor { get; } = "#3a3f46".ToColor();
+        public static Color PopupBackgroundColor { get; } = "#2A2A2A".ToColor().WithAlpha(0.95f);
 
     }
 
@@ -68,6 +67,7 @@ public static class StaticResources
         public static Brush BrushButtonBrush { get; set; } = Colors.BrushButtonColor.ToBrush();
         public static Brush BrushItemBrush { get; set; } = Colors.BrushItemColor.ToBrush();
         public static Brush InnerPanelBackgroundBrush { get; } = Colors.InnerPanelBackgroundColor.ToBrush();
+        public static IImmutableBrush PopupBackgroundBrush { get; } = Colors.PopupBackgroundColor.ToBrush().ToImmutable();
     }
 
     public static class Fonts

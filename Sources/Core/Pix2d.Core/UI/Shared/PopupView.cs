@@ -1,12 +1,15 @@
 using System.Windows.Input;
 using Avalonia.Controls.Shapes;
+using Avalonia.Threading;
 using Pix2d.Messages;
 using Pix2d.UI.Resources;
+using Pix2d.UI.Styles;
 
 namespace Pix2d.UI.Shared;
 
 public class PopupView : ComponentBase
 {
+    [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private IMessenger Messenger { get; set; } = null!;
     private static readonly TimeSpan AutoCloseTimeout = TimeSpan.FromMilliseconds(500);
 
@@ -55,6 +58,7 @@ public class PopupView : ComponentBase
                     }
 
                     _onShowAction?.Invoke();
+                    ResetPositionForCurrentLayout();
                 }
                 else
                 {
@@ -138,6 +142,18 @@ public class PopupView : ComponentBase
         set => SetAndRaise(IsPinnedProperty, ref _isPinned, value);
     }
 
+    public static readonly DirectProperty<PopupView, bool> CenterOnNarrowScreenProperty
+        = AvaloniaProperty.RegisterDirect<PopupView, bool>(nameof(CenterOnNarrowScreen), o => o.CenterOnNarrowScreen,
+            (o, v) => o.CenterOnNarrowScreen = v);
+
+    private bool _centerOnNarrowScreen;
+
+    public bool CenterOnNarrowScreen
+    {
+        get => _centerOnNarrowScreen;
+        set => SetAndRaise(CenterOnNarrowScreenProperty, ref _centerOnNarrowScreen, value);
+    }
+
     #endregion
 
     public IControlTemplate ThumbTemplate =
@@ -151,6 +167,9 @@ public class PopupView : ComponentBase
         if (contentFunc != null) Content = contentFunc();
 
         return new BlurPanel()
+            .Ref(out _popupRoot)
+            .DisableBlur(false)
+            .BackgroundBrush(StaticResources.Brushes.PopupBackgroundBrush)
             .ClipToBounds(true)
             .Content(
                 new Grid()
@@ -191,16 +210,24 @@ public class PopupView : ComponentBase
                                         UpdatePosition(new Point(pos.X + e.Vector.X, pos.Y + e.Vector.Y));
                                     })
                             ),
-                        new ContentControl().Row(1)
-                            .Ref(out _contentControl)
-                            .Content(@ContentProperty, BindingMode.OneWay)
-                            .VerticalContentAlignment(VerticalAlignment.Stretch)
-                            .HorizontalContentAlignment(HorizontalAlignment.Stretch)
+                        new ScrollViewer().Row(1)
+                            .Ref(out _contentScrollViewer)
+                            .VerticalScrollBarVisibility(ScrollBarVisibility.Auto)
+                            .HorizontalScrollBarVisibility(ScrollBarVisibility.Disabled)
+                            .Content(
+                                new ContentControl()
+                                    .Ref(out _contentControl)
+                                    .Content(@ContentProperty, BindingMode.OneWay)
+                                    .VerticalContentAlignment(VerticalAlignment.Stretch)
+                                    .HorizontalContentAlignment(HorizontalAlignment.Stretch)
+                            )
                     )
             );
     }
 
+    private BlurPanel _popupRoot = null!;
     private ContentControl _contentControl = null!;
+    private ScrollViewer _contentScrollViewer = null!;
     private Action _onShowAction = null!;
     private DateTime _autoCloseTime;
 
@@ -219,18 +246,58 @@ public class PopupView : ComponentBase
         var top = Math.Max(0, pos.Y);
         var left = Math.Max(0, pos.X);
 
-        var parent = TemplatedParent as Visual;
+        var parent = GetPositioningParent();
 
         if (parent != null)
         {
             var bounds = parent.Bounds;
-            left = Math.Min(bounds.Width - Bounds.Width, left);
-            top = Math.Min(bounds.Height - Bounds.Height, top);
+            left = Math.Min(Math.Max(0, bounds.Width - Bounds.Width), left);
+            top = Math.Min(Math.Max(0, bounds.Height - Bounds.Height), top);
         }
 
         Canvas.SetTop(this, top);
         Canvas.SetLeft(this, left);
     }
+
+    public PopupView UseCenteredPositionOnNarrowScreen(bool value)
+    {
+        CenterOnNarrowScreen = value;
+        return this;
+    }
+
+    public void ResetPositionForCurrentLayout()
+    {
+        Dispatcher.UIThread.Post(ApplyPositionForCurrentLayout, DispatcherPriority.Loaded);
+    }
+
+    private void ApplyPositionForCurrentLayout()
+    {
+        UpdateSizeConstraints();
+
+        if (!IsOpen || !CenterOnNarrowScreen || AppState.UiState.VisualState != nameof(VisualStates.Narrow))
+            return;
+
+        var parent = GetPositioningParent();
+        if (parent == null || Bounds.Width <= 0 || Bounds.Height <= 0 || parent.Bounds.Width <= 0 || parent.Bounds.Height <= 0)
+            return;
+
+        UpdatePosition(new Point((parent.Bounds.Width - Bounds.Width) / 2, (parent.Bounds.Height - Bounds.Height) / 2));
+    }
+
+    private void UpdateSizeConstraints()
+    {
+        var parent = GetPositioningParent();
+        if (parent == null || parent.Bounds.Height <= 0)
+            return;
+
+        var availableHeight = Math.Max(44, parent.Bounds.Height - StaticResources.Measures.PanelMargin * 2);
+        var headerHeight = ShowHeader ? 44d : 0d;
+
+        _popupRoot.MaxHeight = availableHeight;
+        _contentScrollViewer.MaxHeight = Math.Max(0, availableHeight - headerHeight);
+    }
+
+    private Visual? GetPositioningParent() => Parent as Visual;
 
     protected override void OnBeforeReload()
     {
