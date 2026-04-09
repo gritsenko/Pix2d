@@ -3,7 +3,6 @@ using Pix2d.Command;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using Pix2d.UI.Styles;
-using SkiaNodes.Interactive;
 
 namespace Pix2d.UI.MainMenu;
 
@@ -87,8 +86,8 @@ public class MainMenuView : LocalizedComponentBase
             //    .OnClicked(SelectMenuItem)
         ];
 
-        return new BlurPanel()
-            .DisableBlur(false)
+        return new Border()
+            //.DisableBlur(false)
             .Child(
                 new Grid()
                     .Cols("200,*")
