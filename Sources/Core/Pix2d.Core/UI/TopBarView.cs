@@ -8,7 +8,7 @@ using Pix2d.UI.Styles;
 
 namespace Pix2d.UI;
 
-public class TopBarView : LocalizedComponentBase
+public class TopBarView : ComponentBase
 {
     protected override StyleGroup BuildStyles() =>
     [

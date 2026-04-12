@@ -4,7 +4,7 @@ using SkiaSharp;
 
 namespace Pix2d.UI;
 
-public class GridSettingsView : LocalizedComponentBase
+public class GridSettingsView : ComponentBase
 {
     protected override object Build() =>
         new Border()

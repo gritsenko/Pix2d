@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 
 namespace Pix2d.UI.MainMenu;
 
-public class KeyShortcutsView : LocalizedComponentBase
+public class KeyShortcutsView : ComponentBase
 {
     // Brushes
     private static readonly IImmutableBrush HeaderBrush = Colors.White.WithAlpha(0.6f).ToBrush().ToImmutable();

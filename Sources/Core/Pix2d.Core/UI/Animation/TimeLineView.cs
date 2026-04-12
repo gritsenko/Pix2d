@@ -19,7 +19,7 @@ using System.Diagnostics;
 
 namespace Pix2d.UI.Animation;
 
-public class TimeLineView : LocalizedComponentBase
+public class TimeLineView : ComponentBase
 {
 
     protected override StyleGroup BuildStyles() =>

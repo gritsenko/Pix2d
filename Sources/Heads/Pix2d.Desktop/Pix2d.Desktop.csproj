@@ -76,6 +76,7 @@
 		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.13" />
 		<PackageReference Include="Clowd.Clipboard" Version="1.1.4" />
 		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.1.4" />
+		<PackageReference Include="Tmds.DBus.Protocol" Version="0.92.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />

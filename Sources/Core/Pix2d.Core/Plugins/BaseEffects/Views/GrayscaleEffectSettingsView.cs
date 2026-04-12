@@ -7,7 +7,7 @@ using Pix2d.UI;
 namespace Pix2d.Plugins.BaseEffects.Views;
 
 public class GrayscaleEffectSettingsView(GrayscaleEffect e)
-    : LocalizedComponentBase<GrayscaleEffect>(e), IEffectsService.IEffectSettingsView
+    : ComponentBase<GrayscaleEffect>(e), IEffectsService.IEffectSettingsView
 {
     protected override object Build(GrayscaleEffect? effect) =>
 

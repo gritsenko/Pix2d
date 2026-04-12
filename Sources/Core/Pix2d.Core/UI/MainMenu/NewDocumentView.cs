@@ -9,7 +9,7 @@ using SkiaSharp;
 
 namespace Pix2d.UI.MainMenu;
 
-public class NewDocumentView : LocalizedComponentBase
+public class NewDocumentView : ComponentBase
 {
     protected override object Build() =>
         new Border()

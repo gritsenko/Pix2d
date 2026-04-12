@@ -6,7 +6,7 @@ using Pix2d.UI.Shared;
 
 namespace Pix2d.UI.Animation;
 
-public class AnimationControlsView : LocalizedComponentBase
+public class AnimationControlsView : ComponentBase
 {
     protected override object Build() =>
         new Grid()

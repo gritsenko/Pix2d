@@ -8,7 +8,7 @@ using System.Collections.ObjectModel;
 
 namespace Pix2d.UI;
 
-public class ColorPickerView : LocalizedComponentBase
+public class ColorPickerView : ComponentBase
 {
     protected override object Build()
     {

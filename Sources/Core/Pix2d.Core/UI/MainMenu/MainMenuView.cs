@@ -6,7 +6,7 @@ using Pix2d.UI.Styles;
 
 namespace Pix2d.UI.MainMenu;
 
-public class MainMenuView : LocalizedComponentBase
+public class MainMenuView : ComponentBase
 {
     public const string BackButtonName = "back-button";
 
@@ -142,16 +142,6 @@ public class MainMenuView : LocalizedComponentBase
     {
         if (AppState.UiState.ShowMenu && e.Key == VirtualKeys.Escape) 
             Close();
-    }
-
-    protected override void OnLocaleChanged()
-    {
-        base.OnLocaleChanged();
-
-        foreach (var mainMenuItemView in _menuItems)
-        {
-            mainMenuItemView.UpdateState();
-        }
     }
 
     private void SelectMenuItem(MainMenuItemView? selectedItem)

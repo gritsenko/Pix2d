@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace Pix2d.UI;
 
-public class ResizeCanvasView : LocalizedComponentBase
+public class ResizeCanvasView : ComponentBase
 {
     protected override StyleGroup? BuildStyles() => 
     [

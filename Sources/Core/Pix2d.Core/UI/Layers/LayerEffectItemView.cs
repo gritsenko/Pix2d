@@ -4,7 +4,7 @@ using SkiaNodes;
 
 namespace Pix2d.UI.Layers;
 
-public class LayerEffectItemView : LocalizedComponentBase
+public class LayerEffectItemView : ComponentBase
 {
     private ISKNodeEffect? _model;
 

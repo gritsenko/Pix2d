@@ -3,7 +3,7 @@ using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.MainMenu;
 
-public class CommandsView : LocalizedComponentBase
+public class CommandsView : ComponentBase
 {
     protected override object Build() =>
         new ScrollViewer().Content(

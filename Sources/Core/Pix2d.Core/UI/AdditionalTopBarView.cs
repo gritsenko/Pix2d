@@ -5,7 +5,7 @@ using Pix2d.UI.Styles;
 
 namespace Pix2d.UI;
 
-public class AdditionalTopBarView : LocalizedComponentBase
+public class AdditionalTopBarView : ComponentBase
 {
     protected override StyleGroup BuildStyles() =>
     [

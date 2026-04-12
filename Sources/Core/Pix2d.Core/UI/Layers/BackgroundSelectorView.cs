@@ -5,7 +5,7 @@ using Pix2d.UI.Shared;
 
 namespace Pix2d.UI.Layers;
 
-public class BackgroundSelectorView : LocalizedComponentBase
+public class BackgroundSelectorView : ComponentBase
 {
     protected override object Build() =>
         new Grid()

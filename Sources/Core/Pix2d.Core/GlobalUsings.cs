@@ -15,6 +15,7 @@ global using Avalonia.Data.Converters;
 global using Avalonia.Markup.Declarative;
 
 global using Pix2d.Common;
+global using static Pix2d.UI.LocalizationHelper;
 
 global using Mvvm.Messaging;
 global using Pix2d.Abstract;

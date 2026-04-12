@@ -4,7 +4,7 @@ using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.UI.MainMenu;
 
-public class SaveDocumentView : LocalizedComponentBase
+public class SaveDocumentView : ComponentBase
 {
     [Inject] private ICommandService CommandService { get; set; } = null!;
     private FileCommands FileCommands => CommandService.GetCommandList<FileCommands>()!;

@@ -10,7 +10,7 @@ using Pix2d.UI.Shared;
 
 namespace Pix2d.UI.MainMenu;
 
-public class ProjectItem : LocalizedComponentBase
+public class ProjectItem : ComponentBase
 {
     private PreloadedProject _project;
     public readonly SKBitmapObservable Preview = new()

@@ -10,7 +10,7 @@ using Pix2d.Command;
 
 namespace Pix2d.UI.MainMenu;
 
-public class LicenseView : LocalizedComponentBase
+public class LicenseView : ComponentBase
 {
     private FuncDataTemplate<string> FeatureItemDataTemplate => new((model, ns) =>
         new Grid().Cols("20,*")

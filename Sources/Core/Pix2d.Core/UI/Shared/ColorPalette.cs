@@ -14,7 +14,7 @@ using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.UI.Shared;
 
-public class ColorPalette : LocalizedComponentBase
+public class ColorPalette : ComponentBase
 {
     #region AvaloniaProperties
     /// <summary>

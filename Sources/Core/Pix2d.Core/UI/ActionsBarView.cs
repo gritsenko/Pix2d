@@ -8,7 +8,7 @@ using Pix2d.UI.Styles;
 
 namespace Pix2d.UI;
 
-public class ActionsBarView : LocalizedComponentBase
+public class ActionsBarView : ComponentBase
 {
     public const string ButtonClass = "actions-bar-button";
 

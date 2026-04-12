@@ -4,7 +4,7 @@ using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.ToolBar;
 
-public class ToolItemView : LocalizedComponentBase
+public class ToolItemView : ComponentBase
 {
     private ToolState _toolState = null!;
     

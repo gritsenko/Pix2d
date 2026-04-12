@@ -9,7 +9,7 @@ using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.UI.MainMenu;
 
-public class OpenDocumentView : LocalizedComponentBase
+public class OpenDocumentView : ComponentBase
 {
     protected override object Build() =>
         new Border()

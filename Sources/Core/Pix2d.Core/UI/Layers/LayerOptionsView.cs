@@ -14,7 +14,7 @@ using static Pix2d.Abstract.Services.IEffectsService;
 
 namespace Pix2d.UI.Layers;
 
-public class LayerOptionsView : LocalizedComponentBase
+public class LayerOptionsView : ComponentBase
 {
     protected override object Build( /*LayersListViewModel vm*/) =>
         new ScrollViewer()

@@ -24,7 +24,7 @@ using System.Runtime.InteropServices;
 
 namespace Pix2d.UI;
 
-public class MainView : LocalizedComponentBase
+public class MainView : ComponentBase
 {
 
     protected override StyleGroup BuildStyles() =>

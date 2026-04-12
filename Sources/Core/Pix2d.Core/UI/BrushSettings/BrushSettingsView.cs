@@ -5,7 +5,7 @@ using Colors = Avalonia.Media.Colors;
 
 namespace Pix2d.UI.BrushSettings;
 
-public class BrushSettingsView : LocalizedComponentBase
+public class BrushSettingsView : ComponentBase
 {
     protected override StyleGroup? BuildStyles() => [
         new Style<ListBoxItem>(s => s.OfType<ListBoxItem>())

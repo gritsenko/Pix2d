@@ -6,7 +6,7 @@ using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.ToolBar;
 
-public class ToolItemGroupView : LocalizedComponentBase
+public class ToolItemGroupView : ComponentBase
 {
     protected override object Build() =>
         new Button()

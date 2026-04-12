@@ -7,7 +7,7 @@ using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.UI.MainMenu;
 
-public class InfoView : LocalizedComponentBase
+public class InfoView : ComponentBase
 {
     protected override object Build() =>
         new ScrollViewer().Content(

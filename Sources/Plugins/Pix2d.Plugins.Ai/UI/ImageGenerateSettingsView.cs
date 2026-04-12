@@ -5,7 +5,7 @@ using Pix2d.UI;
 
 namespace Pix2d.Plugins.Ai.UI;
 
-public class ImageGenerateSettingsView : LocalizedComponentBase
+public class ImageGenerateSettingsView : ComponentBase
 {
 
     protected override object Build() =>

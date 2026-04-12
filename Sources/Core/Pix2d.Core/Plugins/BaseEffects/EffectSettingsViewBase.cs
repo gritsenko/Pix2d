@@ -4,7 +4,7 @@ using SkiaNodes;
 
 namespace Pix2d.Plugins.BaseEffects;
 
-public abstract class EffectSettingsViewBase<TEffect>(TEffect effect, Action onEffectUpdated) : LocalizedComponentBase<TEffect>(effect),
+public abstract class EffectSettingsViewBase<TEffect>(TEffect effect, Action onEffectUpdated) : ComponentBase<TEffect>(effect),
     IEffectsService.IEffectSettingsView
     where TEffect : ISKNodeEffect
 {

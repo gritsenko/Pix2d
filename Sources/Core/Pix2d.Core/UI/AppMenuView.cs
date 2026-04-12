@@ -7,7 +7,7 @@ using Pix2d.UI.Resources;
 
 namespace Pix2d.UI;
 
-public class AppMenuView : LocalizedComponentBase
+public class AppMenuView : ComponentBase
 {
     protected override StyleGroup? BuildStyles() =>
     [
