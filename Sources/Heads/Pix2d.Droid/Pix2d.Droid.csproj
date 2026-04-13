@@ -45,8 +45,8 @@
 		<AndroidResource Include="res/xml/file_associations.xml" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia.Android" Version="11.3.13" />
-		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.13" />
+		<PackageReference Include="Avalonia.Android" Version="12.0.0" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.0" />
 		<PackageReference Include="Microsoft.Maui.Essentials" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
 		<PackageReference Update="Microsoft.Maui.Essentials" Version="10.0.51" />
