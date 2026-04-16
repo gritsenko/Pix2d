@@ -1,27 +1,25 @@
 using Avalonia.Interactivity;
+using System.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Abstract.Tools;
 using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.ToolBar;
 
-public class ToolItemView : ComponentBase
+public partial class ToolItemView : ViewBase<ToolItemView.State>
 {
-    private ToolState _toolState = null!;
-    
-    public ToolItemView(ToolState toolState)
+    public ToolItemView(ToolState toolState, IToolService toolService, AppState appState)
+        : base(new State(toolState, toolService, appState))
     {
-        _toolState = toolState;
-        Initialize();
-        _button.ToolTip(L(_toolState.ToolTip)());
     }
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Button()
             .Ref(out _button)
             .Classes("toolbar-button")
-            .BindClass(() => IsSelected, "selected")
             .OnClick(OnButtonClicked)
-            .IsEnabled(() => !AppState.SpriteEditorState.IsPlayingAnimation || ToolState.EnabledDuringAnimation)
+            .IsEnabled(state, x => x.IsEnabled)
+            .ToolTip_Tip(state.ToolTipText)
             .HorizontalContentAlignment(HorizontalAlignment.Stretch)
             .VerticalContentAlignment(VerticalAlignment.Stretch)
             .ClipToBounds(true)
@@ -38,63 +36,110 @@ public class ToolItemView : ComponentBase
                                     .DataTemplates(StaticResources.Templates.ToolIconTemplateSelector)
                                     .HorizontalContentAlignment(HorizontalAlignment.Stretch)
                                     .VerticalContentAlignment(VerticalAlignment.Stretch)
-                                    .Content(() => ToolIconKey)
+                                    .Content(state, x => x.ToolIconKey)
                             )
                     )
             );
 
-    [Inject] private IToolService ToolService { get; set; } = null!;
-    [Inject] private AppState AppState { get; set; } = null!;
-
     private Button _button = null!;
 
-    public string ToolKey => ToolState?.Name ?? "";
-
-    public string ToolIconKey => ToolState?.IconKey ?? "";
-    public bool IsSelected => AppState.ToolsState.CurrentToolKey == ToolKey;
-
-    public ToolState ToolState => _toolState;
+    public ToolState ToolState => ViewModel!.ToolState;
 
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
-        AppState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, StateHasChanged);
-        AppState.ToolsState.WatchFor(x => x.CurrentToolKey, UpdateIsSelected);
-        UpdateIsSelected();
-    }
-
-    private void UpdateIsSelected()
-    {
-        if (IsSelected)
-            _button.Classes.Add("selected");
-        else
-            _button.Classes.Remove("selected");
-
-        StateHasChanged();
+        ViewModel!.PropertyChanged += OnStatePropertyChanged;
+        UpdateSelectedClass(ViewModel.IsSelected);
     }
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
         base.OnUnloaded(e);
-        AppState.SpriteEditorState.Unwatch(x => x.IsPlayingAnimation, StateHasChanged);
-        AppState.ToolsState.Unwatch(x => x.CurrentToolKey, UpdateIsSelected);
+
+        if (ViewModel != null)
+            ViewModel.PropertyChanged -= OnStatePropertyChanged;
+    }
+
+    private void OnStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(State.IsSelected))
+            UpdateSelectedClass(ViewModel!.IsSelected);
+    }
+
+    private void UpdateSelectedClass(bool isSelected)
+    {
+        if (_button == null)
+            return;
+
+        if (isSelected)
+            _button.Classes.Add("selected");
+        else
+            _button.Classes.Remove("selected");
     }
 
     private void OnButtonClicked(RoutedEventArgs args)
     {
-        AppState.UiState.ShowToolGroup = false;
+        ViewModel!.HandleClick();
+        UpdateSelectedClass(ViewModel.IsSelected);
+    }
 
-        if (IsSelected)
+    public sealed partial class State : ObservableObject
+    {
+        private readonly AppState _appState;
+        private readonly IToolService _toolService;
+
+        public State(ToolState toolState, IToolService toolService, AppState appState)
         {
-            if (ToolState.HasToolProperties)
-                AppState.UiState.ShowToolProperties = !AppState.UiState.ShowToolProperties;
-        }
-        else
-        {
-            AppState.UiState.ShowToolProperties = false;
-            ToolService.ActivateTool(_toolState.ToolType);
+            _appState = appState;
+            _toolService = toolService;
+            ToolState = toolState;
+            ToolIconKey = toolState.IconKey ?? string.Empty;
+            ToolTipText = L(toolState.ToolTip ?? string.Empty);
+
+            SyncFromAppState();
+
+            _appState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, SyncFromAppState);
+            _appState.ToolsState.WatchFor(x => x.CurrentToolKey, SyncFromAppState);
         }
 
-        this.StateHasChanged();
+        public ToolState ToolState { get; }
+
+        public string ToolKey => ToolState.Name;
+
+        [ObservableProperty]
+        public partial string ToolIconKey { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial string ToolTipText { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial bool IsSelected { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsEnabled { get; set; }
+
+        public void HandleClick()
+        {
+            _appState.UiState.ShowToolGroup = false;
+
+            if (IsSelected)
+            {
+                if (ToolState.HasToolProperties)
+                    _appState.UiState.ShowToolProperties = !_appState.UiState.ShowToolProperties;
+            }
+            else
+            {
+                _appState.UiState.ShowToolProperties = false;
+                _toolService.ActivateTool(ToolState.ToolType);
+            }
+
+            SyncFromAppState();
+        }
+
+        private void SyncFromAppState()
+        {
+            IsSelected = _appState.ToolsState.CurrentToolKey == ToolKey;
+            IsEnabled = !_appState.SpriteEditorState.IsPlayingAnimation || ToolState.EnabledDuringAnimation;
+        }
     }
 }

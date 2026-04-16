@@ -1,15 +1,13 @@
 using Avalonia.Styling;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Abstract.UI;
 using Pix2d.UI.Resources;
 using SkiaNodes.Interactive;
 
 namespace Pix2d.UI.Dialogs;
 
-public class InputDialogView : ComponentBase, IDialogView<string?>
+public partial class InputDialogView() : ViewBase<InputDialogView.State>(new State()), IDialogView<string?>
 {
-    private string? _resultValue;
-    private string? _message;
-
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         if (SKInput.Current != null)
@@ -41,7 +39,7 @@ public class InputDialogView : ComponentBase, IDialogView<string?>
         }
     }
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Grid()
             .Rows("*,auto,48")
             .Children(
@@ -50,12 +48,12 @@ public class InputDialogView : ComponentBase, IDialogView<string?>
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .TextWrapping(TextWrapping.Wrap)
                     .Margin(new Thickness(16, 0))
-                    .Text(() => Message ?? string.Empty),
+                    .Text(state, x => x.Message),
                 
                 new TextBox().Row(1)
                     .Margin(new Thickness(16, 0))
                     .With(Focus)
-                    .Text(() => DialogResult ?? string.Empty, v => DialogResult = v),
+                    .Text(state, x => x.DialogResult, BindingMode.TwoWay),
 
                 new StackPanel().Row(2)
                     .Orientation(Orientation.Horizontal)
@@ -117,24 +115,25 @@ public class InputDialogView : ComponentBase, IDialogView<string?>
 
     public string? DialogResult
     {
-        get => _resultValue;
-        set
-        {
-            _resultValue = value;
-            OnPropertyChanged();
-        }
+        get => ViewModel?.DialogResult;
+        set => ViewModel!.DialogResult = value;
     }
 
     public string? Message
     {
-        get => _message;
-        set
-        {
-            _message = value;
-            OnPropertyChanged();
-        }
+        get => ViewModel?.Message;
+        set => ViewModel!.Message = value;
     }
 
     public Action<bool?> OnDialogClosed { get; set; } = _ => { };
+
+    public sealed partial class State : ObservableObject
+    {
+        [ObservableProperty]
+        public partial string? DialogResult { get; set; }
+
+        [ObservableProperty]
+        public partial string? Message { get; set; }
+    }
 
 }

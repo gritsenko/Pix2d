@@ -57,6 +57,8 @@ public class SliderEx : ViewBase
 
     #endregion
 
+    public event Action<double>? ValueChanged;
+
     protected override object Build() =>
         new Grid()
             .Rows("Auto,Auto")
@@ -64,34 +66,95 @@ public class SliderEx : ViewBase
             .Margin(0, 4)
             .Children(
                 new TextBlock()
-                    .Text(LabelProperty, BindingMode.OneWay)
+                    .Ref(out _labelTextBlock)
+                    .Text(Label)
                     .VerticalAlignment(VerticalAlignment.Center),
 
                 new NumericUpDown()
+                    .Ref(out _numericUpDown)
                     .Col(1)
                     .HorizontalAlignment(HorizontalAlignment.Right)
                     .Width(80)
-                    .Minimum(MinimumProperty)
-                    .Maximum(MaximumProperty)
+                    .Minimum((decimal)Minimum)
+                    .Maximum((decimal)Maximum)
                     .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
                     .Increment(1)
-                    .Value(ValueProperty, BindingMode.TwoWay),
-
+                    .Value((decimal)Value)
+                    .OnValueChanged(e => OnNumericValueChanged(e.NewValue)),
+                    
                 new TextBlock()
-                    .Text(UnitsProperty, BindingMode.TwoWay)
+                    .Ref(out _unitsTextBlock)
+                    .Text(Units)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .Margin(4)
                     .Col(2),
 
                 new Slider()
+                    .Ref(out _slider)
                     .Row(1)
                     .ColSpan(3)
                     .TickFrequency(1)
                     .IsSnapToTickEnabled(true)
-                    .Maximum(MaximumProperty)
-                    .Minimum(MinimumProperty)
+                    .Maximum(Maximum)
+                    .Minimum(Minimum)
                     .SmallChange(1)
                     .LargeChange(10)
-                    .Value(ValueProperty, BindingMode.TwoWay)
+                    .Value(Value)
+                    .OnValueChanged(e => OnSliderValueChanged(e.NewValue))
             );
+
+    private TextBlock _labelTextBlock = null!;
+    private NumericUpDown _numericUpDown = null!;
+    private TextBlock _unitsTextBlock = null!;
+    private Slider _slider = null!;
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (_labelTextBlock == null || _numericUpDown == null || _unitsTextBlock == null || _slider == null)
+            return;
+
+        if (change.Property == LabelProperty)
+            _labelTextBlock.Text = Label;
+        else if (change.Property == UnitsProperty)
+            _unitsTextBlock.Text = Units;
+        else if (change.Property == MinimumProperty)
+        {
+            _numericUpDown.Minimum = (decimal)Minimum;
+            _slider.Minimum = Minimum;
+        }
+        else if (change.Property == MaximumProperty)
+        {
+            _numericUpDown.Maximum = (decimal)Maximum;
+            _slider.Maximum = Maximum;
+        }
+        else if (change.Property == ValueProperty)
+        {
+            var decimalValue = (decimal)Value;
+            if (_numericUpDown.Value != decimalValue)
+                _numericUpDown.Value = decimalValue;
+            if (_slider.Value != Value)
+                _slider.Value = Value;
+        }
+    }
+
+    private void OnNumericValueChanged(decimal? value)
+    {
+        var nextValue = (double)(value ?? 0m);
+        if (Value != nextValue)
+        {
+            Value = nextValue;
+            ValueChanged?.Invoke(nextValue);
+        }
+    }
+
+    private void OnSliderValueChanged(double value)
+    {
+        if (Value != value)
+        {
+            Value = value;
+            ValueChanged?.Invoke(value);
+        }
+    }
 }

@@ -2,7 +2,7 @@ namespace Pix2d.UI;
 
 public static class LocalizationHelper
 {
-    private static readonly Func<string> Empty = static () => string.Empty;
+    private static readonly string Empty = string.Empty;
     private static ILocalizationService? _localizationService;
 
     public static void Initialize(ILocalizationService localizationService)
@@ -10,11 +10,11 @@ public static class LocalizationHelper
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
     }
 
-    public static Func<string> L(string? inputString)
+    public static string L(string? inputString)
     {
         if (inputString == null)
             return Empty;
 
-        return () => _localizationService?[inputString] ?? inputString;
+        return _localizationService?[inputString] ?? inputString;
     }
 }

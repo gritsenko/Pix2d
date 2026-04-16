@@ -7,11 +7,10 @@ using Pix2d.UI.Styles;
 
 namespace Pix2d.UI.Shared;
 
-public class PopupView : ComponentBase
+public class PopupView(AppState appState, IMessenger messenger) : ViewBase
 {
-    [Inject] private AppState AppState { get; set; } = null!;
-    [Inject] private IMessenger Messenger { get; set; } = null!;
     private static readonly TimeSpan AutoCloseTimeout = TimeSpan.FromMilliseconds(500);
+    private readonly State _state = new(appState, messenger);
 
     public event EventHandler<EventArgs>? CloseButtonClicked;
 
@@ -51,22 +50,11 @@ public class PopupView : ComponentBase
                 IsVisible = value;
                 if (value)
                 {
-                    if (ShowPinButton)
-                    {
-                        Messenger.Register<WindowClickedMessage>(this, OnWindowClicked);
-                        Messenger.Register<CloseUnpinnedPopups>(this, CloseUnpinned);
-                    }
-
-                    _onShowAction?.Invoke();
-                    ResetPositionForCurrentLayout();
+                    _state.OnOpened(this, ShowPinButton, _onShowAction, ResetPositionForCurrentLayout);
                 }
                 else
                 {
-                    if (ShowPinButton)
-                    {
-                        Messenger.Unregister<WindowClickedMessage>(this, OnWindowClicked);
-                        Messenger.Unregister<CloseUnpinnedPopups>(this, CloseUnpinned);
-                    }
+                    _state.OnClosed(this, ShowPinButton);
                 }
             }
         }
@@ -176,20 +164,20 @@ public class PopupView : ComponentBase
                     .Rows("44, *")
                     .Children(
                         new Grid().Cols("*, Auto, Auto")
-                            .IsVisible(@ShowHeaderProperty)
+                            .IsVisible(this, x => x.ShowHeader, BindingMode.OneWay)
                             .Children(
                                 new TextBlock() { IsHitTestVisible = false }
                                     .Margin(8, 0, 0, 0)
                                     .VerticalAlignment(VerticalAlignment.Center)
                                     .FontSize(16)
                                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
-                                    .Text(() => Header),
+                                    .Text(this, x => x.Header, BindingMode.OneWay),
                                 new ToggleButton().Col(1) // pin button
                                     .Width(44)
                                     .Height(44)
-                                    .IsVisible(() => ShowPinButton)
-                                    .IsChecked(() => IsPinned, v => IsPinned = v ?? false)
-                                    .Content(() => IsPinned)
+                                    .IsVisible(this, x => x.ShowPinButton, BindingMode.OneWay)
+                                    .IsChecked(this, x => x.IsPinned, BindingMode.TwoWay)
+                                    .Content(this, x => x.IsPinned, BindingMode.OneWay)
                                     .ContentTemplate(new FuncDataTemplate<bool>((v, _) =>
                                         new TextBlock()
                                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
@@ -199,7 +187,7 @@ public class PopupView : ComponentBase
                                     .Classes("SmallButton")
                                     .FontSize(14)
                                     .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                                    .Command(@CloseButtonCommandProperty, BindingMode.OneWay)
+                                    .Command(this, x => x.CloseButtonCommand, BindingMode.OneWay)
                                     .OnClick(_ => CloseButtonClicked?.Invoke(this, EventArgs.Empty))
                                     .Content("\xE894"),
                                 new Thumb()
@@ -217,7 +205,7 @@ public class PopupView : ComponentBase
                             .Content(
                                 new ContentControl()
                                     .Ref(out _contentControl)
-                                    .Content(@ContentProperty, BindingMode.OneWay)
+                                    .Content(this, x => x.Content, BindingMode.OneWay)
                                     .VerticalContentAlignment(VerticalAlignment.Stretch)
                                     .HorizontalContentAlignment(HorizontalAlignment.Stretch)
                             )
@@ -274,7 +262,7 @@ public class PopupView : ComponentBase
     {
         UpdateSizeConstraints();
 
-        if (!IsOpen || !CenterOnNarrowScreen || AppState.UiState.VisualState != nameof(VisualStates.Narrow))
+        if (!IsOpen || !_state.ShouldCenterOnNarrowScreen(CenterOnNarrowScreen))
             return;
 
         var parent = GetPositioningParent();
@@ -332,6 +320,38 @@ public class PopupView : ComponentBase
         if (!IsPinned)
         {
             IsOpen = false;
+        }
+    }
+
+    private sealed class State(AppState appState, IMessenger messenger)
+    {
+        private readonly AppState _appState = appState;
+        private readonly IMessenger _messenger = messenger;
+
+        public void OnOpened(PopupView popupView, bool showPinButton, Action? onShowAction, Action resetPositionAction)
+        {
+            if (showPinButton)
+            {
+                _messenger.Register<WindowClickedMessage>(popupView, popupView.OnWindowClicked);
+                _messenger.Register<CloseUnpinnedPopups>(popupView, popupView.CloseUnpinned);
+            }
+
+            onShowAction?.Invoke();
+            resetPositionAction();
+        }
+
+        public void OnClosed(PopupView popupView, bool showPinButton)
+        {
+            if (!showPinButton)
+                return;
+
+            _messenger.Unregister<WindowClickedMessage>(popupView, popupView.OnWindowClicked);
+            _messenger.Unregister<CloseUnpinnedPopups>(popupView, popupView.CloseUnpinned);
+        }
+
+        public bool ShouldCenterOnNarrowScreen(bool centerOnNarrowScreen)
+        {
+            return centerOnNarrowScreen && _appState.UiState.VisualState == nameof(VisualStates.Narrow);
         }
     }
 }

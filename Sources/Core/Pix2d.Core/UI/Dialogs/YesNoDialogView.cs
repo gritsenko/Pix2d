@@ -49,7 +49,7 @@ public class YesNoDialogView : ViewBase, IDialogView<bool>
                     .VerticalAlignment(VerticalAlignment.Center)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Margin(new Thickness(8, 0))
-                    .Text(Message, BindingMode.OneWay, bindingSource: this),
+                    .Text(this, x => x.Message, BindingMode.OneWay),
 
                 new StackPanel().Row(1)
                     .Orientation(Orientation.Horizontal)
@@ -68,7 +68,7 @@ public class YesNoDialogView : ViewBase, IDialogView<bool>
                     .Children(
                         new Button()
                             .Classes("btn")
-                            .Content(OkLabel, BindingMode.OneWay, bindingSource: this)
+                            .Content(this, x => x.OkLabel, BindingMode.OneWay)
                             .Background(StaticResources.Brushes.AccentBrush)
                             .OnClick(_ =>
                             {
@@ -77,7 +77,7 @@ public class YesNoDialogView : ViewBase, IDialogView<bool>
                             }),
                         new Button()
                             .Classes("btn")
-                            .Content(CancelLabel, BindingMode.OneWay, bindingSource: this)
+                            .Content(this, x => x.CancelLabel, BindingMode.OneWay)
                             .OnClick(_ =>
                             {
                                 DialogResult = false;

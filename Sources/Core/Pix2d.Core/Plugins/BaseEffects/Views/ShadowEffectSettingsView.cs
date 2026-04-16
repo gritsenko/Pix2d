@@ -7,36 +7,24 @@ namespace Pix2d.Plugins.BaseEffects.Views;
 
 public class ShadowEffectSettingsView(PixelShadowEffect effect, Action onEffectUpdated) : EffectSettingsViewBase<PixelShadowEffect>(effect, onEffectUpdated)
 {
-    protected override object Build(PixelShadowEffect? effect) =>
+    protected override object BuildEffectSettings(PixelShadowEffect effect) =>
         new StackPanel().Children(
             new Grid().Cols("*, Auto")
                 .Children(
                     new TextBlock().Col(0).Text("Color"),
-                    new ColorPickerButton().Col(1).Color(() => effect?.Color ?? default, v => UpdateEffect(() => { if (effect != null) effect.Color = v; }))
+                    CreateColorPicker(effect.Color, value => effect.Color = value).Col(1)
                 ),
 
             new TextBlock().Text("Offset X"),
-            new Slider()
-                .Minimum(-20)
-                .Maximum(20)
-                .Value(() => effect?.DeltaX ?? 0, v => UpdateEffect(() => { if (effect != null) effect.DeltaX = (float)v; })),
+            CreateSlider(-20, 20, effect.DeltaX, value => effect.DeltaX = (float)value),
 
             new TextBlock().Text("Offset Y"),
-            new Slider()
-                .Minimum(-20)
-                .Maximum(20)
-                .Value(() => effect?.DeltaY ?? 0, v => UpdateEffect(() => { if (effect != null) effect.DeltaY = (float)v; })),
+            CreateSlider(-20, 20, effect.DeltaY, value => effect.DeltaY = (float)value),
 
             new TextBlock().Text("Blur"),
-            new Slider()
-                .Minimum(0)
-                .Maximum(200)
-                .Value(() => effect?.Blur ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Blur = (float)v; })),
+            CreateSlider(0, 200, effect.Blur, value => effect.Blur = (float)value),
 
             new TextBlock().Text("Opacity"),
-            new Slider()
-                .Minimum(0)
-                .Maximum(255)
-                .Value(() => effect?.Opacity ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Opacity = (float)v; }))
+            CreateSlider(0, 255, effect.Opacity, value => effect.Opacity = (float)value)
         );
 }

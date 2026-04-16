@@ -7,19 +7,13 @@ namespace Pix2d.Plugins.BaseEffects.Views;
 
 public class ColorOverlayEffectSettingsView(ColorOverlayEffect e, Action onEffectUpdated) : EffectSettingsViewBase<ColorOverlayEffect>(e, onEffectUpdated)
 {
-    protected override object Build(ColorOverlayEffect? effect) =>
+    protected override object BuildEffectSettings(ColorOverlayEffect effect) =>
         new StackPanel().Children(
             new Grid().Cols("*, Auto")
                 .Children(
                     new TextBlock().Col(0).Text("Color"),
-                    new ColorPickerButton().Col(1)
-                        .Color(() => effect?.Color ?? default, v => UpdateEffect(() => { if (effect != null) effect.Color = v; }))
+                    CreateColorPicker(effect.Color, value => effect.Color = value).Col(1)
                 ),
-            new SliderEx()
-                .Minimum(0)
-                .Maximum(255)
-                .Label("Opacity")
-                .Units("%")
-                .Value(() => effect?.Opacity ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Opacity = (float)v; }))
+            CreateSliderEx("Opacity", 0, 255, effect.Opacity, value => effect.Opacity = (float)value, "%")
         );
 }

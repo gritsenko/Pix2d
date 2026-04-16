@@ -7,10 +7,9 @@ using Pix2d.UI;
 namespace Pix2d.Plugins.BaseEffects.Views;
 
 public class GrayscaleEffectSettingsView(GrayscaleEffect e)
-    : ComponentBase<GrayscaleEffect>(e), IEffectsService.IEffectSettingsView
+    : ViewBase, IEffectsService.IEffectSettingsView
 {
-    protected override object Build(GrayscaleEffect? effect) =>
-
+    protected override object Build() =>
         new StackPanel().Children(
             new TextBlock().Text("No settings")
         );

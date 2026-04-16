@@ -1,6 +1,3 @@
-using Pix2d.Common;
-using Pix2d.Common.Extensions;
-using Pix2d.UI.Common;
 using Pix2d.UI.Resources;
 using SkiaSharp;
 

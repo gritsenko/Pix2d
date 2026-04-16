@@ -30,6 +30,7 @@ internal partial class Program
 
         BuildAvaloniaApp()
             .UseServiceProvider(sp)
+            .UseComponentControlFactory(type => (Avalonia.Controls.Control)ActivatorUtilities.CreateInstance(sp, type))
             .StartBrowserAppAsync("out");
     }
     public static AppBuilder BuildAvaloniaApp()

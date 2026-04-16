@@ -1,38 +1,49 @@
 using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.UI.Shared;
 
 namespace Pix2d.UI;
 
-public class TopToolUiContainer : ComponentBase
+public partial class TopToolUiContainer(AppState appState) : ViewBase<TopToolUiContainer.State>(new State(appState))
 {
     #region Markup
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new BlurPanel()
-            .IsVisible(() => ToolUiContent != null)
-            .Content(() => ToolUiContent!);
+            .IsVisible(state, x => x.HasToolUiContent)
+            .Content(state, x => x.ToolUiContent!);
 
     #endregion
 
-    [Inject] public AppState AppState { get; set; } = null!;
-
-    public Control? ToolUiContent { get; set; }
-
-    protected override void OnInitialized()
+    public sealed partial class State : ObservableObject
     {
-        AppState.ToolsState.WatchFor(x => x.CurrentToolKey, OnStatePropertyChanged);
-    }
+        private readonly AppState _appState;
 
-    private void OnStatePropertyChanged()
-    {
-        var currentTool = AppState.ToolsState.Tools.FirstOrDefault(x => x.Name == AppState.ToolsState.CurrentToolKey);
-        var toolUiProvider = currentTool?.TopBarUi;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasToolUiContent))]
+        public partial Control? ToolUiContent { get; set; }
 
-        ToolUiContent = toolUiProvider?.Invoke() as Control;
-        
-        if(ToolUiContent != null && currentTool != null)
-            ToolUiContent.DataContext = currentTool.ToolInstance;
-        
-        StateHasChanged();
+        public bool HasToolUiContent => ToolUiContent != null;
+
+        public State(AppState appState)
+        {
+            _appState = appState;
+
+            _appState.ToolsState.WatchFor(x => x.CurrentToolKey, UpdateToolUiContent);
+            UpdateToolUiContent();
+        }
+
+        private void UpdateToolUiContent()
+        {
+            var currentTool = _appState.ToolsState.Tools.FirstOrDefault(x => x.Name == _appState.ToolsState.CurrentToolKey);
+            var control = currentTool?.TopBarUi?.Invoke() as Control;
+
+            if (control != null && currentTool != null)
+            {
+                control.DataContext = currentTool.ToolInstance;
+            }
+
+            ToolUiContent = control;
+        }
     }
 }

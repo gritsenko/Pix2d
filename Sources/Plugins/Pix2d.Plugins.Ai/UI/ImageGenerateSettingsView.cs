@@ -5,7 +5,7 @@ using Pix2d.UI;
 
 namespace Pix2d.Plugins.Ai.UI;
 
-public class ImageGenerateSettingsView : ComponentBase
+public class ImageGenerateSettingsView : ViewBase
 {
 
     protected override object Build() =>
@@ -13,8 +13,6 @@ public class ImageGenerateSettingsView : ComponentBase
             .Orientation(Orientation.Horizontal)
             .Children(
                 new TextBox()
-                    .Watermark(L("Enter text"))
-                    .Text(()=>Text, v => Text = (string)v!)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .AcceptsReturn(false)
                     .MinWidth(150),
@@ -22,7 +20,7 @@ public class ImageGenerateSettingsView : ComponentBase
                     .Content(L("Generate"))
             );
 
-    public required string Text { get; set; }
+    public string Text { get; set; }
 
 
     private async void OnApplyButtonClicked()

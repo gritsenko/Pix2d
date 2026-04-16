@@ -57,8 +57,11 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
 
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
+        var serviceProvider = _bootstrapper.GetServiceProvider();
+
         return base.CustomizeAppBuilder(builder)
-            .UseServiceProvider(_bootstrapper.GetServiceProvider())
+            .UseServiceProvider(serviceProvider)
+            .UseComponentControlFactory(type => (Control)ActivatorUtilities.CreateInstance(serviceProvider, type))
             .UseViewInitializationStrategy(ViewInitializationStrategy.Immediate)
             .WithInterFont();
     }

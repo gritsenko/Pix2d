@@ -1,12 +1,13 @@
-﻿using Pix2d.UI.Resources;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using SkiaSharp;
 
 namespace Pix2d.UI;
 
-public class GridSettingsView : ComponentBase
+public partial class GridSettingsView(AppState appState) : ViewBase<GridSettingsView.State>(new State(appState))
 {
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Border()
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Child(
@@ -22,58 +23,59 @@ public class GridSettingsView : ComponentBase
                             .Cols("*,*,*")
                             .Children(
                                 new NumericUpDown()
-                                    .Value(() => GridCellSizeWidth, v => GridCellSizeWidth = (int)v!),
-
+                                    .Value(state, x => x.GridCellSizeWidth, BindingMode.TwoWay),
                                 new TextBlock().Col(1)
                                     .VerticalAlignment(VerticalAlignment.Center)
                                     .Margin(8)
                                     .Text("✕"),
-
                                 new NumericUpDown().Col(2)
-                                    .Value(() => GridCellSizeHeight, v => GridCellSizeHeight = (int)v!)
+                                    .Value(state, x => x.GridCellSizeHeight, BindingMode.TwoWay)
                             ),
                         new TextBlock()
                             .Margin(0, 8, 0, 0)
                             .Text(L("Show grid")),
-
                         new ToggleSwitch().Margin(0, 8, 0, 0)
-                            .IsChecked(() => ShowGrid, v => ShowGrid = (bool)v!)
-                    ) //stack panel childern
+                            .IsChecked(state, x => x.ShowGrid, BindingMode.TwoWay)
+                    )
                 );
 
-    [Inject] private AppState AppState { get; set; } = null!;
-
-    private ViewPortState ViewPortState => AppState.CurrentProject.ViewPortState;
-
-    public bool ShowGrid
+    public sealed partial class State : ObservableObject
     {
-        get => ViewPortState.ShowGrid;
-        set
+        private readonly ViewPortState _viewPortState;
+
+        [ObservableProperty]
+        public partial bool? ShowGrid { get; set; }
+
+        [ObservableProperty]
+        public partial decimal? GridCellSizeWidth { get; set; }
+
+        [ObservableProperty]
+        public partial decimal? GridCellSizeHeight { get; set; }
+
+        public State(AppState appState)
         {
-            ViewPortState.ShowGrid = value;
-            OnPropertyChanged();
+            _viewPortState = appState.CurrentProject.ViewPortState;
+
+            ShowGrid = _viewPortState.ShowGrid;
+            GridCellSizeWidth = (decimal)_viewPortState.GridSpacing.Width;
+            GridCellSizeHeight = (decimal)_viewPortState.GridSpacing.Height;
+        }
+
+        partial void OnShowGridChanged(bool? value)
+        {
+            _viewPortState.ShowGrid = value ?? false;
+        }
+
+        partial void OnGridCellSizeWidthChanged(decimal? value)
+        {
+            var oldSize = _viewPortState.GridSpacing;
+            _viewPortState.GridSpacing = new SKSize((float)(value ?? 1), oldSize.Height);
+        }
+
+        partial void OnGridCellSizeHeightChanged(decimal? value)
+        {
+            var oldSize = _viewPortState.GridSpacing;
+            _viewPortState.GridSpacing = new SKSize(oldSize.Width, (float)(value ?? 1));
         }
     }
-
-    public int GridCellSizeWidth
-    {
-        get => (int)ViewPortState.GridSpacing.Width;
-        set
-        {
-            var oldSize = ViewPortState.GridSpacing;
-            ViewPortState.GridSpacing = new SKSize(value, oldSize.Height);
-            OnPropertyChanged();
-        }
-    }
-    public int GridCellSizeHeight
-    {
-        get => (int)ViewPortState.GridSpacing.Height;
-        set
-        {
-            var oldSize = ViewPortState.GridSpacing;
-            ViewPortState.GridSpacing = new SKSize(oldSize.Width, value);
-            OnPropertyChanged();
-        }
-    }
-
 }

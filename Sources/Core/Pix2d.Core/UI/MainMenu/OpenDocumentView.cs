@@ -1,5 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using Avalonia.Interactivity;
+using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Command;
 using Pix2d.Messages;
 using Pix2d.Project;
@@ -9,9 +11,14 @@ using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.UI.MainMenu;
 
-public class OpenDocumentView : ComponentBase
+public partial class OpenDocumentView : ViewBase<OpenDocumentView.State>
 {
-    protected override object Build() =>
+    public OpenDocumentView(IProjectService projectService, IMessenger messenger, ICommandService commandService, IServiceProvider serviceProvider)
+        : base(new State(projectService, messenger, commandService, serviceProvider))
+    {
+    }
+
+    protected override object Build(State state) =>
         new Border()
             .Padding(32, 0, 0, 0)
             .Child(
@@ -32,7 +39,7 @@ public class OpenDocumentView : ComponentBase
                             .Margin(0, 8, 0, 16)
                             .Padding(16)
                             .Background(Brushes.Gray)
-                            .OnClick(OnOpenButtonClick)
+                            .OnClick(_ => state.OpenProjectBrowserAsync())
                             .Content(
                                 new Grid()
                                     .Rows("*,Auto")
@@ -57,53 +64,69 @@ public class OpenDocumentView : ComponentBase
                             .Text(L("Recent projects")),
                         
                         new ItemsControl()
-                            .ItemsSource(() => RecentProjects)
+                            .ItemsSource(state.RecentProjects)
                             .ItemsPanel(new WrapPanel())
-                            .ItemTemplate(new FuncDataTemplate<PreloadedProject>((vm, _) => new ProjectItem(vm)))
+                            .ItemTemplate(
+                                new FuncDataTemplate<PreloadedProject>((project, _) =>
+                                    project == null
+                                        ? new Grid()
+                                        : state.CreateRecentProjectItem(project)))
 
                     ) //StackPanel.Children
             );
 
-    [Inject] private IProjectService ProjectService { get; } = null!;
-    [Inject] private IMessenger Messenger { get; set; } = null!;
-    [Inject] private ICommandService CommandService { get; set; } = null!;
-
-    private ViewCommands ViewComands => CommandService.GetCommandList<ViewCommands>()!;
-
-    public ObservableCollection<PreloadedProject> RecentProjects { get; set; } = [];
-
-    protected override void OnAfterInitialized()
+    public sealed partial class State : ObservableObject
     {
-        Messenger.Register<MruChangedMessage>(this, m => UpdateMruData());
-        UpdateMruData(); // update recent files list on any open, file can be deleted by user while app is running
-    }
+        private readonly IProjectService _projectService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ViewCommands _viewCommands;
 
-    public async void UpdateMruData()
-    {
-        try
-        {
-            var projects = await ProjectService.GetRecentProjectsListAsync();
-            RecentProjects.Clear();
-            foreach (var project in projects.RecentProjects) 
-                RecentProjects.Add(project);
-        }
-        catch (Exception e)
-        {
-            Logger.LogException(e);
-        }
-    }
+        public ObservableCollection<PreloadedProject> RecentProjects { get; } = [];
 
+        public State(IProjectService projectService, IMessenger messenger, ICommandService commandService, IServiceProvider serviceProvider)
+        {
+            _projectService = projectService;
+            _serviceProvider = serviceProvider;
+            _viewCommands = commandService.GetCommandList<ViewCommands>()!;
 
-    private async void OnOpenButtonClick(RoutedEventArgs obj)
-    {
-        try
-        {
-            ViewComands.HideMainMenuCommand.Execute();
-            await ProjectService.OpenFilesAsync();
+            messenger.Register<MruChangedMessage>(this, _ => UpdateMruData());
+            UpdateMruData();
         }
-        catch (Exception e)
+
+        public Control CreateRecentProjectItem(PreloadedProject project)
         {
-            Logger.LogException(e);
+            return ActivatorUtilities.CreateInstance<ProjectItem>(_serviceProvider, project);
+        }
+
+        public async void OpenProjectBrowserAsync()
+        {
+            try
+            {
+                _viewCommands.HideMainMenuCommand.Execute();
+                await _projectService.OpenFilesAsync();
+            }
+            catch (Exception e)
+            {
+                Logger.LogException(e);
+            }
+        }
+
+        public async void UpdateMruData()
+        {
+            try
+            {
+                var projects = await _projectService.GetRecentProjectsListAsync();
+                RecentProjects.Clear();
+
+                foreach (var project in projects.RecentProjects)
+                {
+                    RecentProjects.Add(project);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.LogException(e);
+            }
         }
     }
 }

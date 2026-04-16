@@ -1,14 +1,14 @@
 ﻿using Pix2d.UI.Resources;
-using Pix2d.UI.Shared;
+using CommunityToolkit.Mvvm.ComponentModel;
 using SkiaNodes;
 
 namespace Pix2d.UI.Layers;
 
-public class LayerEffectItemView : ComponentBase
+public partial class LayerEffectItemView(IEffectsService effectsService) : ViewBase<LayerEffectItemView.State>(new State(effectsService))
 {
     private ISKNodeEffect? _model;
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Border()
             .BorderThickness(1)
             .BorderBrush(StaticResources.Brushes.InnerPanelBackgroundBrush)
@@ -22,7 +22,7 @@ public class LayerEffectItemView : ComponentBase
                         new TextBlock()
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Padding(new Thickness(5, 0))
-                            .Text(() => L(Model?.Name ?? "")()),
+                            .Text(state, x => x.ModelName),
 
                         new Button()
                             .Col(1)
@@ -30,7 +30,7 @@ public class LayerEffectItemView : ComponentBase
                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
                             .Content("\xE930")
                             .FontSize(14)
-                            .ToolTip(L("Bake effect to layer")()),
+                            .ToolTip_Tip(L("Bake effect to layer")),
 
                         new Button()
                             .Col(2)
@@ -38,12 +38,10 @@ public class LayerEffectItemView : ComponentBase
                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
                             .Content("\xE74D")
                             .FontSize(14)
-                            .ToolTip(L("Delete effect")()),
+                            .ToolTip_Tip(L("Delete effect")),
 
                         new ContentControl().Row(1).Col(0).ColSpan(3)
-#pragma warning disable CS8603
-                            .Content(() => Model != null ? EffectsService.GetSettingsView(Model) : (object?)null)
-#pragma warning restore CS8603
+                            .Content(state, x => x.SettingsView)
                             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                             .Padding(5)
                     ));
@@ -54,11 +52,32 @@ public class LayerEffectItemView : ComponentBase
         set
         {
             _model = value;
-            StateHasChanged();
+            ViewModel?.SetModel(value);
         }
     }
-    [Inject] private IEffectsService EffectsService { get; set; } = null!;
 
     public Action<ISKNodeEffect?>? OnEffectDelete { get; set; }
     public Action<ISKNodeEffect?>? OnEffectBake { get; set; }
+
+    public sealed partial class State : ObservableObject
+    {
+        private readonly IEffectsService _effectsService;
+
+        [ObservableProperty]
+        public partial string ModelName { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial object? SettingsView { get; set; }
+
+        public State(IEffectsService effectsService)
+        {
+            _effectsService = effectsService;
+        }
+
+        public void SetModel(ISKNodeEffect? model)
+        {
+            ModelName = L(model?.Name ?? string.Empty);
+            SettingsView = model != null ? _effectsService.GetSettingsView(model) : null;
+        }
+    }
 }

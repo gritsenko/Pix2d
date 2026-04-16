@@ -21,7 +21,7 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .Height(StaticResources.Measures.SmallButtonSize)
                     .Margin(4),
 
-                new Style<Button>(s => s.Is<Button>().Class("app-button"))
+                new Style<Button>(s => s.Class("app-button"))
                     .CornerRadius(12)
                     .Margin(6)
                     .Width(44)

@@ -1,13 +1,16 @@
 ﻿using Pix2d.Common.Extensions;
 using Pix2d.CommonNodes;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
+using SkiaSharp;
 
 namespace Pix2d.UI.Layers;
 
-public class BackgroundSelectorView : ComponentBase
+public partial class BackgroundSelectorView(AppState appState, IViewPortRefreshService viewPortRefreshService)
+    : ViewBase<BackgroundSelectorView.State>(new State(appState, viewPortRefreshService))
 {
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Grid()
             .Children(
                 new Button()
@@ -17,7 +20,7 @@ public class BackgroundSelectorView : ComponentBase
                     .CornerRadius(32)
                     .BorderThickness(1)
                     .BorderBrush(Colors.White.WithAlpha(0.3f).ToBrush().ToImmutable())
-                    .Background(() => AppState.SpriteEditorState.ShowBackground ? AppState.SpriteEditorState.BackgroundColor.ToBrush() : StaticResources.Brushes.CheckerTilesBrush)
+                    .Background(state, x => x.BackgroundBrush)
                     .Flyout(
                         new Flyout()
                             .Content(
@@ -25,59 +28,99 @@ public class BackgroundSelectorView : ComponentBase
                                     .Rows("Auto, Auto, Auto")
                                     .Children(
                                         new TextBlock().Text("Background"),
-                                        new Pix2dColorPicker().Row(1)
+                                        ViewFactory.Create<Pix2dColorPicker>().Row(1)
                                             .Margin(10)
-                                            .Color(() => AppState.SpriteEditorState.BackgroundColor,
-                                                v =>
-                                                {
-                                                    if (AppState.SpriteEditorState.BackgroundColor != v)
-                                                        AppState.SpriteEditorState.ShowBackground = true;
-                                                    AppState.SpriteEditorState.BackgroundColor = v;
-                                                    UpdateSprite();
-                                                })
+                                            .Color(state, x => x.BackgroundColor, BindingMode.TwoWay)
                                             .Margin(0, 8)
                                             .Width(200)
                                             .Height(140),
                                         new ToggleSwitch().Row(2)
-                                            .IsChecked(() => AppState.SpriteEditorState.ShowBackground,
-                                                v =>
-                                                {
-                                                    if (v.HasValue)
-                                                    {
-                                                        AppState.SpriteEditorState.ShowBackground = v.Value;
-                                                        UpdateSprite();
-                                                    }
-                                                })
+                                            .IsChecked(state, x => x.ShowBackground, BindingMode.TwoWay)
                                             .Content(L("Show background"))
                                     )
                             )
                     )
             );
 
-    [Inject] private AppState AppState { get; set; } = null!;
-    [Inject] private IViewPortRefreshService ViewPortRefreshService { get; set; } = null!;
-
-    protected override void OnAfterInitialized()
+    public sealed partial class State : ObservableObject
     {
-        //AppState.WatchFor(x=>x.CurrentProject, UpdateStateFromSprite);
-        AppState.CurrentProject.WatchFor(x=>x.CurrentEditedNode, UpdateStateFromSprite);
-    }
+        private readonly AppState _appState;
+        private readonly IViewPortRefreshService _viewPortRefreshService;
+        private bool _isSyncing;
 
-    private void UpdateStateFromSprite()
-    {
-        if (AppState.CurrentProject.CurrentEditedNode is not Pix2dSprite sprite) return;
-        AppState.SpriteEditorState.BackgroundColor = sprite.BackgroundColor;
-        AppState.SpriteEditorState.ShowBackground = sprite.UseBackgroundColor;
-        StateHasChanged();
-    }
+        [ObservableProperty]
+        public partial SKColor BackgroundColor { get; set; }
 
-    private void UpdateSprite()
-    {
-        if (AppState.CurrentProject.CurrentEditedNode is not Pix2dSprite sprite) return;
+        [ObservableProperty]
+        public partial bool ShowBackground { get; set; }
 
-        sprite.BackgroundColor = AppState.SpriteEditorState.BackgroundColor;
-        sprite.UseBackgroundColor = AppState.SpriteEditorState.ShowBackground;
-        ViewPortRefreshService.Refresh();
-        StateHasChanged();
+        [ObservableProperty]
+        public partial IBrush BackgroundBrush { get; set; } = StaticResources.Brushes.CheckerTilesBrush;
+
+        public State(AppState appState, IViewPortRefreshService viewPortRefreshService)
+        {
+            _appState = appState;
+            _viewPortRefreshService = viewPortRefreshService;
+
+            SyncFromSprite();
+            _appState.CurrentProject.WatchFor(x => x.CurrentEditedNode, SyncFromSprite);
+        }
+
+        partial void OnBackgroundColorChanged(SKColor value)
+        {
+            UpdateBackgroundBrush();
+
+            if (_isSyncing)
+                return;
+
+            if (_appState.SpriteEditorState.BackgroundColor != value)
+            {
+                _appState.SpriteEditorState.ShowBackground = true;
+            }
+
+            _appState.SpriteEditorState.BackgroundColor = value;
+            UpdateSprite();
+        }
+
+        partial void OnShowBackgroundChanged(bool value)
+        {
+            UpdateBackgroundBrush();
+
+            if (_isSyncing)
+                return;
+
+            _appState.SpriteEditorState.ShowBackground = value;
+            UpdateSprite();
+        }
+
+        private void SyncFromSprite()
+        {
+            if (_appState.CurrentProject.CurrentEditedNode is not Pix2dSprite sprite)
+                return;
+
+            _isSyncing = true;
+            _appState.SpriteEditorState.BackgroundColor = sprite.BackgroundColor;
+            _appState.SpriteEditorState.ShowBackground = sprite.UseBackgroundColor;
+            BackgroundColor = sprite.BackgroundColor;
+            ShowBackground = sprite.UseBackgroundColor;
+            _isSyncing = false;
+
+            UpdateBackgroundBrush();
+        }
+
+        private void UpdateSprite()
+        {
+            if (_appState.CurrentProject.CurrentEditedNode is not Pix2dSprite sprite)
+                return;
+
+            sprite.BackgroundColor = BackgroundColor;
+            sprite.UseBackgroundColor = ShowBackground;
+            _viewPortRefreshService.Refresh();
+        }
+
+        private void UpdateBackgroundBrush()
+        {
+            BackgroundBrush = ShowBackground ? BackgroundColor.ToBrush() : StaticResources.Brushes.CheckerTilesBrush;
+        }
     }
 }

@@ -1,12 +1,13 @@
 using System.Globalization;
 using Pix2d.Abstract.Export;
 using Pix2d.Plugins.PngFormat.Exporters;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Pix2d.UI.Export;
 
-public class SpritesheetExportSettingsView : ComponentBase, IExportSettingsViewBase<SpritesheetImageExporter>
+public partial class SpritesheetExportSettingsView() : ViewBase<SpritesheetExportSettingsView.State>(new State()), IExportSettingsViewBase<SpritesheetImageExporter>
 {
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new StackPanel() //Exporter options
             .HorizontalAlignment(HorizontalAlignment.Left)
             .Children(
@@ -14,25 +15,44 @@ public class SpritesheetExportSettingsView : ComponentBase, IExportSettingsViewB
                     .Text("Max columns"),
               
                 new NumericUpDown()
-                    .Watermark("Columns count")
+                    .PlaceholderText("Columns count")
                     .Minimum(1)
                     .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
                     .Increment(1)
-                    .Value(()=>MaxColumns, v => MaxColumns = (int)v!)
+                    .Value(state, x => x.MaxColumns, BindingMode.TwoWay)
             ); // exporter options
 
-    public int MaxColumns
+    private SpritesheetImageExporter _exporter = null!;
+
+    public SpritesheetImageExporter Exporter
     {
-        get => Exporter?.MaxColumns ?? 1;
+        get => _exporter;
         set
         {
-            if (Exporter != null)
-            {
-                Exporter.MaxColumns = value;
-            }
+            _exporter = value;
+            ViewModel?.SetExporter(value);
         }
     }
 
+    public sealed partial class State : ObservableObject
+    {
+        private SpritesheetImageExporter? _exporter;
 
-    public SpritesheetImageExporter Exporter { get; set; } = null!;
+        [ObservableProperty]
+        public partial decimal MaxColumns { get; set; } = 1;
+
+        public void SetExporter(SpritesheetImageExporter exporter)
+        {
+            _exporter = exporter;
+            MaxColumns = exporter.MaxColumns;
+        }
+
+        partial void OnMaxColumnsChanged(decimal value)
+        {
+            if (_exporter != null)
+            {
+                _exporter.MaxColumns = (int)value;
+            }
+        }
+    }
 }

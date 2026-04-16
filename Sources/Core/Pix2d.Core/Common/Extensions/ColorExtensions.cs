@@ -1,4 +1,5 @@
-﻿using SkiaSharp;
+﻿using Avalonia.Media;
+using SkiaSharp;
 
 namespace Pix2d.Common.Extensions;
 
@@ -11,6 +12,11 @@ public static class ColorExtensions
     public static Brush ToBrush(this SKColor skColor)
     {
         return skColor.ToColor().ToBrush();
+    }
+
+    public static Brush ToBrush(this Color color)
+    {
+        return new SolidColorBrush(color);
     }
 
     public static SKColor ToSKColor(this Color color)

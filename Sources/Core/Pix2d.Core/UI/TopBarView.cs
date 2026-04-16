@@ -1,4 +1,5 @@
 using Avalonia.Styling;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Command;
 using Pix2d.Plugins.Sprite.Commands;
 using Pix2d.Messages;
@@ -8,7 +9,8 @@ using Pix2d.UI.Styles;
 
 namespace Pix2d.UI;
 
-public class TopBarView : ComponentBase
+public partial class TopBarView(IOperationService operationService, IMessenger messenger, AppState appState, ICommandService commandService)
+    : ViewBase<TopBarView.State>(new State(operationService, messenger, appState, commandService))
 {
     protected override StyleGroup BuildStyles() =>
     [
@@ -30,7 +32,7 @@ public class TopBarView : ComponentBase
         }
     ];
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Grid()
             .Cols("Auto,*,Auto")
             .Margin(12, 12, 12, 0)
@@ -43,8 +45,8 @@ public class TopBarView : ComponentBase
                             .Label(L("Menu"))
                             .Content("\xe91d")
                             .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
-                            .Command(() => ViewCommands.ToggleMainMenuCommand)
-                            .ToolTip(L(ViewCommands.ToggleMainMenuCommand.Tooltip)())
+                            .Command(state.ViewCommands.ToggleMainMenuCommand)
+                            .ToolTip_Tip(L(state.ViewCommands.ToggleMainMenuCommand.Tooltip))
                     ),
                 //CENTRAL BLOCK
                 new BlurPanel().Name("central-panel")
@@ -55,25 +57,24 @@ public class TopBarView : ComponentBase
                             .Orientation(Orientation.Horizontal)
                             .Children(
                                 new AppButton()
-                                    .Command(() => SpriteEditCommands.Clear)
+                                    .Command(state.SpriteEditCommands.Clear)
                                     .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Label(L("Clear"))
                                     .Content("\xe90f")
-                                    .ToolTip(L(SpriteEditCommands.Clear.Tooltip)()),
+                                    .ToolTip_Tip(L(state.SpriteEditCommands.Clear.Tooltip)),
                                 new AppButton()
                                     .Name("export-button")
                                     .Label(L("Export"))
-                                    .Command(() => ViewCommands.ShowExportDialogCommand)
+                                    .Command(state.ViewCommands.ShowExportDialogCommand)
                                     .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Content("\xe907")
-                                    .ToolTip(L(ViewCommands.ShowExportDialogCommand.Tooltip)()),
+                                    .ToolTip_Tip(L(state.ViewCommands.ShowExportDialogCommand.Tooltip)),
                                 new AppToggleButton()
-                                    .IsChecked(() => AppState.UiState.ShowExtraTools,
-                                        v => AppState.UiState.ShowExtraTools = v)
+                                    .IsChecked(state, x => x.ShowExtraTools, BindingMode.TwoWay)
                                     .Label(L("Tools"))
                                     .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Content("\xe909")
-                                    .ToolTip(L(ViewCommands.ToggleExtraToolsCommand.Tooltip)())
+                                    .ToolTip_Tip(L(state.ViewCommands.ToggleExtraToolsCommand.Tooltip))
                             )
                     ),
                 //UNDO REDO BLOCK
@@ -83,9 +84,9 @@ public class TopBarView : ComponentBase
                             .Orientation(Orientation.Horizontal)
                             .Children(
                                 new AppButton().Col(1)
-                                    .Command(EditCommands.Undo)
+                                    .Command(state.EditCommands.Undo)
                                     .Label(L("Undo"))
-                                    .ToolTip(L(EditCommands.Undo.Tooltip)())
+                                    .ToolTip_Tip(L(state.EditCommands.Undo.Tooltip))
                                     .Content(
                                         new Grid()
                                             .HorizontalAlignment(HorizontalAlignment.Stretch)
@@ -100,7 +101,7 @@ public class TopBarView : ComponentBase
                                                     .VerticalAlignment(VerticalAlignment.Top)
                                                     .FontSize(12)
                                                     .Foreground(Colors.Gray.ToBrush())
-                                                    .Text(() => UndoSteps.ToString()),
+                                                    .Text(state, x => x.UndoStepsText),
                                                 new TextBlock()
                                                     .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                                     .VerticalAlignment(VerticalAlignment.Center)
@@ -109,27 +110,70 @@ public class TopBarView : ComponentBase
                                             )),
                                 new AppButton().Col(1)
                                     .Label(L("Redo"))
-                                    .Command(() => EditCommands.Redo)
+                                    .Command(state.EditCommands.Redo)
                                     .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Content("\xe90d")
-                                    .ToolTip(L(EditCommands.Redo.Tooltip)())
+                                    .ToolTip_Tip(L(state.EditCommands.Redo.Tooltip))
                             )
                     )
             );
 
-    [Inject] private IOperationService OperationService { get; set; } = null!;
-    [Inject] private IMessenger Messenger { get; set; } = null!;
-    [Inject] private AppState AppState { get; set; } = null!;
-    [Inject] private ICommandService CommandService { get; set; } = null!;
-    private SpriteEditCommands SpriteEditCommands => CommandService.GetCommandList<SpriteEditCommands>()!;
-    private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
-    private EditCommands EditCommands => CommandService.GetCommandList<EditCommands>()!;
-
-    public int UndoSteps => OperationService?.UndoOperationsCount ?? 0;
-
-    protected override void OnAfterInitialized()
+    public sealed partial class State : ObservableObject
     {
-        Messenger.Register<OperationInvokedMessage>(this, msg => StateHasChanged());
-        Messenger.Register<ProjectLoadedMessage>(this, _ => StateHasChanged());
+        private readonly AppState _appState;
+        private readonly IOperationService _operationService;
+        private bool _isSyncing;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(UndoStepsText))]
+        public partial int UndoSteps { get; set; }
+
+        [ObservableProperty]
+        public partial bool ShowExtraTools { get; set; }
+
+        public State(IOperationService operationService, IMessenger messenger, AppState appState, ICommandService commandService)
+        {
+            _appState = appState;
+            _operationService = operationService;
+
+            SpriteEditCommands = commandService.GetCommandList<SpriteEditCommands>()!;
+            ViewCommands = commandService.GetCommandList<ViewCommands>()!;
+            EditCommands = commandService.GetCommandList<EditCommands>()!;
+
+            SyncFromAppState();
+
+            messenger.Register<OperationInvokedMessage>(this, _ => UpdateUndoSteps());
+            messenger.Register<ProjectLoadedMessage>(this, _ => UpdateUndoSteps());
+            _appState.UiState.WatchFor(x => x.ShowExtraTools, SyncFromAppState);
+        }
+
+        public SpriteEditCommands SpriteEditCommands { get; }
+
+        public ViewCommands ViewCommands { get; }
+
+        public EditCommands EditCommands { get; }
+
+        public string UndoStepsText => UndoSteps.ToString();
+
+        partial void OnShowExtraToolsChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            _appState.UiState.ShowExtraTools = value;
+        }
+
+        private void SyncFromAppState()
+        {
+            _isSyncing = true;
+            ShowExtraTools = _appState.UiState.ShowExtraTools;
+            UpdateUndoSteps();
+            _isSyncing = false;
+        }
+
+        private void UpdateUndoSteps()
+        {
+            UndoSteps = _operationService?.UndoOperationsCount ?? 0;
+        }
     }
 }

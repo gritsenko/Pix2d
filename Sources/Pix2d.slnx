@@ -47,10 +47,6 @@
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="Plugins/Pix2d.Plugins.PngCompress/Pix2d.Plugins.PngCompress.csproj">
-      <Platform Solution="*|ARM64" Project="ARM64" />
-      <Platform Solution="*|x64" Project="x64" />
-    </Project>
     <Project Path="Plugins/Pix2d.Plugins.SimplePlugin/Pix2d.Plugins.Simple.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />

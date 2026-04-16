@@ -48,6 +48,7 @@ class Program
 
         BuildAvaloniaApp()
             .UseServiceProvider(sp)
+            .UseComponentControlFactory(type => (Avalonia.Controls.Control)ActivatorUtilities.CreateInstance(sp, type))
             .StartWithClassicDesktopLifetime(args);
     }
 
@@ -67,13 +68,13 @@ class Program
             {
                 RenderingMode = [
                     Win32RenderingMode.Wgl,
-                Win32RenderingMode.AngleEgl,
-                Win32RenderingMode.Vulkan,
-                Win32RenderingMode.Software
+                    Win32RenderingMode.AngleEgl,
+                    Win32RenderingMode.Vulkan,
+                    Win32RenderingMode.Software
                 ],
                 CompositionMode = [
                     Win32CompositionMode.WinUIComposition,
-                Win32CompositionMode.DirectComposition
+                    Win32CompositionMode.DirectComposition
                 ]
             });
         }
@@ -86,13 +87,10 @@ class Program
         if (root is MainWindow wnd)
         {
             TouchHelper.ConfigureTouchHandling(wnd);
-#if DEBUG
-            wnd.AttachDevTools();
-#endif
         }
     }
 
-    private static void OnAppInitialized()
+    private static void OnAppInitialized(EditorApp editorApp)
     {
 #if WINDOWS_UWP
         UwpPlatformStuffService.InitStoreContext();
@@ -103,6 +101,11 @@ class Program
         {
             AssociatePix2dFiles();
         }
+
+#if DEBUG
+        editorApp.AttachDeveloperTools();
+#endif
+
     }
 
     [SupportedOSPlatform("windows")]

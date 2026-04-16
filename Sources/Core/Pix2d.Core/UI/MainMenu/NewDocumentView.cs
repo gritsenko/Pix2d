@@ -1,17 +1,22 @@
-#pragma warning disable CS8603
 using System.Collections.ObjectModel;
 using Avalonia.Interactivity;
+using Avalonia.Data;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Command;
-using Pix2d.Messages;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using SkiaSharp;
 
 namespace Pix2d.UI.MainMenu;
 
-public class NewDocumentView : ComponentBase
+public partial class NewDocumentView : ViewBase<NewDocumentView.State>
 {
-    protected override object Build() =>
+    public NewDocumentView(IProjectService projectService, IViewPortService viewPortService, ICommandService commandService, AppState appState)
+        : base(new State(projectService, viewPortService, commandService, appState))
+    {
+    }
+
+    protected override object Build(State state) =>
         new Border()
             .Padding(32, 0, 0, 0)
             .Child(
@@ -34,16 +39,16 @@ public class NewDocumentView : ComponentBase
                             .DataTemplates(
                                 GetTextTemplate<SizePreset>(x => x?.Title ?? "")
                             )!
-                            .Margin(top: 8)
+                            .Margin(0, 8, 0, 0)
                             .MaxWidth(300)
-                            .ItemsSource(AvailablePresets)
-                            .SelectedItem(() => SelectedPreset, v => SelectedPreset = v as SizePreset),
+                            .ItemsSource(state.AvailablePresets)
+                            .SelectedItem(state, x => x.SelectedPreset, BindingMode.TwoWay),
 
                         new SliderEx().Label(L("Width")).Width(200).Units("px").Minimum(1).Maximum(1024)
-                            .Value(() => ArtworkWidth, v => ArtworkWidth = (int)v),
+                            .Value(state, x => x.ArtworkWidth, BindingMode.TwoWay),
 
                         new SliderEx().Label(L("Height")).Width(200).Units("px").Minimum(1).Maximum(1024)
-                            .Value(()=>ArtworkHeight, v=> ArtworkHeight = (int)v),
+                            .Value(state, x => x.ArtworkHeight, BindingMode.TwoWay),
 
                         new Button()
                             .Classes("btn")
@@ -52,90 +57,69 @@ public class NewDocumentView : ComponentBase
                             .Width(100)
                             .Margin(0, 24, 0, 0)
                             .Background(StaticResources.Brushes.SelectedToolBrush)
-                            .OnClick(OnCreateClicked)
+                            .OnClick(_ => state.CreateProject())
 
                     ) //StackPanel.Children
             );
 
 
-    private SizePreset? _selectedPreset;
-    private int _artworkWidth;
-    private int _artworkHeight;
-
-
     private static IDataTemplate GetTextTemplate<T>(Func<T, string> func) =>
         new FuncDataTemplate<T>((itemVm, ns) => (Control)new TextBlock().Text(func(itemVm)))!;
 
-
-    [Inject] private IProjectService ProjectService { get; set; } = null!;
-    [Inject] private IViewPortService ViewPortService { get; set; } = null!;
-    [Inject] private ICommandService CommandService { get; set; } = null!;
-    [Inject] private AppState AppState { get; set; } = null!;
-
-
-    private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
-
-
-    public int ArtworkWidth
+    public sealed partial class State : ObservableObject
     {
-        get => _artworkWidth;
-        set
+        private readonly IProjectService _projectService;
+
+        public ObservableCollection<SizePreset> AvailablePresets { get; } = [];
+
+        [ObservableProperty]
+        public partial SizePreset? SelectedPreset { get; set; }
+
+        [ObservableProperty]
+        public partial int ArtworkWidth { get; set; }
+
+        [ObservableProperty]
+        public partial int ArtworkHeight { get; set; }
+
+        public State(IProjectService projectService, IViewPortService viewPortService, ICommandService commandService, AppState appState)
         {
-            if (value == _artworkWidth) return;
-            _artworkWidth = value;
-            OnPropertyChanged();
+            _projectService = projectService;
+            ViewCommands = commandService.GetCommandList<ViewCommands>()!;
+
+            appState.UiState.WatchFor(x => x.ShowMenu, EnsureLoaded);
+            Load(viewPortService);
         }
-    }
 
-    public int ArtworkHeight
-    {
-        get => _artworkHeight;
-        set
+        public ViewCommands ViewCommands { get; }
+
+        public void CreateProject()
         {
-            if (value == _artworkHeight) return;
-            _artworkHeight = value;
-            OnPropertyChanged();
+            ViewCommands.HideMainMenuCommand.Execute();
+            _ = _projectService.CreateNewProjectAsync(new SKSize(ArtworkWidth, ArtworkHeight));
         }
-    }
 
-
-    public ObservableCollection<SizePreset> AvailablePresets { get; set; } = [];
-
-    public SizePreset? SelectedPreset
-    {
-        get => _selectedPreset;
-        set
+        partial void OnSelectedPresetChanged(SizePreset? value)
         {
-            _selectedPreset = value;
             ArtworkWidth = value?.Width ?? 64;
             ArtworkHeight = value?.Height ?? 64;
-            StateHasChanged();
-            OnPropertyChanged();
         }
-    }
 
-    protected override void OnAfterInitialized()
-    {
-        AppState.UiState.WatchFor(x => x.ShowMenu, Reset);
-
-        Load();
-    }
-
-    private void OnCreateClicked(RoutedEventArgs obj)
-    {
-        ViewCommands.HideMainMenuCommand.Execute();
-        ProjectService.CreateNewProjectAsync(new SKSize(ArtworkWidth, ArtworkHeight));
-    }
-
-    protected void Load()
-    {
-        var bounds = ViewPortService.ViewPort?.Size ?? new SKSize(64, 64);
-        var viewportWidth = (int)bounds.Width;
-        var viewportHeight = (int)bounds.Height;
-
-        if (!AvailablePresets.Any())
+        private void EnsureLoaded()
         {
-            AddPreset(64, 64, L("Custom")());
+            if (AvailablePresets.Count == 0)
+                Load(null);
+        }
+
+        private void Load(IViewPortService? viewPortService)
+        {
+            if (AvailablePresets.Count > 0)
+                return;
+
+            var bounds = viewPortService?.ViewPort?.Size ?? new SKSize(64, 64);
+            var viewportWidth = (int)bounds.Width;
+            var viewportHeight = (int)bounds.Height;
+
+            AddPreset(64, 64, L("Custom"));
             AddPreset(16, 16);
             AddPreset(32, 32);
             AddPreset(48, 48);
@@ -143,32 +127,24 @@ public class NewDocumentView : ComponentBase
             AddPreset(128, 128);
             AddPreset(256, 256);
             AddPreset(512, 512);
-            AddPreset(viewportWidth, viewportHeight, $"{viewportWidth}x{viewportHeight} {L("(Viewport size)")()}");
+            AddPreset(viewportWidth, viewportHeight, $"{viewportWidth}x{viewportHeight} {L("(Viewport size)")}");
 
             SelectedPreset = AvailablePresets[4];
-
-            ArtworkWidth = SelectedPreset.Width;
-            ArtworkHeight = SelectedPreset.Height;
         }
-        StateHasChanged();
-    }
 
-    private void AddPreset(int width, int height, string? title = null)
-    {
-        var p = new SizePreset(width, height);
-        if (title != null)
+        private void AddPreset(int width, int height, string? title = null)
         {
-            p.Title = title;
+            var preset = new SizePreset(width, height);
+            if (title != null)
+            {
+                preset.Title = title;
+            }
+
+            AvailablePresets.Add(preset);
         }
-        AvailablePresets.Add(p);
     }
 
-    private void Reset()
-    {
-        // reset presets here
-    }
-
-    public class SizePreset
+    public sealed class SizePreset
     {
         public SizePreset(int width, int height)
         {

@@ -102,9 +102,9 @@ public class SkiaCanvas : Control
         AddHandler(UndoGestureEvent, OnUndoGesture);
         //AddHandler(RedoGestureEvent, OnRedoGesture); // TODO: 3-finger gesture doesn't work reliably
 
-        AddHandler(Gestures.PinchEvent, OnPinch);
-        AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
-        AddHandler(Gestures.PointerTouchPadGestureMagnifyEvent, OnPointerTouchPadGestureMagnify);
+        AddHandler(InputElement.PinchEvent, OnPinch);
+        AddHandler(InputElement.PinchEndedEvent, OnPinchEnded);
+        AddHandler(InputElement.PointerTouchPadGestureMagnifyEvent, OnPointerTouchPadGestureMagnify);
 
         _undoGesture.TrackingStarted += OnUndoGestureTrackingStarted;
         _undoGesture.TrackingEnded += OnUndoGestureTrackingEnded;
@@ -247,7 +247,7 @@ public class SkiaCanvas : Control
 
     private float GetScale()
     {
-        return (float)(VisualRoot?.RenderScaling ?? 1f);
+        return (float)(TopLevel.GetTopLevel(this)?.RenderScaling ?? 1f);
     }
 
     private void OnViewportInitialized()
@@ -706,7 +706,7 @@ public class SkiaCanvas : Control
 
     private class SkNodeDrawOp(Rect bounds, SkiaCanvas parent) : ICustomDrawOperation
     {
-        private static readonly SKColor _bgColor = StaticResources.Colors.SceneBackgroundColor.ToSKColor();
+        private static readonly SKColor _bgColor = Pix2d.Common.Extensions.ColorExtensions.ToSKColor(StaticResources.Colors.SceneBackgroundColor);
 
         public Rect Bounds { get; } = bounds;
         public bool HitTest(Point p) => true;

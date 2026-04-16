@@ -1,5 +1,6 @@
 ﻿using Avalonia.Interactivity;
 using Avalonia.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Command;
 using Pix2d.Common;
 using Pix2d.Common.Extensions;
@@ -10,29 +11,14 @@ using Pix2d.UI.Shared;
 
 namespace Pix2d.UI.MainMenu;
 
-public class ProjectItem : ComponentBase
+public partial class ProjectItem : ViewBase<ProjectItem.State>
 {
-    private PreloadedProject _project;
-    public readonly SKBitmapObservable Preview = new()
+    public ProjectItem(PreloadedProject project, IMessenger messenger, IDialogService dialogService, IProjectService projectService, ICommandService commandService)
+        : base(new State(project, messenger, dialogService, projectService, commandService))
     {
-        Bitmap = StaticResources.NoPreview.ToSKBitmap()
-    };
-
-    [Inject] private IMessenger Messenger { get; set; } = null!;
-    [Inject] private IDialogService DialogService { get; set; } = null!;
-    [Inject] private IProjectService ProjectService { get; set; } = null!;
-    [Inject] private ICommandService CommandService { get; set; } = null!;
-
-    public string ProjectName => string.IsNullOrWhiteSpace(_project?.Name) ? L("Loading...")() : _project.Name;
-
-    public ProjectItem(PreloadedProject project)
-    {
-        _project = project;
-        LoadPreview();
-        StateHasChanged();
     }
 
-    protected override object Build()
+    protected override object Build(State state)
     {
         return new Button()
             .BorderThickness(4)
@@ -41,12 +27,12 @@ public class ProjectItem : ComponentBase
             .Width(128)
             .Margin(new Thickness(0, 0, 8, 8))
             .Background(StaticResources.Brushes.MainBackgroundBrush)
-            .OnClick(LoadProject)
+            .OnClick(_ => state.LoadProject())
             .Content(new Grid().Rows("*").Cols("*").Children(
                 new SKImageView()
                     .Width(120)
                     .Height(120)
-                    .Source(Preview),
+                    .Source(state, x => x.Preview),
                 new Border()
                     .Background(StaticResources.Brushes.MainBackgroundBrush)
                     .CornerRadius(4)
@@ -56,7 +42,7 @@ public class ProjectItem : ComponentBase
                     .Margin(4)
                     .Child(
                         new TextBlock()
-                            .Text(() => ProjectName)),
+                            .Text(state, x => x.ProjectName)),
                 new Button()
                     .VerticalAlignment(VerticalAlignment.Top)
                     .HorizontalAlignment(HorizontalAlignment.Right)
@@ -64,7 +50,7 @@ public class ProjectItem : ComponentBase
                     .Height(24)
                     .Width(24)
                     .Background(StaticResources.Brushes.MainBackgroundBrush)
-                    .OnClick(OnDeleteClick)
+                    .OnClick(state.OnDeleteClick)
                     .Content(
                         new TextBlock()
                             .Classes("FontIcon")
@@ -74,47 +60,73 @@ public class ProjectItem : ComponentBase
 
             ));
     }
-
-    private async void OnDeleteClick(RoutedEventArgs ev)
+    public sealed partial class State : ObservableObject
     {
-        try
+        private readonly IMessenger _messenger;
+        private readonly IDialogService _dialogService;
+        private readonly IProjectService _projectService;
+        private readonly ViewCommands _viewCommands;
+
+        public State(PreloadedProject project, IMessenger messenger, IDialogService dialogService, IProjectService projectService, ICommandService commandService)
         {
-            ev.Handled = true;
+            _messenger = messenger;
+            _dialogService = dialogService;
+            _projectService = projectService;
+            _viewCommands = commandService.GetCommandList<ViewCommands>()!;
 
-            if (await DialogService.ShowYesNoDialog($"Do you want to delete project \"{_project.Name}\" from disc?", "Delete project", "Yes"))
-            {
-                _project.File.Delete();
-                Messenger.Send(new MruChangedMessage());
-            }
-
+            Project = project;
+            ProjectName = string.IsNullOrWhiteSpace(project.Name) ? L("Loading...") : project.Name;
+            LoadPreview();
         }
-        catch (Exception e)
-        {
-            Logger.LogException(e);
-            await DialogService.ShowAlert("Error while trying to delete project", "Error");
-        }
-    }
 
-    private void LoadPreview()
-    {
-        Task.Run(async () =>
+        public PreloadedProject Project { get; }
+
+        public SKBitmapObservable Preview { get; } = new()
         {
-            var preview = await _project.LoadPreviewAsync();
-            if (preview != null)
+            Bitmap = StaticResources.NoPreview.ToSKBitmap()
+        };
+
+        [ObservableProperty]
+        public partial string ProjectName { get; set; } = string.Empty;
+
+        public async void OnDeleteClick(RoutedEventArgs ev)
+        {
+            try
             {
-                Preview.SetBitmap(preview);
-                OnPropertyChanged(nameof(Preview));
-                StateHasChanged();
-            }
-        });
-    }
+                ev.Handled = true;
 
-    private void LoadProject(RoutedEventArgs _)
-    {
-        Dispatcher.UIThread.InvokeAsync(async () =>
+                if (await _dialogService.ShowYesNoDialog($"Do you want to delete project \"{Project.Name}\" from disc?", "Delete project", "Yes"))
+                {
+                    Project.File.Delete();
+                    _messenger.Send(new MruChangedMessage());
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.LogException(e);
+                await _dialogService.ShowAlert("Error while trying to delete project", "Error");
+            }
+        }
+
+        public void LoadProject()
         {
-            CommandService.GetCommandList<ViewCommands>()?.HideMainMenuCommand.Execute();
-            await ProjectService.OpenFilesAsync([_project.File]);
-        });
+            Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                _viewCommands.HideMainMenuCommand.Execute();
+                await _projectService.OpenFilesAsync([Project.File]);
+            });
+        }
+
+        private void LoadPreview()
+        {
+            Task.Run(async () =>
+            {
+                var preview = await Project.LoadPreviewAsync();
+                if (preview != null)
+                {
+                    Preview.SetBitmap(preview);
+                }
+            });
+        }
     }
 }

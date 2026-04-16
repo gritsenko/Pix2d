@@ -1,25 +1,17 @@
-﻿using Avalonia.Controls;
-using Avalonia.Markup.Declarative;
-using Pix2d.Effects;
-using Pix2d.UI.Shared;
+﻿using Pix2d.Effects;
 
 namespace Pix2d.Plugins.BaseEffects.Views;
 
 public class OutlineEffectSettingsView(OutlineEffect e, Action onEffectUpdated) : EffectSettingsViewBase<OutlineEffect>(e, onEffectUpdated)
 {
-    protected override object Build(OutlineEffect? effect) =>
+    protected override object BuildEffectSettings(OutlineEffect effect) =>
         new StackPanel().Children(
             new Grid().Cols("*, Auto")
                 .Children(
                     new TextBlock().Col(0).Text("Color"),
-                    new ColorPickerButton().Col(1)
-                        .Color(() => effect?.Color ?? default, v => UpdateEffect(() => { if (effect != null) effect.Color = v; }))
+                    CreateColorPicker(effect.Color, value => effect.Color = value).Col(1)
                 ),
 
-            new SliderEx()
-                .Minimum(1)
-                .Maximum(20)
-                .Label(L("Thickness"))
-                .Value(() => effect?.Radius ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Radius = (float)v; }))
+            CreateSliderEx(L("Thickness"), 1, 20, effect.Radius, value => effect.Radius = (float)value)
         );
 }

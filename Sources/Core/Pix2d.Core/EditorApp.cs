@@ -12,7 +12,7 @@ public class EditorApp : Application
 
     public static IPix2dBootstrapper? Pix2dBootstrapper { get; set; }
     public static Action<object>? AppStarted { get; set; }
-    public static Action? AppInitialized { get; set; }
+    public static Action<EditorApp>? AppInitialized { get; set; }
     public static Func<bool>? OnAppClosing { get; set; }
     public static TopLevel? TopLevel { get; private set; }
     public static IUiModule? UiModule { get; set; }
@@ -26,7 +26,7 @@ public class EditorApp : Application
     /// <summary>
     /// Used to set top level on android application on main activity
     /// </summary>
-    public void UpdateTopLevelFromHostView() => TopLevel = HostView?.GetVisualRoot() as TopLevel;
+    public void UpdateTopLevelFromHostView() => TopLevel = HostView == null ? null : TopLevel.GetTopLevel(HostView);
 
     private void InitStyles()
     {
@@ -66,8 +66,7 @@ public class EditorApp : Application
             case ISingleViewApplicationLifetime singleViewLifetime:
                 {
                     singleViewLifetime.MainView = HostView;
-                    var root = singleViewLifetime.MainView.GetVisualRoot();
-                    TopLevel = root as TopLevel;
+                    TopLevel = TopLevel.GetTopLevel(singleViewLifetime.MainView);
                     break;
                 }
         }
@@ -84,7 +83,7 @@ public class EditorApp : Application
         {
             Content = HostView
         };
-        TopLevel = desktop.MainWindow.GetVisualRoot() as TopLevel;
+        TopLevel = desktop.MainWindow;
         desktop.MainWindow.Closing += (sender, args) =>
         {
             if (OnAppClosing == null) return;
@@ -119,6 +118,6 @@ public class EditorApp : Application
             Logger.Log(ex.StackTrace!);
             throw;
         }
-        AppInitialized?.Invoke();
+        AppInitialized?.Invoke(this);
     }
 }

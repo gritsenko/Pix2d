@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Pix2d.UI;
 
-public class HostView : ComponentBase
+public class HostView : ViewBase
 {
     protected override object Build() =>
         new Grid()
@@ -21,7 +21,7 @@ public class HostView : ComponentBase
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Width(100)
                     .IsIndeterminate(true)
-                    .Margin(top: 50)
+                    .Margin(0, 50, 0, 0)
             );
 
     private TextBlock _textBlock = null!;

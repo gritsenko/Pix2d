@@ -1,4 +1,5 @@
 using Avalonia.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Common.Extensions;
 using Pix2d.Messages;
 using Pix2d.State;
@@ -8,62 +9,37 @@ using System.Collections.ObjectModel;
 
 namespace Pix2d.UI;
 
-public class ColorPickerView : ComponentBase
+public partial class ColorPickerView(AppState appState, IMessenger messenger, IPaletteService paletteService, IDrawingService drawingService)
+    : ViewBase<ColorPickerView.State>(new State(appState, messenger, paletteService, drawingService))
 {
-    protected override object Build()
+    protected override object Build(State state)
     {
-        //var vm = this;
-        //DataContext = this;
-
         return new Grid().Width(236)
             .Rows("140, Auto, *")
             .Children(
-                new Pix2dColorPicker()
+                ViewFactory.Create<Pix2dColorPicker>()
                     .Margin(10)
-                    .Color(() => SelectedColor, v => SelectedColor = v),
+                    .Color(state, x => x.SelectedColor, BindingMode.TwoWay),
 
-                //new Grid().Row(1)
-                //    .Cols("Auto, Auto, *")
-                //    .Margin(10, 0, 10, 0)
-                //    .Children(
-                //        new ToggleButton() //Eyedropper
-                //            .Width(38)
-                //            .Height(38)
-                //            .Background(Brushes.Transparent)
-                //            .FontSize(20)
-                //            .Padding(-1)
-                //            .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                //            .Content("\xEF3C"),
-
-                //        new ToggleButton().Col(1) //Color editors
-                //            .Width(38)
-                //            .Height(38)
-                //            .FontSize(20)
-                //            .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                //            .IsChecked(Bind(@vm.EditorMode, BindingMode.TwoWay))
-                //            .Background(Brushes.Transparent)
-                //            .Padding(0)
-                //            .Content("\xE9E9")
-                //    ),
                 new Border().Row(2).Margin(8, 8, 8, 16).MinHeight(100)
                     .Child(
                         new TabControl()
-                            .SelectedIndex(() => ColorTypeIndex, v => ColorTypeIndex = v)
+                            .SelectedIndex(state, x => x.ColorTypeIndex, BindingMode.TwoWay)
                             .Items(
                                 new TabItem() //PALETTE EDITOR
                                     .Foreground(Brushes.White)
                                     .Header(L("List"))
                                     .Content(
                                         new StackPanel()
-                                            .IsVisible(() => !EditorMode)
+                                            .IsVisible(state, x => x.IsPaletteEditorVisible)
                                             .Children(
                                                 new TextBlock()
                                                     .Text(L("Recent colors")),
 
                                                 new ColorPalette()
                                                     .Margin(-6, 0)
-                                                    .Colors(() => RecentColors)
-                                                    .OnColorSelected(c => SelectedColor = c),
+                                                    .Colors(state.RecentColors)
+                                                    .OnColorSelected(c => state.SelectedColor = c),
 
                                                 new TextBlock()
                                                     .Text(L("Custom colors")),
@@ -71,11 +47,11 @@ public class ColorPickerView : ComponentBase
                                                 new ColorPalette()
                                                     .Margin(-6, 0)
                                                     .CanAddColor(true)
-                                                    .Colors(() => CustomColors)
-                                                    .OnColorAdded(c => PaletteService.InsertColor(nameof(PaletteService.CustomPalette), c, -1))
-                                                    .OnColorRemoved(OnColorRemoved)
-                                                    .ColorToAdd(() => SelectedColor)
-                                                    .OnColorSelected(c => SelectedColor = c)
+                                                    .Colors(state.CustomColors)
+                                                    .OnColorAdded(c => state.AddCustomColor(c))
+                                                    .OnColorRemoved(state.OnColorRemoved)
+                                                    .ColorToAdd(state, x => x.SelectedColor, BindingMode.OneWay)
+                                                    .OnColorSelected(c => state.SelectedColor = c)
                                             )
                                     ),
                                 new TabItem() //HEX EDITOR
@@ -84,13 +60,13 @@ public class ColorPickerView : ComponentBase
                                     .Content(
                                         new TextBox()
                                             .VerticalAlignment(VerticalAlignment.Top)
-                                            .Text(() => HexValue, v => HexValue = v)
+                                            .Text(state, x => x.HexValue, BindingMode.TwoWay)
                                             .OnKeyDown(args =>
                                             {
-                                                if (args.Key == Key.Enter) ApplyHexInput();
-                                                if (args.Key == Key.Escape) CancelHexInput();
+                                                if (args.Key == Key.Enter) state.ApplyHexInput();
+                                                if (args.Key == Key.Escape) state.CancelHexInput();
                                             })
-                                            .OnLostFocus(args => ApplyHexInput())
+                                            .OnLostFocus(args => state.ApplyHexInput())
                                     ),
                                 new TabItem() // HSV EDITOR
                                     .Foreground(Brushes.White)
@@ -99,13 +75,13 @@ public class ColorPickerView : ComponentBase
                                         new StackPanel()
                                             .Children(
                                                 new SliderEx().Label(L("Hue")).Minimum(0).Maximum(360)
-                                                    .Value(() => HsvHPart, v => HsvHPart = (float)v),
+                                                    .Value(state, x => x.HsvHPart, BindingMode.TwoWay),
 
                                                 new SliderEx().Label(L("Saturation")).Minimum(0).Maximum(100)
-                                                    .Value(() => HsvSPart, v => HsvSPart = (float)v),
+                                                    .Value(state, x => x.HsvSPart, BindingMode.TwoWay),
 
                                                 new SliderEx().Label(L("Value")).Minimum(0).Maximum(100)
-                                                    .Value(() => HsvVPart, v => HsvVPart = (float)v)
+                                                    .Value(state, x => x.HsvVPart, BindingMode.TwoWay)
                                             )
                                     ),
                                 new TabItem() // RGB EDITOR
@@ -118,17 +94,17 @@ public class ColorPickerView : ComponentBase
                                                     .Label(L("Red"))
                                                     .Minimum(0)
                                                     .Maximum(255)
-                                                    .Value(() => RedColorPart, v => RedColorPart = (byte)v),
+                                                    .Value(state, x => x.RedColorPart, BindingMode.TwoWay),
                                                 new SliderEx()
                                                     .Label(L("Green"))
                                                     .Minimum(0)
                                                     .Maximum(255)
-                                                    .Value(() => GreenColorPart, v => GreenColorPart = (byte)v),
+                                                    .Value(state, x => x.GreenColorPart, BindingMode.TwoWay),
                                                 new SliderEx()
                                                     .Label(L("Blue"))
                                                     .Minimum(0)
                                                     .Maximum(255)
-                                                    .Value(() => BlueColorPart, v => BlueColorPart = (byte)v)
+                                                    .Value(state, x => x.BlueColorPart, BindingMode.TwoWay)
                                             )
                                     )
                             )
@@ -136,281 +112,238 @@ public class ColorPickerView : ComponentBase
             );
     }
 
-    [Inject] private AppState AppState { get; set; } = null!;
-    [Inject] private IMessenger Messenger { get; set; } = null!;
-    [Inject] private IPaletteService PaletteService { get; set; } = null!;
-    [Inject] private IDrawingService DrawingService { get; set; } = null!;
-
-    private ObservableCollection<SKColor> CustomColors { get; set; } = [];
-    private ObservableCollection<SKColor> RecentColors { get; set; } = [];
-
-    private SKColor _previousColor;
-
-    private byte _rgbRPart;
-    private byte _rgbGPart;
-    private byte _rgbBPart;
-
-    private float _hsvHPart;
-    private float _hsvSPart;
-    private float _hsvVPart;
-
-    private string _hexValue = null!;
-
-    // Because of double-way binding, when changing one of the HSV values may change others due to
-    // color value conversion to RGB and rounding. To prevent such unexpected behaviour we add this
-    // guard.
-    private bool _isUsingHsvControls;
-
-    public SKColor SelectedColor
+    public sealed partial class State : ObservableObject
     {
-        get => AppState.SpriteEditorState.CurrentColor;
-        set
+        private readonly AppState _appState;
+        private readonly IPaletteService _paletteService;
+        private readonly IDrawingService _drawingService;
+        private SKColor _previousColor;
+        private bool _isUpdatingEditors;
+        private bool _isSyncingSelectedColor;
+
+        [ObservableProperty]
+        public partial SKColor SelectedColor { get; set; }
+
+        [ObservableProperty]
+        public partial int ColorTypeIndex { get; set; }
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsPaletteEditorVisible))]
+        public partial bool EditorMode { get; set; }
+
+        [ObservableProperty]
+        public partial double RedColorPart { get; set; }
+
+        [ObservableProperty]
+        public partial double GreenColorPart { get; set; }
+
+        [ObservableProperty]
+        public partial double BlueColorPart { get; set; }
+
+        [ObservableProperty]
+        public partial double HsvHPart { get; set; }
+
+        [ObservableProperty]
+        public partial double HsvSPart { get; set; }
+
+        [ObservableProperty]
+        public partial double HsvVPart { get; set; }
+
+        [ObservableProperty]
+        public partial string HexValue { get; set; } = string.Empty;
+
+        public ObservableCollection<SKColor> CustomColors { get; } = [];
+        public ObservableCollection<SKColor> RecentColors { get; } = [];
+        public bool IsPaletteEditorVisible => !EditorMode;
+        public bool IsEyedropperSelected => _appState.ToolsState.CurrentToolKey == "EyedropperTool";
+
+        public State(AppState appState, IMessenger messenger, IPaletteService paletteService, IDrawingService drawingService)
         {
-            DrawingService.SetCurrentColor(value);
-            OnPropertyChanged();
-            //UpdateEditors();
-            StateHasChanged();
+            _appState = appState;
+            _paletteService = paletteService;
+            _drawingService = drawingService;
+
+            SelectedColor = _appState.SpriteEditorState.CurrentColor;
+            LoadColors();
+            UpdateEditors();
+            _previousColor = SelectedColor;
+
+            _appState.ToolsState.WatchFor(x => x.CurrentToolKey, () => OnPropertyChanged(nameof(IsEyedropperSelected)));
+            _appState.SpriteEditorState.WatchFor(x => x.CurrentColor, OnDrawingStateColorChanged);
+            messenger.Register<DrawingServiceOnDrawnMessage>(this, DrawingServiceDrawn);
+            _paletteService.PaletteChanged += PaletteService_PaletteChanged;
         }
-    }
 
-    public ColorPickerColorType ColorType { get; set; }
-
-    public int ColorTypeIndex
-    {
-        get => (int)ColorType;
-        set
+        partial void OnSelectedColorChanged(SKColor value)
         {
-            if ((int)ColorType == value) return; // Prevent recursion
+            if (_isSyncingSelectedColor)
+                return;
 
-            ColorType = (ColorPickerColorType)value;
+            if (_appState.SpriteEditorState.CurrentColor != value)
+            {
+                _drawingService.SetCurrentColor(value);
+            }
+
+            _previousColor = value;
             UpdateEditors();
         }
-    }
 
-    public bool EditorMode { get; set; }
-    public SKColor PreviousColor { get; set; }
-
-    #region RGB
-
-    public byte RedColorPart
-    {
-        get => _rgbRPart;
-        set
+        partial void OnRedColorPartChanged(double value)
         {
-            if (value == _rgbRPart)
+            if (_isUpdatingEditors)
                 return;
 
-            _rgbRPart = value;
-            SelectedColor = new SKColor(value, _rgbGPart, _rgbBPart);
+            SelectedColor = new SKColor(ToByte(value), ToByte(GreenColorPart), ToByte(BlueColorPart));
         }
-    }
 
-    public byte GreenColorPart
-    {
-        get => _rgbGPart;
-        set
+        partial void OnGreenColorPartChanged(double value)
         {
-            if (value == _rgbGPart)
+            if (_isUpdatingEditors)
                 return;
 
-            _rgbGPart = value;
-            SelectedColor = new SKColor(_rgbRPart, value, _rgbBPart);
+            SelectedColor = new SKColor(ToByte(RedColorPart), ToByte(value), ToByte(BlueColorPart));
         }
-    }
 
-    public byte BlueColorPart
-    {
-        get => _rgbBPart;
-        set
+        partial void OnBlueColorPartChanged(double value)
         {
-            if (value == _rgbBPart)
+            if (_isUpdatingEditors)
                 return;
 
-            _rgbBPart = value;
-            SelectedColor = new SKColor(_rgbRPart, _rgbGPart, value);
+            SelectedColor = new SKColor(ToByte(RedColorPart), ToByte(GreenColorPart), ToByte(value));
         }
-    }
 
-    #endregion
-
-    #region HSV
-
-    public float HsvHPart
-    {
-        get => _hsvHPart;
-        set
+        partial void OnHsvHPartChanged(double value)
         {
-            if (Math.Abs(value - _hsvHPart) < float.Epsilon)
+            if (_isUpdatingEditors)
                 return;
 
-            _isUsingHsvControls = true;
-            _hsvHPart = value;
-            SelectedColor = SKColor.FromHsv(value, _hsvSPart, _hsvVPart);
-            _isUsingHsvControls = false;
+            SelectedColor = SKColor.FromHsv((float)value, (float)HsvSPart, (float)HsvVPart);
         }
-    }
 
-    public float HsvSPart
-    {
-        get => _hsvSPart;
-        set
+        partial void OnHsvSPartChanged(double value)
         {
-            if (Math.Abs(value - _hsvSPart) < float.Epsilon)
+            if (_isUpdatingEditors)
                 return;
 
-            _isUsingHsvControls = true;
-            _hsvSPart = value;
-            SelectedColor = SKColor.FromHsv(_hsvHPart, value, _hsvVPart);
-            _isUsingHsvControls = false;
+            SelectedColor = SKColor.FromHsv((float)HsvHPart, (float)value, (float)HsvVPart);
         }
-    }
 
-    public float HsvVPart
-    {
-        get => _hsvVPart;
-        set
+        partial void OnHsvVPartChanged(double value)
         {
-            if (Math.Abs(value - _hsvVPart) < float.Epsilon)
+            if (_isUpdatingEditors)
                 return;
 
-            _isUsingHsvControls = true;
-            _hsvVPart = value;
-            SelectedColor = SKColor.FromHsv(_hsvHPart, _hsvSPart, value);
-            _isUsingHsvControls = false;
-        }
-    }
-
-    #endregion
-
-    public string HexValue
-    {
-        get => _hexValue;
-        set => _hexValue = value;
-    }
-
-
-    public bool IsEyedropperSelected => AppState?.ToolsState.CurrentToolKey == "EyedropperTool";
-
-    protected override void OnAfterInitialized()
-    {
-        LoadColors();
-
-        AppState.ToolsState.WatchFor(x => x.CurrentToolKey, StateHasChanged);
-        AppState.SpriteEditorState.WatchFor(x => x.CurrentColor, OnDrawingStateColorChanged);
-        Messenger.Register<DrawingServiceOnDrawnMessage>(this, DrawingServiceDrawn);
-
-        PaletteService.PaletteChanged += PaletteService_PaletteChanged;
-    }
-    private void OnColorRemoved(SKColor c)
-    {
-        if (c == default)
-        {
-            c = SelectedColor;
+            SelectedColor = SKColor.FromHsv((float)HsvHPart, (float)HsvSPart, (float)value);
         }
 
-        if (c != default)
+        public void AddCustomColor(SKColor color)
         {
-            PaletteService.RemoveColor(nameof(PaletteService.CustomPalette), c);
-        }
-    }
-
-    private void OnDrawingStateColorChanged()
-    {
-        if (SelectedColor.Equals(_previousColor))
-            return;
-
-        UpdateEditors();
-        _previousColor = SelectedColor;
-        OnPropertyChanged(nameof(SelectedColor));
-    }
-
-    private void UpdateEditors()
-    {
-        var value = SelectedColor;
-
-        if (ColorType == ColorPickerColorType.Rgb)
-        {
-            _rgbRPart = value.Red;
-            _rgbGPart = value.Green;
-            _rgbBPart = value.Blue;
-            OnPropertyChanged(nameof(RedColorPart));
-            OnPropertyChanged(nameof(GreenColorPart));
-            OnPropertyChanged(nameof(BlueColorPart));
+            _paletteService.InsertColor(nameof(IPaletteService.CustomPalette), color, -1);
         }
 
-
-        if (ColorType == ColorPickerColorType.Hsv && !_isUsingHsvControls)
+        public void OnColorRemoved(SKColor color)
         {
-            value.ToHsv(out var hsvHPart, out var hsvSPart, out var hsvVPart);
-            _hsvHPart = (float)Math.Round(hsvHPart);
-            _hsvSPart = (float)Math.Round(hsvSPart);
-            _hsvVPart = (float)Math.Round(hsvVPart);
-
-            OnPropertyChanged(nameof(HsvHPart));
-            OnPropertyChanged(nameof(HsvSPart));
-            OnPropertyChanged(nameof(HsvVPart));
+            var colorToRemove = color == default ? SelectedColor : color;
+            if (colorToRemove != default)
+            {
+                _paletteService.RemoveColor(nameof(IPaletteService.CustomPalette), colorToRemove);
+            }
         }
 
-        if (ColorType == ColorPickerColorType.Hex)
+        public void ApplyHexInput()
         {
-            _hexValue = $"#{value.Red:X2}{value.Green:X2}{value.Blue:X2}";
-            OnPropertyChanged(nameof(HexValue));
-        }
-    }
+            if (SKColor.TryParse(HexValue, out var parsedColor))
+            {
+                HexValue = FormatHex(parsedColor);
+                SelectedColor = parsedColor;
+                return;
+            }
 
-    private void PaletteService_PaletteChanged(object? sender, Primitives.Palette.PaletteChangedEventArgs e)
-    {
-        LoadColors(e.PaletteName);
-    }
-
-    private void DrawingServiceDrawn(DrawingServiceOnDrawnMessage drawingServiceOnDrawnMessage)
-    {
-        if (RecentColors[0] == SelectedColor)
-            return;
-
-        PaletteService.InsertColor(nameof(PaletteService.RecentPalette), SelectedColor, 0);
-
-        var recentColors = PaletteService.RecentPalette;
-        RecentColors.Clear();
-        foreach (var c in recentColors)
-            RecentColors.Add(c);
-    }
-
-    private void LoadColors(string paletteName = default!)
-    {
-        if (paletteName == default || paletteName == nameof(PaletteService.CustomPalette))
-            LoadPalette(CustomColors, PaletteService.CustomPalette);
-
-        if (paletteName == default || paletteName == nameof(PaletteService.RecentPalette))
-            LoadPalette(RecentColors, PaletteService.RecentPalette);
-        //PreviousColor = SKColor.FromHsv(0, 0, 50);
-    }
-    void LoadPalette(ObservableCollection<SKColor> targetColl, IEnumerable<SKColor> src)
-    {
-        targetColl.Clear();
-        foreach (var customColor in src)
-            targetColl.Add(customColor);
-    }
-
-    public void ApplyHexInput()
-    {
-
-        if (SKColor.TryParse(_hexValue, out var parsedColor))
-        {
-            _hexValue = $"#{parsedColor.Red:X2}{parsedColor.Green:X2}{parsedColor.Blue:X2}";
-            SelectedColor = parsedColor;
-            UpdateEditors();
-        }
-        else
-        {
             CancelHexInput();
         }
-    }
 
-    public void CancelHexInput()
-    {
-        HexValue = SelectedColor.ToString();
-        UpdateEditors();
+        public void CancelHexInput()
+        {
+            HexValue = FormatHex(SelectedColor);
+        }
+
+        private void OnDrawingStateColorChanged()
+        {
+            var currentColor = _appState.SpriteEditorState.CurrentColor;
+            if (currentColor.Equals(_previousColor))
+                return;
+
+            _isSyncingSelectedColor = true;
+            SelectedColor = currentColor;
+            _isSyncingSelectedColor = false;
+
+            _previousColor = currentColor;
+            UpdateEditors();
+        }
+
+        private void PaletteService_PaletteChanged(object? sender, Primitives.Palette.PaletteChangedEventArgs e)
+        {
+            LoadColors(e.PaletteName);
+        }
+
+        private void DrawingServiceDrawn(DrawingServiceOnDrawnMessage _)
+        {
+            if (RecentColors.Count > 0 && RecentColors[0] == SelectedColor)
+                return;
+
+            _paletteService.InsertColor(nameof(IPaletteService.RecentPalette), SelectedColor, 0);
+            LoadPalette(RecentColors, _paletteService.RecentPalette);
+        }
+
+        private void LoadColors(string paletteName = default!)
+        {
+            if (paletteName == default || paletteName == nameof(IPaletteService.CustomPalette))
+            {
+                LoadPalette(CustomColors, _paletteService.CustomPalette);
+            }
+
+            if (paletteName == default || paletteName == nameof(IPaletteService.RecentPalette))
+            {
+                LoadPalette(RecentColors, _paletteService.RecentPalette);
+            }
+        }
+
+        private void LoadPalette(ObservableCollection<SKColor> targetCollection, IEnumerable<SKColor> source)
+        {
+            targetCollection.Clear();
+            foreach (var color in source)
+            {
+                targetCollection.Add(color);
+            }
+        }
+
+        private void UpdateEditors()
+        {
+            var value = SelectedColor;
+
+            _isUpdatingEditors = true;
+            RedColorPart = value.Red;
+            GreenColorPart = value.Green;
+            BlueColorPart = value.Blue;
+
+            value.ToHsv(out var hsvHPart, out var hsvSPart, out var hsvVPart);
+            HsvHPart = Math.Round(hsvHPart);
+            HsvSPart = Math.Round(hsvSPart);
+            HsvVPart = Math.Round(hsvVPart);
+
+            HexValue = FormatHex(value);
+            _isUpdatingEditors = false;
+        }
+
+        private static byte ToByte(double value)
+        {
+            return (byte)Math.Clamp((int)Math.Round(value), 0, 255);
+        }
+
+        private static string FormatHex(SKColor color)
+        {
+            return $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
+        }
     }
 
     public enum ColorPickerColorType : byte
