@@ -1,3 +1,4 @@
+using Avalonia.Styling;
 using System.Windows.Input;
 
 namespace Pix2d.UI.Shared;
@@ -65,16 +66,13 @@ public class AppButton : ViewBase
 
     protected override object Build() =>
         new Button()
-            //.Classes("app-button")
             .Theme(null)
-            .With(b => b.Classes.Add("app-button"))
+            .Classes("app-button")
             .Command(this, x => x.Command, BindingMode.OneWay)
             .HorizontalAlignment(HorizontalAlignment.Stretch)
             .VerticalAlignment(VerticalAlignment.Stretch)
             .HorizontalContentAlignment(HorizontalAlignment.Stretch)
             .VerticalContentAlignment(VerticalAlignment.Stretch)
-            .Padding(0)
-            .Margin(0)
             .OnClick(_ => Click?.Invoke())
             .Content(
                 new Border()

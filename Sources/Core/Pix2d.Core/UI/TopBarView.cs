@@ -22,13 +22,6 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
             new Style<BlurPanel>(s => s.OfType<BlurPanel>().Name("central-panel"))
                 .Col(1)
                 .ColSpan(1),
-
-            //new Style<AppButton>(s => s.Is<AppButton>().Name("export-button"))
-            //    .IsVisible(false),
-
-            //new Style<AppButton>(s => s.Is<AppButton>())
-            //    .Width(40)
-            //    .Height(40),
         }
     ];
 

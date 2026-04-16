@@ -92,7 +92,7 @@ public static class StaticResources
         //public static SKBitmapToBrushConverter SKBitmapToBrushConverter { get; } = new();
 
         public static FuncValueConverter<SKBitmap, IBrush> SKBitmapToIBrushConverter = new FuncValueConverter<SKBitmap, IBrush>(v => v != null ? new ImageBrush(v.ToBitmap()) : Avalonia.Media.Brushes.Transparent);
-        public static IValueConverter InverseBooleanConverter { get; } = new FuncValueConverter<bool, bool>(b => !b);
+        public static IValueConverter InverseBooleanConverter { get; } = new FuncValueConverter<bool, bool>(b => !b, b => !b);
         public static IValueConverter OptionalBooleanConverter { get; } = new FuncValueConverter<bool?, bool>(b => b ?? false, b => b);
 
         public static FuncValueConverter<bool, IBrush> BoolToBrushButtonForegroundConverter = new(v => v ? Avalonia.Media.Brushes.White : Avalonia.Media.Brushes.Gray);

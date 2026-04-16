@@ -17,23 +17,21 @@ public class EditorApp : Application
     public static TopLevel? TopLevel { get; private set; }
     public static IUiModule? UiModule { get; set; }
 
+    /// <summary>
+    /// Used to set top level on android application on main activity
+    /// </summary>
+    public void UpdateTopLevelFromHostView() => TopLevel = HostView == null ? null : TopLevel.GetTopLevel(HostView);
+
     public override void Initialize()
     {
         RequestedThemeVariant = ThemeVariant.Dark;
         InitStyles();
     }
 
-    /// <summary>
-    /// Used to set top level on android application on main activity
-    /// </summary>
-    public void UpdateTopLevelFromHostView() => TopLevel = HostView == null ? null : TopLevel.GetTopLevel(HostView);
-
     private void InitStyles()
     {
         try
         {
-            Styles.Add(new SimpleTheme());
-
             var styles = (Styles?)UiModule?.GetStyles();
             if (styles != null)
             {
@@ -43,6 +41,8 @@ public class EditorApp : Application
                 foreach (var resource in styles.Resources)
                     Resources.Add(resource);
             }
+
+            Styles.Add(new SimpleTheme());
         }
         catch (Exception ex)
         {

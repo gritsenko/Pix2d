@@ -184,7 +184,7 @@ public class PopupView(AppState appState, IMessenger messenger) : ViewBase
                                             .FontSize(24)
                                             .Text(v ? "\xE840" : "\xE141"))),
                                 new Button().Col(2) //Close button
-                                    .Classes("SmallButton")
+                                    .Classes("small-button")
                                     .FontSize(14)
                                     .FontFamily(StaticResources.Fonts.IconFontSegoe)
                                     .Command(this, x => x.CloseButtonCommand, BindingMode.OneWay)

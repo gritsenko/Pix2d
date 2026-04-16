@@ -1,4 +1,6 @@
-﻿namespace Pix2d.UI.Shared;
+﻿using Pix2d.UI.Resources;
+
+namespace Pix2d.UI.Shared;
 
 public class AppToggleButton : AppButton
 {
@@ -14,16 +16,12 @@ public class AppToggleButton : AppButton
 
     protected override object Build() =>
         new ToggleButton()
-        {
-            [!ToggleButton.IsCheckedProperty] = this[!IsCheckedProperty]
-        }
+        .IsChecked(this, x => x.IsChecked, BindingMode.TwoWay, StaticResources.Converters.InverseBooleanConverter)
         .Command(this, x => x.Command, BindingMode.OneWay)
         .HorizontalAlignment(HorizontalAlignment.Stretch)
         .VerticalAlignment(VerticalAlignment.Stretch)
         .HorizontalContentAlignment(HorizontalAlignment.Stretch)
         .VerticalContentAlignment(VerticalAlignment.Stretch)
-        .Padding(0)
-        .Margin(0)
         .Content(
             new Border()
                 .Background(this, x => x.Background, BindingMode.OneWay)
