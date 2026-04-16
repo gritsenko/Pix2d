@@ -46,7 +46,7 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .BorderThickness(0)
                     .CornerRadius(12),
 
-                new Style<ToggleButton>(s => s.OfType<ToggleButton>().Class(":checked").Template().Is<ContentPresenter>())
+                new Style<ContentPresenter>(s => s.OfType<ToggleButton>().Class(":checked").Template().Is<ContentPresenter>())
                     .Background(StaticResources.Brushes.SelectedToggleButtonBrush),
 
                 new Style<Button>(s => s.Class("btn-bright"))
