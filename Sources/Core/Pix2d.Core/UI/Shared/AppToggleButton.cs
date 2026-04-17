@@ -1,6 +1,4 @@
-﻿using Pix2d.UI.Resources;
-
-namespace Pix2d.UI.Shared;
+﻿namespace Pix2d.UI.Shared;
 
 public class AppToggleButton : AppButton
 {
@@ -24,7 +22,7 @@ public class AppToggleButton : AppButton
         .VerticalContentAlignment(VerticalAlignment.Stretch)
         .Content(
             new Border()
-                .Background(this, x => x.Background, BindingMode.OneWay)
+                .Background(Brushes.Transparent)
                 .Child(
                     new Grid()
                         .Rows("24, Auto")

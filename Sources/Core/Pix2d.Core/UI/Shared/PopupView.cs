@@ -179,7 +179,7 @@ public class PopupView(AppState appState, IMessenger messenger) : ViewBase
                                     .CornerRadius(new CornerRadius(StaticResources.Measures.SmallButtonCornerRadius))
                                     .Margin(4)
                                     .IsVisible(this, x => x.ShowPinButton, BindingMode.OneWay)
-                                    .IsChecked(this, x => x.IsPinned, BindingMode.TwoWay, StaticResources.Converters.InverseBooleanConverter)
+                                    .IsChecked(this, x => x.IsPinned, BindingMode.TwoWay)
                                     .Content(this, x => x.IsPinned, BindingMode.OneWay)
                                     .ContentTemplate(new FuncDataTemplate<bool>((v, _) =>
                                         new TextBlock()

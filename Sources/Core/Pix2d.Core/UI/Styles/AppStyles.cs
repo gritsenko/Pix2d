@@ -10,13 +10,17 @@ public partial class AppStyles : Avalonia.Styling.Styles
 {
     public AppStyles()
     {
-        AddRange(
-            [
+        AddRange([
                 new Style<Button>()
                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
                     .FontSize(8)
-                    .Background(Brushes.Transparent)
                     .BorderThickness(new Thickness(0, 0)),
+
+                new Style<Button>(s => s.OfType<Button>().Not(x => x.Class(":pointerover")).Not(x => x.Class(":pressed")))
+                    .Background(Brushes.Transparent),
+
+                new Style<ToggleButton>(s => s.OfType<ToggleButton>().Not(x => x.Class(":pointerover")).Not(x => x.Class(":pressed")))
+                    .Background(Brushes.Transparent),
 
                 new Style<Button>(s => s.Class("small-button"))
                     .CornerRadius(StaticResources.Measures.SmallButtonCornerRadius)
@@ -43,12 +47,6 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .Height(44)
                     .BorderThickness(0)
                     .CornerRadius(12),
-
-                new Style<ContentPresenter>(s => s.OfType<ToggleButton>().Class(":unchecked").Template().Is<ContentPresenter>())
-                    .Background(Brushes.Transparent),
-
-                new Style<ContentPresenter>(s => s.OfType<ToggleButton>().Class(":checked").Template().Is<ContentPresenter>())
-                    .Background(StaticResources.Brushes.SelectedToggleButtonBrush),
 
                 new Style<Button>(s => s.Class("btn-bright"))
                     .Background(Colors.White.WithAlpha(0.1f).ToBrush().ToImmutable()),
@@ -84,22 +82,6 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .VerticalAlignment(VerticalAlignment.Center),
 
-
-                new Style<Button>(s => s.Is<Button>().Class(":pointerover").Not(b => b.Class("color-button")).Template().Is<ContentPresenter>())
-                    .Background(StaticResources.Brushes.ButtonHoverBrush),
-
-                new Style<Button>(s => s.Is<Button>().Class(":pointerover").Class("color-button").Template().Is<ContentPresenter>())
-                    .BorderBrush(StaticResources.Brushes.ButtonHoverBrush),
-
-                new Style<Button>(s => s.Is<Button>().Class(":pressed").Not(b => b.Class("color-button")).Template().Is<ContentPresenter>())
-                    .Background(StaticResources.Brushes.ButtonActiveBrush),
-
-                new Style<ToggleSwitch>(s => s.Class(":pointerover").Template().Is<ContentPresenter>())
-                    .Background(Brushes.Transparent),
-
-                new Style<ToggleSwitch>(s => s.Class(":checked").Template().Is<ContentPresenter>())
-                    .Background(Brushes.Transparent),
-
                 new Style<Button>(s => s.OfType<ProjectItem>().Child())
                     .BorderThickness(new Thickness(2))
                     .BorderBrush(Brushes.Transparent),
@@ -125,7 +107,9 @@ public partial class AppStyles : Avalonia.Styling.Styles
         Resources["ThemeBorderLowBrush"] = Brushes.Gray;
 
         //button
-        //Resources["ThemeControlHighBrush"] = Brushes.GreenYellow;
+        Resources["ThemeControlHighBrush"] = StaticResources.Brushes.SelectedToggleButtonBrush;
+        Resources["ThemeControlMidBrush"] = StaticResources.Brushes.ButtonHoverBrush;
+        Resources["ThemeControlLowBrush"] = StaticResources.Brushes.ButtonHoverBrush;
         //Resources["ThemeBorderMidBrush"] = Brushes.GreenYellow;
     }
 }

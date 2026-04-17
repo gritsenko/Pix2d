@@ -39,7 +39,7 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
                             .Classes("anim-btn")
                             .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                             .FontSize(14)
-                            .IsChecked(state, x => x.IsPlayingAnimation, BindingMode.OneWay, StaticResources.Converters.InverseBooleanConverter)
+                            .IsChecked(state, x => x.IsPlayingAnimation, BindingMode.OneWay)
                             .Content(state, x => x.PlayIcon)
                             .OnClick(_ => state.SpriteAnimationCommands.TogglePlay.Execute())
                             .Classes("anim-btn"),
@@ -86,7 +86,7 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
                                     .Classes("anim-btn")
                                     .VerticalContentAlignment(VerticalAlignment.Center)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
-                                    .IsChecked(state, x => x.ShowOnionSkin, BindingMode.TwoWay, StaticResources.Converters.InverseBooleanConverter)
+                                    .IsChecked(state, x => x.ShowOnionSkin, BindingMode.TwoWay)
                                     .ToolTip_Tip("Onion skin")
                                     .Content(new TextBlock()
                                         .FontSize(14)

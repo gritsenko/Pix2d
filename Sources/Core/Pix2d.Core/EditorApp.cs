@@ -1,7 +1,6 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Styling;
 using Avalonia.Themes.Simple;
-using Avalonia.VisualTree;
 using Pix2d.UI;
 
 namespace Pix2d;
@@ -32,6 +31,8 @@ public class EditorApp : Application
     {
         try
         {
+            Styles.Add(new SimpleTheme());
+
             var styles = (Styles?)UiModule?.GetStyles();
             if (styles != null)
             {
@@ -42,7 +43,6 @@ public class EditorApp : Application
                     Resources.Add(resource);
             }
 
-            Styles.Add(new SimpleTheme());
         }
         catch (Exception ex)
         {

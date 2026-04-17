@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Command;
 using Pix2d.UI.Resources;
-using Pix2d.UI.Shared;
 using Pix2d.UI.Styles;
 
 namespace Pix2d.UI.MainMenu;
@@ -28,7 +27,10 @@ public partial class MainMenuView : ViewBase<MainMenuView.State>
             .Setter(TemplatedControl.BackgroundProperty, StaticResources.Brushes.AccentBrush),
 
         new Style<Grid>(s => s.Name("main-menu-content")).Col(1),
-        new Style<Button>(s => s.Name(BackButtonName)).IsVisible(false),
+
+        new Style<MainMenuItemView>(s => s.Name(BackButtonName))
+            .IsVisible(false),
+
         new Style<Button>(s => s.OfType<MainMenuItemView>().Class(MainMenuItemView.SelectedClass).Child())
             .Background(StaticResources.Brushes.ButtonHoverBrush),
 
@@ -40,7 +42,8 @@ public partial class MainMenuView : ViewBase<MainMenuView.State>
                 .Col(0)
                 .ColSpan(2),
 
-            new Style<Button>(s => s.Name(BackButtonName)).IsVisible(true),
+            new Style<MainMenuItemView>(s => s.Name(BackButtonName))
+                .IsVisible(true),
 
             new Style<ItemsControl>(s => s.Name("main-menu-buttons"))
                 .Col(0)
