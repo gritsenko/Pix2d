@@ -2,7 +2,6 @@
 	<PropertyGroup>
        <TargetFramework>net10.0-browser</TargetFramework>
 		<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
-		<WasmMainJSPath>AppBundle/main.js</WasmMainJSPath>
 		<OutputType>Exe</OutputType>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<TrimMode>link</TrimMode>
@@ -33,9 +32,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="../../Core/Pix2d.Shared/Pix2d.Shared.csproj" />
-		<ProjectReference Include="../../Plugins/Pix2d.Plugins.Ai/Pix2d.Plugins.Ai.csproj" />
-		<ProjectReference Include="../../Plugins\FormatSupport\Psd\Pix2d.Plugins.Psd\Pix2d.Plugins.Psd.csproj" />
-		<ProjectReference Include="../../Plugins\Pix2d.Plugins.OpenCv\Pix2d.Plugins.OpenCv.csproj" />
 		<ProjectReference Include="../../Core\Pix2d.Core\Pix2d.Core.csproj" />
 	</ItemGroup>
 	<ItemGroup>
