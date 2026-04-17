@@ -54,17 +54,20 @@ public class EditorApp : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        HostView = new HostView();
-
         switch (ApplicationLifetime)
         {
             //DESKTOP
             case IClassicDesktopStyleApplicationLifetime desktop:
                 InitDesktopWindow(desktop);
                 break;
+            //ANDROID
+            case IActivityApplicationLifetime activityLifetime:
+                activityLifetime.MainViewFactory = CreateMainView;
+                break;
             //WEB ASSEMBLY
             case ISingleViewApplicationLifetime singleViewLifetime:
                 {
+                    HostView = new HostView();
                     singleViewLifetime.MainView = HostView;
                     TopLevel = TopLevel.GetTopLevel(singleViewLifetime.MainView);
                     break;
@@ -72,13 +75,23 @@ public class EditorApp : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+        EnsurePix2dInitialized();
 
-        InitializePix2d(HostView);
+        if (ApplicationLifetime is not IActivityApplicationLifetime)
+            AttachMainView(HostView);
 
+    }
+
+    private Control CreateMainView()
+    {
+        HostView = new HostView();
+        AttachMainView(HostView);
+        return HostView;
     }
 
     private void InitDesktopWindow(IClassicDesktopStyleApplicationLifetime desktop)
     {
+        HostView = new HostView();
         desktop.MainWindow = new MainWindow()
         {
             Content = HostView
@@ -93,7 +106,21 @@ public class EditorApp : Application
         AppStarted?.Invoke(desktop.MainWindow);
     }
 
-    private void InitializePix2d(HostView? hostView)
+    private bool _pix2dInitialized;
+
+    private void EnsurePix2dInitialized()
+    {
+        if (_pix2dInitialized || Design.IsDesignMode)
+            return;
+
+        if (Pix2dBootstrapper == null)
+            throw new NullReferenceException("Bootstrapper not set");
+
+        Pix2dBootstrapper.Initialize();
+        _pix2dInitialized = true;
+    }
+
+    private void AttachMainView(HostView? hostView)
     {
         if (Design.IsDesignMode)
             return;
@@ -103,13 +130,7 @@ public class EditorApp : Application
 
         try
         {
-            if (Pix2dBootstrapper == null)
-            {
-                throw new NullReferenceException("Bootstrapper not set");
-            }
-
-            Pix2dBootstrapper.Initialize();
-
+            EnsurePix2dInitialized();
             hostView.LoadMainView(UiModule!.GetMainViewType(), Pix2dBootstrapper!.GetServiceProvider());
         }
         catch (Exception ex)

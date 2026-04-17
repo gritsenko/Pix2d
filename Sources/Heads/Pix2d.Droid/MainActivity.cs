@@ -6,11 +6,8 @@ using Android.Views;
 using AndroidX.Core.View;
 using Avalonia;
 using Avalonia.Android;
-using Avalonia.Controls;
-using Avalonia.Markup.Declarative;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Platform.FileSystem;
-using Pix2d.UI;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -28,17 +25,15 @@ namespace Pix2d.Droid;
 
 [IntentFilter([Intent.ActionOpenDocument], Categories = [Intent.CategoryOpenable, Intent.CategoryDefault])]
 [IntentFilter([Intent.ActionGetContent], Categories = [Intent.CategoryOpenable, Intent.CategoryDefault])]
-public partial class MainActivity : AvaloniaMainActivity<EditorApp>
+public partial class MainActivity : AvaloniaMainActivity
 {
     public static Android.Net.Uri? PendingFileUri { get; set; }
-    internal static MainActivity Instance { get; private set; } = null!;
+    internal static MainActivity? Instance { get; private set; }
 
     public event EventHandler<IFileContentSource?>? FileOpened;
     private const int ReadRequestCode = 42;
     private Android.Net.Uri? _uriAwaitingSafPermission;
     private bool _appCreated = false;
-    private readonly AndroidPix2dBootstrapper _bootstrapper;
-    private static readonly ServiceCollection ServiceCollection = [];
 
     private static long _lastLifecycleSaveTicks;
     private static int _lifecycleSaveInFlight;
@@ -46,24 +41,9 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
     public MainActivity()
     {
         Instance = this;
-        _bootstrapper = new AndroidPix2dBootstrapper();
-        _bootstrapper.ConfigureServices(ServiceCollection);
-        EditorApp.Pix2dBootstrapper = _bootstrapper;
-        EditorApp.UiModule ??= new UiModule();
         AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
         TaskScheduler.UnobservedTaskException += TaskSchedulerOnUnobservedTaskException;
         OnBackPressedDispatcher.AddCallback(this, new BackPress(this));
-    }
-
-    protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
-    {
-        var serviceProvider = _bootstrapper.GetServiceProvider();
-
-        return base.CustomizeAppBuilder(builder)
-            .UseServiceProvider(serviceProvider)
-            .UseComponentControlFactory(type => (Control)ActivatorUtilities.CreateInstance(serviceProvider, type))
-            .UseViewInitializationStrategy(ViewInitializationStrategy.Immediate)
-            .WithInterFont();
     }
 
     protected override void OnCreate(Bundle? savedInstanceState)
@@ -71,9 +51,11 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
         SetTheme(Resource.Style.MyTheme_NoActionBar);
 
         if (PendingFileUri != null)
-            _bootstrapper.StartupDocument = PendingFileUri.ToString();
+            Pix2dApplication.Bootstrapper.StartupDocument = PendingFileUri.ToString();
 
         base.OnCreate(savedInstanceState);
+
+        AttachPlatformServices();
 
         if (Avalonia.Application.Current is EditorApp app)
             app.UpdateTopLevelFromHostView();
@@ -262,8 +244,22 @@ public partial class MainActivity : AvaloniaMainActivity<EditorApp>
 
     protected override void OnDestroy()
     {
-        //SaveSessionSafely(critical: true);
+        if (ReferenceEquals(Instance, this))
+            Instance = null;
+
         base.OnDestroy();
+    }
+
+    internal static bool TryGetInstance(out MainActivity activity)
+    {
+        activity = Instance!;
+        return activity != null;
+    }
+
+    private static void AttachPlatformServices()
+    {
+        if (Pix2dApplication.Bootstrapper.GetServiceProvider().GetService(typeof(Pix2d.Droid.Services.AndroidPlatformStuffService)) is Pix2d.Droid.Services.AndroidPlatformStuffService platformStuff)
+            platformStuff.AttachActivity(Instance!);
     }
 
     private void SaveSessionSafely(bool critical)
