@@ -173,15 +173,18 @@ public class PopupView(AppState appState, IMessenger messenger) : ViewBase
                                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
                                     .Text(this, x => x.Header, BindingMode.OneWay),
                                 new ToggleButton().Col(1) // pin button
-                                    .Width(44)
-                                    .Height(44)
+                                    .Classes("small-button")
+                                    .Width(StaticResources.Measures.SmallButtonSize)
+                                    .Height(StaticResources.Measures.SmallButtonSize)
+                                    .CornerRadius(new CornerRadius(StaticResources.Measures.SmallButtonCornerRadius))
+                                    .Margin(4)
                                     .IsVisible(this, x => x.ShowPinButton, BindingMode.OneWay)
-                                    .IsChecked(this, x => x.IsPinned, BindingMode.TwoWay)
+                                    .IsChecked(this, x => x.IsPinned, BindingMode.TwoWay, StaticResources.Converters.InverseBooleanConverter)
                                     .Content(this, x => x.IsPinned, BindingMode.OneWay)
                                     .ContentTemplate(new FuncDataTemplate<bool>((v, _) =>
                                         new TextBlock()
                                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                                            .FontSize(24)
+                                            .FontSize(14)
                                             .Text(v ? "\xE840" : "\xE141"))),
                                 new Button().Col(2) //Close button
                                     .Classes("small-button")

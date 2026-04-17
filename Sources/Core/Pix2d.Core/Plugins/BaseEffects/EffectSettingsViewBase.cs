@@ -4,27 +4,19 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.BaseEffects;
 
-public abstract class EffectSettingsViewBase<TEffect> : ViewBase, IEffectsService.IEffectSettingsView
+public abstract class EffectSettingsViewBase<TEffect>(TEffect effect, Action onEffectUpdated)
+    : ViewBase, IEffectsService.IEffectSettingsView
     where TEffect : ISKNodeEffect
 {
-    private readonly TEffect _effect;
-    private readonly Action _onEffectUpdated;
-
-    protected EffectSettingsViewBase(TEffect effect, Action onEffectUpdated)
-    {
-        _effect = effect;
-        _onEffectUpdated = onEffectUpdated;
-    }
-
-    protected override object Build() => BuildEffectSettings(_effect);
+    protected override object Build() => BuildEffectSettings(effect);
 
     protected abstract object BuildEffectSettings(TEffect effect);
 
     protected void UpdateEffect(Action updatePropertyFunc)
     {
         updatePropertyFunc.Invoke();
-        _effect.Invalidate();
-        _onEffectUpdated();
+        effect.Invalidate();
+        onEffectUpdated();
     }
 
     protected ColorPickerButton CreateColorPicker(SKColor value, Action<SKColor> onChanged)

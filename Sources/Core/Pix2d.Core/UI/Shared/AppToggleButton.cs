@@ -16,7 +16,7 @@ public class AppToggleButton : AppButton
 
     protected override object Build() =>
         new ToggleButton()
-        .IsChecked(this, x => x.IsChecked, BindingMode.TwoWay, StaticResources.Converters.InverseBooleanConverter)
+        .IsChecked(this, x => x.IsChecked, BindingMode.TwoWay)
         .Command(this, x => x.Command, BindingMode.OneWay)
         .HorizontalAlignment(HorizontalAlignment.Stretch)
         .VerticalAlignment(VerticalAlignment.Stretch)

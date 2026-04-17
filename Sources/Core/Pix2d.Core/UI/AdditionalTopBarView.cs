@@ -38,14 +38,14 @@ public partial class AdditionalTopBarView(AppState appState, ISettingsService se
                             .Content("\xe903"),
 
                         new AppToggleButton()
-                            .IsChecked(state, x => x.ShowTimeline, BindingMode.TwoWay, StaticResources.Converters.OptionalBooleanConverter)
+                            .IsChecked(state, x => x.ShowTimeline, BindingMode.TwoWay)
                             .Label(L("Animate"))
                             .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                             .Content("\xe905"),
 
                         new AppToggleButton()
                             .IsVisible(state, x => x.IsSpriteContext)
-                            .IsChecked(state, x => x.ShowLayers, BindingMode.TwoWay, StaticResources.Converters.OptionalBooleanConverter)
+                            .IsChecked(state, x => x.ShowLayers, BindingMode.TwoWay)
                             .Label(L("Layers"))
                             .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                             .Content("\xe900")

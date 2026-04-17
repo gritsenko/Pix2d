@@ -25,21 +25,26 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
                     {
                         new Button()
                             .Classes("anim-btn")
+                            .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                             .Command(state.SpriteAnimationCommands.Stop)
                             .Content("\xe92e")
                             .Classes("anim-btn"),
                         new Button()
                             .Classes("anim-btn")
+                            .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                             .Command(state.SpriteAnimationCommands.PrevFrame)
                             .Content("\xe92f")
                             .Classes("anim-btn"),
                         new ToggleButton()
                             .Classes("anim-btn")
-                            .IsChecked(state, x => x.IsPlayingAnimation)
+                            .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                            .FontSize(14)
+                            .IsChecked(state, x => x.IsPlayingAnimation, BindingMode.OneWay, StaticResources.Converters.InverseBooleanConverter)
                             .Content(state, x => x.PlayIcon)
                             .OnClick(_ => state.SpriteAnimationCommands.TogglePlay.Execute())
                             .Classes("anim-btn"),
                         new Button()
+                            .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                             .Command(state.SpriteAnimationCommands.NextFrame)
                             .Content("\xe931")
                             .Classes("anim-btn")
@@ -59,16 +64,19 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
                                     .VerticalAlignment(VerticalAlignment.Center),
 
                                 new Button()
+                                    .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Command(state.SpriteAnimationCommands.AddFrame)
                                     .Content("\xe920")
                                     .ToolTip_Tip("Add frame")
                                     .Classes("anim-btn"),
                                 new Button()
+                                    .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Command(state.SpriteAnimationCommands.DuplicateFrame)
                                     .Content("\xe928")
                                     .ToolTip_Tip("Duplicate frame")
                                     .Classes("anim-btn"),
                                 new Button()
+                                    .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Command(state.SpriteAnimationCommands.DeleteFrame)
                                     .Content("\xe929")
                                     .ToolTip_Tip("Delete frame")
@@ -78,9 +86,11 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
                                     .Classes("anim-btn")
                                     .VerticalContentAlignment(VerticalAlignment.Center)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
-                                    .IsChecked(state, x => x.ShowOnionSkin, BindingMode.TwoWay)
+                                    .IsChecked(state, x => x.ShowOnionSkin, BindingMode.TwoWay, StaticResources.Converters.InverseBooleanConverter)
                                     .ToolTip_Tip("Onion skin")
                                     .Content(new TextBlock()
+                                        .FontSize(14)
+                                        .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                         .Text("\xe92b")
                                         .Padding(4)),
 

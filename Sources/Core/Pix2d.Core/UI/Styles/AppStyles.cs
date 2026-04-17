@@ -3,7 +3,6 @@ using Avalonia.Styling;
 using Pix2d.UI.MainMenu;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
-using SkiaSharp;
 
 namespace Pix2d.UI.Styles;
 
@@ -38,13 +37,15 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .Height(36),
 
                 new Style<ToggleButton>()
-                    .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
                     .FontSize(8)
                     .Margin(6)
                     .Width(44)
                     .Height(44)
                     .BorderThickness(0)
                     .CornerRadius(12),
+
+                new Style<ContentPresenter>(s => s.OfType<ToggleButton>().Class(":unchecked").Template().Is<ContentPresenter>())
+                    .Background(Brushes.Transparent),
 
                 new Style<ContentPresenter>(s => s.OfType<ToggleButton>().Class(":checked").Template().Is<ContentPresenter>())
                     .Background(StaticResources.Brushes.SelectedToggleButtonBrush),
@@ -84,20 +85,20 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .VerticalAlignment(VerticalAlignment.Center),
 
 
-                new Style<Button>(s => s.OfType<Button>().Class(":pointerover").Not(b => b.Class("color-button")).Template().Is<ContentPresenter>())
+                new Style<Button>(s => s.Is<Button>().Class(":pointerover").Not(b => b.Class("color-button")).Template().Is<ContentPresenter>())
                     .Background(StaticResources.Brushes.ButtonHoverBrush),
 
-                new Style<Button>(s => s.OfType<Button>().Class(":pointerover").Class("color-button").Template().Is<ContentPresenter>())
+                new Style<Button>(s => s.Is<Button>().Class(":pointerover").Class("color-button").Template().Is<ContentPresenter>())
                     .BorderBrush(StaticResources.Brushes.ButtonHoverBrush),
 
-                new Style<Button>(s => s.OfType<Button>().Class(":pressed").Not(b => b.Class("color-button")).Template().Is<ContentPresenter>())
+                new Style<Button>(s => s.Is<Button>().Class(":pressed").Not(b => b.Class("color-button")).Template().Is<ContentPresenter>())
                     .Background(StaticResources.Brushes.ButtonActiveBrush),
 
-                new Style<ToggleSwitch>(s => s.OfType<ToggleSwitch>().Class(":pointerover").Template().Is<ContentPresenter>())
-                    .Background(SKColor.Empty.ToBrush()),
+                new Style<ToggleSwitch>(s => s.Class(":pointerover").Template().Is<ContentPresenter>())
+                    .Background(Brushes.Transparent),
 
                 new Style<ToggleSwitch>(s => s.Class(":checked").Template().Is<ContentPresenter>())
-                    .Background(SKColor.Empty.ToBrush()),
+                    .Background(Brushes.Transparent),
 
                 new Style<Button>(s => s.OfType<ProjectItem>().Child())
                     .BorderThickness(new Thickness(2))
