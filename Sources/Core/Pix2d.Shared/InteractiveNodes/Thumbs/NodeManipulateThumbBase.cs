@@ -1,4 +1,3 @@
-using Pix2d.Abstract.Selection;
 using Pix2d.Selection;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -80,14 +79,14 @@ public class NodeManipulateThumbBase : ThumbNode
 
         using var paint = new SKPaint();
         paint.Color = BBoxColor;
-#pragma warning disable CS0618
-        paint.TextSize = 2;
-
 
         var pos = GetGlobalPosition();
 
-        canvas.DrawText($"{this.Name}[{this.GetType().Name}]", pos.X, pos.Y, paint);
-#pragma warning restore CS0618
+        using var font = new SKFont()
+        {
+            Size = 2,
+        };
+        canvas.DrawText($"{this.Name}[{this.GetType().Name}]", pos.X, pos.Y, SKTextAlign.Left, font, paint);
 
         DrawHitZone(canvas, vp, 2, SKColors.Red);
 

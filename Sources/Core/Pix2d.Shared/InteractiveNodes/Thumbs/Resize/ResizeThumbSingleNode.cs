@@ -12,7 +12,6 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
     protected SKPoint _initialTargetPos;
     protected SKPoint _initialTargetPivotPosition;
     private SKSize _initialTargetSize;
-    private SKSize _actualSize;
 
     public SKColor StrokeColor = SKColor.Parse("#ff4384de");
     private SKPoint _initialThumbGlobalPos;
@@ -97,58 +96,36 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
 
     protected override void OnDraw(SKCanvas canvas, ViewPort vp)
     {
-        //canvas.SaveAsync();
-        //canvas.ResetMatrix();
-
-        //using (var paint = canvas.GetSolidFillPaint(SKColors.White))
-        //{
-        //    var bbox = vp.WorldToViewport(GetBoundingBox());
-        //    canvas.DrawRect(bbox.Left, bbox.Top, bbox.Width, bbox.Height, paint);
-
-        //    paint.IsStroke = true;
-        //    paint.Color = SKColors.Green;
-        //    canvas.DrawRect(bbox.Left, bbox.Top, bbox.Width, bbox.Height, paint);
-        //}
-        //canvas.Restore();
-        //DrawBoundingBox(canvas, vp, 2, SKColors.Cyan);
-
-        //            if(IsPointerOver)
-        //                DrawHitZone(canvas, vp, 2, SKColors.Green);
-        //            else
-        //            {
-        //                DrawHitZone(canvas, vp, 2, SKColors.Red);
-        //            }
-
         var hz = GetHitZone();
+        var r = Size.Width / 2f;
 
-        var w = Size.Width;
-        var h = Size.Height;
+        using var fillPaint = new SKPaint();
+        fillPaint.Color = SKColors.White;
 
-        var paint = new SKPaint();
-        paint.Color = SKColors.White;
+        using var strokePaint = new SKPaint();
+        strokePaint.IsStroke = true;
+        strokePaint.IsAntialias = true;
+        strokePaint.StrokeWidth = vp.PixelsToWorld(2);
+        strokePaint.Color = StrokeColor;
 
         canvas.Save();
-
         var transform = vp.ResultTransformMatrix;
         canvas.SetMatrix(transform);
-        canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(w / 2), paint);
-        paint.IsStroke = true;
-        paint.IsAntialias = true;
-        paint.StrokeWidth = vp.PixelsToWorld(2);
-        paint.Color = StrokeColor;
-        canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(w / 2), paint);
+        canvas.DrawCircle(hz.MidX, hz.MidY, r, fillPaint);
+        canvas.DrawCircle(hz.MidX, hz.MidY, r, strokePaint);
 
 #if DEBUG
-        DrawBoundingBox(canvas, vp, 2, BBoxColor);
+        //DrawBoundingBox(canvas, vp, 2, BBoxColor);
 #endif
         canvas.Restore();
-        //DrawBoundingBox(canvas, vp, 2, StrokeColor);
-
     }
 
     public void OnViewChanged(ViewPort vp)
     {
-        _actualSize = new SKSize(vp.PixelsToWorld(Size.Width), vp.PixelsToWorld(Size.Height));
-        ProjectionTransform = SKMatrix.CreateScale(1 / vp.DpiEffectiveZoom, 1 / vp.DpiEffectiveZoom, PivotPosition.X, PivotPosition.Y);
+        var size = vp.PixelsToWorld(24) * vp.ScaleFactor;
+        Size = new SKSize(size, size);
+        PivotPosition = new SKPoint(size / 2f, size / 2f);
+        ProjectionTransform = null;
+        UpdateToTargets();
     }
 }
