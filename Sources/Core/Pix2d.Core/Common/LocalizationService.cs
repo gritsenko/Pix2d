@@ -76,6 +76,8 @@ public class LocalizationService : ILocalizationService
             ?? _strings.FirstOrDefault()!; // fallback to first available if "en" is missing
     }
 
+    public event Action? LocaleChanged;
+
     public void SetLocale(string locale)
     {
         var currentLocale = locale;
@@ -83,9 +85,14 @@ public class LocalizationService : ILocalizationService
         var dict = _strings.FirstOrDefault(x => x.Locale?.Equals(currentLocale, StringComparison.InvariantCultureIgnoreCase) ?? false);
         if (dict != null)
         {
+            if (_currentStrings == dict)
+                return;
+
+            _currentStrings = dict;
             _settingsService.Set("locale", currentLocale);
 
             _appState.Locale = currentLocale;
+            LocaleChanged?.Invoke();
         }
     }
 }

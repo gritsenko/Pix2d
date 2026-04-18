@@ -1,6 +1,9 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Styling;
 using Avalonia.Themes.Simple;
+using Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
+using Pix2d.Abstract.Services;
 using Pix2d.UI;
 
 namespace Pix2d;
@@ -107,6 +110,7 @@ public class EditorApp : Application
     }
 
     private bool _pix2dInitialized;
+    private bool _localeReloadSubscribed;
 
     private void EnsurePix2dInitialized()
     {
@@ -131,7 +135,9 @@ public class EditorApp : Application
         try
         {
             EnsurePix2dInitialized();
-            hostView.LoadMainView(UiModule!.GetMainViewType(), Pix2dBootstrapper!.GetServiceProvider());
+            var serviceProvider = Pix2dBootstrapper!.GetServiceProvider();
+            hostView.LoadMainView(UiModule!.GetMainViewType(), serviceProvider);
+            SubscribeToLocaleChanges(hostView, serviceProvider);
         }
         catch (Exception ex)
         {
@@ -140,5 +146,20 @@ public class EditorApp : Application
             throw;
         }
         AppInitialized?.Invoke(this);
+    }
+
+    private void SubscribeToLocaleChanges(HostView hostView, IServiceProvider serviceProvider)
+    {
+        if (_localeReloadSubscribed)
+            return;
+
+        var localizationService = serviceProvider.GetService<ILocalizationService>();
+        if (localizationService == null)
+            return;
+
+        localizationService.LocaleChanged += () =>
+            Dispatcher.UIThread.Post(() => hostView.LoadMainView(UiModule!.GetMainViewType(), serviceProvider));
+
+        _localeReloadSubscribed = true;
     }
 }
