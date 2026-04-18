@@ -283,7 +283,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
             }
             else
             {
-                if (IsPixelPerfectMode)
+                if (IsPixelPerfectMode && _strokePoints.Count > 1)
                 {
                     var ppf = PixelPerfect(_strokePoints);
                     DrawStroke(ppf);
@@ -389,6 +389,15 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         var pp = path.ToArray();
         if (pp.Length == 0)
             return;
+
+        if (pp.Length == 1)
+        {
+            if (_drawingMode == BrushDrawingMode.Draw)
+                DrawPointStroke(new SKPoint(pp[0].X, pp[0].Y), Brush, DrawingColor, Opacity, 1);
+            else if (_drawingMode == BrushDrawingMode.Erase)
+                ErasePoint(Brush, pp[0], 1);
+            return;
+        }
 
         var lp = pp[0];
         for (var i = 1; i < pp.Length; i++)

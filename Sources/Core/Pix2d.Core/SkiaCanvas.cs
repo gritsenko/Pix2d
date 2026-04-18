@@ -462,8 +462,7 @@ public class SkiaCanvas : Control
 
             if (ViewPort != null)
                 ViewPort.SetPan((float)(_initialPan.X - offsetX * ViewPort.ScaleFactor), (float)(_initialPan.Y - offsetY * ViewPort.ScaleFactor));
-            //ViewPort.ChangePan(-(float)translationDeltaX, -(float)translationDeltaY);
-            //Refresh();
+            InvalidateVisual();
             return;
         }
 
@@ -549,6 +548,7 @@ public class SkiaCanvas : Control
         _oldVpPos = origin;
         _oldScale = e.Scale;
 
+        InvalidateVisual();
         e.Handled = true;
     }
 
