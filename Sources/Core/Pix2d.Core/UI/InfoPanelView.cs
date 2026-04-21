@@ -1,13 +1,17 @@
 using System.Globalization;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Mvvm.Messaging;
+using Pix2d.Abstract.Services;
+using Pix2d.Messages;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using SkiaNodes.Interactive;
+using SkiaSharp;
 
 namespace Pix2d.UI;
 
-public partial class InfoPanelView(AppState appState) : ViewBase<InfoPanelView.State>(new State(appState))
+public partial class InfoPanelView(AppState appState, IMessenger messenger, ISelectionService selectionService) : ViewBase<InfoPanelView.State>(new State(appState, messenger, selectionService))
 {
     protected override StyleGroup? BuildStyles() =>
     [
@@ -61,6 +65,8 @@ public partial class InfoPanelView(AppState appState) : ViewBase<InfoPanelView.S
     public sealed partial class State : ObservableObject
     {
         private readonly AppState _appState;
+        private readonly IMessenger _messenger;
+        private readonly ISelectionService _selectionService;
 
         [ObservableProperty]
         public partial string PointerInfoX { get; set; } = "0";
@@ -76,13 +82,20 @@ public partial class InfoPanelView(AppState appState) : ViewBase<InfoPanelView.S
 
         private SelectionState SelectionState => _appState.SelectionState;
 
-        public State(AppState appState)
+        public State(AppState appState, IMessenger messenger, ISelectionService selectionService)
         {
             _appState = appState;
+            _messenger = messenger;
+            _selectionService = selectionService;
 
             SKInput.Current.PointerChanged += CurrentOnPointerChanged;
             SelectionState.WatchFor(x => x.IsUserSelecting, UpdateSelectionInfo);
             SelectionState.WatchFor(x => x.UserSelectingFrameSize, UpdateSelectionInfo);
+            _messenger.Register<NodesSelectedMessage>(this, _ => UpdateSelectionInfo());
+            _messenger.Register<OperationInvokedMessage>(this, _ => UpdateSelectionInfo());
+            _messenger.Register<CanvasSizeChangedMessage>(this, _ => UpdateSelectionInfo());
+            _messenger.Register<DrawingTargetChangedMessage>(this, _ => UpdateSelectionInfo());
+            _appState.WatchFor(x => x.CurrentProject, UpdateSelectionInfo);
 
             UpdateSelectionInfo();
         }
@@ -96,9 +109,31 @@ public partial class InfoPanelView(AppState appState) : ViewBase<InfoPanelView.S
 
         private void UpdateSelectionInfo()
         {
-            var size = SelectionState.IsUserSelecting ? SelectionState.UserSelectingFrameSize : _appState.CurrentProject.SelectionSize;
-            SizeWidth = size.Width.ToString(CultureInfo.InvariantCulture);
-            SizeHeight = size.Height.ToString(CultureInfo.InvariantCulture);
+            var size = GetDisplaySize();
+            SizeWidth = MathF.Round(size.Width).ToString(CultureInfo.InvariantCulture);
+            SizeHeight = MathF.Round(size.Height).ToString(CultureInfo.InvariantCulture);
+        }
+
+        private SKSize GetDisplaySize()
+        {
+            if (SelectionState.IsUserSelecting)
+                return SelectionState.UserSelectingFrameSize;
+
+            var project = _appState.CurrentProject;
+            if (project.HasSelection)
+                return project.SelectionSize;
+
+            if (project.SceneNode != null)
+            {
+                var container = _selectionService.GetActiveContainer();
+                if (container != null && container.Size.Width > 0 && container.Size.Height > 0)
+                    return container.Size;
+            }
+
+            if (project.CurrentEditedNode != null && project.CurrentEditedNode.Size.Width > 0 && project.CurrentEditedNode.Size.Height > 0)
+                return project.CurrentEditedNode.Size;
+
+            return project.SelectionSize;
         }
     }
 }

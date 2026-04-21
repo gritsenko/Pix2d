@@ -340,6 +340,12 @@ public class SkiaCanvas : Control
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         var pointerType = e.Pointer.Type;
+        var shouldFinalizeTouchInput = pointerType == PointerType.Touch
+                                       && _isPointerPressed
+                                       && !_isPinching
+                                       && !_isUndoGestureTracking
+                                       && !Input.PanMode;
+
         if (pointerType == PointerType.Touch)
         {
             _activeTouchPointers.Remove(e.Pointer.Id);
@@ -352,7 +358,7 @@ public class SkiaCanvas : Control
             return;
         }
 
-        if (ShouldBlockTouchDrawing(pointerType))
+        if (!shouldFinalizeTouchInput && ShouldBlockTouchDrawing(pointerType))
         {
             _isPointerPressed = false;
             TryEndTouchSuppression();
@@ -379,6 +385,19 @@ public class SkiaCanvas : Control
     {
         if (e.Pointer.Type != PointerType.Touch)
             return;
+
+        var shouldFinalizeTouchInput = _isPointerPressed
+                                       && !_isPinching
+                                       && !_isUndoGestureTracking
+                                       && !Input.PanMode
+                                       && Input.Pointer.ViewportPosition != default;
+
+        if (shouldFinalizeTouchInput)
+        {
+            var releasePosition = Input.Pointer.ViewportPosition;
+            Input.SetPointerReleased(releasePosition, Input.GetModifiers(), true);
+            InvalidateVisual();
+        }
 
         _activeTouchPointers.Remove(e.Pointer.Id);
         _isPointerPressed = false;
@@ -466,7 +485,8 @@ public class SkiaCanvas : Control
             return;
         }
 
-        Input.SetPointerMoved(ToSKPoint(pos), props.IsLeftButtonPressed, ToModifiers(e.KeyModifiers),
+        var isPointerPressed = pointerType == PointerType.Touch ? _isPointerPressed : props.IsLeftButtonPressed;
+        Input.SetPointerMoved(ToSKPoint(pos), isPointerPressed, ToModifiers(e.KeyModifiers),
             pointerType == PointerType.Touch);
     }
 
@@ -557,8 +577,11 @@ public class SkiaCanvas : Control
         Input.PanMode = false;
         _isPinching = false;
         _activeTouchPointers.Clear();
-        _isTouchDrawingSuppressed = false;
-        _touchSuppressionUntilMs = 0;
+
+        // Keep suppression active briefly to prevent touch release from applying/resetting selection
+        _isTouchDrawingSuppressed = true;
+        ExtendTouchSuppressionCooldown(UndoTapPinchGuardMs);
+
         e.Handled = true;
     }
 

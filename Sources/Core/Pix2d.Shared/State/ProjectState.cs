@@ -41,7 +41,7 @@ public class ProjectState : StateBase
 
     public INodesSelection Selection { get; set; } = null!;
 
-    public SKSize SelectionSize => HasSelection ? Selection.Bounds.Size : (SceneNode?.GetChildrenBounds().Size ?? SKSize.Empty);
+    public SKSize SelectionSize => HasSelection ? Selection.Bounds.Size : GetCanvasSize();
     public bool HasSelection => Selection?.Nodes?.Any() == true;
     public EditContextType DefaultEditContextType { get; set; } = EditContextType.Sprite;
     public EditContextType CurrentContextType
@@ -60,4 +60,12 @@ public class ProjectState : StateBase
     //}
 
     #endregion
+
+    private SKSize GetCanvasSize()
+    {
+        if (CurrentEditedNode != null && CurrentEditedNode.Size.Width > 0 && CurrentEditedNode.Size.Height > 0)
+            return CurrentEditedNode.Size;
+
+        return SceneNode?.GetChildrenBounds().Size ?? SKSize.Empty;
+    }
 }

@@ -73,7 +73,7 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
         {
             var aspect = initialSize.GetAspect();
 
-            if (delta.X > delta.Y)
+            if (Math.Abs(delta.X) > Math.Abs(delta.Y))
             {
                 newH = newW / aspect;
             }
@@ -86,6 +86,11 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
         // newW = (float)Math.Floor(Math.Max(1, newW));
         // newH = (float)Math.Floor(Math.Max(1, newH));
         return new SKSize(newW, newH);
+    }
+
+    protected static SKPoint GetSizeDelta(SKSize initialSize, SKSize newSize)
+    {
+        return new SKPoint(newSize.Width - initialSize.Width, newSize.Height - initialSize.Height);
     }
 
     protected override void AdjustDimensionsToTargets(NodesSelection selection)

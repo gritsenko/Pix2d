@@ -265,5 +265,6 @@ public class AnimationFrameViewModel : LegacyObservableObject
         UpdatePropertiesAction?.Invoke(this);
         OnPropertyChanged(nameof(Layers));
         OnPropertyChanged(nameof(Preview));
+        OnPropertyChanged(nameof(PreviewBrush));
     }
 }

@@ -58,7 +58,7 @@ public class FrameEditorNode : SKNode
         _sizeThumb[2] = new RightTopResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
         _sizeThumb[3] = new LeftBottomResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
 
-        _rotateThumb = new RotateThumbNode() { SnapToPixels = false, AngleLockProviderFunc = GetAspectLock };
+        _rotateThumb = new RotateThumbNode() { SnapToPixels = false, AngleLockProviderFunc = GetAngleLock };
 
         _highlightNode = new LineHighlightNode() { IsVisible = false };
 
@@ -197,6 +197,10 @@ public class FrameEditorNode : SKNode
         return _selection?.LockAspect ?? false || (AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked == true);
     }
     public bool GetAxisLock()
+    {
+        return AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked ?? false;
+    }
+    public bool GetAngleLock()
     {
         return AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked ?? false;
     }
