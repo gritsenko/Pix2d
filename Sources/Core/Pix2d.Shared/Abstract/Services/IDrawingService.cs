@@ -95,4 +95,11 @@ public interface IDrawingService
     /// Cancels the current ongoing drawing operation without applying any changes.
     /// </summary>
     void CancelCurrentOperation();
+
+    /// <summary>
+    /// Cancels only an in-progress drawing or selection-area drag. Keeps an already-applied selection and a
+    /// pending paste intact. Use this when aborting transient state for touch gestures (pinch, pan) where
+    /// removing the user's selection would be surprising.
+    /// </summary>
+    void CancelActiveDrawing();
 }

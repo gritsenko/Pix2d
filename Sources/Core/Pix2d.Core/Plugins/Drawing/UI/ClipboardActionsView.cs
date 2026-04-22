@@ -28,6 +28,10 @@ public class ClipboardActionsView(ICommandService commandService) : ViewBase
                     .Command(SpriteEditCommands.CropPixels)
                     .With(ButtonStyle)
                     .Content("\xE7A8"),
+                //new Button()
+                //    .Command(SpriteEditCommands.ActivateSelectionTransform)
+                //    .With(ButtonStyle)
+                //    .Content("\xE7A7"),
                 new Button()
                     .With(ButtonStyle)
                     .With(b =>

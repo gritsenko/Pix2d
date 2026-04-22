@@ -19,6 +19,12 @@ public class MoveThumbNode : NodeManipulateThumbBase
 
     public bool ClickThrough { get; set; } = true;
 
+    /// <summary>
+    /// When true, the thumb draws a dashed marching-ants contour instead of the solid manipulation border.
+    /// Intended for the "selection without transform" state where handles are hidden.
+    /// </summary>
+    public bool ContourOnly { get; set; }
+
     public Func<bool> AxisLockProviderFunc { get; set; } = null!;
     public AxisLockMode AxisLockMode { get; set; }
 
@@ -103,8 +109,17 @@ public class MoveThumbNode : NodeManipulateThumbBase
 
     protected override void OnDraw(SKCanvas canvas, ViewPort vp)
     {
-        using var paint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(2), StrokeColor);
-        canvas.DrawRect(0, 0, Size.Width, Size.Height, paint);
+        if (ContourOnly)
+        {
+            using var paint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1), SKColors.Black);
+            paint.PathEffect = SKPathEffect.CreateDash([vp.PixelsToWorld(2), vp.PixelsToWorld(2)], 0);
+            canvas.DrawRect(0, 0, Size.Width, Size.Height, paint);
+        }
+        else
+        {
+            using var paint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(2), StrokeColor);
+            canvas.DrawRect(0, 0, Size.Width, Size.Height, paint);
+        }
     }
 
 }

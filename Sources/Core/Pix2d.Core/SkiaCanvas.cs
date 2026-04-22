@@ -630,7 +630,7 @@ public class SkiaCanvas : Control
             UpdateCursor();
         }
 
-        _serviceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation();
+        _serviceProvider.GetRequiredService<IDrawingService>().CancelActiveDrawing();
         Input.CapturedPointerBy = null;
         InvalidateVisual();
     }
@@ -663,7 +663,7 @@ public class SkiaCanvas : Control
         _isTouchDrawingSuppressed = true;
         ExtendTouchSuppressionCooldown(UndoGestureTouchCooldownMs);
         _isPointerPressed = false;
-        _serviceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation();
+        _serviceProvider.GetRequiredService<IDrawingService>().CancelActiveDrawing();
         Input.CapturedPointerBy = null;
         InvalidateVisual();
     }

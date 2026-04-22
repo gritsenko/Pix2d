@@ -58,6 +58,13 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     private readonly List<SKPointI> _strokePoints = new();
     private SelectionOperation? _currentSelectionOperation;
 
+    // On touch, BeginSelection is deferred until the first pointer move past a small threshold so that
+    // a pinch/pan gesture (which starts with a touch-down on the canvas) does not clear the current
+    // selection. Distances are tracked in viewport pixels so the threshold stays physical regardless of zoom.
+    private bool _deferredTouchSelectionStart;
+    private SKPoint _deferredTouchStartViewportPos;
+    private const float TouchDragThresholdViewportPixels = 12f;
+
     public bool HasSelectionChanges => _selectionEditor.IsChanged;
 
     public bool IsPixelPerfectMode { get; set; }
@@ -200,6 +207,13 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         if (_drawingMode == BrushDrawingMode.Draw)
             CancelDrawing();
 
+        if (isPanModeEnabled && _deferredTouchSelectionStart)
+        {
+            // Pinch/pan gesture started before the user actually began a new selection:
+            // drop the deferred start so the existing selection is preserved.
+            _deferredTouchSelectionStart = false;
+        }
+
         //if (_drawingMode == BrushDrawingMode.Select)
         //    CancelSelect();
     }
@@ -225,16 +239,23 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
         base.OnPointerPressed(eventArgs, clickCount);
 
-        CapturePointer();
-
         _lastPos = eventArgs.Pointer.WorldPosition.ToSkPointI();
         if (_drawingMode == BrushDrawingMode.Select)
         {
+            if (eventArgs.Pointer.IsTouch)
+            {
+                _deferredTouchSelectionStart = true;
+                _deferredTouchStartViewportPos = eventArgs.Pointer.ViewportPosition;
+                return;
+            }
+
+            CapturePointer();
             BeginSelection(StartPosI);
             AddSelectionPoint(StartPosI);
         }
         else
         {
+            CapturePointer();
             if (DrawingTarget!.IsTargetBitmapVisible())
                 BeginDrawing();
 
@@ -251,6 +272,21 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         if (!IsInitialized) return;
 
         ReleasePointerCapture();
+
+        if (_deferredTouchSelectionStart)
+        {
+            // Touch tap (release below drag threshold) — same semantics as a mouse click in an empty area:
+            // drop the current selection. Pinch/pan never reaches release because OnPanModeChanged cancels
+            // the deferred start on the first finger when the second finger arrives.
+            _deferredTouchSelectionStart = false;
+            if (HasSelection)
+            {
+                ApplySelection();
+                Refresh();
+            }
+            base.OnPointerReleased(eventArgs);
+            return;
+        }
 
         try
         {
@@ -338,6 +374,23 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
         if (eventArgs.Pointer.IsPressed || eventArgs.Pointer.IsEraser)
         {
+            if (_deferredTouchSelectionStart)
+            {
+                var dx = eventArgs.Pointer.ViewportPosition.X - _deferredTouchStartViewportPos.X;
+                var dy = eventArgs.Pointer.ViewportPosition.Y - _deferredTouchStartViewportPos.Y;
+                if (dx * dx + dy * dy < TouchDragThresholdViewportPixels * TouchDragThresholdViewportPixels)
+                {
+                    // Still within the dead zone — keep waiting, user might be about to pinch/pan.
+                    return;
+                }
+
+                _deferredTouchSelectionStart = false;
+                CapturePointer();
+                BeginSelection(StartPosI);
+                AddSelectionPoint(StartPosI);
+                _lastPos = StartPos.ToSkPointI();
+            }
+
             if (State == DrawingLayerState.Drawing)
             {
                 var strokeEndPos = EndPosI;
@@ -1224,7 +1277,9 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         }
     }
 
-    public void ActivateEditor()
+    public void ActivateEditor() => ActivateEditor(contourOnly: false);
+
+    public void ActivateEditor(bool contourOnly)
     {
         if (DrawingTarget is SKNode target && _selectionLayer != null)
         {
@@ -1234,6 +1289,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
             var selection = new NodesSelection(new[] { _selectionLayer }, () => { }) { GenerateOperations = false };
 
             _selectionEditor.SetSelection(selection, _selectionLayer.SelectionPath);
+            _selectionEditor.ContourOnly = contourOnly;
             _selectionEditor.IsVisible = true;
 
             UseSwapBitmap = true;
@@ -1245,6 +1301,27 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
                 DrawingTarget.SetTargetBitmapSubstitute(() => _backgroundBitmap!);
             }
         }
+    }
+
+    /// <summary>
+    /// Switches an active contour-only selection into the full transform mode (move/resize/rotate handles).
+    /// Invoked from the Clipboard Actions panel "Transform" button. No-op if there is no selection.
+    /// </summary>
+    public void EnterTransformMode()
+    {
+        if (_selectionLayer == null) return;
+
+        if (!_selectionEditor.IsVisible)
+        {
+            ActivateEditor(contourOnly: false);
+        }
+        else
+        {
+            _selectionEditor.ContourOnly = false;
+        }
+
+        // Toggling thumb visibility doesn't dirty the scene tree on its own, so force a redraw here.
+        Refresh();
     }
 
     public void SetCustomPixelSelector(IPixelSelector pixelSelector)
@@ -1269,6 +1346,17 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
             case DrawingLayerState.Paste:
                 CancelSelect();
                 break;
+        }
+    }
+
+    public void CancelActiveDrawing()
+    {
+        // A second finger / gesture suppression interrupts any pending touch selection before it promotes.
+        _deferredTouchSelectionStart = false;
+
+        if (State is DrawingLayerState.Drawing or DrawingLayerState.DrawingSelectionArea)
+        {
+            CancelDrawing();
         }
     }
 

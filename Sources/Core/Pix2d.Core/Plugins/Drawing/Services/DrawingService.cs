@@ -349,5 +349,7 @@ public class DrawingService : IDrawingService
 
     public void CancelCurrentOperation() => _operationFactory?.CancelCurrentOperation();
 
+    public void CancelActiveDrawing() => _operationFactory?.CancelActiveDrawing();
+
     public void Refresh() => _viewPortRefreshService.Refresh();
 }

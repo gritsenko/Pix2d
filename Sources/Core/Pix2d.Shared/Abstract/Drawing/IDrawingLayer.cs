@@ -70,7 +70,19 @@ public interface IDrawingLayer
     void SelectAll();
     void FillSelection(SKColor color);
     void ActivateEditor();
+
+    /// <summary>
+    /// Switches an existing (contour-only) selection into the full transform mode with move/resize/rotate
+    /// handles. Invoked explicitly by the user via the Transform action. No-op when there is no selection.
+    /// </summary>
+    void EnterTransformMode();
     void SetCustomPixelSelector(IPixelSelector pixelSelector);
     void ClearCustomPixelSelector();
     void CancelCurrentOperation();
+
+    /// <summary>
+    /// Cancels an in-progress drawing or selection-area drag. Unlike <see cref="CancelCurrentOperation"/>,
+    /// this does not remove an already-applied selection or a pending paste.
+    /// </summary>
+    void CancelActiveDrawing();
 }
