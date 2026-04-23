@@ -121,7 +121,7 @@ public class SkiaCanvas : Control
         if (topLevel != null)
             topLevel.ScalingChanged += SkiaCanvas_ScalingChanged;
 
-        if (e.Root is Control root)
+        if (e.RootVisual is Control root)
         {
             root.KeyDown += OnKeyDown;
             root.KeyUp += OnKeyUp;

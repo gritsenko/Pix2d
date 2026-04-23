@@ -41,7 +41,7 @@ public partial class KeyShortcutsView(ICommandService commandService) : ViewBase
             .Children([
                 new ItemsControl()
                     .ItemsSource(state.ColumnsData)
-                    .ItemsPanel(new FuncTemplate<Panel>(() => new UniformGrid().Rows(1)))
+                    .ItemsPanel(new FuncTemplate<Panel?>(() => new UniformGrid().Rows(1)))
                     .ItemTemplate((List<IGrouping<string, Pix2dCommand>> columnGroups) =>
                         new ItemsControl()
                             .Margin(12)

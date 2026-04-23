@@ -105,7 +105,7 @@ public static class StaticResources
     {
         public static IDataTemplate ToolIconTemplateSelector { get; } = ToolIcons.ToolIconTemplateSelector;
 
-        public static FuncTemplate<Panel> WrapPanelTemplate { get; } = new(() => new WrapPanel());
+        public static FuncTemplate<Panel?> WrapPanelTemplate { get; } = new(() => new WrapPanel());
     }
 
     public static class Icons

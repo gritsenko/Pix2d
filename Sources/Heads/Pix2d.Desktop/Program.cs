@@ -6,6 +6,7 @@ using Pix2d.Desktop.Services;
 using Pix2d.Services;
 using Pix2d.UI;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -48,8 +49,14 @@ class Program
 
         BuildAvaloniaApp()
             .UseServiceProvider(sp)
-            .UseComponentControlFactory(type => (Avalonia.Controls.Control)ActivatorUtilities.CreateInstance(sp, type))
+            .UseComponentControlFactory(type => CreateComponentControl(sp, type))
             .StartWithClassicDesktopLifetime(args);
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2067", Justification = "Desktop builds resolve Avalonia declarative views dynamically through the control factory; desktop publishing currently does not trim output.")]
+    private static Avalonia.Controls.Control CreateComponentControl(IServiceProvider serviceProvider, Type type)
+    {
+        return (Avalonia.Controls.Control)ActivatorUtilities.CreateInstance(serviceProvider, type);
     }
 
     // CrossPlatformDesktop configuration, don't remove; also used by visual designer.

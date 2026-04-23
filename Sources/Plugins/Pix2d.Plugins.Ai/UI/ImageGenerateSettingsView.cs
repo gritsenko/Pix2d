@@ -20,7 +20,7 @@ public class ImageGenerateSettingsView : ViewBase
                     .Content(L("Generate"))
             );
 
-    public string Text { get; set; }
+    public string Text { get; set; } = string.Empty;
 
 
     private async void OnApplyButtonClicked()

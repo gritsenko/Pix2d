@@ -5,6 +5,7 @@
 		<ApplicationIcon>app.ico</ApplicationIcon>
 		<StartupObject />
 		<AssemblyName>Pix2d</AssemblyName>
+		<EnableAvaloniaXamlCompilation>false</EnableAvaloniaXamlCompilation>
 		<Version>$(Pix2dVersion)</Version>
 		<PackageProjectUrl>https://pix2d.com</PackageProjectUrl>
     

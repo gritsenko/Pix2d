@@ -7,9 +7,12 @@ using Pix2d.UI.Resources;
 
 namespace Pix2d.Views.Text;
 
-public partial class TextBarView(IFontService fontService) : ViewBase<TextBarView.State>(new State(fontService))
+public partial class TextBarView(IFontService fontService) : ViewBase
 {
-    protected override object Build(State state) =>
+    private const double FontComboBoxWidth = 220;
+    private readonly State _state = new(fontService);
+
+    protected override object Build() =>
         new StackPanel()
             .Orientation(Orientation.Horizontal)
             .Children(new Control[]
@@ -25,7 +28,7 @@ public partial class TextBarView(IFontService fontService) : ViewBase<TextBarVie
                             .Children(
                                 new TextBox()
                                     .With(t => t.PlaceholderText = "Enter text")
-                                    .Text(state, x => x.Text, BindingMode.TwoWay)
+                                    .Text(_state, x => x.Text, BindingMode.TwoWay)
                                     .VerticalAlignment(VerticalAlignment.Center)
                                     .AcceptsReturn(false)
                                     .MinWidth(150)
@@ -51,11 +54,13 @@ public partial class TextBarView(IFontService fontService) : ViewBase<TextBarVie
                                             .Text("Font"),
 
                                         new ComboBox()
-                                            .Width(180)
+                                            .Width(FontComboBoxWidth)
                                             .VerticalAlignment(VerticalAlignment.Center)
-                                            .ItemsSource(state.Fonts)
-                                            .SelectedItem(state, x => x.SelectedFont, BindingMode.TwoWay)
-                                            .ItemTemplate((State.FontItemViewModel? item) => CreateFontItemTemplate(item)),
+                                            .HorizontalContentAlignment(HorizontalAlignment.Stretch)
+                                            .ItemsSource(_state.Fonts)
+                                            .SelectedItem(_state, x => x.SelectedFont, BindingMode.TwoWay)
+                                            .ItemTemplate((State.FontItemViewModel? item) => CreateFontItemTemplate(item))
+                                            .SelectionBoxItemTemplate(new Avalonia.Controls.Templates.FuncDataTemplate<State.FontItemViewModel?>((item, _) => CreateFontItemTemplate(item))),
 
                                         new TextBlock()
                                             .Margin(8, 0)
@@ -66,25 +71,25 @@ public partial class TextBarView(IFontService fontService) : ViewBase<TextBarVie
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .NumberFormat(new NumberFormatInfo { NumberDecimalDigits = 0 })
                                             .Increment(1)
-                                            .Value(state, x => x.FontSize, BindingMode.TwoWay),
+                                            .Value(_state, x => x.FontSize, BindingMode.TwoWay),
 
                                         new ToggleButton()
                                             .With(ButtonStyle)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .Content("\xE8DD")
-                                            .IsChecked(state, x => x.IsBold, BindingMode.TwoWay),
+                                            .IsChecked(_state, x => x.IsBold, BindingMode.TwoWay),
 
                                         new ToggleButton()
                                             .With(ButtonStyle)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .Content("\xE8DB")
-                                            .IsChecked(state, x => x.IsItalic, BindingMode.TwoWay),
+                                            .IsChecked(_state, x => x.IsItalic, BindingMode.TwoWay),
 
                                         new ToggleButton()
                                             .With(ButtonStyle)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                             .Content("\xE8D2")
-                                            .IsChecked(state, x => x.IsAliased, BindingMode.TwoWay)
+                                            .IsChecked(_state, x => x.IsAliased, BindingMode.TwoWay)
                                     })
                             );
                         b.Click += (_, _) => flyout.ShowAt(b);
@@ -92,14 +97,14 @@ public partial class TextBarView(IFontService fontService) : ViewBase<TextBarVie
                     .Content("\xE8D2"),
 
                 new Button()
-                    .OnClick(_ => state.CancelText())
-                    .IsEnabled(state, x => x.CanApply)
+                    .OnClick(_ => _state.CancelText())
+                    .IsEnabled(_state, x => x.CanApply)
                     .With(ButtonStyle)
                     .Content("\xE711"),
 
                 new Button()
-                    .OnClick(_ => state.ApplyText())
-                    .IsEnabled(state, x => x.CanApply)
+                    .OnClick(_ => _state.ApplyText())
+                    .IsEnabled(_state, x => x.CanApply)
                     .With(ButtonStyle)
                     .Content("\xE73E")
             });
@@ -119,8 +124,8 @@ public partial class TextBarView(IFontService fontService) : ViewBase<TextBarVie
 
     protected override void OnAfterInitialized()
     {
-        ViewModel!.EnsureFontsLoaded();
-        ViewModel.SetTool(DataContext as PixelTextTool);
+        _state.EnsureFontsLoaded();
+        _state.SetTool(DataContext as PixelTextTool);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -128,16 +133,22 @@ public partial class TextBarView(IFontService fontService) : ViewBase<TextBarVie
         base.OnPropertyChanged(change);
 
         if (change.Property == DataContextProperty)
-            ViewModel?.SetTool(change.NewValue as PixelTextTool);
+            _state.SetTool(change.NewValue as PixelTextTool);
     }
 
     private static TextBlock CreateFontItemTemplate(State.FontItemViewModel? item)
     {
-        return new TextBlock().Width(150).Text(item?.Name ?? string.Empty)!;
+        return new TextBlock()
+            .Text(item?.Name ?? string.Empty)
+            .HorizontalAlignment(HorizontalAlignment.Left)
+            .TextAlignment(TextAlignment.Left)
+            .TextWrapping(Avalonia.Media.TextWrapping.NoWrap)
+            .TextTrimming(Avalonia.Media.TextTrimming.CharacterEllipsis)!;
     }
 
     public sealed partial class State : ObservableObject
     {
+        private const string DefaultFontName = "Arial";
         private readonly IFontService _fontService;
         private PixelTextTool? _tool;
         private bool _isSyncing;
@@ -165,6 +176,7 @@ public partial class TextBarView(IFontService fontService) : ViewBase<TextBarVie
         public State(IFontService fontService)
         {
             _fontService = fontService;
+            SelectedFont = new FontItemViewModel(DefaultFontName);
         }
 
         public ObservableCollection<FontItemViewModel> Fonts { get; } = [];
@@ -184,22 +196,24 @@ public partial class TextBarView(IFontService fontService) : ViewBase<TextBarVie
             }
 
             if (_tool == null)
+            {
+                SelectedFont = ResolveSelectedFont(SelectedFont?.Name);
                 return;
+            }
 
-            if (string.IsNullOrWhiteSpace(_tool.SelectedFont))
-            {
-                SelectedFont = Fonts.FirstOrDefault(x => x.Name.Equals("Arial", StringComparison.InvariantCultureIgnoreCase))
-                    ?? Fonts.FirstOrDefault();
-            }
-            else
-            {
-                SyncFromTool();
-            }
+            SelectedFont = ResolveSelectedFont(_tool.SelectedFont);
+
+            if (string.IsNullOrWhiteSpace(_tool.SelectedFont) && SelectedFont != null)
+                _tool.SelectedFont = SelectedFont.Name;
         }
 
         public void SetTool(PixelTextTool? tool)
         {
             _tool = tool;
+
+            if (_tool != null && string.IsNullOrWhiteSpace(_tool.SelectedFont) && SelectedFont != null)
+                _tool.SelectedFont = SelectedFont.Name;
+
             SyncFromTool();
         }
 
@@ -276,16 +290,37 @@ public partial class TextBarView(IFontService fontService) : ViewBase<TextBarVie
             IsBold = _tool?.IsBold ?? false;
             IsItalic = _tool?.IsItalic ?? false;
             IsAliased = _tool?.IsAliased ?? false;
-            SelectedFont = _tool == null
-                ? null
-                : Fonts.FirstOrDefault(x => x.Name.Equals(_tool.SelectedFont, StringComparison.InvariantCultureIgnoreCase));
+            SelectedFont = ResolveSelectedFont(_tool?.SelectedFont);
 
             _isSyncing = false;
+        }
+
+        private FontItemViewModel? ResolveSelectedFont(string? fontName)
+        {
+            if (Fonts.Count == 0)
+            {
+                if (!string.IsNullOrWhiteSpace(fontName))
+                    return new FontItemViewModel(fontName);
+
+                return SelectedFont ?? new FontItemViewModel(DefaultFontName);
+            }
+
+            if (!string.IsNullOrWhiteSpace(fontName))
+            {
+                return Fonts.FirstOrDefault(x => x.Name.Equals(fontName, StringComparison.InvariantCultureIgnoreCase))
+                    ?? Fonts.FirstOrDefault(x => x.Name.Equals(DefaultFontName, StringComparison.InvariantCultureIgnoreCase))
+                    ?? Fonts.FirstOrDefault();
+            }
+
+            return Fonts.FirstOrDefault(x => x.Name.Equals(DefaultFontName, StringComparison.InvariantCultureIgnoreCase))
+                ?? Fonts.FirstOrDefault();
         }
 
         public sealed class FontItemViewModel(string fontName)
         {
             public string Name { get; set; } = fontName;
+
+            public override string ToString() => Name;
         }
     }
 }

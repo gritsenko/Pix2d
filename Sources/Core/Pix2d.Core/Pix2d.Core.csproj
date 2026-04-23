@@ -5,6 +5,7 @@
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<EnableAvaloniaXamlCompilation>false</EnableAvaloniaXamlCompilation>
 		<Version>$(Pix2dVersion)</Version>
 	</PropertyGroup>
 
