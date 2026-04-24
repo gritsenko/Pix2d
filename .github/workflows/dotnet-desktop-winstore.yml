@@ -20,7 +20,7 @@ jobs:
     runs-on: windows-latest
 
     env:
-      SOLUTION_NAME: Sources/Pix2d.sln
+      DESKTOP_PROJECT_PATH: Sources/Heads/Pix2d.Desktop/Pix2d.Desktop.csproj
       WAP_PROJECT_DIR: Sources/Heads/Pix2d.Desktop.Wap
       WAP_PROJECT_PATH: Sources/Heads/Pix2d.Desktop.Wap/Pix2d.Desktop.Wap.wapproj
       CONFIGURATION: Release
@@ -33,7 +33,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: |
-          9.0.x
+          10.0.x
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2.0.0
@@ -92,8 +92,8 @@ jobs:
 
     - name: Restore NuGet packages
       run: |
-        dotnet restore $env:SOLUTION_NAME -r win-x64
-        dotnet restore $env:SOLUTION_NAME -r win-arm64
+        dotnet restore $env:DESKTOP_PROJECT_PATH -r win-x64 --property WarningLevel=0
+        dotnet restore $env:DESKTOP_PROJECT_PATH -r win-arm64 --property WarningLevel=0
         msbuild $env:WAP_PROJECT_PATH /t:Restore /p:Configuration=$env:CONFIGURATION /p:IsWAPHeadProject=true /p:AppxBundlePlatforms="x64|arm64" /p:Platform=x64
 
     - name: Decode signing certificate
