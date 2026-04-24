@@ -17,7 +17,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
 
     env:
       DESKTOP_PROJECT_PATH: Sources/Heads/Pix2d.Desktop/Pix2d.Desktop.csproj
@@ -36,7 +36,11 @@ jobs:
           10.0.x
 
     - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2.0.0
+      uses: microsoft/setup-msbuild@v3
+      with:
+        vs-prerelease: true
+        vs-version: '[18.0,19.0)'
+        msbuild-architecture: x64
 
     - name: Determine App Version
       id: get_version
