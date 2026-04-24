@@ -1,5 +1,6 @@
 ﻿using Avalonia.Styling;
 using Pix2d.Command;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Messages.ViewPort;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
@@ -8,7 +9,8 @@ using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.UI;
 
-public class ZoomPanelView : ComponentBase
+public partial class ZoomPanelView(IViewPortService viewPortService, IMessenger messenger, ICommandService commandService)
+    : ViewBase<ZoomPanelView.State>(new State(viewPortService, messenger, commandService))
 {
     protected override StyleGroup BuildStyles() =>
     [
@@ -19,7 +21,7 @@ public class ZoomPanelView : ComponentBase
         }
     ];
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Grid()
             .Styles(
                 new Style<Button>()
@@ -36,8 +38,8 @@ public class ZoomPanelView : ComponentBase
                     .Content(
                         new Button()
                             .Classes("app-button")
-                            .Command(ViewCommands.ZoomAll)
-                            .Content(() => CurrentPercentZoom)
+                            .Command(state.ViewCommands.ZoomAll)
+                            .Content(state, x => x.CurrentPercentZoom)
                         ),
 
                 new BlurPanel().Col(1)
@@ -50,7 +52,7 @@ public class ZoomPanelView : ComponentBase
                             .Children(
                                 new Button()
                                     .Classes("app-button")
-                                    .Command(ViewCommands.ZoomOut)
+                                    .Command(state.ViewCommands.ZoomOut)
                                     .Content(
                                         new Path()
                                             .Width(24)
@@ -60,7 +62,7 @@ public class ZoomPanelView : ComponentBase
 
                                 new Button()
                                     .Classes("app-button")
-                                    .Command(ViewCommands.ZoomIn)
+                                    .Command(state.ViewCommands.ZoomIn)
                                     .Content(
                                         new Path()
                                             .Width(24)
@@ -71,22 +73,30 @@ public class ZoomPanelView : ComponentBase
                     )
             );
 
-    [Inject] IViewPortService ViewPortService { get; set; } = null!;
-    [Inject] IMessenger Messenger { get; set; } = null!;
-    [Inject] private ICommandService CommandService { get; set; } = null!;
-    private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
-
-    public double CurrentZoom => ViewPortService?.ViewPort?.Zoom ?? 0;
-    public string CurrentPercentZoom => (CurrentZoom * 100).ToString("###0") + "%";
-
-    protected override void OnAfterInitialized()
+    public sealed partial class State : ObservableObject
     {
-        Messenger.Register<ViewPortInitializedMessage>(this, _ => Load());
-        Messenger.Register<ViewPortChangedViewMessage>(this, _ => Load());
-    }
+        private readonly IViewPortService _viewPortService;
 
-    protected void Load()
-    {
-        StateHasChanged();
+        [ObservableProperty]
+        public partial string CurrentPercentZoom { get; set; } = "0%";
+
+        public ViewCommands ViewCommands { get; }
+
+        public State(IViewPortService viewPortService, IMessenger messenger, ICommandService commandService)
+        {
+            _viewPortService = viewPortService;
+            ViewCommands = commandService.GetCommandList<ViewCommands>()!;
+
+            Load();
+
+            messenger.Register<ViewPortInitializedMessage>(this, _ => Load());
+            messenger.Register<ViewPortChangedViewMessage>(this, _ => Load());
+        }
+
+        private void Load()
+        {
+            var currentZoom = _viewPortService.ViewPort?.Zoom ?? 0;
+            CurrentPercentZoom = (currentZoom * 100).ToString("###0") + "%";
+        }
     }
 }

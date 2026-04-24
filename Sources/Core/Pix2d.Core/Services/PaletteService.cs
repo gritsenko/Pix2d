@@ -137,20 +137,18 @@ public class PaletteService : IPaletteService
         }
     }
 
-#pragma warning disable CS0649
     struct Col
     {
-        public byte A;
-        public byte R;
-        public byte G;
-        public byte B;
+        public byte A { get; set; }
+        public byte R { get; set; }
+        public byte G { get; set; }
+        public byte B { get; set; }
 
         public SKColor ToSKColor()
         {
             return new SKColor(R, G, B, A);
         }
     }
-#pragma warning restore CS0649
 
     private void LoadColorsFromARGB(string palstr, List<SKColor> customColors)
     {

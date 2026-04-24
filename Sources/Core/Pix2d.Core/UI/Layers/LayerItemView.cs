@@ -1,25 +1,25 @@
-﻿using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Common.Extensions;
 using Pix2d.UI.Resources;
 using SkiaSharp;
 
 namespace Pix2d.UI.Layers;
 
-public class LayerItemView(LayerItemViewModel viewModel) : ComponentBase<LayerItemViewModel>(viewModel)
+public partial class LayerItemView : ViewBase<LayerItemView.State>
 {
-    private static IControlTemplate buttonTemplate =
-        new FuncControlTemplate<Button>((button, scope) => new ContentPresenter() { Content = button.Content, Background = StaticResources.Brushes.CheckerTilesBrush});
+    private static readonly IControlTemplate ButtonTemplate =
+        new FuncControlTemplate<Button>((button, _) => new ContentPresenter { Content = button.Content, Background = StaticResources.Brushes.CheckerTilesBrush });
 
-    protected override object Build(LayerItemViewModel? vm)
+    public LayerItemView(LayerItemViewModel viewModel, IViewPortRefreshService viewPortRefreshService)
+        : base(new State(viewModel, viewPortRefreshService))
     {
-        if (vm == null)
-            return new TextBlock().Text("No layer");
+    }
 
-        vm.Invalidated += StateHasChanged;
-
-        return new Border()
+    protected override object Build(State state) =>
+        new Border()
             .CornerRadius(6)
             .ClipToBounds(true)
             .Child(
@@ -31,13 +31,12 @@ public class LayerItemView(LayerItemViewModel viewModel) : ComponentBase<LayerIt
                         new Button()
                             .Padding(0)
                             .OnClick(_ => LeftPointerPressed?.Invoke())
-                            .Template(buttonTemplate)
+                            .Template(ButtonTemplate)
                             .Content(
                                 new Rectangle()
                                     .Width(100)
                                     .Height(100)
-                                    .Fill(() => vm.Preview != null ? new ImageBrush(vm.Preview.ToBitmap()) : new SolidColorBrush(Colors.Transparent))
-                            )
+                                    .Fill(state, x => x.PreviewBrush))
                             .OnPointerPressed(OnRightPointerPressed),
                         new Grid()
                             .Rows("*,*,*")
@@ -49,58 +48,42 @@ public class LayerItemView(LayerItemViewModel viewModel) : ComponentBase<LayerIt
                                     .Row(0)
                                     .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .FontSize(18)
-                                    .OnClick(_ => UpdateState(vm.ToggleLayerVisibility))
-                                    .Foreground(() => vm.SourceNode.IsVisible ? Brushes.White : Brushes.Gray)
+                                    .OnClick(_ => state.ToggleVisibility())
+                                    .Foreground(state, x => x.VisibilityForeground)
                                     .Content("\xe92a"),
                                 new Button().Name("LockTransparentPixelsButton")
                                     .Row(1)
                                     .FontFamily(StaticResources.Fonts.Pix2dThemeFontFamily)
                                     .FontSize(18)
-                                    .IsVisible(() => vm.IsSelected || vm.SourceNode.LockTransparentPixels)
-                                    .OnClick(_ =>
-                                    {
-                                        if (!vm.IsSelected)
-                                        {
-                                            LeftPointerPressed?.Invoke();
-                                        }
-                                        vm.SourceNode.LockTransparentPixels = !vm.SourceNode.LockTransparentPixels;
-                                        StateHasChanged();
-                                    })
-                                    .Foreground(() =>
-                                        vm.SourceNode.LockTransparentPixels ? Brushes.White : Brushes.Gray)
+                                    .IsVisible(state, x => x.ShowColorLockButton)
+                                    .OnClick(_ => state.ToggleColorLock(LeftPointerPressed))
+                                    .Foreground(state, x => x.ColorLockForeground)
                                     .Content("\xe901"),
                                 new Button()
-                                    .Row(3)
+                                    .Row(2)
                                     .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .FontSize(18)
-                                    .IsVisible(() => vm.SourceNode.HasEffects)
-                                    .OnClick(_ => UpdateState(()=>
-                                    {
-                                        vm.SourceNode.ShowEffects = !vm.SourceNode.ShowEffects;
-                                        ViewPortRefreshService.Refresh();
-                                    }))
-                                    .Foreground(() => vm.SourceNode.ShowEffects ? Brushes.White : Brushes.LightGray)
+                                    .IsVisible(state, x => x.HasEffects)
+                                    .OnClick(_ => state.ToggleEffects())
+                                    .Foreground(state, x => x.EffectsForeground)
                                     .Content("\xe939")
-                            ), //buttons grid
+                            ),
                         new Grid()
                             .VerticalAlignment(VerticalAlignment.Bottom)
                             .HorizontalAlignment(HorizontalAlignment.Right)
-                            .IsVisible(() => vm.SourceNode.BlendMode != SKBlendMode.SrcOver)
+                            .IsVisible(state, x => x.ShowBlendModeName)
                             .Children(
-                                new TextBlock().Text(() => vm.SourceNode.BlendMode.ToString()).Foreground(Brushes.White)
+                                new TextBlock().Text(state, x => x.BlendModeText).Foreground(Brushes.White)
                                     .Margin(8),
-                                new TextBlock().Text(() => vm.SourceNode.BlendMode.ToString()).Foreground(Brushes.Black)
+                                new TextBlock().Text(state, x => x.BlendModeText).Foreground(Brushes.Black)
                                     .Margin(7)
                             )
                     )
             );
-    }
 
-    [Inject] private IViewPortRefreshService ViewPortRefreshService { get; set; } = null!;
+    public Action? LeftPointerPressed { get; set; }
 
-    public Action? LeftPointerPressed { get; set; } = null!;
-
-    public Action? RightPointerPressed { get; set; } = null!;
+    public Action? RightPointerPressed { get; set; }
 
     private void OnRightPointerPressed(PointerPressedEventArgs e)
     {
@@ -108,6 +91,84 @@ public class LayerItemView(LayerItemViewModel viewModel) : ComponentBase<LayerIt
         if (properties.IsRightButtonPressed)
         {
             RightPointerPressed?.Invoke();
+        }
+    }
+
+    public sealed partial class State : ObservableObject
+    {
+        private readonly IViewPortRefreshService _viewPortRefreshService;
+
+        public State(LayerItemViewModel layer, IViewPortRefreshService viewPortRefreshService)
+        {
+            _viewPortRefreshService = viewPortRefreshService;
+            Layer = layer;
+            Layer.Invalidated += SyncFromModel;
+            SyncFromModel();
+        }
+
+        public LayerItemViewModel Layer { get; }
+
+        [ObservableProperty]
+        public partial IBrush PreviewBrush { get; set; } = Brushes.Transparent;
+
+        [ObservableProperty]
+        public partial bool IsSelected { get; set; }
+
+        [ObservableProperty]
+        public partial bool ShowColorLockButton { get; set; }
+
+        [ObservableProperty]
+        public partial bool HasEffects { get; set; }
+
+        [ObservableProperty]
+        public partial bool ShowBlendModeName { get; set; }
+
+        [ObservableProperty]
+        public partial string BlendModeText { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial IBrush VisibilityForeground { get; set; } = Brushes.Gray;
+
+        [ObservableProperty]
+        public partial IBrush ColorLockForeground { get; set; } = Brushes.Gray;
+
+        [ObservableProperty]
+        public partial IBrush EffectsForeground { get; set; } = Brushes.LightGray;
+
+        public void ToggleVisibility()
+        {
+            Layer.ToggleLayerVisibility();
+            SyncFromModel();
+        }
+
+        public void ToggleColorLock(Action? selectLayerAction)
+        {
+            if (!IsSelected)
+                selectLayerAction?.Invoke();
+
+            Layer.SourceNode.LockTransparentPixels = !Layer.SourceNode.LockTransparentPixels;
+            SyncFromModel();
+        }
+
+        public void ToggleEffects()
+        {
+            Layer.SourceNode.ShowEffects = !Layer.SourceNode.ShowEffects;
+            _viewPortRefreshService.Refresh();
+            SyncFromModel();
+        }
+
+        public void SyncFromModel()
+        {
+            var preview = Layer.Preview;
+            PreviewBrush = preview != null ? new ImageBrush(preview.ToBitmap()) : Brushes.Transparent;
+            IsSelected = Layer.IsSelected;
+            ShowColorLockButton = Layer.IsSelected || Layer.SourceNode.LockTransparentPixels;
+            HasEffects = Layer.SourceNode.HasEffects;
+            ShowBlendModeName = Layer.SourceNode.BlendMode != SKBlendMode.SrcOver;
+            BlendModeText = Layer.SourceNode.BlendMode.ToString();
+            VisibilityForeground = Layer.SourceNode.IsVisible ? Brushes.White : Brushes.Gray;
+            ColorLockForeground = Layer.SourceNode.LockTransparentPixels ? Brushes.White : Brushes.Gray;
+            EffectsForeground = Layer.SourceNode.ShowEffects ? Brushes.White : Brushes.LightGray;
         }
     }
 }

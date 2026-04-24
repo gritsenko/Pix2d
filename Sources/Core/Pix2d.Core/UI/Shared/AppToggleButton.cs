@@ -14,43 +14,41 @@ public class AppToggleButton : AppButton
 
     protected override object Build() =>
         new ToggleButton()
-            .IsChecked(IsCheckedProperty)
-            .Command(CommandProperty)
-            .HorizontalAlignment(HorizontalAlignment.Stretch)
-            .VerticalAlignment(VerticalAlignment.Stretch)
-            .HorizontalContentAlignment(HorizontalAlignment.Stretch)
-            .VerticalContentAlignment(VerticalAlignment.Stretch)
-            .Padding(0)
-            .Margin(0)
-            .Content(
-                new Border()
-                    .Background(BackgroundProperty)
-                    .Child(
-                        new Grid()
-                            .Rows("24, Auto")
-                            .VerticalAlignment(VerticalAlignment.Center)
-                            .Children(
-                                new ContentControl()
-                                    .Name(IconControlName)
-                                    .FontSize(16)
-                                    .HorizontalAlignment(HorizontalAlignment.Center)
-                                    .VerticalAlignment(VerticalAlignment.Center)
-                                    .HorizontalContentAlignment(HorizontalAlignment.Stretch)
-                                    .VerticalContentAlignment(VerticalAlignment.Stretch)
-                                    .FontFamily(IconFontFamilyProperty)
-                                    .Content(ContentProperty),
+        .IsChecked(this, x => x.IsChecked, BindingMode.TwoWay)
+        .Command(this, x => x.Command, BindingMode.OneWay)
+        .HorizontalAlignment(HorizontalAlignment.Stretch)
+        .VerticalAlignment(VerticalAlignment.Stretch)
+        .HorizontalContentAlignment(HorizontalAlignment.Stretch)
+        .VerticalContentAlignment(VerticalAlignment.Stretch)
+        .Content(
+            new Border()
+                .Background(Brushes.Transparent)
+                .Child(
+                    new Grid()
+                        .Rows("24, Auto")
+                        .VerticalAlignment(VerticalAlignment.Center)
+                        .Children(
+                            new ContentControl()
+                                .Name(IconControlName)
+                                .FontSize(16)
+                                .HorizontalAlignment(HorizontalAlignment.Center)
+                                .VerticalAlignment(VerticalAlignment.Center)
+                                .HorizontalContentAlignment(HorizontalAlignment.Stretch)
+                                .VerticalContentAlignment(VerticalAlignment.Stretch)
+                                .FontFamily(this, x => x.IconFontFamily, BindingMode.OneWay)
+                                .Content(this, x => x.Content, BindingMode.OneWay),
 
-                                new TextBlock().Row(1)
-                                    .Name(LabelControlName)
-                                    .Text(LabelProperty)
-                                    .HorizontalAlignment(HorizontalAlignment.Center)
-                            )
-                    )
-            );
+                            new TextBlock().Row(1)
+                                .Name(LabelControlName)
+                                .Text(this, x => x.Label, BindingMode.OneWay)
+                                .HorizontalAlignment(HorizontalAlignment.Center)
+                        )
+                )
+        );
 
 
     protected override void OnAfterInitialized()
     {
-        
+
     }
 }

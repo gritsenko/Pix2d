@@ -45,6 +45,24 @@ public class FrameEditorNode : SKNode
         }
     }
 
+    private bool _contourOnly;
+
+    /// <summary>
+    /// When true, the editor displays only the marching-ants contour (via the move thumb) and hides all
+    /// manipulation handles. The move thumb also becomes non-interactive so taps fall through. Set to false
+    /// via the explicit "Transform selection" action to expose the full transform handles.
+    /// </summary>
+    public bool ContourOnly
+    {
+        get => _contourOnly;
+        set
+        {
+            if (_contourOnly == value) return;
+            _contourOnly = value;
+            UpdateThumbs();
+        }
+    }
+
     public SKRect SelectionBounds => _moveThumb.GetBoundingBox();
 
     public bool EditStarted { get; set; }
@@ -58,7 +76,7 @@ public class FrameEditorNode : SKNode
         _sizeThumb[2] = new RightTopResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
         _sizeThumb[3] = new LeftBottomResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
 
-        _rotateThumb = new RotateThumbNode() { SnapToPixels = false, AngleLockProviderFunc = GetAspectLock };
+        _rotateThumb = new RotateThumbNode() { SnapToPixels = false, AngleLockProviderFunc = GetAngleLock };
 
         _highlightNode = new LineHighlightNode() { IsVisible = false };
 
@@ -156,9 +174,16 @@ public class FrameEditorNode : SKNode
     {
         foreach (var resizeThumbSingleNode in _sizeThumb)
         {
-            resizeThumbSingleNode.IsVisible = _allowResize && this.IsVisible;
+            resizeThumbSingleNode.IsVisible = _allowResize && this.IsVisible && !_contourOnly;
             resizeThumbSingleNode.Opacity = 50;
         }
+
+        _rotateThumb.IsVisible = this.IsVisible && !_contourOnly;
+
+        // Move thumb always stays visible (it draws the border / contour) but becomes non-interactive
+        // in contour-only mode so taps on the selected area go through to the drawing layer.
+        _moveThumb.ContourOnly = _contourOnly;
+        _moveThumb.IsInteractive = !_contourOnly;
     }
 
     private void ResetIsChanged()
@@ -197,6 +222,10 @@ public class FrameEditorNode : SKNode
         return _selection?.LockAspect ?? false || (AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked == true);
     }
     public bool GetAxisLock()
+    {
+        return AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked ?? false;
+    }
+    public bool GetAngleLock()
     {
         return AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked ?? false;
     }

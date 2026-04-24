@@ -19,12 +19,14 @@ public class LeftTopResizeThumbSingleNode : ResizeThumbSingleNode
     {
             var d = new SKPoint(-delta.X, -delta.Y);
             var newSize = CalculateNewSize(initialSize, d, lockAspect);
+            var sizeDelta = GetSizeDelta(initialSize, newSize);
+            var effectiveDelta = new SKPoint(-sizeDelta.X, -sizeDelta.Y);
 
             var position = _initialTargetLocalTransform.MapPoint(_initialTargetPos);
-            position.Offset(delta.X / 2, delta.Y / 2);
+            position.Offset(effectiveDelta.X / 2, effectiveDelta.Y / 2);
 
             var pivotPosition = _initialTargetPivotPosition;
-            pivotPosition.Offset(-delta.X / 2, - delta.Y / 2);
+            pivotPosition.Offset(-effectiveDelta.X / 2, - effectiveDelta.Y / 2);
             
             TargetSelection?.SetPosition(_initialTargetGlobalTransform.MapPoint(position));
             TargetSelection?.SetPivotPosition(pivotPosition);

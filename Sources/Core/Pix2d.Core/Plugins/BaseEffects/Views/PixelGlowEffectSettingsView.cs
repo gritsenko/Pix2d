@@ -7,30 +7,15 @@ namespace Pix2d.Plugins.BaseEffects.Views;
 public class PixelGlowEffectSettingsView(PixelGlowEffect e, Action onEffectUpdated)
     : EffectSettingsViewBase<PixelGlowEffect>(e, onEffectUpdated)
 {
-    protected override object Build(PixelGlowEffect? effect) =>
+    protected override object BuildEffectSettings(PixelGlowEffect effect) =>
         new StackPanel().Children(
             new TextBlock().Text("Radius"),
-            new Slider()
-                .Maximum(10)
-                .Minimum(-10)
-                .SmallChange(1)
-                .LargeChange(3)
-                .Value(() => effect?.Radius ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Radius = (float)v; })),
+            CreateSlider(-10, 10, effect.Radius, value => effect.Radius = (float)value, 1, 3),
 
             new TextBlock().Text("Blur amount"),
-            new Slider()
-                .Maximum(20)
-                .Minimum(0)
-                .SmallChange(0.1)
-                .LargeChange(3)
-                .Value(() => effect?.Blur ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Blur = (float)v; })),
+            CreateSlider(0, 20, effect.Blur, value => effect.Blur = (float)value, 0.1, 3),
 
             new TextBlock().Text("Opacity"),
-            new Slider()
-                .Maximum(255)
-                .Minimum(0)
-                .SmallChange(1)
-                .LargeChange(5)
-                .Value(() => effect?.Opacity ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Opacity = (int)v; }))
+            CreateSlider(0, 255, effect.Opacity, value => effect.Opacity = (int)value, 1, 5)
         );
 }

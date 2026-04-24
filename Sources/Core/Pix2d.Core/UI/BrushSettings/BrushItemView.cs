@@ -1,30 +1,28 @@
 using Pix2d.Common.Extensions;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.UI.Resources;
 using SkiaSharp;
 
 namespace Pix2d.UI.BrushSettings;
 
-public class BrushItemView : ComponentBase
+public partial class BrushItemView() : ViewBase<BrushItemView.State>(new State())
 {
+    private Primitives.Drawing.BrushSettings _preset = null!;
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Border()
-            .Background(() => Preview?.ToBrush()?.Stretch(Stretch.None) ?? StaticResources.Brushes.CheckerTilesBrush)
+            .Background(state, x => x.PreviewBrush)
             .CornerRadius(StaticResources.Measures.ButtonCornerRadius)
             .Child(
                 new TextBlock()
-                    .IsVisible(() => ShowSizeText)
+                    .IsVisible(state, x => x.ShowSizeText)
                     .Row(1)
                     .FontSize(10)
-                    .Text(() => $"{Preset?.Scale}px")
+                    .Text(state, x => x.SizeText)
                     .VerticalAlignment(VerticalAlignment.Bottom)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Padding(0, 0, 0, 1)
             );
-
-
-    private Primitives.Drawing.BrushSettings _preset = null!;
-    private bool _showSizeText;
 
     public Primitives.Drawing.BrushSettings Preset
     {
@@ -32,19 +30,32 @@ public class BrushItemView : ComponentBase
         set
         {
             _preset = value;
-            StateHasChanged();
+            ViewModel?.SetPreset(value);
         }
     }
 
-    public SKBitmap? Preview => Preset?.Brush?.GetPreviewBitmap(Preset.Scale);
-
     public bool ShowSizeText
     {
-        get => _showSizeText;
-        set
+        get => ViewModel?.ShowSizeText ?? false;
+        set => ViewModel!.ShowSizeText = value;
+    }
+
+    public sealed partial class State : ObservableObject
+    {
+        [ObservableProperty]
+        public partial bool ShowSizeText { get; set; }
+
+        [ObservableProperty]
+        public partial string SizeText { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial IBrush PreviewBrush { get; set; } = StaticResources.Brushes.CheckerTilesBrush;
+
+        public void SetPreset(Primitives.Drawing.BrushSettings preset)
         {
-            _showSizeText = value;
-            StateHasChanged();
+            SizeText = $"{preset.Scale}px";
+            PreviewBrush = preset.Brush?.GetPreviewBitmap(preset.Scale)?.ToBrush()?.Stretch(Stretch.None)
+                ?? StaticResources.Brushes.CheckerTilesBrush;
         }
     }
 }

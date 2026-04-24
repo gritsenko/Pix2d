@@ -92,5 +92,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Pix2d.Desktop\Pix2d.Desktop.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.92.0" />
+  </ItemGroup>
   <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />
 </Project>

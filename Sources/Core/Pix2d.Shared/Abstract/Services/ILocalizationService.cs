@@ -11,4 +11,6 @@ public interface ILocalizationService
 
     public IReadOnlyList<LocaleInfo> AvailableLocales { get; }
     public void SetLocale(string locale);
+
+    event Action? LocaleChanged;
 }

@@ -1,9 +1,8 @@
 ﻿using Avalonia.Controls.Shapes;
 using Avalonia.Styling;
-using Pix2d.Abstract.Tools;
+using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Command;
-using Pix2d.Common.Extensions;
-using Pix2d.Primitives;
 using Pix2d.UI.BrushSettings;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
@@ -11,8 +10,10 @@ using Pix2d.UI.Styles;
 
 namespace Pix2d.UI.ToolBar;
 
-public class ToolBarView : ComponentBase
+public partial class ToolBarView(AppState appState, ICommandService commandService, IServiceProvider serviceProvider)
+    : ViewBase<ToolBarView.State>(new State(appState, commandService, serviceProvider))
 {
+
     protected override StyleGroup BuildStyles() =>
     [
         //general
@@ -75,10 +76,10 @@ public class ToolBarView : ComponentBase
 
     private void ButtonToolTipSetter(Button b)
     {
-        if (b.Command is Pix2dCommand pc) b.ToolTip(pc.Tooltip);
+        if (b.Command is Pix2dCommand pc) b.ToolTip_Tip(pc.Tooltip);
     }
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Grid()
             .Rows("Auto, *")
             .Children(
@@ -92,21 +93,21 @@ public class ToolBarView : ComponentBase
                             .Children(
                             new Button() //Color picker button
                                 .Classes("color-button")
-                                .IsVisible(() => IsSpriteEditMode)
-                                .Command(ViewCommands.ToggleColorEditorCommand)
+                                .IsVisible(state, x => x.IsSpriteEditMode)
+                                .Command(state.ViewCommands.ToggleColorEditorCommand)
                                 .CornerRadius(32)
                                 .BorderThickness(1)
                                 .BorderBrush(Colors.White.WithAlpha(0.3f).ToBrush().ToImmutable())
                                 .With(ButtonToolTipSetter)
-                                .Background(() => AppState.SpriteEditorState.CurrentColor.ToBrush()),
+                                .Background(state, x => x.CurrentColorBrush),
 
                             new Button() //Brush settings button
                                 .Classes("toolbar-button")
                                 .Classes("brush-button")
-                                .IsVisible(() => IsSpriteEditMode)
+                                .IsVisible(state, x => x.IsSpriteEditMode)
                                 .Padding(0)
-                                .Command(ViewCommands.ToggleBrushSettingsCommand)
-                                .Content(()=>AppState.SpriteEditorState.CurrentBrushSettings)
+                                .Command(state.ViewCommands.ToggleBrushSettingsCommand)
+                                .Content(state, x => x.CurrentBrushSettings)
                                 .With(ButtonToolTipSetter)
                                 .VerticalContentAlignment(VerticalAlignment.Stretch)
                                 .HorizontalContentAlignment(HorizontalAlignment.Stretch)
@@ -129,60 +130,89 @@ public class ToolBarView : ComponentBase
                     )
             );
 
-
-    [Inject] private AppState AppState { get; set; } = null!;
-    [Inject] private ICommandService CommandService { get; set; } = null!;
-
-    private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
-
-    private bool IsSpriteEditMode => AppState.CurrentProject.CurrentContextType == EditContextType.Sprite;
-
     private StackPanel _toolsStackPanel = null!;
-
-    public List<ToolItemView> Tools { get; set; } = [];
-
 
     protected override void OnAfterInitialized()
     {
-        AppState.ToolsState.WatchFor(x=>x.CurrentToolKey, OnToolChanged);
-        AppState.CurrentProject.WatchFor(x => x.CurrentContextType, OnEditContextChanged);
-        AppState.SpriteEditorState.WatchFor(x => x.CurrentColor, StateHasChanged);
-        AppState.SpriteEditorState.WatchFor(x => x.CurrentBrushSettings, StateHasChanged);
-        RebuildTools();
+        ViewModel!.AttachToolsPanel(_toolsStackPanel);
     }
 
-    private void OnToolChanged()
+    public sealed partial class State : ObservableObject
     {
-        StateHasChanged();
-    }
+        private readonly AppState _appState;
+        private readonly IServiceProvider _serviceProvider;
+        private StackPanel? _toolsStackPanel;
 
-    private void OnEditContextChanged()
-    {
-        RebuildTools();
-        StateHasChanged();
-    }
+        public ViewCommands ViewCommands { get; }
 
-    private void RebuildTools()
-    {
-        _toolsStackPanel.Children.Clear();
+        [ObservableProperty]
+        public partial bool IsSpriteEditMode { get; set; }
 
-        var groupItems = new List<ToolItemGroupView>();
-        var tools = AppState.ToolsState.Tools.Where(x => x.Context == AppState.CurrentProject.CurrentContextType);
-        foreach (var tool in tools)
+        [ObservableProperty]
+        public partial IBrush CurrentColorBrush { get; set; } = Brushes.Transparent;
+
+        [ObservableProperty]
+        public partial Primitives.Drawing.BrushSettings? CurrentBrushSettings { get; set; }
+
+        public State(AppState appState, ICommandService commandService, IServiceProvider serviceProvider)
         {
-            var toolItemView = new ToolItemView(tool);
-            if (string.IsNullOrWhiteSpace(tool.GroupName))
-                _toolsStackPanel.Children.Add(toolItemView);
-            else
+            _appState = appState;
+            _serviceProvider = serviceProvider;
+            ViewCommands = commandService.GetCommandList<ViewCommands>()!;
+
+            SyncFromAppState();
+
+            _appState.CurrentProject.WatchFor(x => x.CurrentContextType, OnEditContextChanged);
+            _appState.SpriteEditorState.WatchFor(x => x.CurrentColor, SyncFromAppState);
+            _appState.SpriteEditorState.WatchFor(x => x.CurrentBrushSettings, SyncFromAppState);
+        }
+
+        public void AttachToolsPanel(StackPanel toolsStackPanel)
+        {
+            _toolsStackPanel = toolsStackPanel;
+            RebuildTools();
+        }
+
+        public void SyncFromAppState()
+        {
+            IsSpriteEditMode = _appState.CurrentProject.CurrentContextType == EditContextType.Sprite;
+            CurrentColorBrush = _appState.SpriteEditorState.CurrentColor.ToBrush();
+            CurrentBrushSettings = _appState.SpriteEditorState.CurrentBrushSettings;
+        }
+
+        private void OnEditContextChanged()
+        {
+            SyncFromAppState();
+            RebuildTools();
+        }
+
+        private void RebuildTools()
+        {
+            if (_toolsStackPanel == null)
+                return;
+
+            _toolsStackPanel.Children.Clear();
+
+            var groupItems = new List<ToolItemGroupView>();
+            var tools = _appState.ToolsState.Tools.Where(x => x.Context == _appState.CurrentProject.CurrentContextType);
+            foreach (var tool in tools)
             {
-                var groupItem = groupItems.FirstOrDefault(x => x.GroupName == tool.GroupName);
-                if (groupItem == null)
+                var toolItemView = ActivatorUtilities.CreateInstance<ToolItemView>(_serviceProvider, tool);
+                if (string.IsNullOrWhiteSpace(tool.GroupName))
                 {
-                    groupItem = new ToolItemGroupView() { GroupName = tool.GroupName };
-                    groupItems.Add(groupItem);
-                    groupItem.SetActiveItem(tool);
-                    _toolsStackPanel.Children.Add(groupItem);
+                    _toolsStackPanel.Children.Add(toolItemView);
+                    continue;
                 }
+
+                var groupItem = groupItems.FirstOrDefault(x => x.GroupName == tool.GroupName);
+                if (groupItem != null)
+                    continue;
+
+                groupItem = ActivatorUtilities.CreateInstance<ToolItemGroupView>(_serviceProvider);
+                groupItem.GroupName = tool.GroupName;
+                groupItems.Add(groupItem);
+                groupItem.SetActiveItem(tool);
+                _toolsStackPanel.Children.Add(groupItem);
             }
         }
     }

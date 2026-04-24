@@ -5,8 +5,6 @@ using SkiaSharp;
 
 namespace Pix2d.Common.Gif;
 
-#pragma warning disable CS8625 // Fields are intentionally set to null and initialized before use
-
 public class AnimatedGifEncoder
 {
     protected int width; // image size
@@ -17,14 +15,14 @@ public class AnimatedGifEncoder
     protected int delay = 0; // frame delay (hundredths)
     protected bool started = false; // ready to output frames
     //	protected BinaryWriter bw;
-    protected MemoryStream  ms = null!;
+    protected MemoryStream ms = new();
 //		protected FileStream fs;
 
-    protected SKBitmap image = null!; // current frame
-    protected byte[] pixels = null!; // BGR byte array from frame
-    protected byte[] indexedPixels = null!; // converted frame indexed to palette
+    protected SKBitmap image = new(); // current frame
+    protected byte[] pixels = []; // BGR byte array from frame
+    protected byte[] indexedPixels = []; // converted frame indexed to palette
     protected int colorDepth; // number of bit planes
-    protected byte[] colorTab = null!; // RGB palette
+    protected byte[] colorTab = []; // RGB palette
     protected bool[] usedEntry = new bool[256]; // active palette entries
     protected int palSize = 7; // color table size (bits-1)
     protected int dispose = -1; // disposal code (-1 = use default)
@@ -183,10 +181,10 @@ public class AnimatedGifEncoder
         // reset for subsequent use
         transIndex = 0;
 //			fs = null;
-        image = null;
-        pixels = null;
-        indexedPixels = null;
-        colorTab = null;
+        image = new SKBitmap();
+        pixels = [];
+        indexedPixels = [];
+        colorTab = [];
         closeStream = false;
         firstFrame = true;
 
@@ -341,7 +339,7 @@ public class AnimatedGifEncoder
                 indexedPixels[i] = 0;
             }
         }
-        pixels = null;
+        pixels = [];
         colorDepth = 8;
         palSize = 7;
         // get closest match to transparent color if specified
@@ -360,7 +358,7 @@ public class AnimatedGifEncoder
      */
     protected int FindClosest(SKColor c) 
     {
-        if (colorTab == null) return -1;
+        if (colorTab.Length == 0) return -1;
         int r = c.Red;
         int g = c.Green;
         int b = c.Blue;

@@ -4,8 +4,13 @@ using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.Shared;
 
-public class DialogContainer : ComponentBase, IDialogContainer
+public class DialogContainer : ViewBase, IDialogContainer
 {
+    public DialogContainer(IDialogService dialogService)
+    {
+        dialogService.SetDialogContainer(this);
+    }
+
     /// <summary>
     /// Content Property
     /// </summary>
@@ -36,13 +41,13 @@ public class DialogContainer : ComponentBase, IDialogContainer
             .Ref(out _ovarlayBorder)
             .Background(StaticResources.Brushes.ModalOverlayBrush)
             .Child(
-                new PopupView()
+                ViewFactory.Create<PopupView>()
                     .MinWidth(300)
                     .MinHeight(150)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Ref(out _contentControl)
-                    .Header(Title, BindingMode.OneWay, bindingSource: this)
+                    .Header(string.Empty)
                     .IsOpen(true)
                     .OnCloseButtonClicked(e => OnCloseButtonClicked())
             );
@@ -52,19 +57,13 @@ public class DialogContainer : ComponentBase, IDialogContainer
 
     public event EventHandler? CloseButtonClicked;
 
-    [Inject] private IDialogService DialogService { get; set; } = null!;
-
-    protected override void OnAfterInitialized()
-    {
-        DialogService.SetDialogContainer(this);
-    }
-
     public void ShowDialog(IDialogView dialog)
     {
-        if (dialog is not ViewBase control)
+        if (dialog is not Control control)
             throw new Exception("dialog is not control");
 
         Title = dialog.Title;
+        _contentControl.Header = Title;
         _contentControl.Content = control;
         SetVisible(true);
     }
@@ -73,6 +72,7 @@ public class DialogContainer : ComponentBase, IDialogContainer
     {
         SetVisible(false);
         Title = "";
+        _contentControl.Header = string.Empty;
         _contentControl.Content = default!;
     }
 

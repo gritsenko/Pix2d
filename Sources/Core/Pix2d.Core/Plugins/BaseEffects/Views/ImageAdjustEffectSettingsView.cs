@@ -7,23 +7,13 @@ namespace Pix2d.Plugins.BaseEffects.Views;
 public class ImageAdjustEffectSettingsView(ImageAdjustEffect e, Action onEffectUpdated)
     : EffectSettingsViewBase<ImageAdjustEffect>(e, onEffectUpdated)
 {
-    protected override object Build(ImageAdjustEffect? effect) =>
-
+    protected override object BuildEffectSettings(ImageAdjustEffect effect) =>
         new StackPanel().Children(
             new TextBlock().Text("Hue"),
-            new Slider()
-                .Minimum(-180)
-                .Maximum(180)
-                .Value(() => effect?.Hue ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Hue = (float)v; })),
+            CreateSlider(-180, 180, effect.Hue, value => effect.Hue = (float)value),
             new TextBlock().Text("Brightness"),
-            new Slider()
-                .Minimum(-100)
-                .Maximum(100)
-                .Value(() => effect?.Lightness ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Lightness = (float)v; })),
+            CreateSlider(-100, 100, effect.Lightness, value => effect.Lightness = (float)value),
             new TextBlock().Text("Saturation"),
-            new Slider()
-                .Minimum(-100)
-                .Maximum(100)
-                .Value(() => effect?.Saturation ?? 0, v => UpdateEffect(() => { if (effect != null) effect.Saturation = (float)v; }))
+            CreateSlider(-100, 100, effect.Saturation, value => effect.Saturation = (float)value)
         );
 }

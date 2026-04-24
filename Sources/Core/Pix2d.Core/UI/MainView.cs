@@ -1,15 +1,10 @@
-﻿using Avalonia.Animation;
+using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Media.Transformation;
-using Avalonia.Platform.Storage;
 using Avalonia.Styling;
-using Pix2d.Abstract.Import;
-using Pix2d.Command;
-using Pix2d.Common.FileSystem;
-using Pix2d.Messages;
 using Pix2d.UI.Animation;
 using Pix2d.UI.BrushSettings;
 using Pix2d.UI.Export;
@@ -19,13 +14,24 @@ using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using Pix2d.UI.Styles;
 using Pix2d.UI.ToolBar;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Pix2d.UI;
 
-public class MainView : LocalizedComponentBase
+public partial class MainView : ViewBase<MainViewModel>
 {
+    public MainView(
+        AppState appState,
+        IDialogService dialogService,
+        IMessenger messenger,
+        IProjectService projectService,
+        IImportService importService,
+        ICommandService commandService)
+        : base(new MainViewModel(appState, dialogService, messenger, projectService, importService, commandService))
+    {
+    }
 
     protected override StyleGroup BuildStyles() =>
     [
@@ -37,13 +43,13 @@ public class MainView : LocalizedComponentBase
             .IsVisible(true),
 
         new Style<ToolBarView>()
-            .Margin(StaticResources.Measures.PanelMargin,StaticResources.Measures.PanelMargin,StaticResources.Measures.PanelMargin,48)
+            .Margin(StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, 48)
             .Col(0)
             .Row(2)
             .RowSpan(2),
 
         new Style<LayersView>()
-            .Margin(0,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin)
+            .Margin(0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin)
             .VerticalAlignment(VerticalAlignment.Center)
             .RowSpan(1),
 
@@ -67,11 +73,10 @@ public class MainView : LocalizedComponentBase
             .VerticalAlignment(VerticalAlignment.Center)
             .Margin(8, 0, 120, 0),
 
-
         new StyleGroup(_ => VisualStates.Narrow())
         {
             new Style<LayersView>()
-                .Margin(0,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 24 + 56)
+                .Margin(0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 24 + 56)
                 .VerticalAlignment(VerticalAlignment.Bottom)
                 .RowSpan(2),
 
@@ -88,10 +93,10 @@ public class MainView : LocalizedComponentBase
             new Style<ZoomPanelView>()
                 .Col(0).ColSpan(1)
                 .VerticalAlignment(VerticalAlignment.Bottom)
-                .Margin(StaticResources.Measures.PanelMargin * 2 + 56 ,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12),
+                .Margin(StaticResources.Measures.PanelMargin * 2 + 56, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12),
 
             new Style<AdditionalTopBarView>()
-                .Margin(0,StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12),
+                .Margin(0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12),
 
             new Style<Canvas>(s => s.Name("PopupContainer"))
                 .Col(0)
@@ -105,206 +110,180 @@ public class MainView : LocalizedComponentBase
                 .HorizontalAlignment(HorizontalAlignment.Center)
                 .VerticalAlignment(VerticalAlignment.Top)
                 .Margin(StaticResources.Measures.PanelMargin, 0, StaticResources.Measures.PanelMargin, 0)
-
         }
     ];
 
-    protected override object Build() =>
+    protected override object Build(MainViewModel vm) =>
         new Grid().Name("RootGrid").Children(
             new Border()
                 .Name("Pix2dCanvasContainer")
-                .OnPointerPressed((e) =>
+                .OnPointerPressed(e =>
                 {
-                    if (e.Source is StyledElement element) Messenger.Send(new WindowClickedMessage(element));
+                    if (e.Source is StyledElement element)
+                        vm.NotifyWindowClicked(element);
                 }, RoutingStrategies.Tunnel),
 
             new LayoutTransformControl()
                 .Ref(out _layoutTransformControl)
                 .Name("LayoutTransformControl")
                 .Child(
-
                     new Grid()
                         .Name("UiGrid")
                         .Ref(out _rootGrid)
-                        .BindClass(() => Bounds.Width > 500, nameof(VisualStates.Wide))
-                        .BindClass(() => Bounds.Width <= 500, nameof(VisualStates.Narrow))
                         .Cols("Auto, *, Auto")
                         .Rows("Auto, Auto, *, Auto, Auto")
                         .Children([
-                            //new AppMenuView().IsVisible(true).ColSpan(3),
-
-                            new TopBarView().Ref(out _topBarView).Row(1).ColSpan(3)
+                            ViewFactory.Create<TopBarView>().Ref(out _topBarView).Row(1).ColSpan(3)
                                 .Margin(0, 0, 0, 1),
 
-                            new ToolBarView()
+                            ViewFactory.Create<ToolBarView>()
                                 .HorizontalAlignment(HorizontalAlignment.Left)
                                 .VerticalAlignment(VerticalAlignment.Center),
 
-                            new AdditionalTopBarView().Col(2),//.Row(3) - defined in styles for narrow/wide
+                            ViewFactory.Create<AdditionalTopBarView>().Col(2),
 
-                            new RatePromptView().Col(0).ColSpan(3).Row(2)
-                                .IsVisible(() => UiState.ShowRatePrompt),
+                            //ViewFactory.Create<RatePromptView>().Col(0).ColSpan(3).Row(2)
+                            //    .IsVisible(state, x => x.ShowRatePrompt),
 
-                            new InfoPanelView().Col(0).Row(3).ColSpan(2)
+                            ViewFactory.Create<InfoPanelView>().Col(0).Row(3).ColSpan(2)
                                 .Margin(StaticResources.Measures.PanelMargin)
                                 .HorizontalAlignment(HorizontalAlignment.Left)
                                 .VerticalAlignment(VerticalAlignment.Bottom),
 
-                            new ZoomPanelView(),
+                            ViewFactory.Create<ZoomPanelView>(),
 
                             new Grid().Col(0).ColSpan(3).Row(2).Rows("auto,auto")
                                 .Margin(StaticResources.Measures.PanelMargin)
                                 .Children(
-                                    new ActionsBarView()
-                                        .IsVisible(() => UiState.ShowExtraTools)
+                                    ViewFactory.Create<ActionsBarView>()
+                                        .IsVisible(vm, x => x.ShowExtraTools)
                                         .HorizontalAlignment(HorizontalAlignment.Center)
                                         .VerticalAlignment(VerticalAlignment.Top),
 
-                                    //new ClipboardActionsView().Row(1)
-                                    //    .IsVisible(UiState.ShowClipboardBar)
-                                    //    .HorizontalAlignment(HorizontalAlignment.Center)
-                                    //    .VerticalAlignment(VerticalAlignment.Top),
-
-                                    new TopToolUiContainer().Row(1)
-                                        //.IsVisible(() => UiState.TopToolUi != null)
+                                    ViewFactory.Create<TopToolUiContainer>().Row(1)
                                         .HorizontalAlignment(HorizontalAlignment.Center)
                                         .VerticalAlignment(VerticalAlignment.Top)
                                 ),
 
-                            new TimeLineView()
+                            ViewFactory.Create<TimeLineView>()
+                                .With(v => v.Transitions = new Transitions
                                 {
-                                    Transitions = new Transitions
+                                    new TransformOperationsTransition
                                     {
-                                        new TransformOperationsTransition()
-                                        {
-                                            Property = TimeLineView.RenderTransformProperty,
-                                            Duration = TimeSpan.FromSeconds(0.3),
-                                            Easing = new BackEaseOut()
-                                        }
+                                        Property = TimeLineView.RenderTransformProperty,
+                                        Duration = TimeSpan.FromSeconds(0.3),
+                                        Easing = new BackEaseOut()
                                     }
-                                }
+                                })
+                                .Ref(out _timeLineView)
                                 .Col(0).Row(4).Name("timeLine")
                                 .ColSpan(3)
-                                .VerticalAlignment(VerticalAlignment.Bottom)
-                                .BindClass(() => UiState.ShowTimeline, "shown"),
+                                .VerticalAlignment(VerticalAlignment.Bottom),
 
-                            new LayersView().Col(2).Row(2)
-                                .IsVisible(() => UiState.ShowLayers)
+                            ViewFactory.Create<LayersView>().Col(2).Row(2)
+                                .IsVisible(vm, x => x.ShowLayers)
                                 .HorizontalAlignment(HorizontalAlignment.Right),
 
                             new Canvas().Name("PopupContainer")
                                 .Ref(out _panelsContainer)
                                 .Children(new Control[]
                                 {
-
-                                    new PopupView().Name("ColorPicker")
+                                    ViewFactory.Create<PopupView>().Name("ColorPicker")
                                         .Ref(out _colorPickerPopup)
                                         .Header(L("Color"))
                                         .Canvas_Top(10)
                                         .Canvas_Left(10)
                                         .UseCenteredPositionOnNarrowScreen(true)
-                                        .IsOpen(() => UiState.ShowColorEditor, v => UiState.ShowColorEditor = v)
-                                        .CloseButtonCommand(ViewCommands.ToggleColorEditorCommand)
+                                        .IsOpen(vm, x => x.ShowColorEditor, BindingMode.TwoWay)
+                                        .CloseButtonCommand(vm.ViewCommands.ToggleColorEditorCommand)
                                         .ShowPinButton(true)
-                                        .Content(new ColorPickerView()),
+                                        .Content(ViewFactory.Create<ColorPickerView>()),
 
-                                    new PopupView().Name("BrushSettings")
+                                    ViewFactory.Create<PopupView>().Name("BrushSettings")
                                         .Ref(out _brushSettingsPopup)
                                         .Header(L("Brush"))
-                                        .IsOpen(() => UiState.ShowBrushSettings, v => UiState.ShowBrushSettings = v)
-                                        .CloseButtonCommand(ViewCommands.ToggleBrushSettingsCommand)
+                                        .IsOpen(vm, x => x.ShowBrushSettings, BindingMode.TwoWay)
+                                        .CloseButtonCommand(vm.ViewCommands.ToggleBrushSettingsCommand)
                                         .Width(258)
                                         .UseCenteredPositionOnNarrowScreen(true)
                                         .ShowPinButton(true)
-                                        .Content(new BrushSettingsView()),
+                                        .Content(ViewFactory.Create<BrushSettingsView>()),
 
-                                    new PopupView().Name("ArtworkPreview")
+                                    ViewFactory.Create<PopupView>().Name("ArtworkPreview")
                                         .Ref(out _artworkPreviewPopup)
                                         .Header(L("Preview"))
-                                        .IsOpen(() => UiState.ShowPreviewPanel)
-                                        .CloseButtonCommand(ViewCommands.TogglePreviewPanelCommand)
+                                        .IsOpen(vm, x => x.ShowPreviewPanel, BindingMode.TwoWay)
+                                        .CloseButtonCommand(vm.ViewCommands.TogglePreviewPanelCommand)
                                         .Canvas_Top(40)
                                         .Canvas_Right(100)
                                         .UseCenteredPositionOnNarrowScreen(true)
-                                        .Content(new ArtworkPreviewView()),
+                                        .Content(ViewFactory.Create<ArtworkPreviewView>()),
 
-                                    new PopupView()
+                                    ViewFactory.Create<PopupView>()
                                         .Ref(out _resizeCanvasPopup)
                                         .Header(L("Image/Canvas size"))
-                                        .IsOpen(() => UiState.ShowCanvasResizePanel)
-                                        .CloseButtonCommand(ViewCommands.ToggleCanvasSizePanelCommand)
+                                        .IsOpen(vm, x => x.ShowCanvasResizePanel, BindingMode.TwoWay)
+                                        .CloseButtonCommand(vm.ViewCommands.ToggleCanvasSizePanelCommand)
                                         .Width(220)
                                         .Canvas_Top(100)
                                         .Canvas_Right(100)
                                         .UseCenteredPositionOnNarrowScreen(true)
-                                        .Content(new ResizeCanvasView().Ref(out var resizeCanvasView))
+                                        .Content(ViewFactory.Create<ResizeCanvasView>().Ref(out var resizeCanvasView))
                                         .OnShow(() => resizeCanvasView.UpdateData()),
 
-                                    new PopupView()
+                                    ViewFactory.Create<PopupView>()
                                         .Ref(out _layerOptionsPopup)
                                         .Header(L("Layer options"))
-                                        .IsOpen(() => UiState.ShowLayerProperties)
-                                        .CloseButtonCommand(ViewCommands.HideLayerOptionsCommand)
+                                        .IsOpen(vm, x => x.ShowLayerProperties, BindingMode.TwoWay)
+                                        .CloseButtonCommand(vm.ViewCommands.HideLayerOptionsCommand)
                                         .Width(300)
                                         .Canvas_Top(40)
                                         .Canvas_Right(120)
                                         .UseCenteredPositionOnNarrowScreen(true)
-                                        .Content(new LayerOptionsView())
-
+                                        .Content(ViewFactory.Create<LayerOptionsView>())
                                 }),
 
-                            new ToolGroupContainerView()
-                                .IsVisible(() => UiState.ShowToolGroup)
+                            ViewFactory.Create<ToolGroupContainerView>()
+                                .IsVisible(vm, x => x.ShowToolGroup)
                                 .MinWidth(40)
                                 .MinHeight(40),
 
-                            new ExportView().ColSpan(3).RowSpan(5).IsVisible(() => UiState.ShowExportDialog),
+                            ViewFactory.Create<ExportView>().ColSpan(3).RowSpan(5)
+                                .IsVisible(vm, x => x.ShowExportDialog),
 
-                            new Border().Name("MainMenuContainer") //MAIN MENU
+                            new Border().Name("MainMenuContainer")
                                 .Col(0).ColSpan(3)
                                 .Row(0).RowSpan(5)
-                                .IsVisible(() => UiState.ShowMenu)
-                                .Child(
-                                    new MainMenuView()),
+                                .IsVisible(vm, x => x.ShowMenu)
+                                .Child(ViewFactory.Create<MainMenuView>()),
 
                             new Border().Name("LoadingOverlay")
                                 .Col(0).ColSpan(3)
                                 .Row(0).RowSpan(4)
-                                .IsVisible(() => AppState.IsBusy)
+                                .IsVisible(vm, x => x.IsBusy)
                                 .Background(StaticResources.Brushes.ModalOverlayBrush)
                                 .Child(
                                     new TextBlock()
                                         .Text(L("Working..."))
                                         .VerticalAlignment(VerticalAlignment.Center)
                                         .HorizontalAlignment(HorizontalAlignment.Center)
-                                ),
-
+                                )
                         ])
                 ),
-                new DialogContainer()
-            );
+
+            ViewFactory.Create<DialogContainer>()
+        );
 
     private Canvas _panelsContainer = null!;
     private Grid _rootGrid = null!;
     private TopBarView _topBarView = null!;
+    private TimeLineView _timeLineView = null!;
     private LayoutTransformControl _layoutTransformControl = null!;
     private PopupView _colorPickerPopup = null!;
     private PopupView _brushSettingsPopup = null!;
     private PopupView _artworkPreviewPopup = null!;
     private PopupView _resizeCanvasPopup = null!;
     private PopupView _layerOptionsPopup = null!;
-
-    [Inject] private AppState AppState { get; set; } = null!;
-    [Inject] private IDialogService DialogService { get; set; } = null!;
-    [Inject] private IMessenger Messenger { get; set; } = null!;
-    [Inject] private IProjectService ProjectService { get; set; } = null!;
-    [Inject] private IImportService ImportService { get; set; } = null!;
-    [Inject] private ICommandService CommandService { get; set; } = null!;
-    [Inject] private IPlatformStuffService PlatformStuffService { get; set; } = null!;
-    [Inject] private IUiScaleService UiScaleService { get; set; } = null!; //for initialization
-
-    private UiState UiState => AppState.UiState;
-    private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
 
     protected override void OnBeforeReload()
     {
@@ -319,28 +298,59 @@ public class MainView : LocalizedComponentBase
         AddHandler(DragDrop.DragEnterEvent, OnDragEnter);
         AddHandler(DragDrop.DragLeaveEvent, OnDragLeave);
 
-        DialogService.SetPanelsContainer(_panelsContainer);
-        AppState.UiState.WatchFor(x => x.ShowRatePrompt, StateHasChanged);
-        AppState.CurrentProject.WatchFor(x => x.CurrentContextType, StateHasChanged);
-        AppState.WatchFor(x => x.IsBusy, StateHasChanged);
-        AppState.UiState.Watch(StateHasChanged);
+        ViewModel!.InitializePanelsContainer(_panelsContainer);
+        ViewModel!.PropertyChanged += OnViewModelPropertyChanged;
 
-        if (AppState.UiScale != 1)
+        if (ViewModel.UiScale != 1)
         {
-            _layoutTransformControl.LayoutTransform = new ScaleTransform(AppState.UiScale, AppState.UiScale);
+            _layoutTransformControl.LayoutTransform = new Avalonia.Media.ScaleTransform(ViewModel.UiScale, ViewModel.UiScale);
         }
 
-        StateHasChanged();
+        UpdateResponsiveLayout();
+        UpdateTimelineVisibility();
+        ApplySafeAreaMargin();
+    }
+
+    protected override void OnUnloaded(RoutedEventArgs e)
+    {
+        base.OnUnloaded(e);
+
+        if (ViewModel != null)
+            ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
         base.OnSizeChanged(e);
 
-        //force recalculation on window width to check if it's Narrow state now
-        StateHasChanged();
-        AppState.UiState.VisualState = _rootGrid.Classes.Contains(nameof(VisualStates.Narrow)) ? nameof(VisualStates.Narrow) : nameof(VisualStates.Wide);
+        UpdateResponsiveLayout();
         RepositionFloatingPanels();
+        ApplySafeAreaMargin();
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.ShowTimeline))
+            UpdateTimelineVisibility();
+    }
+
+    private void UpdateResponsiveLayout()
+    {
+        if (_rootGrid == null)
+            return;
+
+        var isNarrow = Bounds.Width <= 500;
+        _rootGrid.Classes.Set(nameof(VisualStates.Narrow), isNarrow);
+        _rootGrid.Classes.Set(nameof(VisualStates.Wide), !isNarrow);
+        ViewModel?.UpdateResponsiveLayout(Bounds.Width);
+    }
+
+    private void UpdateTimelineVisibility()
+    {
+        if (_timeLineView == null || ViewModel == null)
+            return;
+
+        _timeLineView.Classes.Set("shown", ViewModel.ShowTimeline);
     }
 
     private void OnDragLeave(object? sender, DragEventArgs e)
@@ -349,53 +359,29 @@ public class MainView : LocalizedComponentBase
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
-#pragma warning disable CS0618
-        var hasFiles = e.Data?.GetDataFormats().Any(x => x == "Files") ?? false;
-#pragma warning restore CS0618
+        var hasFiles = e.DataTransfer.Formats.Contains(DataFormat.File);
         if (hasFiles)
             e.DragEffects = DragDropEffects.Copy;
     }
 
     private async void OnDrop(object? sender, DragEventArgs e)
     {
-        //if we dropped files to some panel that accepts drops
         if (e.Handled)
             return;
 
-#pragma warning disable CS0618
-        var data = e.Data?.Get("Files");
-#pragma warning restore CS0618
-
-        if (data is not IEnumerable<IStorageItem> droppedFiles)
+        var droppedFiles = e.DataTransfer.TryGetFiles();
+        if (droppedFiles == null)
             return;
 
-        foreach (var storageFile in droppedFiles.OfType<IStorageFile>())
-        {
-            var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);
-
-            var fileSource = new NetFileSource(path);
-
-            if (path.EndsWith(".pxm") || path.EndsWith(".pix2d"))
-            {
-                await ProjectService.OpenFilesAsync([fileSource]);
-                return;
-            }
-
-            if (AppState.CurrentProject.CurrentNodeEditor is not IImportTarget importTarget)
-                throw new ArgumentException("Import target is required");
-
-            await ImportService.ImportAsync([fileSource], importTarget);
-        }
+        await ViewModel!.HandleDropAsync(droppedFiles);
     }
 
     private void ApplySafeAreaMargin()
     {
-        // Runtime platform detection for Android
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")))
         {
             if (_topBarView is not null)
             {
-                // Try to get safe area insets from SkiaCanvas if available
                 var skiaCanvas = FindSkiaCanvas(this);
                 if (skiaCanvas is SkiaCanvas canvas)
                 {
@@ -423,16 +409,18 @@ public class MainView : LocalizedComponentBase
 
     private static SkiaCanvas? FindSkiaCanvas(Visual? visual)
     {
-        if (visual == null) return null;
-        if (visual is SkiaCanvas canvas) return canvas;
+        if (visual == null)
+            return null;
+        if (visual is SkiaCanvas canvas)
+            return canvas;
 
         foreach (var child in visual.GetLogicalChildren().OfType<Visual>())
         {
             var result = FindSkiaCanvas(child);
-            if (result != null) return result;
+            if (result != null)
+                return result;
         }
 
         return null;
     }
-
 }

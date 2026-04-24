@@ -1,13 +1,20 @@
 using System.Linq;
 using Avalonia.Controls.Shapes;
 using Avalonia.Styling;
+using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Styles;
 
 namespace Pix2d.UI.ToolBar;
 
-public class ToolGroupContainerView : ComponentBase
+public partial class ToolGroupContainerView : ViewBase<ToolGroupContainerView.State>
 {
+    public ToolGroupContainerView(AppState appState, IServiceProvider serviceProvider)
+        : base(new State(appState, serviceProvider))
+    {
+    }
+
     protected override StyleGroup? BuildStyles() =>
     [
         new Style<ToolItemView>()
@@ -41,7 +48,7 @@ public class ToolGroupContainerView : ComponentBase
 
     ];
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Border()
             .Classes("Panel")
             .Child(
@@ -49,27 +56,50 @@ public class ToolGroupContainerView : ComponentBase
                     .Ref(out _itemsPanel)
             );
 
-    [Inject] AppState AppState { get; set; } = null!;
-
     private StackPanel _itemsPanel = null!;
-    private string _currentGroup = null!;
 
     protected override void OnAfterInitialized()
     {
-        AppState.ToolsState.WatchFor(x => x.ActiveToolGroup, () => ReloadItems(AppState.ToolsState.ActiveToolGroup));
-        AppState.UiState.WatchFor(x => x.ShowToolGroup, () => ReloadItems(AppState.ToolsState.ActiveToolGroup));
+        ViewModel!.AttachItemsPanel(_itemsPanel);
     }
 
-    private void ReloadItems(string group)
+    public sealed partial class State : ObservableObject
     {
-        if (_currentGroup == group) return;
+        private readonly AppState _appState;
+        private readonly IServiceProvider _serviceProvider;
+        private StackPanel? _itemsPanel;
+        private string _currentGroup = string.Empty;
 
-        _currentGroup = group;
-        var items = AppState.ToolsState.Tools.Where(x => x.GroupName == group);
-        _itemsPanel.Children.Clear();
-        foreach (var item in items)
+        public State(AppState appState, IServiceProvider serviceProvider)
         {
-            _itemsPanel.Children.Add(new ToolItemView(item));
+            _appState = appState;
+            _serviceProvider = serviceProvider;
+
+            _appState.ToolsState.WatchFor(x => x.ActiveToolGroup, () => ReloadItems(_appState.ToolsState.ActiveToolGroup));
+            _appState.UiState.WatchFor(x => x.ShowToolGroup, () => ReloadItems(_appState.ToolsState.ActiveToolGroup));
+        }
+
+        public void AttachItemsPanel(StackPanel itemsPanel)
+        {
+            _itemsPanel = itemsPanel;
+            ReloadItems(_appState.ToolsState.ActiveToolGroup, true);
+        }
+
+        private void ReloadItems(string group, bool force = false)
+        {
+            if (_itemsPanel == null)
+                return;
+
+            if (!force && _currentGroup == group)
+                return;
+
+            _currentGroup = group;
+            var items = _appState.ToolsState.Tools.Where(x => x.GroupName == group);
+            _itemsPanel.Children.Clear();
+            foreach (var item in items)
+            {
+                _itemsPanel.Children.Add(ActivatorUtilities.CreateInstance<ToolItemView>(_serviceProvider, item));
+            }
         }
     }
 }

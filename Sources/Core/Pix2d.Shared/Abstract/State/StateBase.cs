@@ -1,3 +1,4 @@
+#nullable enable
 using System.Runtime.CompilerServices;
 using Mvvm;
 using Mvvm.Messaging;
@@ -67,9 +68,7 @@ public abstract class StateBase : ObservableObject
             _globalWatchers.Remove(onAnyPropertyChanged);
     }
 
-    #pragma warning disable CS8765 // Nullability mismatch in override
-    protected override bool Set<T>(T newValue, bool forceNotifyPropertyChanged = false, [CallerMemberName] string propertyName = null!)
-    #pragma warning restore CS8765 // Nullability mismatch in override
+    protected override bool Set<T>(T? newValue, bool forceNotifyPropertyChanged = false, [CallerMemberName] string propertyName = null!) where T : default
     {
         var result = base.Set(newValue, forceNotifyPropertyChanged, propertyName);
         OnStateChanged(propertyName);

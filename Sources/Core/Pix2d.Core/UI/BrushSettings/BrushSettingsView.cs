@@ -1,11 +1,14 @@
+using Avalonia.Markup.Xaml.Templates;
 using Avalonia.Styling;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
+using System.Collections.ObjectModel;
 using Colors = Avalonia.Media.Colors;
 
 namespace Pix2d.UI.BrushSettings;
 
-public class BrushSettingsView : LocalizedComponentBase
+public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettingsView.State>(new State(appState))
 {
     protected override StyleGroup? BuildStyles() => [
         new Style<ListBoxItem>(s => s.OfType<ListBoxItem>())
@@ -16,7 +19,7 @@ public class BrushSettingsView : LocalizedComponentBase
             .CornerRadius(12)
     ];
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new ScrollViewer()
             .Content(
                 new Grid()
@@ -37,11 +40,11 @@ public class BrushSettingsView : LocalizedComponentBase
                             .MinHeight(72)
                             .BorderThickness(0)
                             .Padding(0)
-                            .ItemsSource(() => DrawingState.BrushPresets)
-                            .SelectedItem(() => CurrentPixelBrushPreset!, v => CurrentPixelBrushPreset = (Primitives.Drawing.BrushSettings)v)
+                            .ItemsSource(state.BrushPresets)
+                            .SelectedItem(state, x => x.CurrentPixelBrushPreset, BindingMode.TwoWay)
                             .ItemsPanel(StaticResources.Templates.WrapPanelTemplate)
                             .ItemTemplate((Primitives.Drawing.BrushSettings itemVm) =>
-                                new BrushItemView()
+                                ViewFactory.Create<BrushItemView>()
                                             .Preset(itemVm)
                                             .ShowSizeText(true)
                                     ),
@@ -50,101 +53,128 @@ public class BrushSettingsView : LocalizedComponentBase
                             .Label(L("Size"))
                             .Units("px")
                             .Minimum(1)
-                            .Value(() => BrushScale, v => BrushScale = (float)v)
+                            .Value(state, x => x.BrushScale, BindingMode.TwoWay)
                             .Row(2),
 
                         new SliderEx()
                             .Label(L("Opacity"))
                             .Units("%")
-                            .Value(() => BrushOpacity, v => BrushOpacity = (float)v)
+                            .Value(state, x => x.BrushOpacity, BindingMode.TwoWay)
                             .Row(3),
 
                         new SliderEx()
                             .Label(L("Spacing"))
                             .Units("px")
-                            .Value(() => BrushSpacing, v=> BrushSpacing = (float)v)
+                            .Value(state, x => x.BrushSpacing, BindingMode.TwoWay)
                             .Row(4),
 
                         new ToggleSwitch()
-                            .IsChecked(() => DrawingState.IsPixelPerfectDrawingModeEnabled,  v => DrawingState.IsPixelPerfectDrawingModeEnabled = (bool)v!)
+                            .IsChecked(state, x => x.IsPixelPerfectDrawingModeEnabled, BindingMode.TwoWay)
                             .Content(L("Pixel perfect mode"))
                             .Row(5)
                     ));
-    [Inject] private AppState AppState { get; set; } = null!;
 
-    private SpriteEditorState DrawingState => AppState.SpriteEditorState;
-
-
-    public Pix2d.Primitives.Drawing.BrushSettings? CurrentPixelBrushPreset
+    public sealed partial class State : ObservableObject
     {
-        get => DrawingState.CurrentPixelBrushPreset!;
-        set
+        private readonly SpriteEditorState _drawingState;
+        private bool _isSyncing;
+
+        [ObservableProperty]
+        public partial List<Pix2d.Primitives.Drawing.BrushSettings> BrushPresets { get; set; } = [];
+
+        [ObservableProperty]
+        public partial Pix2d.Primitives.Drawing.BrushSettings? CurrentPixelBrushPreset { get; set; }
+
+        [ObservableProperty]
+        public partial double BrushScale { get; set; }
+
+        [ObservableProperty]
+        public partial double BrushOpacity { get; set; }
+
+        [ObservableProperty]
+        public partial double BrushSpacing { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsPixelPerfectDrawingModeEnabled { get; set; }
+
+        public State(AppState appState)
         {
-            DrawingState.CurrentPixelBrushPreset = value!;
+            _drawingState = appState.SpriteEditorState;
 
-            if (value?.Brush != null)
-            {
-                DrawingState.CurrentBrushSettings = value.Clone();
-                OnPropertyChanged();
-                UpdateSliders();
-            }
+            SyncFromDrawingState();
+
+            _drawingState.WatchFor(x => x.BrushPresets, () => BrushPresets = _drawingState.BrushPresets);
+            _drawingState.WatchFor(x => x.IsPixelPerfectDrawingModeEnabled,
+                () => IsPixelPerfectDrawingModeEnabled = _drawingState.IsPixelPerfectDrawingModeEnabled);
+            _drawingState.WatchFor(x => x.CurrentBrushSettings, SyncFromDrawingState);
+            _drawingState.WatchFor(x => x.CurrentPixelBrushPreset, SyncFromDrawingState);
         }
-    }
 
-    public float BrushScale
-    {
-        get => DrawingState.CurrentBrushSettings.Scale;
-        set
+        partial void OnCurrentPixelBrushPresetChanged(Pix2d.Primitives.Drawing.BrushSettings? value)
         {
-            var brush = DrawingState.CurrentBrushSettings.Clone();
-            brush.Scale = value;
+            if (_isSyncing || value?.Brush == null)
+                return;
 
-            if (brush.Equals(DrawingState.CurrentBrushSettings)) return;
-
-            DrawingState.CurrentBrushSettings = brush;
-            OnPropertyChanged();
+            _drawingState.CurrentPixelBrushPreset = value;
+            _drawingState.CurrentBrushSettings = value.Clone();
+            SyncFromDrawingState();
         }
-    }
-    public float BrushOpacity
-    {
-        get => DrawingState.CurrentBrushSettings.Opacity * 100f;
-        set
+
+        partial void OnBrushScaleChanged(double value)
         {
-            var brush = DrawingState.CurrentBrushSettings.Clone();
-            brush.Opacity = value / 100f;
+            if (_isSyncing)
+                return;
 
-            if (brush.Equals(DrawingState.CurrentBrushSettings)) return;
-
-            DrawingState.CurrentBrushSettings = brush;
-            OnPropertyChanged();
+            UpdateBrush(brush => brush.Scale = (float)value);
         }
-    }
 
-    public float BrushSpacing
-    {
-        get => DrawingState.CurrentBrushSettings.Spacing;
-        set
+        partial void OnBrushOpacityChanged(double value)
         {
-            var brush = DrawingState.CurrentBrushSettings.Clone();
-            brush.Spacing = value;
-            if (brush.Equals(DrawingState.CurrentBrushSettings)) return;
+            if (_isSyncing)
+                return;
 
-            DrawingState.CurrentBrushSettings = brush;
-            OnPropertyChanged();
+            UpdateBrush(brush => brush.Opacity = (float)value / 100f);
         }
-    }
 
-    protected override void OnAfterInitialized()
-    {
-        DrawingState.WatchFor(x => x.BrushPresets, StateHasChanged);
-        DrawingState.WatchFor(x => x.IsPixelPerfectDrawingModeEnabled, StateHasChanged);
-        DrawingState.WatchFor(x => x.CurrentBrushSettings, UpdateSliders);
-    }
+        partial void OnBrushSpacingChanged(double value)
+        {
+            if (_isSyncing)
+                return;
 
-    private void UpdateSliders()
-    {
-        OnPropertyChanged(nameof(BrushScale));
-        OnPropertyChanged(nameof(BrushOpacity));
-        OnPropertyChanged(nameof(BrushSpacing));
+            UpdateBrush(brush => brush.Spacing = (float)value);
+        }
+
+        partial void OnIsPixelPerfectDrawingModeEnabledChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            _drawingState.IsPixelPerfectDrawingModeEnabled = value;
+        }
+
+        private void SyncFromDrawingState()
+        {
+            _isSyncing = true;
+
+            BrushPresets = _drawingState.BrushPresets;
+            CurrentPixelBrushPreset = _drawingState.CurrentPixelBrushPreset;
+            BrushScale = _drawingState.CurrentBrushSettings.Scale;
+            BrushOpacity = _drawingState.CurrentBrushSettings.Opacity * 100d;
+            BrushSpacing = _drawingState.CurrentBrushSettings.Spacing;
+            IsPixelPerfectDrawingModeEnabled = _drawingState.IsPixelPerfectDrawingModeEnabled;
+
+            _isSyncing = false;
+        }
+
+        private void UpdateBrush(Action<Pix2d.Primitives.Drawing.BrushSettings> update)
+        {
+            var brush = _drawingState.CurrentBrushSettings.Clone();
+            update(brush);
+
+            if (brush.Equals(_drawingState.CurrentBrushSettings))
+                return;
+
+            _drawingState.CurrentBrushSettings = brush;
+        }
     }
 }

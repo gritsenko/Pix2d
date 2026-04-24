@@ -1,14 +1,18 @@
-﻿using Pix2d.Abstract.Commands;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.UI.Resources;
-using Pix2d.UI.Shared;
 
 namespace Pix2d.UI.Animation;
 
-public class AnimationControlsView : LocalizedComponentBase
+public partial class AnimationControlsView : ViewBase<AnimationControlsView.State>
 {
-    protected override object Build() =>
+    public AnimationControlsView(ICommandService commandService, AppState appState, IMessenger messenger)
+        : base(new State(commandService, appState, messenger))
+    {
+    }
+
+    protected override object Build(State state) =>
         new Grid()
             .Cols("auto,*")
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
@@ -21,30 +25,28 @@ public class AnimationControlsView : LocalizedComponentBase
                     {
                         new Button()
                             .Classes("anim-btn")
-                            .Command(SpriteAnimationCommands.Stop)
+                            .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                            .Command(state.SpriteAnimationCommands.Stop)
                             .Content("\xe92e")
-
                             .Classes("anim-btn"),
                         new Button()
                             .Classes("anim-btn")
-                            .Command(SpriteAnimationCommands.PrevFrame)
+                            .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                            .Command(state.SpriteAnimationCommands.PrevFrame)
                             .Content("\xe92f")
-
                             .Classes("anim-btn"),
                         new ToggleButton()
                             .Classes("anim-btn")
-                            .IsChecked(SpriteEditorState.IsPlayingAnimation)
-                            .Content(SpriteEditorState.IsPlayingAnimation)
-                            .OnClick(_ => SpriteAnimationCommands.TogglePlay.Execute())
-                            .ContentTemplate(new FuncDataTemplate<bool>((v, _) =>
-                                new TextBlock()
-                                    .Text(v ? "\xe92c" : "\xe92d")))
-
+                            .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                            .FontSize(14)
+                            .IsChecked(state, x => x.IsPlayingAnimation, BindingMode.OneWay)
+                            .Content(state, x => x.PlayIcon)
+                            .OnClick(_ => state.SpriteAnimationCommands.TogglePlay.Execute())
                             .Classes("anim-btn"),
                         new Button()
-                            .Command(SpriteAnimationCommands.NextFrame)
+                            .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                            .Command(state.SpriteAnimationCommands.NextFrame)
                             .Content("\xe931")
-
                             .Classes("anim-btn")
                     }
                 },
@@ -58,72 +60,134 @@ public class AnimationControlsView : LocalizedComponentBase
                             .Orientation(Orientation.Horizontal)
                             .Children([
                                 new TextBlock()
-                                    .Text(()=>$"{SpriteEditorState.CurrentFrameIndex}/{SpriteEditorState.FramesCount}")
+                                    .Text(state, x => x.FrameCounterText)
                                     .VerticalAlignment(VerticalAlignment.Center),
 
                                 new Button()
-                                    .Command(SpriteAnimationCommands.AddFrame)
+                                    .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                                    .Command(state.SpriteAnimationCommands.AddFrame)
                                     .Content("\xe920")
-                                    .ToolTip("Add frame")
+                                    .ToolTip_Tip("Add frame")
                                     .Classes("anim-btn"),
                                 new Button()
-                                    .Command(SpriteAnimationCommands.DuplicateFrame)
+                                    .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                                    .Command(state.SpriteAnimationCommands.DuplicateFrame)
                                     .Content("\xe928")
-                                    .ToolTip("Duplicate frame")
+                                    .ToolTip_Tip("Duplicate frame")
                                     .Classes("anim-btn"),
                                 new Button()
-                                    .Command(SpriteAnimationCommands.DeleteFrame)
+                                    .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                                    .Command(state.SpriteAnimationCommands.DeleteFrame)
                                     .Content("\xe929")
-                                    .ToolTip("Delete frame")
+                                    .ToolTip_Tip("Delete frame")
                                     .Classes("anim-btn"),
 
-                                //ONION SKIN BUTTON
                                 new ToggleButton()
                                     .Classes("anim-btn")
                                     .VerticalContentAlignment(VerticalAlignment.Center)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
-                                    .IsChecked(() => SpriteEditorState.ShowOnionSkin, v => SpriteEditorState.ShowOnionSkin = v ?? false)
-                                    .ToolTip("Onion skin")
+                                    .IsChecked(state, x => x.ShowOnionSkin, BindingMode.TwoWay)
+                                    .ToolTip_Tip("Onion skin")
                                     .Content(new TextBlock()
+                                        .FontSize(14)
+                                        .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                         .Text("\xe92b")
                                         .Padding(4)),
 
-                                //FPS SELECTOR
                                 new TextBlock()
-                                    .Margin(left: 8)
+                                    .Margin(8, 0, 0, 0)
                                     .Text("Fps")
                                     .VerticalAlignment(VerticalAlignment.Center),
                                 new ComboBox()
-                                    .ItemsSource(() => SpriteEditorState.FrameRates)
+                                    .ItemsSource(state.FrameRates)
                                     .Margin(8, 0)
                                     .VerticalAlignment(VerticalAlignment.Center)
-                                    .SelectedItem(()=>SpriteEditorState.FrameRate, v => SpriteEditorState.FrameRate = (int)(v ?? 0))
+                                    .SelectedItem(state, x => x.FrameRate, BindingMode.TwoWay)
                             ]))
             ]);
 
-    [Inject] public ICommandService CommandService { get; set; } = null!;
-
-    [Inject] private AppState AppState { get; set; } = null!;
-
-    [Inject] private IMessenger Messenger { get; set; } = null!;
-
-    private SpriteEditorState SpriteEditorState => AppState.SpriteEditorState;
-
-    private ISpriteAnimationCommands SpriteAnimationCommands =>
-        CommandService.GetCommandList<ISpriteAnimationCommands>()!;
-
-    protected override void OnAfterInitialized()
+    public sealed partial class State : ObservableObject
     {
-        SpriteEditorState.WatchFor(s => s.CurrentFrameIndex, StateHasChanged);
-        SpriteEditorState.WatchFor(s => s.FramesCount, StateHasChanged);
+        private readonly AppState _appState;
+        private bool _isSyncing;
 
-        Messenger.Register<ProjectLoadedMessage>(this, plm =>
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(FrameCounterText))]
+        public partial int CurrentFrameIndex { get; set; }
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(FrameCounterText))]
+        public partial int FramesCount { get; set; }
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(PlayIcon))]
+        public partial bool? IsPlayingAnimation { get; set; }
+
+        [ObservableProperty]
+        public partial bool? ShowOnionSkin { get; set; }
+
+        [ObservableProperty]
+        public partial int FrameRate { get; set; }
+
+        public object PlayIcon => IsPlayingAnimation ?? false ? "\xe92c" : "\xe92d";
+
+        public State(ICommandService commandService, AppState appState, IMessenger messenger)
         {
-            if (AppState.CurrentProject.CurrentEditedNode is Pix2dSprite sprite)
+            _appState = appState;
+
+            SpriteAnimationCommands = commandService.GetCommandList<ISpriteAnimationCommands>()!;
+            FrameRates = _appState.SpriteEditorState.FrameRates;
+
+            SyncFromSpriteEditorState();
+
+            _appState.SpriteEditorState.WatchFor(x => x.CurrentFrameIndex, SyncFromSpriteEditorState);
+            _appState.SpriteEditorState.WatchFor(x => x.FramesCount, SyncFromSpriteEditorState);
+            _appState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, SyncFromSpriteEditorState);
+            _appState.SpriteEditorState.WatchFor(x => x.ShowOnionSkin, SyncFromSpriteEditorState);
+            _appState.SpriteEditorState.WatchFor(x => x.FrameRate, SyncFromSpriteEditorState);
+
+            messenger.Register<ProjectLoadedMessage>(this, _ =>
             {
-                SpriteEditorState.ShowOnionSkin = sprite.OnionSkinSettings.IsEnabled;
-            }
-            StateHasChanged();
-        });
+                if (_appState.CurrentProject.CurrentEditedNode is Pix2dSprite sprite)
+                {
+                    _appState.SpriteEditorState.ShowOnionSkin = sprite.OnionSkinSettings.IsEnabled;
+                }
+
+                SyncFromSpriteEditorState();
+            });
+        }
+
+        public ISpriteAnimationCommands SpriteAnimationCommands { get; }
+
+        public IReadOnlyList<int> FrameRates { get; }
+
+        public string FrameCounterText => $"{CurrentFrameIndex}/{FramesCount}";
+
+        partial void OnShowOnionSkinChanged(bool? value)
+        {
+            if (_isSyncing)
+                return;
+
+            _appState.SpriteEditorState.ShowOnionSkin = value ?? false;
+        }
+
+        partial void OnFrameRateChanged(int value)
+        {
+            if (_isSyncing)
+                return;
+
+            _appState.SpriteEditorState.FrameRate = value;
+        }
+
+        private void SyncFromSpriteEditorState()
+        {
+            _isSyncing = true;
+            CurrentFrameIndex = _appState.SpriteEditorState.CurrentFrameIndex;
+            FramesCount = _appState.SpriteEditorState.FramesCount;
+            IsPlayingAnimation = _appState.SpriteEditorState.IsPlayingAnimation;
+            ShowOnionSkin = _appState.SpriteEditorState.ShowOnionSkin;
+            FrameRate = _appState.SpriteEditorState.FrameRate;
+            _isSyncing = false;
+        }
     }
 }

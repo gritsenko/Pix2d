@@ -1,4 +1,6 @@
 using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.NodeTypes;
+using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
 using Pix2d.Operations;
 using Pix2d.Plugins.Drawing.Tools.PixelSelect;
@@ -7,7 +9,7 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Operations;
 
-public class PasteOperation : EditOperationBase
+public class PasteOperation : EditOperationBase, ISpriteEditorOperation
 {
     private readonly SKBitmap _image;
     private readonly SKPoint _position;
@@ -16,6 +18,9 @@ public class PasteOperation : EditOperationBase
     private readonly IDrawingLayer _drawingLayer;
     private readonly IDrawingService _drawingService;
     private readonly IToolService _toolService;
+
+    public HashSet<int> AffectedFrameIndexes { get; } = new();
+    public HashSet<int> AffectedLayerIndexes { get; } = new();
 
     public PasteOperation(SKBitmap image, SKPoint position,
         IDrawingTarget drawingTarget,
@@ -30,6 +35,13 @@ public class PasteOperation : EditOperationBase
         _drawingService = drawingService;
         _toolService = toolService;
         _initialTargetData = _drawingTarget.GetData();
+
+        // Track affected frames/layers for timeline preview refresh
+        if (_drawingTarget is IAnimatedNode animatedNode)
+        {
+            AffectedFrameIndexes.Add(animatedNode.CurrentFrameIndex);
+            AffectedLayerIndexes.Add(animatedNode.SelectedLayerIndex);
+        }
     }
 
     public override void OnPerform()

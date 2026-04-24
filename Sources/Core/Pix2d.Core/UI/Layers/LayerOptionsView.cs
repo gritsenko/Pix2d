@@ -1,8 +1,8 @@
-#pragma warning disable CS8603
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.Editors;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using SkiaNodes;
@@ -14,9 +14,10 @@ using static Pix2d.Abstract.Services.IEffectsService;
 
 namespace Pix2d.UI.Layers;
 
-public class LayerOptionsView : LocalizedComponentBase
+public partial class LayerOptionsView(IEffectsService effectsService, IMessenger messenger, IViewPortRefreshService viewPortRefreshService, AppState appState)
+    : ViewBase<LayerOptionsView.State>(new State(effectsService, messenger, viewPortRefreshService, appState))
 {
-    protected override object Build( /*LayersListViewModel vm*/) =>
+    protected override object Build(State state) =>
         new ScrollViewer()
             .MaxHeight(600)
             .Content(
@@ -93,17 +94,17 @@ public class LayerOptionsView : LocalizedComponentBase
                                     .Units("%")
                                     .Minimum(0)
                                     .Maximum(100)
-                                    .Value(() => LayerOpacity, v => LayerOpacity = (float)v),
+                                    .Value(state, x => x.LayerOpacity, BindingMode.TwoWay),
 
                                 new TextBlock().Text(L("Blend mode")),
 
                                 new ComboBox()
-                                    .ItemsSource(AvailableBlendModes)
+                                    .ItemsSource(state.AvailableBlendModes)
                                     .DataTemplates(
                                         new FuncDataTemplate<BlendModeItem>((itemVm, ns) =>
-                                            (Control)new TextBlock().Text(L(itemVm.Title)()))!
+                                            (Control)new TextBlock().Text(L(itemVm.Title)))!
                                     )!
-                                    .SelectedItem(() => BlendMode, v => BlendMode = v as BlendModeItem)
+                                    .SelectedItem(state, x => x.BlendMode, BindingMode.TwoWay)
                             ),
                         new Grid()
                             .Cols("*, 32")
@@ -122,11 +123,11 @@ public class LayerOptionsView : LocalizedComponentBase
                                     .FontSize(16)
                                     .AddFlyoutOnClick(
                                         new MenuFlyout() { Placement = PlacementMode.Bottom }
-                                            .ItemsSource(AvailableEffects)
+                                            .ItemsSource(state.AvailableEffects)
                                             .ItemTemplate((IEffectItem item) =>
                                                 new MenuItem()
                                                     .Header(item.Title)
-                                                    .OnClick(_ => EffectsService.AddEffect(Layer!, item))
+                                                    .OnClick(_ => state.AddEffect(item))
                                             )
                                     ),
 
@@ -134,20 +135,17 @@ public class LayerOptionsView : LocalizedComponentBase
                                     .Row(1)
                                     .ColSpan(2)
                                     .ItemTemplate((ISKNodeEffect item) =>
-                                        new LayerEffectItemView()
+                                        new LayerEffectItemView(effectsService)
                                         {
-                                            OnEffectDelete = OnEffectDeleted,
-                                            OnEffectBake = OnEffectBaked
-                                        }
-                                            .Model(item)
-                                        )
-                                    .ItemsSource(Effects)
+                                            Model = item,
+                                            OnEffectBake = state.OnEffectBaked,
+                                            OnEffectDelete = state.OnEffectDeleted
+                                        })
+                                    .ItemsSource(state.Effects)
 
                             )
                     )
             );
-
-    public IEnumerable<IEffectItem> AvailableEffects => EffectsService.GetAvailableEffects();
 
     private void IconStyle(PathIcon icon) => icon
         .Width(16)
@@ -156,16 +154,6 @@ public class LayerOptionsView : LocalizedComponentBase
     private void ButtonStyle(AppButton v) => v
         .Width(40)
         .Margin(4);
-
-
-    [Inject] private IEffectsService EffectsService { get; set; } = null!;
-    [Inject] private IMessenger Messenger { get; set; } = null!;
-    [Inject] private IViewPortRefreshService ViewPortRefreshService { get; set; } = null!;
-    [Inject] private AppState AppState { get; set; } = null!;
-
-    private SpriteEditor? SpriteEditor => AppState.CurrentProject.CurrentNodeEditor as SpriteEditor;
-
-    private Pix2dSprite.Layer? Layer => SpriteEditor?.CurrentSprite?.SelectedLayer;
 
     private static IReadOnlyList<BlendModeItem> AvailableBlendModes { get; } = [
         new(SKBlendMode.SrcOver, "Normal"),
@@ -184,88 +172,124 @@ public class LayerOptionsView : LocalizedComponentBase
         new(SKBlendMode.Luminosity),
     ];
 
-    public string? LayerName { get; set; }
-
-
-    public float LayerOpacity
-    {
-        get => (float)Math.Round((Layer?.Opacity ?? 0) * 100);
-        set
-        {
-            if (Layer == null) return;
-            if (Math.Abs(value / 100 - Layer.Opacity) < 0.01) return;
-
-            SpriteEditor?.SetOpacity((float)Math.Round(value / 100, 2));
-            OnLayerUpdated();
-        }
-    }
-
-    public BlendModeItem? BlendMode
-    {
-        get => AvailableBlendModes.FirstOrDefault(x => x.BlendMode == Layer?.BlendMode) ?? AvailableBlendModes[0];
-        set
-        {
-            if (Layer == null) return;
-
-            var oldValue = AvailableBlendModes.FirstOrDefault(x => x.BlendMode == Layer.BlendMode);
-            if (value == null || oldValue == value) return;
-
-            Layer.BlendMode = value.BlendMode;
-            OnLayerUpdated();
-        }
-    }
-
-    public ObservableCollection<ISKNodeEffect> Effects { get; set; } = [];
-
-    public ISKNodeEffect? SelectedEffect { get; set; }
-
-    private void OnLayerUpdated()
-    {
-        ViewPortRefreshService.Refresh();
-    }
-
-    protected override void OnAfterInitialized()
-    {
-        Messenger.Register<DrawingTargetChangedMessage>(this, msg =>
-        {
-            ReloadEffects();
-            StateHasChanged();
-        });
-
-        Messenger.Register<OperationInvokedMessage>(this, msg =>
-        {
-            if (msg.Operation is AddEffectOperation or RemoveEffectOperation or BakeEffectOperation)
-                ReloadEffects();
-            StateHasChanged();
-        });
-        base.OnAfterInitialized();
-    }
-
-    private void ReloadEffects()
-    {
-        Effects.Clear();
-        if (!(Layer?.HasEffects ?? false))
-            return;
-        foreach (var effect in Layer.Effects)
-            Effects.Add(effect);
-    }
-
-    private void OnEffectDeleted(ISKNodeEffect? effect)
-    {
-        if (Layer != null && effect != null)
-            EffectsService.RemoveEffect(Layer, effect);
-    }
-
-    private void OnEffectBaked(ISKNodeEffect? effect)
-    {
-        if (Layer != null && effect != null)
-            EffectsService.BakeEffect(Layer, effect);
-    }
-
 
     public class BlendModeItem(SKBlendMode blendMode, string? title = null)
     {
         public SKBlendMode BlendMode { get; } = blendMode;
         public string Title => title ?? BlendMode.ToString();
+    }
+
+    public sealed partial class State : ObservableObject
+    {
+        private readonly IEffectsService _effectsService;
+        private readonly IViewPortRefreshService _viewPortRefreshService;
+        private readonly AppState _appState;
+        private bool _isSyncing;
+
+        [ObservableProperty]
+        public partial double LayerOpacity { get; set; }
+
+        [ObservableProperty]
+        public partial BlendModeItem? BlendMode { get; set; }
+
+        [ObservableProperty]
+        public partial ObservableCollection<ISKNodeEffect> Effects { get; set; } = [];
+
+        public IReadOnlyList<BlendModeItem> AvailableBlendModes => LayerOptionsView.AvailableBlendModes;
+
+        public IEnumerable<IEffectItem> AvailableEffects { get; }
+
+        private SpriteEditor? SpriteEditor => _appState.CurrentProject.CurrentNodeEditor as SpriteEditor;
+        private Pix2dSprite.Layer? Layer => SpriteEditor?.CurrentSprite?.SelectedLayer;
+
+        public State(IEffectsService effectsService, IMessenger messenger, IViewPortRefreshService viewPortRefreshService,
+            AppState appState)
+        {
+            _effectsService = effectsService;
+            _viewPortRefreshService = viewPortRefreshService;
+            _appState = appState;
+            AvailableEffects = _effectsService.GetAvailableEffects();
+
+            ReloadFromLayer();
+
+            messenger.Register<DrawingTargetChangedMessage>(this, _ => ReloadFromLayer());
+            messenger.Register<OperationInvokedMessage>(this, msg =>
+            {
+                if (msg.Operation is AddEffectOperation or RemoveEffectOperation or BakeEffectOperation)
+                {
+                    ReloadFromLayer();
+                }
+            });
+        }
+
+        partial void OnLayerOpacityChanged(double value)
+        {
+            if (_isSyncing || Layer == null)
+                return;
+
+            if (Math.Abs(value / 100d - Layer.Opacity) < 0.01d)
+                return;
+
+            SpriteEditor?.SetOpacity((float)Math.Round(value / 100d, 2));
+            OnLayerUpdated();
+        }
+
+        partial void OnBlendModeChanged(BlendModeItem? value)
+        {
+            if (_isSyncing || Layer == null || value == null || Layer.BlendMode == value.BlendMode)
+                return;
+
+            Layer.BlendMode = value.BlendMode;
+            OnLayerUpdated();
+        }
+
+        public void AddEffect(IEffectItem item)
+        {
+            if (Layer == null)
+                return;
+
+            _effectsService.AddEffect(Layer, item);
+            ReloadFromLayer();
+        }
+
+        public void OnEffectDeleted(ISKNodeEffect? effect)
+        {
+            if (Layer == null || effect == null)
+                return;
+
+            _effectsService.RemoveEffect(Layer, effect);
+            ReloadFromLayer();
+        }
+
+        public void OnEffectBaked(ISKNodeEffect? effect)
+        {
+            if (Layer == null || effect == null)
+                return;
+
+            _effectsService.BakeEffect(Layer, effect);
+            ReloadFromLayer();
+        }
+
+        private void ReloadFromLayer()
+        {
+            _isSyncing = true;
+            LayerOpacity = Math.Round((Layer?.Opacity ?? 0) * 100d);
+            BlendMode = AvailableBlendModes.FirstOrDefault(x => x.BlendMode == Layer?.BlendMode) ?? AvailableBlendModes[0];
+            _isSyncing = false;
+
+            Effects.Clear();
+            if (!(Layer?.HasEffects ?? false))
+                return;
+
+            foreach (var effect in Layer.Effects)
+            {
+                Effects.Add(effect);
+            }
+        }
+
+        private void OnLayerUpdated()
+        {
+            _viewPortRefreshService.Refresh();
+        }
     }
 }

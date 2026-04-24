@@ -1,9 +1,7 @@
-﻿using Pix2d.Primitives.Drawing;
+﻿namespace Pix2d.Plugins.Drawing.UI;
 
-namespace Pix2d.Plugins.Drawing.UI;
-
-public class SelectionToolSettingsView : ComponentBase
+public class SelectionToolSettingsView : ViewBase
 {
     protected override object Build() =>
-        new ClipboardActionsView();
+    ViewFactory.Create<ClipboardActionsView>();
 }

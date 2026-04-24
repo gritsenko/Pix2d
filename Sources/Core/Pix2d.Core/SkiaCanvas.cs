@@ -102,9 +102,9 @@ public class SkiaCanvas : Control
         AddHandler(UndoGestureEvent, OnUndoGesture);
         //AddHandler(RedoGestureEvent, OnRedoGesture); // TODO: 3-finger gesture doesn't work reliably
 
-        AddHandler(Gestures.PinchEvent, OnPinch);
-        AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
-        AddHandler(Gestures.PointerTouchPadGestureMagnifyEvent, OnPointerTouchPadGestureMagnify);
+        AddHandler(InputElement.PinchEvent, OnPinch);
+        AddHandler(InputElement.PinchEndedEvent, OnPinchEnded);
+        AddHandler(InputElement.PointerTouchPadGestureMagnifyEvent, OnPointerTouchPadGestureMagnify);
 
         _undoGesture.TrackingStarted += OnUndoGestureTrackingStarted;
         _undoGesture.TrackingEnded += OnUndoGestureTrackingEnded;
@@ -121,7 +121,7 @@ public class SkiaCanvas : Control
         if (topLevel != null)
             topLevel.ScalingChanged += SkiaCanvas_ScalingChanged;
 
-        if (e.Root is Control root)
+        if (e.RootVisual is Control root)
         {
             root.KeyDown += OnKeyDown;
             root.KeyUp += OnKeyUp;
@@ -247,7 +247,7 @@ public class SkiaCanvas : Control
 
     private float GetScale()
     {
-        return (float)(VisualRoot?.RenderScaling ?? 1f);
+        return (float)(TopLevel.GetTopLevel(this)?.RenderScaling ?? 1f);
     }
 
     private void OnViewportInitialized()
@@ -340,6 +340,12 @@ public class SkiaCanvas : Control
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         var pointerType = e.Pointer.Type;
+        var shouldFinalizeTouchInput = pointerType == PointerType.Touch
+                                       && _isPointerPressed
+                                       && !_isPinching
+                                       && !_isUndoGestureTracking
+                                       && !Input.PanMode;
+
         if (pointerType == PointerType.Touch)
         {
             _activeTouchPointers.Remove(e.Pointer.Id);
@@ -352,7 +358,7 @@ public class SkiaCanvas : Control
             return;
         }
 
-        if (ShouldBlockTouchDrawing(pointerType))
+        if (!shouldFinalizeTouchInput && ShouldBlockTouchDrawing(pointerType))
         {
             _isPointerPressed = false;
             TryEndTouchSuppression();
@@ -379,6 +385,19 @@ public class SkiaCanvas : Control
     {
         if (e.Pointer.Type != PointerType.Touch)
             return;
+
+        var shouldFinalizeTouchInput = _isPointerPressed
+                                       && !_isPinching
+                                       && !_isUndoGestureTracking
+                                       && !Input.PanMode
+                                       && Input.Pointer.ViewportPosition != default;
+
+        if (shouldFinalizeTouchInput)
+        {
+            var releasePosition = Input.Pointer.ViewportPosition;
+            Input.SetPointerReleased(releasePosition, Input.GetModifiers(), true);
+            InvalidateVisual();
+        }
 
         _activeTouchPointers.Remove(e.Pointer.Id);
         _isPointerPressed = false;
@@ -462,12 +481,12 @@ public class SkiaCanvas : Control
 
             if (ViewPort != null)
                 ViewPort.SetPan((float)(_initialPan.X - offsetX * ViewPort.ScaleFactor), (float)(_initialPan.Y - offsetY * ViewPort.ScaleFactor));
-            //ViewPort.ChangePan(-(float)translationDeltaX, -(float)translationDeltaY);
-            //Refresh();
+            InvalidateVisual();
             return;
         }
 
-        Input.SetPointerMoved(ToSKPoint(pos), props.IsLeftButtonPressed, ToModifiers(e.KeyModifiers),
+        var isPointerPressed = pointerType == PointerType.Touch ? _isPointerPressed : props.IsLeftButtonPressed;
+        Input.SetPointerMoved(ToSKPoint(pos), isPointerPressed, ToModifiers(e.KeyModifiers),
             pointerType == PointerType.Touch);
     }
 
@@ -549,6 +568,7 @@ public class SkiaCanvas : Control
         _oldVpPos = origin;
         _oldScale = e.Scale;
 
+        InvalidateVisual();
         e.Handled = true;
     }
 
@@ -557,8 +577,11 @@ public class SkiaCanvas : Control
         Input.PanMode = false;
         _isPinching = false;
         _activeTouchPointers.Clear();
-        _isTouchDrawingSuppressed = false;
-        _touchSuppressionUntilMs = 0;
+
+        // Keep suppression active briefly to prevent touch release from applying/resetting selection
+        _isTouchDrawingSuppressed = true;
+        ExtendTouchSuppressionCooldown(UndoTapPinchGuardMs);
+
         e.Handled = true;
     }
 
@@ -607,7 +630,7 @@ public class SkiaCanvas : Control
             UpdateCursor();
         }
 
-        _serviceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation();
+        _serviceProvider.GetRequiredService<IDrawingService>().CancelActiveDrawing();
         Input.CapturedPointerBy = null;
         InvalidateVisual();
     }
@@ -640,7 +663,7 @@ public class SkiaCanvas : Control
         _isTouchDrawingSuppressed = true;
         ExtendTouchSuppressionCooldown(UndoGestureTouchCooldownMs);
         _isPointerPressed = false;
-        _serviceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation();
+        _serviceProvider.GetRequiredService<IDrawingService>().CancelActiveDrawing();
         Input.CapturedPointerBy = null;
         InvalidateVisual();
     }
@@ -706,7 +729,7 @@ public class SkiaCanvas : Control
 
     private class SkNodeDrawOp(Rect bounds, SkiaCanvas parent) : ICustomDrawOperation
     {
-        private static readonly SKColor _bgColor = StaticResources.Colors.SceneBackgroundColor.ToSKColor();
+        private static readonly SKColor _bgColor = Pix2d.Common.Extensions.ColorExtensions.ToSKColor(StaticResources.Colors.SceneBackgroundColor);
 
         public Rect Bounds { get; } = bounds;
         public bool HitTest(Point p) => true;

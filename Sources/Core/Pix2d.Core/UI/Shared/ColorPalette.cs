@@ -14,7 +14,7 @@ using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.UI.Shared;
 
-public class ColorPalette : LocalizedComponentBase
+public class ColorPalette : ViewBase
 {
     #region AvaloniaProperties
     /// <summary>
@@ -85,6 +85,7 @@ public class ColorPalette : LocalizedComponentBase
     public event Action<SKColor>? ColorRemoved;
 
     private WrapPanel _wrapPanel = null!;
+    private Button _addButton = null!;
 
     protected override object Build()
     {
@@ -95,6 +96,14 @@ public class ColorPalette : LocalizedComponentBase
 
         return new Grid()
             .Children(panel);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == ColorToAddProperty && _addButton != null)
+            _addButton.Background = ColorToAdd.ToBrush();
     }
 
     private void OnColorsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -147,9 +156,11 @@ public class ColorPalette : LocalizedComponentBase
 
     private Control CreateAddButton()
     {
-        return new Button()
-            .Background(ColorToAddProperty, BindingMode.OneWay,
-                StaticResources.Converters.SKColorToBrushConverter, this)
+        var button = new Button();
+        _addButton = button;
+
+        return button
+            .Background(ColorToAdd.ToBrush())
             .OnClick(_ => ColorAdded?.Invoke(ColorToAdd))
             .Margin(6)
             .Width(32)

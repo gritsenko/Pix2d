@@ -33,12 +33,8 @@ public class SpritesheetImageExporter(IFileService fileService) : SKNodeExporter
 
              var x = 0;
              var y = 0;
-#pragma warning disable CS0618
-             var paint = new SKPaint()
-             {
-                 FilterQuality = SKFilterQuality.None
-             };
-#pragma warning restore CS0618
+             using var paint = new SKPaint();
+             var sampling = new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.None);
 
             foreach (var frame in framesArr)
             {
@@ -46,7 +42,8 @@ public class SpritesheetImageExporter(IFileService fileService) : SKNodeExporter
                 var fh = (int)(frame.Height * scale);
 
                 var destRect = new SKRect(x, y, x + fw, y + fh);
-                canvas.DrawBitmap(frame, destRect, paint);
+                using var image = SKImage.FromBitmap(frame);
+                canvas.DrawImage(image, destRect, sampling, paint);
 
                 x += fw;
 

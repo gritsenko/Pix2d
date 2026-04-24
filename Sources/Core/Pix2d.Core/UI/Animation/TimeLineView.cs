@@ -1,11 +1,10 @@
 using Avalonia.Controls.Shapes;
 using Avalonia.Media.Transformation;
 using Avalonia.Styling;
-using Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Operations;
 using Pix2d.Common.Behaviors;
-using Pix2d.Common.Extensions;
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite.Editors;
@@ -16,11 +15,17 @@ using Pix2d.UI.Styles;
 using SkiaSharp;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using ToolkitObservableObject = CommunityToolkit.Mvvm.ComponentModel.ObservableObject;
+using LegacyObservableObject = Mvvm.ObservableObject;
 
 namespace Pix2d.UI.Animation;
 
-public class TimeLineView : LocalizedComponentBase
+public partial class TimeLineView : ViewBase<TimeLineView.State>
 {
+    public TimeLineView(AppState appState, IMessenger messenger)
+        : base(new State(appState, messenger))
+    {
+    }
 
     protected override StyleGroup BuildStyles() =>
     [
@@ -36,25 +41,25 @@ public class TimeLineView : LocalizedComponentBase
         new Style<ListBoxItem>()
             .CornerRadius(4),
 
-            new StyleGroup(_ => VisualStates.Narrow())
-            {
-                new Style<Button>(s => s.Class("anim-btn"))
-                    .CornerRadius(10)
-                    .Foreground(StaticResources.Brushes.ForegroundBrush)
-                    .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
-                    .FontSize(14)
-                    .Width(32)
-                    .Height(32)
-                    .Padding(0),
-            }
+        new StyleGroup(_ => VisualStates.Narrow())
+        {
+            new Style<Button>(s => s.Class("anim-btn"))
+                .CornerRadius(10)
+                .Foreground(StaticResources.Brushes.ForegroundBrush)
+                .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                .FontSize(14)
+                .Width(32)
+                .Height(32)
+                .Padding(0),
+        }
     ];
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Grid()
             .Rows("56,*")
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .Children([
-                new AnimationControlsView(),
+                ViewFactory.Create<AnimationControlsView>(),
 
                 new Rectangle().Row(1)
                     .Fill(StaticResources.Brushes.PanelsBackgroundBrush)
@@ -64,169 +69,173 @@ public class TimeLineView : LocalizedComponentBase
                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                     .BorderThickness(0)
                     .ItemsPanel(new VirtualizingStackPanel().Orientation(Orientation.Horizontal))
-                    .ItemsSource(Frames)
-                    .SelectedIndex(() => AppState.SpriteEditorState.CurrentFrameIndex, v =>
-                    {
-                        if (v == -1)
-                            return;
-
-                        AppState.SpriteEditorState.CurrentFrameIndex = v;
-                        _editor?.SetFrameIndex(v);
-                    })
-                    .ItemTemplate<AnimationFrameViewModel>(itemVm =>
-                        new FuncComponent<AnimationFrameViewModel>(itemVm, vm =>
-                            new Border()
-                                .Background(StaticResources.Brushes.CheckerTilesBrush)
-                                .CornerRadius(4)
-                                .ClipToBounds(true)
-                                .Child(
-                                    new Rectangle()
-                                        .Width(52)
-                                        .Height(52)
-                                        .Fill(() => itemVm?.Preview?.ToBrush() ?? StaticResources.Brushes.CheckerTilesBrush)
-                                ))
-                            .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })
-                    ) //ItemTemplate
+                    .ItemsSource(state.Frames)
+                    .SelectedIndex(state, x => x.SelectedIndex, BindingMode.TwoWay)
+                    .ItemTemplate(
+                        new FuncDataTemplate<AnimationFrameViewModel>((itemVm, _) =>
+                            itemVm == null
+                                ? new TextBlock().Text("No frame")
+                                : new Border()
+                                    .Background(StaticResources.Brushes.CheckerTilesBrush)
+                                    .CornerRadius(4)
+                                    .ClipToBounds(true)
+                                    .Child(
+                                        new Rectangle()
+                                            .Width(52)
+                                            .Height(52)
+                                            .Fill(itemVm, vm => vm.PreviewBrush))
+                                    .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })))
             ]);
 
-
-    [Inject] private IMessenger Messenger { get; set; } = null!;
-    [Inject] private AppState AppState { get; set; } = null!;
-
-    private SpriteEditor? _editor;
-
-    public BulkAddObservableCollection<AnimationFrameViewModel> Frames { get; set; } = [];
-
-    protected override void OnAfterInitialized()
+    public sealed partial class State : ToolkitObservableObject
     {
-        Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
-        Messenger.Register<SelectedFrameChangedMessage>(this, OnSelectedFrameChanged);
-        AppState.CurrentProject.WatchFor(x => x.CurrentNodeEditor, () => OnEditorChanged(AppState.CurrentProject.CurrentNodeEditor));
+        private readonly AppState _appState;
+        private readonly IMessenger _messenger;
+        private SpriteEditor? _editor;
+        private bool _isSyncing;
+        private ItemReorderInfo<AnimationFrameViewModel>? _reorderInfo;
 
-        Frames.CollectionChanged += Frames_CollectionChanged;
-    }
-
-    private void OnSelectedFrameChanged(SelectedFrameChangedMessage message)
-    {
-        AppState.SpriteEditorState.CurrentFrameIndex = _editor?.CurrentFrameIndex ?? 0;
-        StateHasChanged();
-    }
-
-    private void OnEditorChanged(INodeEditor? editor)
-    {
-        if (_editor != null)
-            _editor.CurrentFrameChanged -= OnFrameChanged;
-
-        _editor = editor as SpriteEditor;
-
-        if (_editor != null)
-            _editor.CurrentFrameChanged += OnFrameChanged;
-
-        ReloadFrames(_editor);
-    }
-
-    private void ReloadFrames(SpriteEditor? editor, bool isReordering = false)
-    {
-        if (editor != null)
+        public State(AppState appState, IMessenger messenger)
         {
-            var cnt = _editor?.FramesCount ?? 1;
+            _appState = appState;
+            _messenger = messenger;
 
-            var frames = Enumerable
-                .Range(0, cnt)
-                .Select(_ => new AnimationFrameViewModel { PreviewProvider = PreviewProvider });
+            _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
+            _messenger.Register<SelectedFrameChangedMessage>(this, OnSelectedFrameChanged);
+            _appState.CurrentProject.WatchFor(x => x.CurrentNodeEditor, () => OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor));
 
-            Frames.ReloadItems(frames, silent: isReordering);
-
-            AppState.SpriteEditorState.CurrentFrameIndex = _editor?.CurrentFrameIndex ?? 0;
-            AppState.SpriteEditorState.FramesCount = Frames.Count;
+            Frames.CollectionChanged += FramesCollectionChanged;
+            OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor);
         }
-        StateHasChanged();
-    }
 
-    private void OnFrameChanged(object? sender, SpriteFrameChangedEvenArgs e)
-    {
-        AppState.SpriteEditorState.CurrentFrameIndex = _editor?.CurrentFrameIndex ?? 0;
-        StateHasChanged();
-    }
+        [ObservableProperty]
+        public partial int SelectedIndex { get; set; }
 
-    private void OnOperationInvoked(OperationInvokedMessage operation)
-    {
-        if (operation.Operation is AddAnimationFrameOperation
-            || operation.Operation is DuplicateAnimationFrameOperation
-            || operation.Operation is DeleteAnimationFrameOperation
-            || operation.Operation is ReorderAnimationFramesOperation)
+        public BulkAddObservableCollection<AnimationFrameViewModel> Frames { get; } = [];
+
+        partial void OnSelectedIndexChanged(int value)
         {
-            try
+            if (_isSyncing || value == -1)
+                return;
+
+            _appState.SpriteEditorState.CurrentFrameIndex = value;
+            _editor?.SetFrameIndex(value);
+        }
+
+        private void OnSelectedFrameChanged(SelectedFrameChangedMessage message)
+        {
+            SyncSelectedIndex();
+        }
+
+        private void OnEditorChanged(INodeEditor? editor)
+        {
+            if (_editor != null)
+                _editor.CurrentFrameChanged -= OnFrameChanged;
+
+            _editor = editor as SpriteEditor;
+
+            if (_editor != null)
+                _editor.CurrentFrameChanged += OnFrameChanged;
+
+            ReloadFrames(_editor);
+        }
+
+        private void ReloadFrames(SpriteEditor? editor, bool isReordering = false)
+        {
+            if (editor != null)
             {
-                ReloadFrames(_editor);
+                var count = _editor?.FramesCount ?? 1;
+                var frames = Enumerable
+                    .Range(0, count)
+                    .Select(_ => new AnimationFrameViewModel { PreviewProvider = PreviewProvider });
+
+                Frames.ReloadItems(frames, silent: isReordering);
+                _appState.SpriteEditorState.FramesCount = Frames.Count;
+            }
+
+            SyncSelectedIndex();
+        }
+
+        private void SyncSelectedIndex()
+        {
+            _isSyncing = true;
+            SelectedIndex = _editor?.CurrentFrameIndex ?? 0;
+            _appState.SpriteEditorState.CurrentFrameIndex = SelectedIndex;
+            _isSyncing = false;
+        }
+
+        private void OnFrameChanged(object? sender, SpriteFrameChangedEvenArgs e)
+        {
+            SyncSelectedIndex();
+        }
+
+        private void OnOperationInvoked(OperationInvokedMessage operation)
+        {
+            if (operation.Operation is AddAnimationFrameOperation
+                || operation.Operation is DuplicateAnimationFrameOperation
+                || operation.Operation is DeleteAnimationFrameOperation
+                || operation.Operation is ReorderAnimationFramesOperation)
+            {
+                ReloadFrames(_editor, operation.Operation is ReorderAnimationFramesOperation);
                 return;
             }
-            finally
+
+            if (operation.Operation is ISpriteEditorOperation spriteEditorOperation)
             {
-                StateHasChanged();
+                foreach (var index in spriteEditorOperation.AffectedFrameIndexes)
+                {
+                    var frame = Frames[index];
+                    frame?.Invalidate();
+                }
             }
         }
 
-        if (operation.Operation is ISpriteEditorOperation spriteEditorOperation)
+        private void FramesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            foreach (var i in spriteEditorOperation.AffectedFrameIndexes)
+            if (e.Action == NotifyCollectionChangedAction.Move)
             {
-                var frame = Frames[i];
-                frame?.Invalidate();
+                _reorderInfo = new ItemReorderInfo<AnimationFrameViewModel>
+                {
+                    OldIndex = e.OldStartingIndex,
+                    NewIndex = e.NewStartingIndex
+                };
+
+                OnFramesReordered(_reorderInfo);
             }
         }
-    }
 
-    private ItemReorderInfo<AnimationFrameViewModel>? _reorderInfo;
-    private void Frames_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        //new atomic move operation.
-        if (e.Action == NotifyCollectionChangedAction.Move)
+        private void OnFramesReordered(ItemReorderInfo<AnimationFrameViewModel> reorderInfo)
         {
-            _reorderInfo = new ItemReorderInfo<AnimationFrameViewModel>()
-            {
-                OldIndex = e.OldStartingIndex,
-                NewIndex = e.NewStartingIndex
-            };
-            OnFramesReordered(_reorderInfo);
+            Debug.WriteLine($"Reordered frames from {reorderInfo.OldIndex} to {reorderInfo.NewIndex}");
+            _editor?.ReorderFrames(reorderInfo.OldIndex, reorderInfo.NewIndex);
+        }
+
+        private SKBitmap? PreviewProvider(AnimationFrameViewModel frameVm)
+        {
+            var index = Frames.IndexOf(frameVm);
+            if (index < 0 || _editor == null)
+                return null;
+
+            var sprite = _editor.CurrentSprite;
+            const int previewWidth = 48;
+            var bitmap = new SKBitmap(new SKImageInfo(previewWidth, previewWidth, Pix2DAppSettings.ColorType));
+            var width = sprite.Size.Width;
+            var height = sprite.Size.Height;
+            var scale = width > height ? previewWidth / width : previewWidth / height;
+            sprite.RenderFramePreview(index, ref bitmap, scale, false);
+            return bitmap;
         }
     }
 
-    private void OnFramesReordered(ItemReorderInfo<AnimationFrameViewModel> reorderInfo)
+    private sealed class ItemReorderInfo<TItem>
     {
-        Debug.WriteLine($"Reordered frames from {reorderInfo.OldIndex} to {reorderInfo.NewIndex}");
-        _editor?.ReorderFrames(reorderInfo.OldIndex, reorderInfo.NewIndex);
-    }
-
-    private SKBitmap? PreviewProvider(AnimationFrameViewModel frameVm)
-    {
-        var index = Frames.IndexOf(frameVm);
-        if (index < 0 || _editor == null)
-        {
-            return null;
-        }
-        var sprite = _editor.CurrentSprite;
-        var pw = 48;
-        var bitmap = new SKBitmap(new SKImageInfo(pw, pw, Pix2DAppSettings.ColorType));
-        var scale = 1f;
-        var w = sprite.Size.Width;
-        var h = sprite.Size.Height;
-        scale = w > h ? pw / w : pw / h;
-        sprite.RenderFramePreview(index, ref bitmap, scale, false);
-        return bitmap;
-    }
-
-    private class ItemReorderInfo<TItem>
-    {
-        public TItem[] Items { get; set; } = [];
-
         public int OldIndex { get; set; }
 
         public int NewIndex { get; set; }
     }
 }
 
-public class AnimationFrameViewModel : ObservableObject
+public class AnimationFrameViewModel : LegacyObservableObject
 {
     private SKBitmap? _preview;
 
@@ -249,10 +258,13 @@ public class AnimationFrameViewModel : ObservableObject
         }
     }
 
+    public object PreviewBrush => Preview?.ToBrush() ?? StaticResources.Brushes.CheckerTilesBrush;
+
     public void Invalidate()
     {
         UpdatePropertiesAction?.Invoke(this);
         OnPropertyChanged(nameof(Layers));
         OnPropertyChanged(nameof(Preview));
+        OnPropertyChanged(nameof(PreviewBrush));
     }
 }

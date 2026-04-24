@@ -1,31 +1,38 @@
+using Avalonia.Data;
+using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
+using Pix2d.Abstract.Edit;
+using Pix2d.Abstract.Operations;
 using Pix2d.Command;
 using Pix2d.Common.Behaviors;
 using Pix2d.Common.Extensions;
 using Pix2d.CommonNodes;
+using Pix2d.Messages;
+using Pix2d.Operations;
+using Pix2d.Operations.Effects;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.Editors;
+using Pix2d.Plugins.Sprite.Operations;
+using Pix2d.Plugins.Sprite.Operations.Effects;
+using Pix2d.Plugins.Sprite.Operations.Layers;
 using Pix2d.Primitives;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using SkiaSharp;
-using Pix2d.Abstract.Operations;
-using Pix2d.Messages;
-using Pix2d.Plugins.Sprite.Operations;
 using System.Collections.Specialized;
 using System.Diagnostics;
-using Pix2d.Abstract.Edit;
-using Pix2d.Operations;
-using Pix2d.Plugins.Sprite.Operations.Layers;
-using Pix2d.Operations.Effects;
-using Pix2d.Plugins.Sprite.Operations.Effects;
 
 namespace Pix2d.UI.Layers;
 
-public class LayersView : ComponentBase
+public partial class LayersView : ViewBase<LayersView.State>
 {
-    protected override object Build()
+    public LayersView(AppState appState, IMessenger messenger, ICommandService commandService, IServiceProvider serviceProvider)
+        : base(new State(appState, messenger, commandService, serviceProvider))
     {
-        return new BlurPanel().Content(
+    }
+
+    protected override object Build(State state) =>
+        new BlurPanel().Content(
             new Grid().Rows("36,*,62").Children(
                 new Button()
                     .FontSize(20)
@@ -37,205 +44,198 @@ public class LayersView : ComponentBase
                     .Styles(new Style<ListBoxItem>()
                         .Setter(TemplatedControl.CornerRadiusProperty, new CornerRadius(7))
                         .Setter(ListBoxItem.BorderThicknessProperty, new Thickness(1))
-                        .Setter(ListBoxItem.ClipToBoundsProperty, true)
-                    )
+                        .Setter(ListBoxItem.ClipToBoundsProperty, true))
                     .Row(1).Margin(0).Padding(3)
                     .Background(Brushes.Transparent)
                     .BorderThickness(0)
                     .Classes("ItemsDragAndDrop")
-                    .ItemsSource(Layers)
-                    .SelectedIndex(() => SelectedIndex)
-                    .ItemTemplate((LayerItemViewModel? itemVm) =>
-                    {
-                        if (itemVm == null)
-                            return new TextBlock().Text("No layer");
-
-                        return new LayerItemView(itemVm)
+                    .ItemsSource(state.Layers)
+                    .SelectedIndex(state, x => x.SelectedIndex)
+                    .ItemTemplate(
+                        new FuncDataTemplate<LayerItemViewModel>((itemVm, _) =>
                         {
-                            RightPointerPressed = () => ItemRightPointerPressed(itemVm),
-                            LeftPointerPressed = () => ItemClicked(itemVm)
-                        }
-                        .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Vertical });
-                    }),
-                new BackgroundSelectorView().Row(2)
+                            if (itemVm == null)
+                                return new TextBlock().Text("No layer");
+
+                            return state.CreateLayerItemView(itemVm);
+                        }))
+                    ,
+                ViewFactory.Create<BackgroundSelectorView>().Row(2)
             )
         );
-    }
 
-    private SpriteEditor? _editor;
-
-    [Inject] private AppState AppState { get; set; } = null!;
-    [Inject] private IMessenger Messenger { get; set; } = null!;
-    [Inject] private ICommandService CommandService { get; set; } = null!;
-
-    private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
-
-    private int SelectedIndex => ReverseIndex(AppState.SpriteEditorState.CurrentLayerIndex);
-
-    public BulkAddObservableCollection<LayerItemViewModel> Layers { get; set; } = [];
-
-    protected override void OnAfterInitialized()
+    public sealed partial class State : ObservableObject
     {
-        Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
-        Messenger.Register<SelectedFrameChangedMessage>(this, OnAnimationFrameChanged);
+        private readonly AppState _appState;
+        private readonly ViewCommands _viewCommands;
+        private readonly IMessenger _messenger;
+        private readonly IServiceProvider _serviceProvider;
+        private SpriteEditor? _editor;
+        private ItemReorderInfo<LayerItemViewModel>? _reorderInfo;
 
-        AppState.CurrentProject.WatchFor(x => x.CurrentNodeEditor,
-            () => OnEditorChanged(AppState.CurrentProject.CurrentNodeEditor));
-
-        Layers.CollectionChanged += Layers_CollectionChanged;
-    }
-
-    private void OnAnimationFrameChanged(SelectedFrameChangedMessage obj)
-    {
-        if (!obj.IsPlaying)
+        public State(AppState appState, IMessenger messenger, ICommandService commandService, IServiceProvider serviceProvider)
         {
-            InvalidateThumbnailItems();
+            _appState = appState;
+            _messenger = messenger;
+            _serviceProvider = serviceProvider;
+            _viewCommands = commandService.GetCommandList<ViewCommands>()!;
+
+            _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
+            _messenger.Register<SelectedFrameChangedMessage>(this, OnAnimationFrameChanged);
+
+            _appState.CurrentProject.WatchFor(x => x.CurrentNodeEditor, () => OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor));
+
+            Layers.CollectionChanged += LayersCollectionChanged;
+            OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor);
         }
-    }
 
-    private int ReverseIndex(int index) => Layers.Count - index - 1;
+        [ObservableProperty]
+        public partial int SelectedIndex { get; set; } = -1;
 
-    private ItemReorderInfo<LayerItemViewModel>? _reorderInfo;
+        public BulkAddObservableCollection<LayerItemViewModel> Layers { get; } = [];
 
-    private class ItemReorderInfo<TItem>
-    {
-        public int OldIndex { get; set; }
-
-        public int NewIndex { get; set; }
-    }
-
-    private void Layers_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        //new atomic move operation.
-        if (e.Action == NotifyCollectionChangedAction.Move)
+        public Control CreateLayerItemView(LayerItemViewModel itemVm)
         {
-            _reorderInfo = new ItemReorderInfo<LayerItemViewModel>()
+            var itemView = ActivatorUtilities.CreateInstance<LayerItemView>(_serviceProvider, itemVm);
+            itemView.RightPointerPressed = () => ItemRightPointerPressed(itemVm);
+            itemView.LeftPointerPressed = () => ItemClicked(itemVm);
+            return itemView.AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Vertical });
+        }
+
+        private int ReverseIndex(int index) => Layers.Count - index - 1;
+
+        private void OnAnimationFrameChanged(SelectedFrameChangedMessage message)
+        {
+            if (!message.IsPlaying)
+                InvalidateThumbnailItems();
+        }
+
+        private void LayersCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Move)
             {
-                OldIndex = e.OldStartingIndex,
-                NewIndex = e.NewStartingIndex
-            };
+                _reorderInfo = new ItemReorderInfo<LayerItemViewModel>
+                {
+                    OldIndex = e.OldStartingIndex,
+                    NewIndex = e.NewStartingIndex
+                };
 
-            OnLayersReordered(_reorderInfo);
+                OnLayersReordered(_reorderInfo);
+            }
         }
-    }
 
-    private void OnLayersReordered(ItemReorderInfo<LayerItemViewModel> reorderInfo)
-    {
-        var oldIndex = ReverseIndex(reorderInfo.OldIndex);
-        var newIndex = ReverseIndex(reorderInfo.NewIndex);
-        Debug.WriteLine($"Reordered layers from {oldIndex} to {newIndex}");
-        _editor?.ReorderLayers(oldIndex, newIndex);
-    }
-
-    private void OnOperationInvoked(OperationInvokedMessage operation)
-    {
-        if (operation.Operation is AddLayerOperation or DeleteLayerOperation or ReorderLayersOperation or MergeLayerOperation)
+        private void OnLayersReordered(ItemReorderInfo<LayerItemViewModel> reorderInfo)
         {
-            ReloadLayers(operation.Operation is ReorderLayersOperation);
+            var oldIndex = ReverseIndex(reorderInfo.OldIndex);
+            var newIndex = ReverseIndex(reorderInfo.NewIndex);
+            Debug.WriteLine($"Reordered layers from {oldIndex} to {newIndex}");
+            _editor?.ReorderLayers(oldIndex, newIndex);
         }
-        else if (operation.Operation is ISpriteEditorOperation spriteEditorOperation)
+
+        private void OnOperationInvoked(OperationInvokedMessage operation)
         {
-            InvalidateThumbnailItems(spriteEditorOperation.AffectedLayerIndexes);
-            UpdateSelectedLayerIndex();
+            if (operation.Operation is AddLayerOperation or DeleteLayerOperation or ReorderLayersOperation or MergeLayerOperation)
+            {
+                ReloadLayers(operation.Operation is ReorderLayersOperation);
+            }
+            else if (operation.Operation is ISpriteEditorOperation spriteEditorOperation)
+            {
+                InvalidateThumbnailItems(spriteEditorOperation.AffectedLayerIndexes);
+                UpdateSelectedLayerIndex();
+            }
+            else if (operation.Operation is AddEffectOperation or RemoveEffectOperation or BakeEffectOperation)
+            {
+                InvalidateThumbnailItems(operation.Operation.GetEditedNodes().OfType<Pix2dSprite.Layer>());
+            }
+            else if (operation.Operation is ChangeVisibilityOperationBase)
+            {
+                InvalidateThumbnailItems(operation.Operation.GetEditedNodes().OfType<Pix2dSprite.Layer>());
+            }
         }
-        else if (operation.Operation is AddEffectOperation or RemoveEffectOperation or BakeEffectOperation)
+
+        private void InvalidateThumbnailItems()
         {
-            InvalidateThumbnailItems(operation.Operation.GetEditedNodes().OfType<Pix2dSprite.Layer>());
+            foreach (var layer in Layers)
+                layer?.Invalidate();
         }
-        else if (operation.Operation is ChangeVisibilityOperationBase)
-            InvalidateThumbnailItems(operation.Operation.GetEditedNodes().OfType<Pix2dSprite.Layer>());
-    }
 
-    private void InvalidateThumbnailItems()
-    {
-        foreach (var layer in Layers) //all layers
-            layer?.Invalidate();
-    }
+        private void InvalidateThumbnailItems(IEnumerable<Pix2dSprite.Layer> layers)
+        {
+            foreach (var layer in layers)
+                Layers.FirstOrDefault(x => x.SourceNode == layer)?.Invalidate();
+        }
 
-    private void InvalidateThumbnailItems(IEnumerable<Pix2dSprite.Layer> layers)
-    {
-        foreach (var layer in layers)
-            Layers.FirstOrDefault(x => x.SourceNode == layer)?.Invalidate();
-    }
+        private void InvalidateThumbnailItems(IEnumerable<int> affectedLayerIndexes)
+        {
+            foreach (var index in affectedLayerIndexes)
+                Layers[ReverseIndex(index)]?.Invalidate();
+        }
 
-    private void InvalidateThumbnailItems(IEnumerable<int> affectedLayerIndexes)
-    {
-        foreach (var i in affectedLayerIndexes)
-            Layers[ReverseIndex(i)]?.Invalidate();
-    }
+        private void UpdateSelectedLayerIndex()
+        {
+            _appState.SpriteEditorState.CurrentLayerIndex = _editor?.SelectedLayerIndex ?? 0;
+            SelectedIndex = Layers.Count == 0 ? -1 : ReverseIndex(_appState.SpriteEditorState.CurrentLayerIndex);
+        }
 
+        private void OnEditorChanged(INodeEditor? editor)
+        {
+            _editor = editor as SpriteEditor;
+            ReloadLayers();
+        }
 
-    private void UpdateSelectedLayerIndex()
-    {
-        AppState.SpriteEditorState.CurrentLayerIndex = _editor?.SelectedLayerIndex ?? 0;
-    }
-
-    private void OnEditorChanged(INodeEditor? editor)
-    {
-        _editor = editor as SpriteEditor;
-        ReloadLayers();
-    }
-
-    private void ReloadLayers(bool isReordering = false)
-    {
-        try
+        private void ReloadLayers(bool isReordering = false)
         {
             if (_editor == null)
                 return;
 
-            var layers = _editor.CurrentSprite.Layers.Reverse().Select(x => new LayerItemViewModel(x, _editor)
+            var layers = _editor.CurrentSprite.Layers.Reverse().Select(layer => new LayerItemViewModel(layer, _editor)
             {
                 PreviewProvider = PreviewProvider
             }).ToList();
 
-            Layers.ReloadItems(layers, silent: isReordering); //not to trigger collection changed event during reordering
+            Layers.ReloadItems(layers, silent: isReordering);
             UpdateSelectedLayerIndex();
         }
-        finally
+
+        private SKBitmap? PreviewProvider(LayerItemViewModel frameVm)
         {
-            StateHasChanged();
+            if (_editor == null)
+                return null;
+
+            const int previewWidth = 100;
+            var bitmap = new SKBitmap(new SKImageInfo(previewWidth, previewWidth, Pix2DAppSettings.ColorType));
+            frameVm.SourceNode.RenderCurrentFramePreview(bitmap, 1);
+            return bitmap;
+        }
+
+        public void ItemClicked(LayerItemViewModel itemVm)
+        {
+            var oldSelectedLayer = _editor?.SelectedLayer;
+            if (oldSelectedLayer == itemVm.SourceNode)
+            {
+                _viewCommands.ToggleLayerOptionsCommand.Execute();
+            }
+
+            _editor?.SelectLayer(itemVm.SourceNode);
+
+            if (oldSelectedLayer != null && oldSelectedLayer != itemVm.SourceNode)
+                Layers.FirstOrDefault(x => x.SourceNode == oldSelectedLayer)?.Invalidate();
+
+            itemVm.Invalidate();
+            UpdateSelectedLayerIndex();
+        }
+
+        public void ItemRightPointerPressed(LayerItemViewModel itemVm)
+        {
+            _viewCommands.ToggleLayerOptionsCommand.Execute();
         }
     }
 
-    private SKBitmap? PreviewProvider(LayerItemViewModel frameVm)
+    private sealed class ItemReorderInfo<TItem>
     {
-        if (_editor == null)
-            return null;
+        public int OldIndex { get; set; }
 
-        var sprite = _editor.CurrentSprite;
-        var pw = 100;
-        var bitmap = new SKBitmap(new SKImageInfo(pw, pw, Pix2DAppSettings.ColorType));
-        var scale = 1f;
-        var w = sprite.Size.Width;
-        var h = sprite.Size.Height;
-        scale = w > h ? pw / w : pw / h;
-        frameVm.SourceNode.RenderCurrentFramePreview(bitmap, 1);
-        return bitmap;
-    }
-
-    private void ItemClicked(LayerItemViewModel itemVm)
-    {
-        var oldSelectedLayer = _editor?.SelectedLayer;
-        if (oldSelectedLayer == itemVm.SourceNode)
-        {
-            ViewCommands.ToggleLayerOptionsCommand.Execute();
-        }
-
-        _editor?.SelectLayer(itemVm.SourceNode);
-
-        if (oldSelectedLayer != null && oldSelectedLayer != itemVm.SourceNode)
-        {
-            Layers.FirstOrDefault(x => x.SourceNode == oldSelectedLayer)?.Invalidate();
-        }
-        itemVm.Invalidate();
-
-        UpdateSelectedLayerIndex();
-        StateHasChanged();
-    }
-
-    private void ItemRightPointerPressed(LayerItemViewModel itemVm)
-    {
-        ViewCommands.ToggleLayerOptionsCommand.Execute();
+        public int NewIndex { get; set; }
     }
 }
 
@@ -263,7 +263,9 @@ public class LayerItemViewModel
     public Func<LayerItemViewModel, SKBitmap?>? PreviewProvider { get; set; }
 
     public Pix2dSprite.Layer SourceNode { get; set; }
-    public bool IsSelected => _editor?.SelectedLayer == SourceNode;
+
+    public bool IsSelected => _editor.SelectedLayer == SourceNode;
+
     public Action? Invalidated { get; set; }
 
     public void Invalidate()
@@ -271,5 +273,5 @@ public class LayerItemViewModel
         Invalidated?.Invoke();
     }
 
-    public void ToggleLayerVisibility() => _editor?.ToggleLayerVisible(SourceNode);
+    public void ToggleLayerVisibility() => _editor.ToggleLayerVisible(SourceNode);
 }

@@ -5,6 +5,7 @@
 		<ApplicationIcon>app.ico</ApplicationIcon>
 		<StartupObject />
 		<AssemblyName>Pix2d</AssemblyName>
+		<EnableAvaloniaXamlCompilation>false</EnableAvaloniaXamlCompilation>
 		<Version>$(Pix2dVersion)</Version>
 		<PackageProjectUrl>https://pix2d.com</PackageProjectUrl>
     
@@ -71,17 +72,17 @@
 		</AvaloniaResource>
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia" Version="11.3.13" />
-		<PackageReference Include="Avalonia.Desktop" Version="11.3.13" />
-		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.13" />
+		<PackageReference Include="Avalonia" Version="12.0.1" />
+		<PackageReference Include="Avalonia.Desktop" Version="12.0.1" />
+		<PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1" />
 		<PackageReference Include="Clowd.Clipboard" Version="1.1.4" />
 		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.1.4" />
+		<PackageReference Include="Tmds.DBus.Protocol" Version="0.92.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
 		<ProjectReference Include="..\..\Core\Pix2d.Core\Pix2d.Core.csproj" />
 		<ProjectReference Include="..\..\Plugins\FormatSupport\Psd\Pix2d.Plugins.Psd\Pix2d.Plugins.Psd.csproj" />
 		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.Ai\Pix2d.Plugins.Ai.csproj" />
-		<ProjectReference Include="..\..\Plugins\Pix2d.Plugins.PngCompress\Pix2d.Plugins.PngCompress.csproj" />
 	</ItemGroup>
 </Project>

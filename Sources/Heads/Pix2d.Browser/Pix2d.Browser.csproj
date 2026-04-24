@@ -2,7 +2,6 @@
 	<PropertyGroup>
        <TargetFramework>net10.0-browser</TargetFramework>
 		<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
-		<WasmMainJSPath>AppBundle/main.js</WasmMainJSPath>
 		<OutputType>Exe</OutputType>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<TrimMode>link</TrimMode>
@@ -26,17 +25,13 @@
 		</None>
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia.Browser" Version="11.3.13" />
-		<PackageReference Include="SkiaSharp" Version="3.119.2" />
-		<PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="3.119.2" />
+		<PackageReference Include="Avalonia.Browser" Version="12.0.1" />
+		<PackageReference Include="SkiaSharp" Version="3.119.3-preview.1.1" />
+		<PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="3.119.3-preview.1.1" />
 		<!--<PackageReference Include="Microsoft.NET.WebAssembly.Threading" Version="9.0.0-rc.2.24473.5" />-->
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="../../Core/Pix2d.Shared/Pix2d.Shared.csproj" />
-		<ProjectReference Include="../../Plugins/Pix2d.Plugins.Ai/Pix2d.Plugins.Ai.csproj" />
-		<ProjectReference Include="../../Plugins\FormatSupport\Psd\Pix2d.Plugins.Psd\Pix2d.Plugins.Psd.csproj" />
-		<ProjectReference Include="../../Plugins\Pix2d.Plugins.OpenCv\Pix2d.Plugins.OpenCv.csproj" />
-		<ProjectReference Include="../../Plugins\Pix2d.Plugins.PngCompress\Pix2d.Plugins.PngCompress.csproj" />
 		<ProjectReference Include="../../Core\Pix2d.Core\Pix2d.Core.csproj" />
 	</ItemGroup>
 	<ItemGroup>

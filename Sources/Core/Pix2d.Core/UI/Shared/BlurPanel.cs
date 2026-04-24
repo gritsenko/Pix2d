@@ -51,10 +51,10 @@ public class BlurPanel : ViewBase
 
     protected override object Build() =>
         new Border().Name("BlurPanelBorder")
-            .Background(BackgroundBrushProperty)
+            .Background(this, x => x.BackgroundBrush, BindingMode.OneWay)
             .CornerRadius(StaticResources.Measures.PanelCornerRadius)
-            .BorderBrush(BorderBrushProperty)
-            .Child(ContentProperty);
+            .BorderBrush(this, x => x.BorderBrush, BindingMode.OneWay)
+            .Child(this, x => x.Content, BindingMode.OneWay);
 
     public override void Render(DrawingContext context)
     {
@@ -75,9 +75,9 @@ public class BlurPanel : ViewBase
     private static SKColor GetBrushColor(IBrush brush, Color fallbackColor)
     {
         if (brush is ISolidColorBrush solidColorBrush)
-            return solidColorBrush.Color.ToSKColor();
+            return Pix2d.Common.Extensions.ColorExtensions.ToSKColor(solidColorBrush.Color);
 
-        return fallbackColor.ToSKColor();
+        return Pix2d.Common.Extensions.ColorExtensions.ToSKColor(fallbackColor);
     }
 
 }

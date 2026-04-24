@@ -1,15 +1,11 @@
-using Avalonia;
 using Pix2d.UI.Resources;
-using Pix2d.Plugins.Sprite.Commands;
 
 namespace Pix2d.Plugins.Drawing.UI;
 
-public class ClipboardActionsView : ComponentBase
+public class ClipboardActionsView(ICommandService commandService) : ViewBase
 {
-    [Inject] public ICommandService? CommandService { get; set; }
-
     private ISpriteEditCommands SpriteEditCommands => 
-        CommandService?.GetCommandList<ISpriteEditCommands>() ?? 
+        commandService.GetCommandList<ISpriteEditCommands>() ?? 
         throw new InvalidOperationException("CommandService is not available");
 
     protected override object Build() =>
@@ -32,6 +28,10 @@ public class ClipboardActionsView : ComponentBase
                     .Command(SpriteEditCommands.CropPixels)
                     .With(ButtonStyle)
                     .Content("\xE7A8"),
+                //new Button()
+                //    .Command(SpriteEditCommands.ActivateSelectionTransform)
+                //    .With(ButtonStyle)
+                //    .Content("\xE7A7"),
                 new Button()
                     .With(ButtonStyle)
                     .With(b =>
@@ -56,7 +56,7 @@ public class ClipboardActionsView : ComponentBase
 
         if (b.Command is Pix2dCommand pc)
         {
-            b.ToolTip(pc.Tooltip);
+            b.ToolTip_Tip(pc.Tooltip);
         }
     }
 }

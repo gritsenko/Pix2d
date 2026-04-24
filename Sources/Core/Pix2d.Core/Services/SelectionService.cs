@@ -27,7 +27,7 @@ public class SelectionService : ISelectionService
         private set => ProjectState.Selection = value;
     }
 
-    private SKNode Scene => _sceneService.GetCurrentScene();
+    private SKNode? Scene => _sceneService.GetCurrentScene();
 
     private IReadOnlyList<SKNode> SelectedNodes => Selection?.Nodes ?? Enumerable.Empty<SKNode>().ToArray();
     public bool HasSelectedNodes => SelectedNodes.Any();
@@ -55,7 +55,14 @@ public class SelectionService : ISelectionService
 
     public void Select(SKRect rect, bool addToSelection = false)
     {
-        var nodes = Scene.GetVisibleDescendants(node =>
+        var scene = Scene;
+        if (scene == null)
+        {
+            ClearSelection();
+            return;
+        }
+
+        var nodes = scene.GetVisibleDescendants(node =>
         {
             var bbox = node.GetBoundingBox();
             //if selection frame inside big object - don't select it
@@ -156,10 +163,10 @@ public class SelectionService : ISelectionService
 
     public SKNode GetCurrentContainer()
     {
-        return GetActiveContainer() as SKNode ?? Scene;
+        return GetActiveContainer() as SKNode ?? Scene ?? _sceneService.GetRootNode();
     }
 
-    public IContainerNode GetActiveContainer()
+    public IContainerNode? GetActiveContainer()
     {
         if (HasSelectedNodes)
         {
@@ -168,7 +175,7 @@ public class SelectionService : ISelectionService
                 return n;
 
             var container = SelectedNodes.GetParents().OfType<DrawingContainerBaseNode>().FirstOrDefault();
-            return container!;
+            return container;
         }
 
         var containers = _sceneService.GetCurrentSceneContainers<DrawingContainerBaseNode>();
@@ -177,13 +184,17 @@ public class SelectionService : ISelectionService
             return containers[0];
         }
 
-        return (IContainerNode)Scene;
+        return Scene as IContainerNode;
     }
 
     public IContainerNode GetContainer(SKPoint worldPosition)
     {
-        var container = Scene.Nodes.OfType<DrawingContainerBaseNode>().FirstOrDefault(x => x.GetBoundingBox().Contains(worldPosition));
-        return container!;
+        var scene = Scene;
+        if (scene == null)
+            return GetActiveContainer() ?? throw new InvalidOperationException("Current scene is not initialized.");
+
+        var container = scene.Nodes.OfType<DrawingContainerBaseNode>().FirstOrDefault(x => x.GetBoundingBox().Contains(worldPosition));
+        return container ?? GetActiveContainer() ?? throw new InvalidOperationException("No active container is available.");
     }
 
     protected virtual void SetSelectedNodes(IEnumerable<SKNode> selectedNodes)

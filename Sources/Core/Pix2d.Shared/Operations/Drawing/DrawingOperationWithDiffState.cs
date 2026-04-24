@@ -16,9 +16,6 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
     private int _layerIndex;
     private int _finalFrame;
     private int _finalLayerIndex;
-#pragma warning disable CS0169
-    private readonly byte[]? _initialData;
-#pragma warning restore CS0169
     public HashSet<int> AffectedFrameIndexes { get; } = [];
     public HashSet<int> AffectedLayerIndexes { get; } = [];
 
@@ -81,7 +78,7 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
 
     public bool HasChanges()
     {
-        return _changes != null && _changes.Count > 0;
+        return _changes.Count > 0;
     }
 
     public void Dispose()

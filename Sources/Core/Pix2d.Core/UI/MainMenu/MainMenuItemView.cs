@@ -1,12 +1,13 @@
-﻿using Pix2d.UI.Resources;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.MainMenu;
 
-public class MainMenuItemView : ComponentBase
+public partial class MainMenuItemView() : ViewBase<MainMenuItemView.State>(new State())
 {
     public const string SelectedClass = "selected";
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Button()
             .FontSize(16)
             .Content(
@@ -18,29 +19,31 @@ public class MainMenuItemView : ComponentBase
                             .VerticalAlignment(VerticalAlignment.Center)
                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
                             //.IsVisible(!itemVm.IsSplitter)
-                            .Text(() => Icon),
+                            .Text(state, x => x.Icon),
                         new TextBlock().Col(1)
                             .VerticalAlignment(VerticalAlignment.Center)
                             .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
-                            .Text(() => Header)
+                            .Text(state, x => x.Header)
                     )
             )
             .Padding(8, 8, 8, 8)
             .Background(StaticResources.Brushes.PanelsBackgroundBrush)
             .HorizontalContentAlignment(HorizontalAlignment.Left)
-            .OnClick(_ => { OnClick(this); });
+            .OnClick(_ => Clicked?.Invoke(this, this));
 
-    private bool _isSelected;
     public event EventHandler<MainMenuItemView>? Clicked;
 
     public Type? ContentViewType { get; set; }
 
     public bool IsSelected
     {
-        get => _isSelected;
+        get => ViewModel?.IsSelected ?? false;
         set
         {
-            if (_isSelected == value) return;
+            if (IsSelected == value)
+                return;
+
+            ViewModel!.IsSelected = value;
 
             if (value)
             {
@@ -50,16 +53,30 @@ public class MainMenuItemView : ComponentBase
             {
                 this.Classes.Remove(SelectedClass);
             }
-
-            _isSelected = value;
         }
     }
 
-    public string Header { get; set; } = "null!";
-    public string Icon { get; set; } = "";
-
-    private void OnClick(MainMenuItemView e)
+    public string Header
     {
-        Clicked?.Invoke(this, e);
+        get => ViewModel?.Header ?? string.Empty;
+        set => ViewModel!.Header = value;
+    }
+
+    public string Icon
+    {
+        get => ViewModel?.Icon ?? string.Empty;
+        set => ViewModel!.Icon = value;
+    }
+
+    public sealed partial class State : ObservableObject
+    {
+        [ObservableProperty]
+        public partial bool IsSelected { get; set; }
+
+        [ObservableProperty]
+        public partial string Header { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial string Icon { get; set; } = string.Empty;
     }
 }

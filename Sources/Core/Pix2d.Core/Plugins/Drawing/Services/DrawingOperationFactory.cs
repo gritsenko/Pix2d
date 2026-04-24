@@ -104,6 +104,14 @@ internal class DrawingOperationFactory(IDrawingLayer drawingLayer, IOperationSer
         IsOperationStarted = false;
     }
 
+    public void CancelActiveDrawing()
+    {
+        drawingLayer.CancelActiveDrawing();
+        _initialData = null;
+        _currentOperationDrawingTarget = null;
+        IsOperationStarted = false;
+    }
+
     public void PushCurrentOperationAndStartNew(IDrawingTarget drawingTarget)
     {
         drawingLayer.ApplyDrawing();

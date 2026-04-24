@@ -1,14 +1,14 @@
 #nullable enable
 using Avalonia.Styling;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Abstract.UI;
 using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.Dialogs;
 
-public class AlertDialog : ComponentBase, IDialogView<object?>
+public partial class AlertDialog() : ViewBase<AlertDialog.State>(new State()), IDialogView<object?>
 {
-#pragma warning disable CS0612 // Type or member is obsolete
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Grid()
             .Rows("*,48")
             .Children(
@@ -17,7 +17,7 @@ public class AlertDialog : ComponentBase, IDialogView<object?>
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Margin(new Thickness(16, 0))
                     .TextWrapping(TextWrapping.Wrap)
-                    .Text(Message, BindingMode.OneWay, bindingSource: this),
+                    .Text(state, x => x.Message),
 
                 new StackPanel().Row(1)
                     .Orientation(Orientation.Horizontal)
@@ -43,21 +43,22 @@ public class AlertDialog : ComponentBase, IDialogView<object?>
 
                     ) //stack panel children
             );
-#pragma warning restore CS0612 // Type or member is obsolete
 
     public string Title { get; set; } = string.Empty;
 
-    private string _message = "Problem!";
     public string Message
     {
-        get => _message;
-        set
-        {
-            _message = value;
-            OnPropertyChanged();
-        }
+        get => ViewModel?.Message ?? string.Empty;
+        set => ViewModel!.Message = value;
     }
+
     public Action<bool?> OnDialogClosed { get; set; } = null!;
 
     public object? DialogResult => null;
+
+    public sealed partial class State : ObservableObject
+    {
+        [ObservableProperty]
+        public partial string Message { get; set; } = "Problem!";
+    }
 }

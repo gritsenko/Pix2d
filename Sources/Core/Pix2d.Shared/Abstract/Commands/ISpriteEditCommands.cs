@@ -16,6 +16,7 @@ public interface ISpriteEditCommands : ICommandList
     Pix2dCommand Clear { get; }
     Pix2dCommand Cancel { get; }
     Pix2dCommand ApplySelection { get; }
+    Pix2dCommand ActivateSelectionTransform { get; }
     Pix2dCommand SendLayerBackward { get; }
     Pix2dCommand BringLayerForward { get; }
     Pix2dCommand FillSelectionCommand { get; }

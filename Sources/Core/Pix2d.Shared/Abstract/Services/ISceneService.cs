@@ -7,7 +7,7 @@ namespace Pix2d.Abstract.Services;
 public interface ISceneService
 {
     SKNode GetRootNode();
-    SKNode GetCurrentScene();
+    SKNode? GetCurrentScene();
     IList<TContainer> GetCurrentSceneContainers<TContainer>()
         where TContainer : IContainerNode;
 }

@@ -1,58 +1,64 @@
-using Avalonia.Interactivity;
 using Avalonia.Styling;
+using Avalonia.Data;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Abstract.Export;
+using Pix2d.Command;
 using Pix2d.Common;
 using Pix2d.Infrastructure.Tasks;
+using Pix2d.Plugins.PngFormat.Exporters;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using Pix2d.UI.Styles;
 using SkiaNodes.Extensions;
 using SkiaSharp;
-using Pix2d.Command;
-using Pix2d.Plugins.PngFormat.Exporters;
 
 namespace Pix2d.UI.Export;
 
-public class ExportView : ComponentBase
+public partial class ExportView : ViewBase<ExportView.State>
 {
     public const string PreviewName = "export-preview";
     public const string SettingsName = "export-settings";
 
-    private readonly IDataTemplate _itemTemplate =
-        new FuncDataTemplate<IExporter>((itemVm, ns)
-            => new TextBlock().Text(itemVm?.Title ?? ""));
+    public ExportView(IExportService exportService, IPlatformStuffService platformStuffService, AppState appState, ICommandService commandService)
+        : base(new State(exportService, platformStuffService, appState, commandService))
+    {
+    }
 
     protected override StyleGroup BuildStyles() =>
     [
-        new Style<ScrollViewer>(s => VisualStates.Wide().Name(ExportView.PreviewName))
-            .Col(0).ColSpan(1)
-            .Row(0).RowSpan(2),
-        new Style<ScrollViewer>(s => VisualStates.Wide().Name(ExportView.SettingsName))
-            .Col(1).ColSpan(1)
-            .Row(0).RowSpan(2)
-            .Margin(16, 0),
+        new StyleGroup(_ => VisualStates.Wide())
+        {
+            new Style<ScrollViewer>(s => s.Name(ExportView.PreviewName))
+                .Col(0).ColSpan(1)
+                .Row(0).RowSpan(2),
+            new Style<ScrollViewer>(s => s.Name(ExportView.SettingsName))
+                .Col(1).ColSpan(1)
+                .Row(0).RowSpan(2)
+                .Margin(16, 0)
+        },
 
-        new Style<ScrollViewer>(s => VisualStates.Narrow().Name(ExportView.PreviewName))
-            .Col(0).ColSpan(2)
-            .Row(0).RowSpan(1),
-
-        new Style<ScrollViewer>(s => VisualStates.Narrow().Name(ExportView.SettingsName))
-            .Col(0).ColSpan(2)
-            .Row(1).RowSpan(1)
-            .Margin(0, 16),
-
-        new Style<ExportProWarningView>(s => VisualStates.Narrow().OfType<ExportProWarningView>())
-            .ColSpan(2)
+        new StyleGroup(_ => VisualStates.Narrow())
+        {
+            new Style<ScrollViewer>(s => s.Name(ExportView.PreviewName))
+                .Col(0).ColSpan(2)
+                .Row(0).RowSpan(1),
+            new Style<ScrollViewer>(s => s.Name(ExportView.SettingsName))
+                .Col(0).ColSpan(2)
+                .Row(1).RowSpan(1)
+                .Margin(0, 16),
+            new Style<ExportProWarningView>()
+                .ColSpan(2)
+        }
     ];
 
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Grid().Rows("auto,*").Cols("*,auto")
             .Background(StaticResources.Brushes.MainBackgroundBrush)
             .Children(
                 new TextBlock().FontSize(24).VerticalAlignment(VerticalAlignment.Center).Margin(16, 0)
                     .Text("Export artwork"),
-                new Button().Col(1).Content("X").Height(40).Width(40).Command(ViewCommands.HideExportDialogCommand),
+                new Button().Col(1).Content("X").Height(40).Width(40).Command(state.ViewCommands.HideExportDialogCommand),
                 new Border().Row(1).ColSpan(2)
                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
                     .Padding(16)
@@ -70,7 +76,7 @@ public class ExportView : ComponentBase
                                     .Content(
                                         new SKImageView()
                                             .ShowCheckerBackground(true)
-                                            .Source(Preview) //!!!!!!!
+                                            .Source(state.Preview)
                                             .HorizontalAlignment(HorizontalAlignment.Center)
                                             .VerticalAlignment(VerticalAlignment.Center)
                                     ),
@@ -83,18 +89,17 @@ public class ExportView : ComponentBase
                                                 new TextBlock().Text("Export type"),
                                                 new ComboBox()
                                                     .ItemTemplate<ExporterInfo>(item =>
-                                                        new TextBlock().Text(item?.Name ?? ""))
-                                                    .ItemsSource(Exporters)
-                                                    .SelectedItem(() => SelectedExporterInfo,
-                                                        v => SelectedExporterInfo = (ExporterInfo)v),
+                                                        new TextBlock().Text(item?.Name ?? string.Empty))
+                                                    .ItemsSource(state.Exporters)
+                                                    .SelectedItem(state, x => x.SelectedExporterInfo, BindingMode.TwoWay),
                                                 new ContentControl()
-                                                    .Ref(out _exporterSettingsControl),
+                                                    .Content(state, x => x.ExporterSettingsContent!),
                                                 new SliderEx()
                                                     .Label("Image scale")
                                                     .Units("x")
                                                     .Minimum(1)
                                                     .Maximum(20)
-                                                    .Value(() => Scale, v => Scale = (double)v!)
+                                                    .Value(state, x => x.Scale, BindingMode.TwoWay)
                                             )
                                     ),
                                 new StackPanel().ColSpan(2).Row(1)
@@ -109,18 +114,18 @@ public class ExportView : ComponentBase
                                             .Margin(0, 0, 20, 0)
                                             .Foreground(Brushes.White)
                                             .Background(StaticResources.Brushes.AccentButtonBrush)
-                                            .OnClick(_ => OnExportCommandExecute()),
+                                            .OnClick(_ => state.Export()),
                                         new Button()
                                             .Classes("btn")
                                             .Content("Cancel")
                                             .Width(110)
-                                            .Command(ViewCommands.HideExportDialogCommand),
+                                            .Command(state.ViewCommands.HideExportDialogCommand),
                                         new Button()
                                             .Classes("btn")
                                             .HorizontalAlignment(HorizontalAlignment.Center)
                                             .Width(110)
                                             .Margin(0, 0, 20, 0)
-                                            .IsVisible(PlatformStuffService.CanShare)
+                                            .IsVisible(state.CanShare)
                                             .Content(new StackPanel().Orientation(Orientation.Horizontal).Children(
                                                 new TextBlock()
                                                     .FontFamily(StaticResources.Fonts.IconFontSegoe)
@@ -128,170 +133,175 @@ public class ExportView : ComponentBase
                                                     .Text("\xE72D"),
                                                 new TextBlock().Text("Share"))
                                             )
-                                            .OnClick(Share)
+                                            .OnClick(_ => state.Share())
                                     )
-                            //new ExportProWarningView()
-                            // .IsVisible(() => !AppState.IsPro)
                             )
                     ));
 
-    [Inject] IExportService ExportService { get; set; } = null!;
-
-    [Inject] IPlatformStuffService PlatformStuffService { get; set; } = null!;
-    [Inject] AppState AppState { get; set; } = null!;
-
-    [Inject] private ICommandService CommandService { get; set; } = null!;
-    private ViewCommands ViewCommands => CommandService.GetCommandList<ViewCommands>()!;
-
-    private ExporterInfo _selectedExporterInfo = null!;
-
-    private double _scale = 1;
-    private ContentControl _exporterSettingsControl = null!;
-    private IExporter? _configuredExporter;
-
-    public double Scale
+    public sealed partial class State : ObservableObject
     {
-        get => _scale;
-        set
+        private readonly IExportService _exportService;
+        private readonly IPlatformStuffService _platformStuffService;
+        private readonly AppState _appState;
+        private readonly ViewCommands _viewCommands;
+        private IExporter? _configuredExporter;
+
+        [ObservableProperty]
+        public partial double Scale { get; set; } = 1;
+
+        [ObservableProperty]
+        public partial ExporterInfo? SelectedExporterInfo { get; set; }
+
+        [ObservableProperty]
+        public partial Control? ExporterSettingsContent { get; set; }
+
+        public State(IExportService exportService, IPlatformStuffService platformStuffService, AppState appState, ICommandService commandService)
         {
-            if (value.Equals(_scale)) return;
-            _scale = value;
-            UpdatePreview();
-            OnPropertyChanged();
-        }
-    }
+            _exportService = exportService;
+            _platformStuffService = platformStuffService;
+            _appState = appState;
+            _viewCommands = commandService.GetCommandList<ViewCommands>()!;
 
-    public ExporterInfo SelectedExporterInfo
-    {
-        get => _selectedExporterInfo;
-        set
-        {
-            if (_selectedExporterInfo != value)
+            if (Exporters.Count > 0)
+                SelectedExporterInfo = Exporters.First();
+
+            _appState.UiState.WatchFor(x => x.ShowExportDialog, () =>
             {
-                _selectedExporterInfo = value;
-                UpdateSettingsControl(_selectedExporterInfo);
-                UpdatePreview();
-                OnPropertyChanged();
-                StateHasChanged();
-            }
-        }
-    }
-
-    private SKBitmapObservable Preview { get; } = new();
-
-    private IReadOnlyList<ExporterInfo> Exporters => ExportService.RegisteredExporters;
-
-    protected override void OnAfterInitialized()
-    {
-        SelectedExporterInfo = Exporters.First();
-        AppState.UiState.WatchFor(x => x.ShowExportDialog,
-            () =>
-            {
-                if (AppState.UiState.ShowExportDialog)
+                if (_appState.UiState.ShowExportDialog)
                     UpdatePreview();
             });
 
-        AppState.UiState.WatchFor(x => x.PreferredExportFormat,
-            () => SelectExporter(AppState.UiState.PreferredExportFormat));
-    }
-
-    private void UpdateSettingsControl(ExporterInfo exporterInfo)
-    {
-        // Create a temporary exporter instance for configuration
-        _configuredExporter = exporterInfo.CreateInstanceFunc();
-
-        if (exporterInfo.ExporterType == typeof(SpritesheetImageExporter))
-        {
-            var settingsView = new SpritesheetExportSettingsView();
-            settingsView.Exporter = (SpritesheetImageExporter)_configuredExporter;
-            _exporterSettingsControl.Content = settingsView;
+            _appState.UiState.WatchFor(x => x.PreferredExportFormat, () => SelectExporter(_appState.UiState.PreferredExportFormat));
         }
-        else if (exporterInfo.ExporterType == typeof(SpritePngSequenceExporter))
-        {
-            var settingsView = new SpritePngSequenceExporterSettingsView();
-            settingsView.Exporter = (SpritePngSequenceExporter)_configuredExporter;
-            _exporterSettingsControl.Content = settingsView;
-        }
-        else
-        {
-            _configuredExporter = null;
-            _exporterSettingsControl.Content = null;
-        }
-    }
 
-    private async void OnExportCommandExecute()
-    {
-        try
+        public ViewCommands ViewCommands => _viewCommands;
+
+        public SKBitmapObservable Preview { get; } = new();
+
+        public IReadOnlyList<ExporterInfo> Exporters => _exportService.RegisteredExporters;
+
+        public bool CanShare => _platformStuffService.CanShare;
+
+        partial void OnScaleChanged(double value)
         {
-            using var uiBlocker = new UiBlocker("Exporting...");
-            Logger.LogEventWithParams("Exporting image", new Dictionary<string, string?>
+            UpdatePreview();
+        }
+
+        partial void OnSelectedExporterInfoChanged(ExporterInfo? value)
+        {
+            UpdateSettingsControl(value);
+            UpdatePreview();
+        }
+
+        public async void Export()
+        {
+            if (SelectedExporterInfo == null)
+                return;
+
+            try
             {
-                { "Exporter", SelectedExporterInfo.Name }
-            });
+                using var uiBlocker = new UiBlocker("Exporting...");
+                Logger.LogEventWithParams("Exporting image", new Dictionary<string, string?>
+                {
+                    { "Exporter", SelectedExporterInfo.Name }
+                });
 
-            var nodesToExport = ExportService.GetNodesToExport(Scale);
+                var nodesToExport = _exportService.GetNodesToExport(Scale);
 
-            // Use configured exporter if available, otherwise use the standard approach
-            if (_configuredExporter != null)
+                if (_configuredExporter != null)
+                {
+                    await _exportService.ExportNodesAsync(nodesToExport, Scale, _configuredExporter);
+                }
+                else
+                {
+                    await _exportService.ExportNodesAsync(nodesToExport, Scale, SelectedExporterInfo);
+                }
+
+                _viewCommands.HideExportDialogCommand.Execute();
+            }
+            catch (Exception ex)
             {
-                await ExportService.ExportNodesAsync(nodesToExport, Scale, _configuredExporter);
+                Logger.LogException(ex);
+            }
+        }
+
+        public void Share()
+        {
+            var exporter = SelectedExporterInfo ?? Exporters.FirstOrDefault();
+            if (exporter == null)
+            {
+                Logger.Log("Could not find suitable exporter.");
+                return;
+            }
+
+            if (exporter.CreateInstanceFunc() is not IStreamExporter instance)
+            {
+                Logger.Log("This exporter can not be used to share");
+                return;
+            }
+
+            _platformStuffService.Share(instance, Scale);
+            _viewCommands.HideExportDialogCommand.Execute();
+        }
+
+        private void UpdateSettingsControl(ExporterInfo? exporterInfo)
+        {
+            if (exporterInfo == null)
+            {
+                _configuredExporter = null;
+                ExporterSettingsContent = null;
+                return;
+            }
+
+            _configuredExporter = exporterInfo.CreateInstanceFunc();
+
+            if (exporterInfo.ExporterType == typeof(SpritesheetImageExporter))
+            {
+                var settingsView = ViewFactory.Create<SpritesheetExportSettingsView>();
+                settingsView.Exporter = (SpritesheetImageExporter)_configuredExporter;
+                ExporterSettingsContent = settingsView;
+            }
+            else if (exporterInfo.ExporterType == typeof(SpritePngSequenceExporter))
+            {
+                var settingsView = ViewFactory.Create<SpritePngSequenceExporterSettingsView>();
+                settingsView.Exporter = (SpritePngSequenceExporter)_configuredExporter;
+                ExporterSettingsContent = settingsView;
             }
             else
             {
-                await ExportService.ExportNodesAsync(nodesToExport, Scale, SelectedExporterInfo);
+                _configuredExporter = null;
+                ExporterSettingsContent = null;
             }
-
-            ViewCommands.HideExportDialogCommand.Execute();
         }
-        catch (Exception ex)
+
+        private void UpdatePreview()
         {
-            Logger.LogException(ex);
+            if (_appState.CurrentProject.CurrentNodeEditor is not SpriteEditor spriteEditor)
+                return;
+
+            var nodesToExport = _exportService.GetNodesToExport(Scale);
+            var preview = nodesToExport.ToArray()
+                .RenderToBitmap(
+                    spriteEditor.CurrentSprite.UseBackgroundColor
+                        ? spriteEditor.CurrentSprite.BackgroundColor
+                        : SKColor.Empty,
+                    Scale);
+
+            Preview.SetBitmap(preview);
         }
-    }
 
-    private void UpdatePreview()
-    {
-        if (AppState.CurrentProject.CurrentNodeEditor is not SpriteEditor spriteEditor) return;
-
-        var nodesToExport = ExportService.GetNodesToExport(Scale);
-        var preview = nodesToExport.ToArray()
-            .RenderToBitmap(
-                spriteEditor.CurrentSprite.UseBackgroundColor
-                    ? spriteEditor.CurrentSprite.BackgroundColor
-                    : SKColor.Empty, Scale);
-
-        Preview.SetBitmap(preview);
-    }
-
-    private void SelectExporter(string format)
-    {
-        //if (string.IsNullOrWhiteSpace(format))
-        //    return;
-
-        //var selected = Exporters.FirstOrDefault(x => x.SupportedExtensions.Contains(format));
-        //if (selected != default)
-        //{
-        //    SelectedExporter = selected;
-        //}
-    }
-
-    private void Share(RoutedEventArgs _)
-    {
-        var exporter = SelectedExporterInfo ?? Exporters.FirstOrDefault();
-        if (exporter == null)
+        private void SelectExporter(string format)
         {
-            Logger.Log("Could not find suitable exporter.");
-            return;
-        }
-        var instance = exporter.CreateInstanceFunc() as IStreamExporter;
+            if (string.IsNullOrWhiteSpace(format))
+                return;
 
-        if (instance == null)
-        {
-            Logger.Log("This exporter can not be used to share");
-            return;
+            var selected = Exporters.FirstOrDefault(x =>
+                string.Equals(x.Id, format, StringComparison.OrdinalIgnoreCase)
+                || x.CreateInstanceFunc().SupportedExtensions.Any(ext => string.Equals(ext, format, StringComparison.OrdinalIgnoreCase)));
+            if (selected != null)
+            {
+                SelectedExporterInfo = selected;
+            }
         }
-
-        PlatformStuffService.Share(instance, Scale);
-        ViewCommands.HideExportDialogCommand.Execute();
     }
 }

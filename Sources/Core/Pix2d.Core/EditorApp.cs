@@ -1,7 +1,9 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Styling;
 using Avalonia.Themes.Simple;
-using Avalonia.VisualTree;
+using Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
+using Pix2d.Abstract.Services;
 using Pix2d.UI;
 
 namespace Pix2d;
@@ -12,21 +14,21 @@ public class EditorApp : Application
 
     public static IPix2dBootstrapper? Pix2dBootstrapper { get; set; }
     public static Action<object>? AppStarted { get; set; }
-    public static Action? AppInitialized { get; set; }
+    public static Action<EditorApp>? AppInitialized { get; set; }
     public static Func<bool>? OnAppClosing { get; set; }
     public static TopLevel? TopLevel { get; private set; }
     public static IUiModule? UiModule { get; set; }
+
+    /// <summary>
+    /// Used to set top level on android application on main activity
+    /// </summary>
+    public void UpdateTopLevelFromHostView() => TopLevel = HostView == null ? null : TopLevel.GetTopLevel(HostView);
 
     public override void Initialize()
     {
         RequestedThemeVariant = ThemeVariant.Dark;
         InitStyles();
     }
-
-    /// <summary>
-    /// Used to set top level on android application on main activity
-    /// </summary>
-    public void UpdateTopLevelFromHostView() => TopLevel = HostView?.GetVisualRoot() as TopLevel;
 
     private void InitStyles()
     {
@@ -43,6 +45,7 @@ public class EditorApp : Application
                 foreach (var resource in styles.Resources)
                     Resources.Add(resource);
             }
+
         }
         catch (Exception ex)
         {
@@ -54,37 +57,49 @@ public class EditorApp : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        HostView = new HostView();
-
         switch (ApplicationLifetime)
         {
             //DESKTOP
             case IClassicDesktopStyleApplicationLifetime desktop:
                 InitDesktopWindow(desktop);
                 break;
+            //ANDROID
+            case IActivityApplicationLifetime activityLifetime:
+                activityLifetime.MainViewFactory = CreateMainView;
+                break;
             //WEB ASSEMBLY
             case ISingleViewApplicationLifetime singleViewLifetime:
                 {
+                    HostView = new HostView();
                     singleViewLifetime.MainView = HostView;
-                    var root = singleViewLifetime.MainView.GetVisualRoot();
-                    TopLevel = root as TopLevel;
+                    TopLevel = TopLevel.GetTopLevel(singleViewLifetime.MainView);
                     break;
                 }
         }
 
         base.OnFrameworkInitializationCompleted();
+        EnsurePix2dInitialized();
 
-        InitializePix2d(HostView);
+        if (ApplicationLifetime is not IActivityApplicationLifetime)
+            AttachMainView(HostView);
 
+    }
+
+    private Control CreateMainView()
+    {
+        HostView = new HostView();
+        AttachMainView(HostView);
+        return HostView;
     }
 
     private void InitDesktopWindow(IClassicDesktopStyleApplicationLifetime desktop)
     {
+        HostView = new HostView();
         desktop.MainWindow = new MainWindow()
         {
             Content = HostView
         };
-        TopLevel = desktop.MainWindow.GetVisualRoot() as TopLevel;
+        TopLevel = desktop.MainWindow;
         desktop.MainWindow.Closing += (sender, args) =>
         {
             if (OnAppClosing == null) return;
@@ -94,7 +109,22 @@ public class EditorApp : Application
         AppStarted?.Invoke(desktop.MainWindow);
     }
 
-    private void InitializePix2d(HostView? hostView)
+    private bool _pix2dInitialized;
+    private bool _localeReloadSubscribed;
+
+    private void EnsurePix2dInitialized()
+    {
+        if (_pix2dInitialized || Design.IsDesignMode)
+            return;
+
+        if (Pix2dBootstrapper == null)
+            throw new NullReferenceException("Bootstrapper not set");
+
+        Pix2dBootstrapper.Initialize();
+        _pix2dInitialized = true;
+    }
+
+    private void AttachMainView(HostView? hostView)
     {
         if (Design.IsDesignMode)
             return;
@@ -104,14 +134,10 @@ public class EditorApp : Application
 
         try
         {
-            if (Pix2dBootstrapper == null)
-            {
-                throw new NullReferenceException("Bootstrapper not set");
-            }
-
-            Pix2dBootstrapper.Initialize();
-
-            hostView.LoadMainView(UiModule!.GetMainViewType(), Pix2dBootstrapper!.GetServiceProvider());
+            EnsurePix2dInitialized();
+            var serviceProvider = Pix2dBootstrapper!.GetServiceProvider();
+            hostView.LoadMainView(UiModule!.GetMainViewType(), serviceProvider);
+            SubscribeToLocaleChanges(hostView, serviceProvider);
         }
         catch (Exception ex)
         {
@@ -119,6 +145,21 @@ public class EditorApp : Application
             Logger.Log(ex.StackTrace!);
             throw;
         }
-        AppInitialized?.Invoke();
+        AppInitialized?.Invoke(this);
+    }
+
+    private void SubscribeToLocaleChanges(HostView hostView, IServiceProvider serviceProvider)
+    {
+        if (_localeReloadSubscribed)
+            return;
+
+        var localizationService = serviceProvider.GetService<ILocalizationService>();
+        if (localizationService == null)
+            return;
+
+        localizationService.LocaleChanged += () =>
+            Dispatcher.UIThread.Post(() => hostView.LoadMainView(UiModule!.GetMainViewType(), serviceProvider));
+
+        _localeReloadSubscribed = true;
     }
 }

@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Abstract.Edit;
-using Pix2d.Common;
 using Pix2d.Messages;
 using Pix2d.UI.Shared;
 using SkiaNodes;
@@ -8,11 +8,11 @@ using SkiaSharp;
 
 namespace Pix2d.UI;
 
-public class ArtworkPreviewView : ComponentBase
+public partial class ArtworkPreviewView(AppState appState, IMessenger messenger)
+    : ViewBase<ArtworkPreviewView.State>(new State(appState, messenger))
 {
-    protected override object Build()
-    {
-        return new Grid()
+    protected override object Build(State state) =>
+        new Grid()
             .Rows("Auto,Auto")
             .Children(
                 new ScrollViewer()
@@ -25,96 +25,82 @@ public class ArtworkPreviewView : ComponentBase
                             .ShowCheckerBackground(true)
                             .HorizontalAlignment(HorizontalAlignment.Center)
                             .VerticalAlignment(VerticalAlignment.Center)
-                            .Source(Preview, bindingSource: this)
+                            .Source(state, x => x.Preview)
                     ),
                 new Grid().Row(1)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Children(
                         new ComboBox()
                             .Margin(6)
-                            .ItemsSource(AvailableScales)
-                            .SelectedItem(() => SelectedScale, v => SelectedScale = (ScaleItem)v)
+                            .ItemsSource(state.AvailableScales)
+                            .SelectedItem(state, x => x.SelectedScale, BindingMode.TwoWay)
                             .ItemTemplate(_itemTemplate)
                     )
             );
-    }
 
     private readonly IDataTemplate _itemTemplate =
         new FuncDataTemplate<ScaleItem>((itemVm, ns)
             => new TextBlock().Text($"{itemVm?.Scale:F2}x"));
 
-    [Inject] AppState AppState { get; } = null!;
-    [Inject] IMessenger Messenger { get; } = null!;
+    public sealed record ScaleItem(double Scale);
 
-    private ISpriteEditor? _editor;
-    private ViewPort? _viewPort;
-    
-    private ScaleItem _selectedScale = new(1);
-
-    public SKBitmapObservable Preview { get; } = new();
-
-    public record ScaleItem(double Scale);
-
-    public ObservableCollection<ScaleItem> AvailableScales { get; set; } = new();
-
-    public ScaleItem SelectedScale
+    public sealed partial class State : ObservableObject
     {
-        get => _selectedScale ?? new ScaleItem(1); 
-        set
+        private readonly AppState _appState;
+        private ISpriteEditor? _editor;
+        private ViewPort? _viewPort;
+
+        public SKBitmapObservable Preview { get; } = new();
+
+        public ObservableCollection<ScaleItem> AvailableScales { get; } = [];
+
+        [ObservableProperty]
+        public partial ScaleItem? SelectedScale { get; set; } = new(1);
+
+        partial void OnSelectedScaleChanged(ScaleItem? value)
         {
-            _selectedScale = value;
-            OnPropertyChanged();
             UpdatePreview();
         }
-    }
 
-    protected override void OnAfterInitialized()
-    {
-        Messenger.Register<OperationInvokedMessage>(this, msg => UpdatePreview());
-
-        AppState.UiState.WatchFor(x=>x.ShowPreviewPanel, UpdatePreview);
-        AppState.CurrentProject.WatchFor(x => x.CurrentNodeEditor, InvalidateEditor);
-
-        AvailableScales.Clear();
-        for (var i = 5; i >= 2; i--) AvailableScales.Add(new ScaleItem(1f / i));
-        for (var i = 1; i <= 10; i++) AvailableScales.Add(new ScaleItem(i));
-
-        SelectedScale = AvailableScales.FirstOrDefault(x => Math.Abs(x.Scale - 1) < 0.01) ?? AvailableScales[0];
-        UpdatePreview();
-    }
-
-    private void InvalidateEditor()
-    {
-        var newEditor = AppState.CurrentProject.CurrentNodeEditor;
-        if (_editor == newEditor)
-            return;
-
-        //if (_editor != null)
-        //{
-        //    _editor.CurrentFrameChanged -= EditorOnCurrentFrameChanged;
-        //    _editor.LayerChanged -= EditorOnLayerChanged;
-        //}
-
-        _editor = newEditor as ISpriteEditor;
-        UpdatePreview();
-
-        //if (_editor != null)
-        //{
-        //    _editor.CurrentFrameChanged += EditorOnCurrentFrameChanged;
-        //    _editor.LayerChanged += EditorOnLayerChanged;
-        //}
-    }
-
-    public void UpdatePreview()
-    {
-        if (!AppState.UiState.ShowPreviewPanel)
-            return;
-
-        if (_editor != null)
+        public State(AppState appState, IMessenger messenger)
         {
+            _appState = appState;
+
+            messenger.Register<OperationInvokedMessage>(this, _ => UpdatePreview());
+
+            _appState.UiState.WatchFor(x => x.ShowPreviewPanel, UpdatePreview);
+            _appState.CurrentProject.WatchFor(x => x.CurrentNodeEditor, InvalidateEditor);
+
+            AvailableScales.Clear();
+            for (var i = 5; i >= 2; i--) AvailableScales.Add(new ScaleItem(1f / i));
+            for (var i = 1; i <= 10; i++) AvailableScales.Add(new ScaleItem(i));
+
+            SelectedScale = AvailableScales.FirstOrDefault(x => Math.Abs(x.Scale - 1) < 0.01) ?? AvailableScales[0];
+            InvalidateEditor();
+            UpdatePreview();
+        }
+
+        private void InvalidateEditor()
+        {
+            var newEditor = _appState.CurrentProject.CurrentNodeEditor;
+            if (_editor == newEditor)
+                return;
+
+            _editor = newEditor as ISpriteEditor;
+            UpdatePreview();
+        }
+
+        public void UpdatePreview()
+        {
+            if (!_appState.UiState.ShowPreviewPanel)
+                return;
+
+            if (_editor == null)
+                return;
+
             var sf = 1f;
             var sprite = _editor.CurrentSprite;
-            var scale = (float)(sf * SelectedScale.Scale);
+            var scale = (float)(sf * (SelectedScale?.Scale ?? 1d));
             var w = (int)(sprite.Size.Width * scale);
             var h = (int)(sprite.Size.Height * scale);
             var frameIndex = _editor.CurrentFrameIndex;
@@ -128,7 +114,7 @@ public class ArtworkPreviewView : ComponentBase
                 _viewPort = new ViewPort(curBitmap.Width, curBitmap.Height);
                 _viewPort.Settings.RenderAdorners = false;
 
-                if (Math.Abs(SelectedScale.Scale - 1f) > 0.1)
+                if (Math.Abs((SelectedScale?.Scale ?? 1d) - 1f) > 0.1)
                 {
                     _viewPort.ShowArea(sprite.GetBoundingBox());
                 }
@@ -139,5 +125,4 @@ public class ArtworkPreviewView : ComponentBase
             Preview.SetBitmap(curBitmap);
         }
     }
-
 }

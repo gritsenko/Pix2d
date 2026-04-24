@@ -1,15 +1,13 @@
 ﻿using Pix2d.Command;
 using Pix2d.UI.Shared;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.UI.MainMenu;
 
-public class SaveDocumentView : LocalizedComponentBase
+public partial class SaveDocumentView(ICommandService commandService) : ViewBase<SaveDocumentView.State>(new State(commandService))
 {
-    [Inject] private ICommandService CommandService { get; set; } = null!;
-    private FileCommands FileCommands => CommandService.GetCommandList<FileCommands>()!;
-
-    protected override object Build() =>
+    protected override object Build(State state) =>
         new Border()
             .Padding(32, 0, 0, 0)
             .Child(
@@ -29,7 +27,7 @@ public class SaveDocumentView : LocalizedComponentBase
                             .Margin(0, 8, 0, 8)
                             .Padding(16)
                             .Background(Brushes.Gray)
-                            .Command(FileCommands.SaveAs)
+                            .Command(state.FileCommands.SaveAs)
                             .Content(
                                 new Grid()
                                     .Rows("*,Auto")
@@ -61,7 +59,7 @@ public class SaveDocumentView : LocalizedComponentBase
                                     .Margin(0, 8, 8, 8)
                                     .Padding(16)
                                     .Background(Brushes.Gray)
-                                    .Command(FileCommands.ExportImage)
+                                    .Command(state.FileCommands.ExportImage)
                                     .Content(
                                         new Grid()
                                             .Rows("*,Auto")
@@ -86,7 +84,7 @@ public class SaveDocumentView : LocalizedComponentBase
                                     .Margin(0, 8, 0, 8)
                                     .Padding(16)
                                     .Background(Brushes.Gray)
-                                    .Command(FileCommands.ExportAnimation)
+                                    .Command(state.FileCommands.ExportAnimation)
                                     .Content(
                                         new Grid()
                                             .Rows("*,Auto")
@@ -110,5 +108,15 @@ public class SaveDocumentView : LocalizedComponentBase
                             )
                     ) //StackPanel.Children
             );
+
+    public sealed partial class State : ObservableObject
+    {
+        public State(ICommandService commandService)
+        {
+            FileCommands = commandService.GetCommandList<FileCommands>()!;
+        }
+
+        public FileCommands FileCommands { get; }
+    }
 
 }

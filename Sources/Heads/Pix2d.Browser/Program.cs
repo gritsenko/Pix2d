@@ -7,6 +7,7 @@ using Pix2d.Browser;
 using Pix2d.UI;
 using System;
 using System.Runtime.InteropServices.JavaScript;
+using System.Threading.Tasks;
 using System.Runtime.Versioning;
 
 [assembly: SupportedOSPlatform("browser")]
@@ -14,7 +15,7 @@ using System.Runtime.Versioning;
 internal partial class Program
 {
     private static readonly ServiceCollection ServiceCollection = [];
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         Console.WriteLine("App started");
 
@@ -28,14 +29,15 @@ internal partial class Program
         EditorApp.UiModule = new UiModule();
         EditorApp.AppInitialized = OnAppInitialized;
 
-        BuildAvaloniaApp()
+        await BuildAvaloniaApp()
             .UseServiceProvider(sp)
+            .UseComponentControlFactory(type => (Avalonia.Controls.Control)ActivatorUtilities.CreateInstance(sp, type))
             .StartBrowserAppAsync("out");
     }
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<EditorApp>();
 
-    private static void OnAppInitialized()
+    private static void OnAppInitialized(EditorApp app)
     {
         Logger.Log("Application initialized!");
         AppStarted();

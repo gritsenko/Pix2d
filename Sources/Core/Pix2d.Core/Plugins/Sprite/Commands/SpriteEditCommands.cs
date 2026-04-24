@@ -31,6 +31,9 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
     {
         ServiceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation();
         var container = ServiceProvider.GetRequiredService<ISelectionService>().GetActiveContainer();
+        if (container == null)
+            return;
+
         ServiceProvider.GetRequiredService<IClipboardService>().TryCopyNodesAsBitmapAsync(container.Yield().OfType<SKNode>(), container.BackgroundColor);
     }, "Copy multiple layers", new CommandShortcut(VirtualKeys.C, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 
@@ -103,6 +106,13 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
     public Pix2dCommand Cancel => GetCommand(() => { ServiceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation(); }, "Cancel drawing", new CommandShortcut(VirtualKeys.Escape), EditContextType.Sprite);
 
     public Pix2dCommand ApplySelection => GetCommand(() => { ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer.ApplySelection(); }, "Apply selection", new CommandShortcut(VirtualKeys.Return), EditContextType.Sprite);
+
+    public Pix2dCommand ActivateSelectionTransform => GetCommand(() =>
+    {
+        var drawingLayer = ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer;
+        if (drawingLayer.HasSelection)
+            drawingLayer.EnterTransformMode();
+    }, "Transform selection", new CommandShortcut(VirtualKeys.T, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 
     public Pix2dCommand SendLayerBackward =>
         GetCommand(() => { SpriteEditor?.SendLayerBackward(); }, "Send current layer backward", new CommandShortcut(VirtualKeys.OEM4, KeyModifier.Ctrl), EditContextType.Sprite);

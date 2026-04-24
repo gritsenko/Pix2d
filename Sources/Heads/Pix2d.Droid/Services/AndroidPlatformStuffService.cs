@@ -20,6 +20,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
 {
     //not using direct services injection to prevent circular dependencies
     private readonly IServiceProvider _serviceProvider;
+    private MainActivity? _attachedActivity;
 
     public PlatformType CurrentPlatform => PlatformType.Android;
     public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;
@@ -27,8 +28,24 @@ public class AndroidPlatformStuffService : IPlatformStuffService
     public AndroidPlatformStuffService(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
-        MainActivity.Instance.FileOpened += Instance_FileOpened;
+        if (MainActivity.TryGetInstance(out var activity))
+            AttachActivity(activity);
     }
+
+    internal void AttachActivity(MainActivity activity)
+    {
+        if (ReferenceEquals(_attachedActivity, activity))
+            return;
+
+        if (_attachedActivity != null)
+            _attachedActivity.FileOpened -= Instance_FileOpened;
+
+        _attachedActivity = activity;
+        _attachedActivity.FileOpened += Instance_FileOpened;
+    }
+
+    private MainActivity? GetActivity() => _attachedActivity ?? (MainActivity.TryGetInstance(out var activity) ? activity : null);
+
     private async void Instance_FileOpened(object? sender, IFileContentSource? fileSource)
     {
         try
@@ -65,7 +82,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
     {
         var uri = global::Android.Net.Uri.Parse(url);
         var intent = new Intent(Intent.ActionView, uri);
-        MainActivity.Instance.StartActivity(intent);
+        GetActivity()?.StartActivity(intent);
         EnsureAppFolderExists();
     }
 
@@ -83,9 +100,9 @@ public class AndroidPlatformStuffService : IPlatformStuffService
     {
         try
         {
-            if (MainActivity.Instance != null)
+            if (GetActivity() is { } activity)
             {
-                MainActivity.Instance.Title = title + " - Pix2d v" + GetAppVersion();
+                activity.Title = title + " - Pix2d v" + GetAppVersion();
             }
         }
         catch
@@ -143,7 +160,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService
             sharingIntent.SetType(exporter.MimeType);
             sharingIntent.PutExtra(Intent.ExtraStream, imageUri);
             sharingIntent.AddFlags(ActivityFlags.GrantReadUriPermission);
-            MainActivity.Instance.StartActivity(Intent.CreateChooser(sharingIntent, "Pix2d project"));
+            GetActivity()?.StartActivity(Intent.CreateChooser(sharingIntent, "Pix2d project"));
         }
         catch (Exception e)
         {

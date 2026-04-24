@@ -98,18 +98,23 @@ namespace Pix2d.InteractiveNodes.Thumbs;
 
         fillPaint.Color = SKColors.White;
 
+        var r = Size.Width / 2f;
         canvas.DrawLine(hz.MidX, hz.MidY, _borderMidPoint.X, _borderMidPoint.Y, strokePaint);
-        canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(12) * vp.ScaleFactor, fillPaint);
-        canvas.DrawCircle(hz.MidX, hz.MidY, vp.PixelsToWorld(12) * vp.ScaleFactor, strokePaint);
+        canvas.DrawCircle(hz.MidX, hz.MidY, r, fillPaint);
+        canvas.DrawCircle(hz.MidX, hz.MidY, r, strokePaint);
 
         canvas.Restore();
+
+// #if DEBUG
+//             DrawDebugStuff(canvas, vp);
+// #endif
     }
 
     public void OnViewChanged(ViewPort vp)
     {
         _bindedViewPort = vp;
 
-        var size = vp.PixelsToWorld(24);
+        var size = vp.PixelsToWorld(24) * vp.ScaleFactor;
         Size = new SKSize(size, size);
         PivotPosition = new SKPoint(size/2, size/2);
 

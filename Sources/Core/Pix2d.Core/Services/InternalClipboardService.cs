@@ -48,11 +48,36 @@ public class InternalClipboardService : IClipboardService
                 if (dln != null)
                 {
                     var isResized = await TryToResizeCanvas(dln, img);
-                    var localPos = dln.GetLocalPosition(ViewPortService.ViewPort.ViewPortCenterGlobal);
+                    var imageOffset = new SKPoint(img.Width / 2f, img.Height / 2f);
+
+                    SKPoint localPos;
                     if (isResized)
                     {
                         localPos = new SKPoint(0, 0);
                         ViewPortService.ShowAll();
+                    }
+                    else
+                    {
+                        // Determine paste position based on viewport framing
+                        // Center in container when zoomed out or sprite fits screen; use viewport center when zoomed in
+                        var viewport = ViewPortService.ViewPort;
+                        var containerBounds = dln.GetBoundingBoxWithContent();
+                        var visibleArea = viewport.GetVisibleArea();
+
+                        // Check if container fits in visible area with some margin
+                        bool containerFitsInView = containerBounds.Width <= visibleArea.Width * 0.9f 
+                                                    && containerBounds.Height <= visibleArea.Height * 0.9f;
+
+                        if (containerFitsInView)
+                        {
+                            // Center in container
+                            localPos = new SKPoint(dln.Size.Width / 2f, dln.Size.Height / 2f) - imageOffset;
+                        }
+                        else
+                        {
+                            // Use viewport center (zoomed in / container doesn't fit)
+                            localPos = dln.GetLocalPosition(viewport.ViewPortCenterGlobal) - imageOffset;
+                        }
                     }
 
                     DrawingService?.PasteBitmap(img, localPos);

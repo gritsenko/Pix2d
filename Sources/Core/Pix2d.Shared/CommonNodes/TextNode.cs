@@ -5,6 +5,7 @@ namespace Pix2d.CommonNodes;
 
 public class TextNode : SKNode
 {
+    private const float RightPadding = 1f;
     private string _text = string.Empty;
     private SKRect _bounds;
     private string _fontFamily = "Arial";
@@ -85,21 +86,17 @@ public class TextNode : SKNode
 
     private void UpdateTextBounds()
     {
-        var font = GetFont();
-        var paint = GetPaint();
+        using var font = GetFont();
+        using var paint = GetPaint();
         _bounds = SKRect.Empty;
-        var bounds = new SKRect();
-#pragma warning disable CS0618
-        paint.MeasureText(Text, ref bounds);
-#pragma warning restore CS0618
-        _bounds = bounds;
-        var height = -font.Metrics.Top + font.Metrics.Bottom;
-        // This adds same margin to the right of the text as to the left of the text.
-        // Without this margin sometimes one pixel is lost at the right because of rounding.
-        var right = _bounds.Right + _bounds.Left;
-        _bounds.Top = 0;
-        _bounds.Bottom = height;
-        _bounds.Right = right;
+
+        if (string.IsNullOrEmpty(Text))
+            return;
+
+        var measuredWidth = font.MeasureText(Text, out var bounds, paint);
+        var height = MathF.Ceiling(-font.Metrics.Top + font.Metrics.Bottom);
+        var width = MathF.Ceiling(measuredWidth - bounds.Left + RightPadding);
+        _bounds = new SKRect(bounds.Left, 0, bounds.Left + width, height);
     }
 
     private SKPaint GetPaint()

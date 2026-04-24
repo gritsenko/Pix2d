@@ -5,6 +5,9 @@
     <title>AvaloniaTest.Browser</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="stylesheet" href="./app.css" />
 </head>
 
@@ -51,7 +54,11 @@
 
         </div>
     </div>
-    <script type='module' src="./main.js"></script>
+    <script type="module">
+        const isDevelopmentHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const version = isDevelopmentHost ? Date.now().toString() : '1';
+        await import(`./main.js?v=${version}`);
+    </script>
 </body>
 
 </html>

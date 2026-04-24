@@ -1,9 +1,12 @@
 using Pix2d.Messages;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using SkiaSharp;
 
 namespace Pix2d.UI;
 
-public class ResizeCanvasView : LocalizedComponentBase
+public partial class ResizeCanvasView(ISelectionService selectionService, IEditService editService, IViewPortService viewPortService, IMessenger messenger, AppState appState)
+    : ViewBase<ResizeCanvasView.State>(new State(selectionService, editService, viewPortService, messenger, appState))
 {
     protected override StyleGroup? BuildStyles() => 
     [
@@ -11,7 +14,8 @@ public class ResizeCanvasView : LocalizedComponentBase
             .CornerRadius(6)
             .FontSize(12)
     ];
-    protected override object Build()
+
+    protected override object Build(State state)
     {
         return new Border()
             .Padding(16)
@@ -25,36 +29,17 @@ public class ResizeCanvasView : LocalizedComponentBase
                                 new TextBlock().Text(L("Width")).FontSize(12).Foreground(Brushes.Gray),
                                 new NumericUpDown().Row(1)
                                     .FormatString("N0")
-                                    .Value(() => CanvasWidth, v =>
-                                    {
-                                        CanvasWidth = (int)(v ?? 0);
-                                        if (KeepAspect)
-                                            CanvasHeight = (int)(CanvasWidth / _aspectRatio);
-                                    }),
+                                    .Value(state, x => x.CanvasWidth, BindingMode.TwoWay),
 
                                 new TextBlock().Col(2).Text(L("Height")).FontSize(12).Foreground(Brushes.Gray),
                                 new NumericUpDown().Col(2).Row(1)
                                     .FormatString("N0")
-                                    .Value(() => CanvasHeight, v =>
-                                    {
-                                        CanvasHeight = (int)(v ?? 0);
-                                        if (KeepAspect)
-                                            CanvasWidth = (int)(CanvasHeight * _aspectRatio);
-                                    })
+                                    .Value(state, x => x.CanvasHeight, BindingMode.TwoWay)
                             ),
 
                         new ToggleSwitch()
                             .Content(L("Keep aspect ratio"))
-                            .IsChecked(() => KeepAspect, v =>
-                            {
-                                KeepAspect = (bool)v!;
-
-                                if (CanvasWidth != OriginalWidth)
-                                    CanvasHeight = (int)(CanvasWidth / _aspectRatio);
-
-                                if (_canvasHeight != OriginalHeight)
-                                    CanvasWidth = (int)(CanvasHeight * _aspectRatio);
-                            }),
+                            .IsChecked(state, x => x.KeepAspect, BindingMode.TwoWay),
 
                         new Separator().Height(1).Opacity(0.2),
 
@@ -65,16 +50,16 @@ public class ResizeCanvasView : LocalizedComponentBase
                                 new ComboBoxItem().Content(L("Canvas (Crop/Expand)")),
                                 new ComboBoxItem().Content(L("Image (Rescale)"))
                             )
-                            .SelectedIndex(() => ResizeMode, v => ResizeMode = (int)v!),
+                            .SelectedIndex(state, x => x.ResizeMode, BindingMode.TwoWay),
 
                         // Секция Якоря (Anchor)
                         new TextBlock().Text(L("Anchor")).FontSize(12).Foreground(Brushes.Gray)
-                            .IsVisible(() => ResizeMode == 0),
+                            .IsVisible(state, x => x.IsAnchorVisible),
 
                         new Border()
                             .HorizontalAlignment(HorizontalAlignment.Center)
-                            .IsVisible(() => ResizeMode == 0)
-                            .Child(CreateAnchorGrid()), // Метод создания сетки 3х3
+                            .IsVisible(state, x => x.IsAnchorVisible)
+                            .Child(CreateAnchorGrid(state)),
 
                         new StackPanel()
                             .Margin(0, 10, 0, 0)
@@ -82,161 +67,262 @@ public class ResizeCanvasView : LocalizedComponentBase
                             .HorizontalAlignment(HorizontalAlignment.Right)
                             .Spacing(8)
                             .Children(
-                                new Button().Content(L("Reset")).OnClick(_ => OnResetCommandExecute()).Classes("btn")
+                                new Button().Content(L("Reset")).OnClick(_ => state.Reset()).Classes("btn")
                                     .Width(80)
                                     .Height(30)
-                                    .IsEnabled(() => OriginalWidth != CanvasWidth || OriginalHeight != CanvasHeight),
-                                new Button().Content(L("Apply")).Classes("accent") // Используйте акцентный цвет темы
+                                    .IsEnabled(state, x => x.CanReset),
+                                new Button().Content(L("Apply")).Classes("accent")
                                     .Width(80)
                                     .Height(30)
                                     .Background(Brushes.CornflowerBlue)
-                                    .OnClick(_ => OnResizeCanvasCommandExecute())
+                                    .OnClick(_ => state.ApplyResize())
                             )
                     )
             );
     }
 
-    private Control CreateAnchorGrid()
+    private Control CreateAnchorGrid(State state)
     {
-        var grid = new Grid()
+        return new ItemsControl()
             .Width(72).Height(72)
-            .Cols("24, 24, 24").Rows("24, 24, 24");
-
-        for (int y = 0; y < 3; y++) // 0: Top/Left, 1: Center, 2: Bottom/Right
-        {
-            for (int x = 0; x < 3; x++)
+            .ItemsSource(state.AnchorButtons)
+            .ItemsPanel(new FuncTemplate<Panel?>(() => new UniformGrid
             {
-                int row = y;
-                int col = x;
-
-                var btn = new Button()
-                    .Row(row).Col(col)
+                Rows = 3,
+                Columns = 3
+            }))
+            .ItemTemplate((State.AnchorButtonState item) =>
+                new Button()
                     .Padding(0)
                     .Margin(1)
                     .HorizontalContentAlignment(HorizontalAlignment.Center)
                     .VerticalContentAlignment(VerticalAlignment.Center)
-                    // Логика подсветки активного якоря
-                    .Background(() => (VerticalAnchor == row && HorizontalAnchor == col)
-                        ? Brushes.CornflowerBlue : Brushes.Transparent)
+                    .Content(item, x => x.DisplayText, BindingMode.OneWay)
+                    .Background(item, x => x.BackgroundBrush, BindingMode.OneWay)
                     .BorderBrush(Brushes.Gray)
                     .BorderThickness(1)
-                    .OnClick(_ =>
-                    {
-                        VerticalAnchor = row;
-                        HorizontalAnchor = col;
-                        StateHasChanged();
-                    });
-
-                // Добавим маленькую точку в центр для наглядности
-                if (row == 1 && col == 1) btn.Content("•");
-
-                grid.Children(btn);
-            }
-        }
-        return grid;
+                    .Command(item, x => x.SelectCommand, BindingMode.OneWay)
+            );
     }
 
     public void UpdateData()
     {
-        UpdateSizeProperties();
+        ViewModel?.UpdateSizeProperties();
     }
 
-    [Inject] ISelectionService SelectionService { get; set; } = null!;
-    [Inject] IEditService EditService { get; set; } = null!;
-    [Inject] IViewPortService ViewPortService { get; set; } = null!;
-    [Inject] IMessenger Messenger { get; set; } = null!;
-    [Inject] AppState AppState { get; set; } = null!;
-
-    private double _aspectRatio;
-
-    private int _canvasHeight = 0;
-    private int _horizontalAnchor = 0;
-    private int _verticalAnchor = 0;
-    public string OriginalSizeStr { get; set; } = string.Empty;
-
-    private bool HasActiveArtboard => SelectionService.GetActiveContainer() != null;
-    private int OriginalWidth => HasActiveArtboard ? (int)SelectionService.GetActiveContainer().Size.Width : 0;
-    private int OriginalHeight => HasActiveArtboard ? (int)SelectionService.GetActiveContainer().Size.Height : 0;
-
-    public int CanvasWidth { get; set; }
-    public int CanvasHeight { get; set; }
-
-    public int HorizontalAnchor
+    public sealed partial class State : ObservableObject
     {
-        get => _horizontalAnchor;
-        set
+        private readonly ISelectionService _selectionService;
+        private readonly IEditService _editService;
+        private readonly IViewPortService _viewPortService;
+        private readonly AppState _appState;
+        private double _aspectRatio = 1d;
+        private bool _isSyncing;
+        private bool _isUpdatingAnchorSelection;
+        private int _originalWidth;
+        private int _originalHeight;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanReset))]
+        public partial decimal? CanvasWidth { get; set; }
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanReset))]
+        public partial decimal? CanvasHeight { get; set; }
+
+        [ObservableProperty]
+        public partial int HorizontalAnchor { get; set; } = 1;
+
+        [ObservableProperty]
+        public partial int VerticalAnchor { get; set; } = 1;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsAnchorVisible))]
+        public partial int ResizeMode { get; set; }
+
+        [ObservableProperty]
+        public partial bool KeepAspect { get; set; }
+
+        [ObservableProperty]
+        public partial string OriginalSizeStr { get; set; } = string.Empty;
+
+        public AnchorButtonState[] AnchorButtons { get; }
+
+        public bool CanReset => _originalWidth != CurrentWidth || _originalHeight != CurrentHeight;
+
+        public bool IsAnchorVisible => ResizeMode == 0;
+
+        private bool HasActiveArtboard => _selectionService.GetActiveContainer() is not null;
+        private int CurrentWidth => (int)(CanvasWidth ?? 0);
+        private int CurrentHeight => (int)(CanvasHeight ?? 0);
+
+        public State(ISelectionService selectionService, IEditService editService, IViewPortService viewPortService,
+            IMessenger messenger, AppState appState)
         {
-            _horizontalAnchor = value;
-            OnPropertyChanged();
-        }
-    }
+            _selectionService = selectionService;
+            _editService = editService;
+            _viewPortService = viewPortService;
+            _appState = appState;
+            AnchorButtons = CreateAnchorButtons();
 
-    public int VerticalAnchor
-    {
-        get => _verticalAnchor;
-        set
-        {
-            _verticalAnchor = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public int ResizeMode { get; set; }
-
-    public bool KeepAspect { get; set; }
-
-    protected override void OnAfterInitialized()
-    {
-        UpdateSizeProperties();
-        Messenger.Register<NodesSelectedMessage>(this, NodesSelected);
-
-        VerticalAnchor = 1;
-        HorizontalAnchor = 1;
-
-        StateHasChanged();
-    }
-
-    private void NodesSelected(NodesSelectedMessage obj)
-    {
-        UpdateSizeProperties();
-    }
-
-    private void UpdateSizeProperties()
-    {
-        CanvasWidth = OriginalWidth;
-        CanvasHeight = OriginalHeight;
-
-        _aspectRatio = (double)OriginalWidth / OriginalHeight;
-
-        OriginalSizeStr = $"{OriginalWidth}x{OriginalHeight}";
-
-        StateHasChanged();
-    }
-
-    private void OnResizeCanvasCommandExecute()
-    {
-        AppState.UiState.ShowCanvasResizePanel = false;
-
-        if (ResizeMode == 0)
-        {
-            EditService.CropCurrentSprite(new SKSize(CanvasWidth, CanvasHeight), HorizontalAnchor * 0.5f, VerticalAnchor * 0.5f);
-        }
-        else
-        {
-            EditService.ResizeCurrentSprite(new SKSize(CanvasWidth, CanvasHeight));
+            UpdateSizeProperties();
+            SyncAnchorButtons();
+            messenger.Register<NodesSelectedMessage>(this, _ => UpdateSizeProperties());
         }
 
-        ViewPortService.ShowAll();
+        partial void OnCanvasWidthChanged(decimal? value)
+        {
+            if (_isSyncing || !KeepAspect || !value.HasValue || _aspectRatio <= 0)
+                return;
+
+            SetCanvasHeightFromWidth(value.Value);
+        }
+
+        partial void OnCanvasHeightChanged(decimal? value)
+        {
+            if (_isSyncing || !KeepAspect || !value.HasValue || _aspectRatio <= 0)
+                return;
+
+            SetCanvasWidthFromHeight(value.Value);
+        }
+
+        partial void OnKeepAspectChanged(bool value)
+        {
+            if (_isSyncing || !value || _aspectRatio <= 0)
+                return;
+
+            if (CurrentWidth != _originalWidth)
+            {
+                SetCanvasHeightFromWidth(CanvasWidth ?? 0);
+            }
+            else if (CurrentHeight != _originalHeight)
+            {
+                SetCanvasWidthFromHeight(CanvasHeight ?? 0);
+            }
+        }
+
+        partial void OnHorizontalAnchorChanged(int value)
+        {
+            if (!_isUpdatingAnchorSelection)
+                SyncAnchorButtons();
+        }
+
+        partial void OnVerticalAnchorChanged(int value)
+        {
+            if (!_isUpdatingAnchorSelection)
+                SyncAnchorButtons();
+        }
+
+        public void SetAnchor(int verticalAnchor, int horizontalAnchor)
+        {
+            if (VerticalAnchor == verticalAnchor && HorizontalAnchor == horizontalAnchor)
+                return;
+
+            _isUpdatingAnchorSelection = true;
+            VerticalAnchor = verticalAnchor;
+            HorizontalAnchor = horizontalAnchor;
+            _isUpdatingAnchorSelection = false;
+
+            SyncAnchorButtons();
+        }
+
+        public void UpdateSizeProperties()
+        {
+            var activeContainer = _selectionService.GetActiveContainer();
+            _originalWidth = activeContainer != null ? (int)activeContainer.Size.Width : 0;
+            _originalHeight = activeContainer != null ? (int)activeContainer.Size.Height : 0;
+
+            _isSyncing = true;
+            CanvasWidth = _originalWidth;
+            CanvasHeight = _originalHeight;
+            _isSyncing = false;
+
+            _aspectRatio = _originalHeight == 0 ? 1d : (double)_originalWidth / _originalHeight;
+            OriginalSizeStr = $"{_originalWidth}x{_originalHeight}";
+            OnPropertyChanged(nameof(CanReset));
+        }
+
+        public void ApplyResize()
+        {
+            _appState.UiState.ShowCanvasResizePanel = false;
+
+            if (ResizeMode == 0)
+            {
+                _editService.CropCurrentSprite(new SKSize(CurrentWidth, CurrentHeight), HorizontalAnchor * 0.5f,
+                    VerticalAnchor * 0.5f);
+            }
+            else
+            {
+                _editService.ResizeCurrentSprite(new SKSize(CurrentWidth, CurrentHeight));
+            }
+
+            _viewPortService.ShowAll();
+        }
+
+        public void Reset()
+        {
+            _isSyncing = true;
+            CanvasWidth = _originalWidth;
+            CanvasHeight = _originalHeight;
+            _isSyncing = false;
+
+            _aspectRatio = _originalHeight == 0 ? 1d : (double)_originalWidth / _originalHeight;
+            OriginalSizeStr = $"{_originalWidth}x{_originalHeight}";
+            OnPropertyChanged(nameof(CanReset));
+        }
+
+        private void SetCanvasHeightFromWidth(decimal width)
+        {
+            _isSyncing = true;
+            CanvasHeight = Math.Max(decimal.Zero, (decimal)Math.Round((double)width / _aspectRatio));
+            _isSyncing = false;
+        }
+
+        private void SetCanvasWidthFromHeight(decimal height)
+        {
+            _isSyncing = true;
+            CanvasWidth = Math.Max(decimal.Zero, (decimal)Math.Round((double)height * _aspectRatio));
+            _isSyncing = false;
+        }
+
+        private AnchorButtonState[] CreateAnchorButtons()
+        {
+            return Enumerable.Range(0, 9)
+                .Select(index =>
+                {
+                    var row = index / 3;
+                    var col = index % 3;
+
+                    return new AnchorButtonState(this, row, col, row == 1 && col == 1 ? "•" : string.Empty);
+                })
+                .ToArray();
+        }
+
+        private void SyncAnchorButtons()
+        {
+            foreach (var button in AnchorButtons)
+            {
+                button.IsSelected = button.Row == VerticalAnchor && button.Column == HorizontalAnchor;
+            }
+        }
+
+        public sealed partial class AnchorButtonState(State owner, int row, int column, string displayText) : ObservableObject
+        {
+            public int Row { get; } = row;
+            public int Column { get; } = column;
+            public string DisplayText { get; } = displayText;
+
+            [ObservableProperty]
+            [NotifyPropertyChangedFor(nameof(BackgroundBrush))]
+            public partial bool IsSelected { get; set; }
+
+            public IBrush BackgroundBrush => IsSelected ? Brushes.CornflowerBlue : Brushes.Transparent;
+
+            [RelayCommand]
+            private void Select()
+            {
+                owner.SetAnchor(Row, Column);
+            }
+        }
     }
-
-    private void OnResetCommandExecute()
-    {
-        CanvasWidth = OriginalWidth;
-        CanvasHeight = OriginalHeight;
-
-        _aspectRatio = (double)OriginalWidth / OriginalHeight;
-
-        OriginalSizeStr = $"{OriginalWidth}x{OriginalHeight}";
-    }
-
 }

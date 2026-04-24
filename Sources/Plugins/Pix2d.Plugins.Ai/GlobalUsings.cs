@@ -1,0 +1,1 @@
+global using static Pix2d.UI.LocalizationHelper;

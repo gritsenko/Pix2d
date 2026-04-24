@@ -1,9 +1,14 @@
-﻿namespace Pix2d.UI.MainMenu;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-public class AppSettingsView : ComponentBase
+namespace Pix2d.UI.MainMenu;
+
+public partial class AppSettingsView() : ViewBase<AppSettingsView.State>(new State())
 {
-    protected override object Build()
+    protected override object Build(State state) =>
+        new TextBlock()
+            .Text(L("App settings"));
+
+    public sealed partial class State : ObservableObject
     {
-        throw new System.NotImplementedException();
     }
 }

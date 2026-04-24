@@ -6,6 +6,7 @@ using Pix2d.Desktop.Services;
 using Pix2d.Services;
 using Pix2d.UI;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -48,7 +49,14 @@ class Program
 
         BuildAvaloniaApp()
             .UseServiceProvider(sp)
+            .UseComponentControlFactory(type => CreateComponentControl(sp, type))
             .StartWithClassicDesktopLifetime(args);
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2067", Justification = "Desktop builds resolve Avalonia declarative views dynamically through the control factory; desktop publishing currently does not trim output.")]
+    private static Avalonia.Controls.Control CreateComponentControl(IServiceProvider serviceProvider, Type type)
+    {
+        return (Avalonia.Controls.Control)ActivatorUtilities.CreateInstance(serviceProvider, type);
     }
 
     // CrossPlatformDesktop configuration, don't remove; also used by visual designer.
@@ -67,13 +75,13 @@ class Program
             {
                 RenderingMode = [
                     Win32RenderingMode.Wgl,
-                Win32RenderingMode.AngleEgl,
-                Win32RenderingMode.Vulkan,
-                Win32RenderingMode.Software
+                    Win32RenderingMode.AngleEgl,
+                    Win32RenderingMode.Vulkan,
+                    Win32RenderingMode.Software
                 ],
                 CompositionMode = [
                     Win32CompositionMode.WinUIComposition,
-                Win32CompositionMode.DirectComposition
+                    Win32CompositionMode.DirectComposition
                 ]
             });
         }
@@ -86,13 +94,10 @@ class Program
         if (root is MainWindow wnd)
         {
             TouchHelper.ConfigureTouchHandling(wnd);
-#if DEBUG
-            wnd.AttachDevTools();
-#endif
         }
     }
 
-    private static void OnAppInitialized()
+    private static void OnAppInitialized(EditorApp editorApp)
     {
 #if WINDOWS_UWP
         UwpPlatformStuffService.InitStoreContext();
@@ -103,6 +108,11 @@ class Program
         {
             AssociatePix2dFiles();
         }
+
+#if DEBUG
+        editorApp.AttachDeveloperTools();
+#endif
+
     }
 
     [SupportedOSPlatform("windows")]
