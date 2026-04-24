@@ -152,7 +152,7 @@ public partial class ResizeCanvasView(ISelectionService selectionService, IEditS
 
         public bool IsAnchorVisible => ResizeMode == 0;
 
-        private bool HasActiveArtboard => _selectionService.GetActiveContainer() != null;
+        private bool HasActiveArtboard => _selectionService.GetActiveContainer() is not null;
         private int CurrentWidth => (int)(CanvasWidth ?? 0);
         private int CurrentHeight => (int)(CanvasHeight ?? 0);
 
@@ -228,8 +228,9 @@ public partial class ResizeCanvasView(ISelectionService selectionService, IEditS
 
         public void UpdateSizeProperties()
         {
-            _originalWidth = HasActiveArtboard ? (int)_selectionService.GetActiveContainer().Size.Width : 0;
-            _originalHeight = HasActiveArtboard ? (int)_selectionService.GetActiveContainer().Size.Height : 0;
+            var activeContainer = _selectionService.GetActiveContainer();
+            _originalWidth = activeContainer != null ? (int)activeContainer.Size.Width : 0;
+            _originalHeight = activeContainer != null ? (int)activeContainer.Size.Height : 0;
 
             _isSyncing = true;
             CanvasWidth = _originalWidth;

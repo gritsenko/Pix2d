@@ -4,6 +4,7 @@ using Android.Provider;
 using Android.Runtime;
 using Android.App;
 using System;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using Microsoft.Maui.ApplicationModel;
 
@@ -109,13 +110,11 @@ public partial class MainActivity
         intent.AddCategory(Intent.CategoryOpenable);
         intent.SetType("*/*"); 
 
-        if (_uriAwaitingSafPermission != null && Build.VERSION.SdkInt >= BuildVersionCodes.O) // ExtraInitialUri requires API 26+
+        if (_uriAwaitingSafPermission != null && OperatingSystem.IsAndroidVersionAtLeast(26))
         {
             try
             {
-#pragma warning disable CA1416 // ExtraInitialUri requires API 26+, properly guarded above
-                intent.PutExtra(DocumentsContract.ExtraInitialUri, _uriAwaitingSafPermission);
-#pragma warning restore CA1416
+                SetInitialUri(intent, _uriAwaitingSafPermission);
                 System.Diagnostics.Debug.WriteLine($"SAF picker hint: using EXTRA_INITIAL_URI = {_uriAwaitingSafPermission}");
             }
             catch (Exception ex)
@@ -134,6 +133,12 @@ public partial class MainActivity
             ShowErrorDialog($"Can't run system file manager: {ex.Message}", "Launch Error");
             _uriAwaitingSafPermission = null;
         }
+    }
+
+    [SupportedOSPlatform("android26.0")]
+    private static void SetInitialUri(Intent intent, Android.Net.Uri initialUri)
+    {
+        intent.PutExtra(DocumentsContract.ExtraInitialUri, initialUri);
     }
 
     protected override void OnActivityResult(int requestCode, [GeneratedEnum] Result resultCode, Intent? data)

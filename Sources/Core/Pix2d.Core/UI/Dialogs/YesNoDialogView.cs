@@ -2,8 +2,6 @@ using Avalonia.Styling;
 using Pix2d.Abstract.UI;
 using Pix2d.UI.Resources;
 
-#pragma warning disable CS0612 // Avalonia markup extension methods
-
 namespace Pix2d.UI.Dialogs;
 
 public class YesNoDialogView : ViewBase, IDialogView<bool>

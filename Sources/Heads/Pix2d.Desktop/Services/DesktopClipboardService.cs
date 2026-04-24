@@ -4,6 +4,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using Avalonia.Input.Platform;
 using Pix2d.Abstract.Services;
@@ -30,12 +31,8 @@ public class DesktopClipboardService(
         {
             return;
         }
-        
-#pragma warning disable CA1416
-        var bm = System.Drawing.Bitmap.FromStream(bitmap.ToPngStream()) as System.Drawing.Bitmap;
-        if (bm != null)
-            Clowd.Clipboard.ClipboardGdi.SetImage(bm);
-#pragma warning restore CA1416
+
+        PutWindowsImageIntoClipboard(bitmap);
     }
     
     public override async Task<SKBitmap?> GetImageFromClipboard()
@@ -47,19 +44,32 @@ public class DesktopClipboardService(
         //windows specific clipboard format
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-#pragma warning disable CA1416
-            using var image = await Clowd.Clipboard.ClipboardGdi.GetImageAsync();
-
-            if (image == null)
-                return null;
-
-            using var ms = new MemoryStream();
-            image.Save(ms, ImageFormat.Png);
-            var skBitmap = SKBitmap.Decode(ms.GetBuffer());
-            return skBitmap;
+            return await GetWindowsImageFromClipboardAsync();
         }
 
-#pragma warning restore CA1416
         return null;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static void PutWindowsImageIntoClipboard(SKBitmap bitmap)
+    {
+        using var pngStream = bitmap.ToPngStream();
+        using var image = System.Drawing.Bitmap.FromStream(pngStream) as System.Drawing.Bitmap;
+        if (image != null)
+            Clowd.Clipboard.ClipboardGdi.SetImage(image);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static async Task<SKBitmap?> GetWindowsImageFromClipboardAsync()
+    {
+        using var image = await Clowd.Clipboard.ClipboardGdi.GetImageAsync();
+
+        if (image == null)
+            return null;
+
+        using var ms = new MemoryStream();
+        image.Save(ms, ImageFormat.Png);
+        ms.Position = 0;
+        return SKBitmap.Decode(ms);
     }
 }

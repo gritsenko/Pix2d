@@ -36,7 +36,7 @@ public class AndroidFileContentSource : IFileContentSource
     {
         // Используем вспомогательный метод из MainActivity.Instance
         // Это гарантирует, что у нас есть ContentResolver из активной Activity
-        return MainActivity.Instance.GetContentResolverHelper();
+        return MainActivity.Instance?.GetContentResolverHelper();
     }
 
     // Конструктор

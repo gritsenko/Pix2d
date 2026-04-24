@@ -16,7 +16,7 @@ public interface ISelectionService
     void SelectNext(SKPoint point);
 
     void ClearSelection();
-    IContainerNode GetActiveContainer();
+    IContainerNode? GetActiveContainer();
     IContainerNode GetContainer(SKPoint worldPosition);
     void SetActiveGroup(GroupNode group);
 }

@@ -84,15 +84,13 @@ public class SameColorSelector : IPixelSelector
             {
                 var isSameColor = false;
                     
-                switch (Pix2DAppSettings.ColorType)
+                switch (sourceBitmap.ColorType)
                 {
                     case SKColorType.Bgra8888:
-#pragma warning disable CS0162
                         if (spanSrc[srcIndex] == _color.Blue
                             && spanSrc[srcIndex + 1] == _color.Green
                             && spanSrc[srcIndex + 2] == _color.Red
                             && spanSrc[srcIndex + 3] == _color.Alpha) isSameColor = true;
-#pragma warning restore CS0162
                         break;
                     case SKColorType.Rgba8888:
                         if (spanSrc[srcIndex] == _color.Red

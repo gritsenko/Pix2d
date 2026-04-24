@@ -82,36 +82,16 @@ public partial class MainActivity : AvaloniaMainActivity
 
     private void HideSystemUI()
     {
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.R) // Android 11+
+        var window = Window;
+        if (window?.DecorView != null)
         {
-            var window = Window;
-            if (window != null)
+            WindowCompat.SetDecorFitsSystemWindows(window, false);
+            var controller = WindowCompat.GetInsetsController(window, window.DecorView);
+            if (controller != null)
             {
-                WindowCompat.SetDecorFitsSystemWindows(window, false);
-                var controller = WindowCompat.GetInsetsController(window, window.DecorView);
-                if (controller != null)
-                {
-                    controller.Hide(WindowInsetsCompat.Type.SystemBars());
-                    controller.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorShowTransientBarsBySwipe;
-                }
+                controller.Hide(WindowInsetsCompat.Type.SystemBars());
+                controller.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorShowTransientBarsBySwipe;
             }
-        }
-        else // Старые версии (до Android 11)
-        {
-#pragma warning disable CS0618 // Отключаем предупреждение об устаревшем API
-            var window = Window;
-            if (window?.DecorView != null)
-            {
-                window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
-                    SystemUiFlags.ImmersiveSticky |
-                    SystemUiFlags.LayoutStable |
-                    SystemUiFlags.LayoutHideNavigation |
-                    SystemUiFlags.LayoutFullscreen |
-                    SystemUiFlags.HideNavigation |
-                    SystemUiFlags.Fullscreen
-                );
-            }
-#pragma warning restore CS0618
         }
 
         // if (SupportActionBar != null) SupportActionBar.Hide();

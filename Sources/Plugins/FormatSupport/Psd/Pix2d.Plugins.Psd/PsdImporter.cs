@@ -12,32 +12,6 @@ namespace Pix2d.Plugins.Psd
         public async Task ImportToTargetNode(IEnumerable<IFileContentSource> files, IImportTarget targetNode)
         {
             throw new NotImplementedException("Chnage for new IIMpoportServie");
-#pragma warning disable CS0162 // Unreachable code detected
-            var file = files.FirstOrDefault();
-            if (file == null)
-                return;
-
-            using var stream = await file.OpenRead();
-            var psdFile = new PsdFile();
-            psdFile.Load(stream);
-
-            var size = new SKSize(psdFile.Layers.Max(x => x.Rect.Width), psdFile.Layers.Max(x => x.Rect.Height));
-
-            if (targetNode is SKNode node && node.Parent is IContainerNode artboard)
-            {
-                ResizeContainer(artboard, size);
-            }
-
-            //targetNode.SetSize(size);
-            //targetNode.Clear();
-
-            InitLayers(targetNode, psdFile);
-
-            LoadFrameBitmaps(targetNode, psdFile, size);
-
-            //targetNode.SelectedLayerIndex = 0;
-            //targetNode.SetFrameIndex(0);
-#pragma warning restore CS0162 // Unreachable code detected
         }
 
         private void LoadFrameBitmaps(IImportTarget targetNode, PsdFile psdFile, SKSize size)

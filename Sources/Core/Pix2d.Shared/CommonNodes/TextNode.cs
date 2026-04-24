@@ -93,15 +93,9 @@ public class TextNode : SKNode
         if (string.IsNullOrEmpty(Text))
             return;
 
-        paint.Typeface = font.Typeface;
-        paint.TextSize = font.Size;
-
-        var bounds = new SKRect();
-#pragma warning disable CS0618
-        paint.MeasureText(Text, ref bounds);
-#pragma warning restore CS0618
+        var measuredWidth = font.MeasureText(Text, out var bounds, paint);
         var height = MathF.Ceiling(-font.Metrics.Top + font.Metrics.Bottom);
-        var width = MathF.Ceiling(bounds.Width + MathF.Max(bounds.Left, 0) + RightPadding);
+        var width = MathF.Ceiling(measuredWidth - bounds.Left + RightPadding);
         _bounds = new SKRect(bounds.Left, 0, bounds.Left + width, height);
     }
 

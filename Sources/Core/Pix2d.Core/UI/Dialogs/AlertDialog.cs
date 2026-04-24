@@ -8,7 +8,6 @@ namespace Pix2d.UI.Dialogs;
 
 public partial class AlertDialog() : ViewBase<AlertDialog.State>(new State()), IDialogView<object?>
 {
-#pragma warning disable CS0612 // Type or member is obsolete
     protected override object Build(State state) =>
         new Grid()
             .Rows("*,48")
@@ -44,7 +43,6 @@ public partial class AlertDialog() : ViewBase<AlertDialog.State>(new State()), I
 
                     ) //stack panel children
             );
-#pragma warning restore CS0612 // Type or member is obsolete
 
     public string Title { get; set; } = string.Empty;
 

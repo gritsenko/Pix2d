@@ -15,10 +15,9 @@ public class ViewPortService : IViewPortService
 
     private readonly AppState _state;
 
-#pragma warning disable CS8766
-    public ViewPort? ViewPort
+    public ViewPort ViewPort
     {
-        get => _viewPort;
+        get => _viewPort!;
         private set
         {
             if (_viewPort != null)
@@ -30,7 +29,6 @@ public class ViewPortService : IViewPortService
                 _viewPort.ViewChanged += ViewPortOnViewChanged;
         }
     }
-#pragma warning restore CS8766
 
     public void Initialize(ViewPort viewPort)
     {
@@ -69,13 +67,13 @@ public class ViewPortService : IViewPortService
     public void ShowAll()
     {
         var scene = _state.CurrentProject.SceneNode;
-        if (scene == null) return;
-        if (ViewPort == null) return;
+        var viewPort = _viewPort;
+        if (scene == null || viewPort == null) return;
 
         var bBox = scene.GetBoundingBoxWithContent();
-        var vpBBox = ViewPort.Size;
-        ViewPort.ShowArea(bBox, new SKSize(vpBBox.Width / 3, vpBBox.Height / 3));
-        ViewPort.Refresh();
+        var vpBBox = viewPort.Size;
+        viewPort.ShowArea(bBox, new SKSize(vpBBox.Width / 3, vpBBox.Height / 3));
+        viewPort.Refresh();
     }
 
     private SKRect? GetSceneBounds()

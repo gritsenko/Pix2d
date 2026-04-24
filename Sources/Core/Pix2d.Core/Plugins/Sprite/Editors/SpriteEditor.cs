@@ -669,9 +669,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
             for (var frameIndex = 0; frameIndex < layerPropertiesInfo.Frames.Count; frameIndex++)
             {
                 var layerFrameInfo = layerPropertiesInfo.Frames[frameIndex];
-#pragma warning disable CS8602
-                var bitmap = layerFrameInfo!.BitmapProviderFunc() ?? new SKBitmap();
-#pragma warning restore CS8602
+                var bitmap = layerFrameInfo.BitmapProviderFunc?.Invoke() ?? new SKBitmap();
                 layer.InsertFrameFromBitmap(frameIndex, bitmap);
             }
         }

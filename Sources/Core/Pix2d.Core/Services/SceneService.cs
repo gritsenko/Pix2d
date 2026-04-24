@@ -33,11 +33,9 @@ public class SceneService : ISceneService
         return SKApp.SceneManager.GetRootNode();
     }
 
-    #pragma warning disable CS8766 // Nullability mismatch in return type
-    public SKNode GetCurrentScene()
-    #pragma warning restore CS8766 // Nullability mismatch in return type
+    public SKNode? GetCurrentScene()
     {
-        return SKApp.SceneManager.GetCurrentScene()!;
+        return SKApp.SceneManager.GetCurrentScene();
     }
 
     public IList<TContainer> GetCurrentSceneContainers<TContainer>() where TContainer : IContainerNode

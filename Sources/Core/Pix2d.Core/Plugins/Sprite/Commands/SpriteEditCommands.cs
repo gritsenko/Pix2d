@@ -31,6 +31,9 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
     {
         ServiceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation();
         var container = ServiceProvider.GetRequiredService<ISelectionService>().GetActiveContainer();
+        if (container == null)
+            return;
+
         ServiceProvider.GetRequiredService<IClipboardService>().TryCopyNodesAsBitmapAsync(container.Yield().OfType<SKNode>(), container.BackgroundColor);
     }, "Copy multiple layers", new CommandShortcut(VirtualKeys.C, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 

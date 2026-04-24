@@ -4,10 +4,12 @@ using SkiaNodes;
 
 namespace Pix2d.Plugins.Sprite.Operations.Layers;
 
-#pragma warning disable CS9107
-public class ChangePixelLockOperationBase(IEnumerable<SKNode> nodes) : ChangeNodePropertyOperationBase<bool>(nodes), ISpriteEditorOperation
-#pragma warning restore CS9107
+public class ChangePixelLockOperationBase : ChangeNodePropertyOperationBase<bool>, ISpriteEditorOperation
 {
+    public ChangePixelLockOperationBase(IEnumerable<SKNode> nodes) : base(nodes)
+    {
+    }
+
     protected override bool GetValue(SKNode node) => node.IsVisible;
 
     protected override void SetValue(SKNode node, bool value) => node.IsVisible = value;
@@ -18,9 +20,9 @@ public class ChangePixelLockOperationBase(IEnumerable<SKNode> nodes) : ChangeNod
     {
         base.SetFinalData();
 
-        var firstNode = nodes.FirstOrDefault();
+        var editedNodes = GetEditedNodes().ToArray();
 
         AffectedFrameIndexes = [];
-        AffectedLayerIndexes = nodes.Select(x => x.Index).ToHashSet();
+        AffectedLayerIndexes = editedNodes.Select(x => x.Index).ToHashSet();
     }
 }

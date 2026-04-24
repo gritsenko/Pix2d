@@ -129,9 +129,7 @@ public class PngCompressView : PopupView, IToolPanel
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
-#pragma warning disable CS0618
-        var hasFiles = e.Data?.GetDataFormats().Contains("Files") == true;
-#pragma warning restore CS0618
+        var hasFiles = e.DataTransfer.Formats.Contains(DataFormat.File);
         if (hasFiles)
             e.DragEffects = DragDropEffects.Copy;
 
@@ -140,17 +138,12 @@ public class PngCompressView : PopupView, IToolPanel
 
     private async void OnDrop(object? sender, DragEventArgs e)
     {
-#pragma warning disable CS0618
-        var data = e.Data?.Get("Files");
-#pragma warning restore CS0618
-
-        if (data == null)
+        var droppedFiles = e.DataTransfer.TryGetFiles();
+        if (droppedFiles == null)
             return;
 
-        var droppedFiles = data as IEnumerable<IStorageItem>;
-
         var fileSources = new List<IFileContentSource>();
-        foreach (var storageFile in (droppedFiles ?? Enumerable.Empty<IStorageItem>()).OfType<IStorageFile>())
+        foreach (var storageFile in droppedFiles.OfType<IStorageFile>())
         {
             var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);
 

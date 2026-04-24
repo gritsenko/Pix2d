@@ -1,4 +1,3 @@
-#pragma warning disable CS8603
 using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Plugins.Sprite;
