@@ -22,6 +22,7 @@ using Pix2d.Messages.ViewPort;
 using Pix2d.Common.FileSystem;
 using Pix2d.Primitives.ViewPort;
 using Pix2d.UI;
+using Avalonia.Threading;
 
 namespace Pix2d;
 
@@ -53,6 +54,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
                 AvaloniaDialogService>(); // No explicit dependencies (uses Avalonia internals)
 
         services.AddSingleton<ISettingsService, SettingsService>(); // Depends on: IPlatformStuffService
+        services.AddSingleton<ICrashReportService, CrashReportService>(); // Depends on: IPlatformStuffService, ISettingsService, AppState
 
         services
             .AddSingleton<IFileService,
@@ -125,6 +127,10 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         var serviceProvider = GetServiceProvider();
 
         InitTelemetry();
+
+        // Crash reporting must come up before anything else can fail.
+        InitCrashReporting(serviceProvider);
+
         UiBlocker.Initialize((busy, msg) => _appState.IsBusy = busy);
 
         var settingsService = serviceProvider.GetRequiredService<ISettingsService>();
@@ -171,19 +177,37 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
             if (appState.CurrentProject.SceneNode != null
                 && (!string.IsNullOrWhiteSpace(appState.CurrentProject.File?.Path) ||
                     appState.CurrentProject.IsNewProject))
+            {
+                MarkLaunchCompletedSafe();
                 return;
+            }
 
             //try to load from application startup parameters
             if (StartupDocument != null)
             {
                 var projectService = sp.GetRequiredService<IProjectService>();
-                await projectService.OpenFilesAsync([new NetFileSource(StartupDocument)]);
+                try
+                {
+                    await projectService.OpenFilesAsync([new NetFileSource(StartupDocument)]);
+                }
+                catch (Exception openEx)
+                {
+                    Logger.LogException(openEx);
+                }
+                MarkLaunchCompletedSafe();
                 return;
             }
 
             //try to load from saved session
             var sessionService = sp.GetRequiredService<ISessionService>();
-            await sessionService.TryLoadSessionAsync();
+            try
+            {
+                await sessionService.TryLoadSessionAsync();
+            }
+            catch (Exception sessionEx)
+            {
+                Logger.LogException(sessionEx);
+            }
         }
         catch (Exception e)
         {
@@ -194,17 +218,97 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
             var sp = _serviceProvider;
             if (sp != null)
             {
-                var appState = sp.GetRequiredService<AppState>();
-                if (appState.CurrentProject.SceneNode == null)
+                try
                 {
-                    var commandsService = sp.GetRequiredService<ICommandService>();
-                    commandsService.GetCommandList<FileCommands>()?.New.Execute();
-                }
+                    var appState = sp.GetRequiredService<AppState>();
+                    if (appState.CurrentProject.SceneNode == null)
+                    {
+                        var commandsService = sp.GetRequiredService<ICommandService>();
+                        commandsService.GetCommandList<FileCommands>()?.New.Execute();
+                    }
 
-                var viewPortService = sp.GetRequiredService<IViewPortService>();
-                viewPortService.ShowAll();
+                    var viewPortService = sp.GetRequiredService<IViewPortService>();
+                    viewPortService.ShowAll();
+                }
+                catch (Exception finalEx)
+                {
+                    Logger.LogException(finalEx);
+                }
             }
+
+            MarkLaunchCompletedSafe();
         }
+    }
+
+    private void MarkLaunchCompletedSafe()
+    {
+        try
+        {
+            _serviceProvider?.GetService<ICrashReportService>()?.MarkLaunchCompleted();
+        }
+        catch
+        {
+        }
+    }
+
+    private void InitCrashReporting(IServiceProvider serviceProvider)
+    {
+        try
+        {
+            var crashService = serviceProvider.GetRequiredService<ICrashReportService>();
+            crashService.MarkLaunchStarted();
+
+            AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            {
+                if (args.ExceptionObject is Exception ex)
+                    HandleFatal(crashService, ex, "AppDomain.UnhandledException");
+            };
+
+            TaskScheduler.UnobservedTaskException += (_, args) =>
+            {
+                HandleFatal(crashService, args.Exception, "TaskScheduler.UnobservedTaskException");
+                args.SetObserved();
+            };
+
+            try
+            {
+                Dispatcher.UIThread.UnhandledException += (_, args) =>
+                {
+                    HandleFatal(crashService, args.Exception, "Dispatcher.UIThread.UnhandledException");
+                    args.Handled = true;
+                };
+            }
+            catch
+            {
+                // Dispatcher may not yet be initialised on all platforms — non-fatal.
+            }
+
+            InitOptionalTelemetry(crashService);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+        }
+    }
+
+    private static void HandleFatal(ICrashReportService crashService, Exception exception, string source)
+    {
+        try
+        {
+            crashService.CaptureFatal(exception, source);
+        }
+        catch
+        {
+            // never throw from inside a global handler
+        }
+    }
+
+    /// <summary>
+    /// Hook for platform bootstrappers (currently Android) to wire opt-in Sentry.
+    /// Default is no-op so non-Android heads remain free of telemetry dependencies.
+    /// </summary>
+    protected virtual void InitOptionalTelemetry(ICrashReportService crashService)
+    {
     }
 
     protected virtual bool InitTelemetry()

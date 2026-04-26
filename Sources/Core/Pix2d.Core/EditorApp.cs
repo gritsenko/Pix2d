@@ -138,14 +138,59 @@ public class EditorApp : Application
             var serviceProvider = Pix2dBootstrapper!.GetServiceProvider();
             hostView.LoadMainView(UiModule!.GetMainViewType(), serviceProvider);
             SubscribeToLocaleChanges(hostView, serviceProvider);
+
+            // Main view loaded — capture any pending post-crash dialog opportunity.
+            TryShowPendingCrashReport(serviceProvider);
         }
         catch (Exception ex)
         {
             Logger.Log(ex.Message);
             Logger.Log(ex.StackTrace!);
+            try
+            {
+                Pix2dBootstrapper?.GetServiceProvider().GetService<ICrashReportService>()?
+                    .CaptureFatal(ex, "EditorApp.AttachMainView");
+            }
+            catch
+            {
+            }
             throw;
         }
         AppInitialized?.Invoke(this);
+    }
+
+    private static void TryShowPendingCrashReport(IServiceProvider serviceProvider)
+    {
+        try
+        {
+            var crashService = serviceProvider.GetService<ICrashReportService>();
+            if (crashService is not { HasPendingCrashReport: true })
+                return;
+
+            var dialogService = serviceProvider.GetService<IDialogService>();
+            var platform = serviceProvider.GetService<IPlatformStuffService>();
+            if (dialogService == null || platform == null)
+                return;
+
+            // Auto-show only on Android in v1; other heads can open it manually via the command.
+            if (platform.CurrentPlatform != PlatformType.Android)
+                return;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                try
+                {
+                    _ = dialogService.ShowDialogAsync(
+                        new UI.Dialogs.CrashReportDialogView(crashService, platform));
+                }
+                catch
+                {
+                }
+            });
+        }
+        catch
+        {
+        }
     }
 
     private void SubscribeToLocaleChanges(HostView hostView, IServiceProvider serviceProvider)

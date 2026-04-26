@@ -1,4 +1,5 @@
 #nullable enable
+using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Commands;
 using Pix2d.Command;
 using Pix2d.Primitives;
@@ -32,6 +33,7 @@ public class CommandService : ICommandService
         RegisterCommandList<ArrangeCommands>();
         RegisterCommandList<WindowCommands>();
         RegisterCommandList<SnappingCommands>();
+        RegisterCommandList<Pix2d.Command.CrashCommands>();
 #if DEBUG
         RegisterCommandList(new GlobalCommands());
 #endif
@@ -148,6 +150,8 @@ public class CommandService : ICommandService
         if (!command.CanExecute()) return;
 
         SessionLogger.OpLogCommand(command.Name);
+        try { _serviceProvider?.GetService<ICrashReportService>()?.RecordLastCommand(command.Name); } catch { }
+
         if (command is Pix2dAsyncCommand asyncCmd)
         {
             await asyncCmd.CommandActionTask();

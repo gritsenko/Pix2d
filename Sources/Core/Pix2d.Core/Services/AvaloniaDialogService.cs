@@ -81,6 +81,8 @@ public class AvaloniaDialogService : IDialogService
         return ShowDialog(new UnsavedChangesDialogView());
     }
 
+    public Task<TResult> ShowDialogAsync<TResult>(IDialogView<TResult> dialog) => ShowDialog(dialog);
+
     public void ShowPanelView(IToolPanel panel)
     {
         if (_panelsContainer == null)

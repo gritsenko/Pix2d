@@ -16,7 +16,7 @@ using File = Java.IO.File;
 
 namespace Pix2d.Droid.Services;
 
-public class AndroidPlatformStuffService : IPlatformStuffService
+public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportShareTarget
 {
     //not using direct services injection to prevent circular dependencies
     private readonly IServiceProvider _serviceProvider;
@@ -170,6 +170,31 @@ public class AndroidPlatformStuffService : IPlatformStuffService
 
     public void ToggleFullscreenMode()
     {
+    }
+
+    public void ShareCrashReportFile(string filePath, string subject)
+    {
+        try
+        {
+            if (!System.IO.File.Exists(filePath))
+                return;
+
+            var uri = FileProvider.GetUriForFile(Application.Context,
+                Application.Context.PackageName + ".fileprovider",
+                new File(filePath));
+
+            var intent = new Intent();
+            intent.SetAction(Intent.ActionSend);
+            intent.SetType("text/plain");
+            intent.PutExtra(Intent.ExtraSubject, subject);
+            intent.PutExtra(Intent.ExtraStream, uri);
+            intent.AddFlags(ActivityFlags.GrantReadUriPermission);
+            GetActivity()?.StartActivity(Intent.CreateChooser(intent, subject));
+        }
+        catch (Exception e)
+        {
+            Logger.LogException(e);
+        }
     }
 
     public string GetAppFolderPath() =>

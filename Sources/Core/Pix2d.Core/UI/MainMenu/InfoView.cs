@@ -88,6 +88,14 @@ public partial class InfoView : ViewBase<InfoView.State>
                             )
                     ),
 
+                    new Button()
+                        .Classes("btn").Classes("btn-bright")
+                        .HorizontalAlignment(HorizontalAlignment.Center)
+                        .Height(36)
+                        .Margin(new Thickness(0, 0, 0, 16))
+                        .Command(state.CrashCommands.ShowCrashReport)
+                        .Content(L("Show crash report")),
+
                     new TextBlock()
                         .HorizontalAlignment(HorizontalAlignment.Left)
                         .Text(L("Choose UI language:"))
@@ -225,6 +233,7 @@ public partial class InfoView : ViewBase<InfoView.State>
             _settingsService = settingsService;
 
             FileCommands = commandService.GetCommandList<FileCommands>()!;
+            CrashCommands = commandService.GetCommandList<Pix2d.Command.CrashCommands>()!;
             AvailableLocales = localizationService.AvailableLocales;
             AppVersionText = $"Pix2d v{platformStuffService.GetAppVersion()}";
 
@@ -244,6 +253,7 @@ public partial class InfoView : ViewBase<InfoView.State>
         }
 
         public FileCommands FileCommands { get; }
+        public Pix2d.Command.CrashCommands CrashCommands { get; }
 
         public IReadOnlyList<LocaleInfo> AvailableLocales { get; }
 

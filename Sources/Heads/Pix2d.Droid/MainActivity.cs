@@ -192,17 +192,32 @@ public partial class MainActivity : AvaloniaMainActivity
 
     internal static void LogUnhandledException(Exception exception)
     {
+        // Preferred path: route through ICrashReportService so the report ends up in the shared
+        // CrashReports folder and the bootstrapper-level handlers see consistent state.
+        try
+        {
+            var sp = EditorApp.Pix2dBootstrapper?.GetServiceProvider();
+            var crashService = sp?.GetService(typeof(Pix2d.Abstract.Services.ICrashReportService))
+                as Pix2d.Abstract.Services.ICrashReportService;
+            if (crashService != null)
+            {
+                crashService.CaptureFatal(exception, "Android.PreBootstrap");
+                return;
+            }
+        }
+        catch
+        {
+        }
+
+        // Last-resort plain text fallback: the bootstrapper isn't up yet and we have nowhere else to go.
         try
         {
             const string errorFileName = "Fatal.log";
-            var libraryPath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal); // iOS: Environment.SpecialFolder.Resources
+            var libraryPath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
             var errorFilePath = Path.Combine(libraryPath, errorFileName);
             var errorMessage = String.Format("Time: {0}\r\nError: Unhandled Exception\r\n{1}",
                 DateTime.Now, exception.ToString());
             File.WriteAllText(errorFilePath, errorMessage);
-
-            // Log to Android Device Logging.
-            //Android.Util.Log.Error("Crash Report", errorMessage);
         }
         catch
         {

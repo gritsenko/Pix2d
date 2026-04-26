@@ -9,6 +9,7 @@ using Pix2d.Plugins.Ai;
 using Pix2d.Plugins.BaseEffects;
 using Pix2d.Plugins.Drawing;
 using Pix2d.Plugins.PixelText;
+using Pix2d.Primitives.Crash;
 using Pix2d.Services;
 
 namespace Pix2d.Droid;
@@ -46,6 +47,25 @@ public class AndroidPix2dBootstrapper : Pix2dBootstrapperDI
         services.AddSingleton<IReviewService, AndroidReviewService>();
 
         services.AddSingleton<ILicenseService, PlayMarketLicenseService>();
+        services.AddSingleton<ICrashTelemetrySink, AndroidSentryCrashTelemetrySink>();
+    }
+
+    protected override void InitOptionalTelemetry(ICrashReportService crashService)
+    {
+        // Strict opt-in: only initialise the Sentry sink once the user has explicitly allowed
+        // anonymous crash reporting. Until then we do nothing — the local crash report flow
+        // still works.
+        if (crashService.TelemetryConsent != CrashTelemetryConsent.Allowed)
+            return;
+
+        try
+        {
+            var sink = GetServiceProvider().GetService(typeof(ICrashTelemetrySink)) as ICrashTelemetrySink;
+            sink?.Initialize();
+        }
+        catch
+        {
+        }
     }
 
     protected override void LoadPlugins()

@@ -34,4 +34,6 @@ public interface IDialogService
     Task<UnsavedChangesDialogResult> ShowUnsavedChangesInProjectDialog();
     void ShowPanelView(IToolPanel panel);
     void TogglePanelView(IToolPanel panel);
+
+    Task<TResult> ShowDialogAsync<TResult>(IDialogView<TResult> dialog);
 }
