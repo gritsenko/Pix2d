@@ -1,28 +1,23 @@
 #nullable enable
-using System;
 using Pix2d.Abstract.Services;
 using Pix2d.Primitives.Crash;
+using Sentry;
+using System;
+using System.Linq;
+using System.Reflection;
 
 namespace Pix2d.Droid.Services;
 
 /// <summary>
-/// Opt-in critical-crash sink for Android.
-///
-/// V1 plumbing: this class wires user consent, deduplication, and a one-place fatal filter.
-/// To enable real Sentry delivery later:
-/// 1. Add &lt;PackageReference Include="Sentry" Version="..." /&gt; to Pix2d.Droid.csproj.
-/// 2. Inside <see cref="Initialize"/>, call <c>SentrySdk.Init(o =&gt; { o.Dsn = ...; o.AutoSessionTracking = false; o.IsGlobalModeEnabled = true; })</c>
-///    using a DSN sourced from build configuration (NEVER hardcoded).
-/// 3. Inside <see cref="CaptureFatal"/>, call <c>SentrySdk.CaptureException(exception)</c> with
-///    tags <c>app_version</c>, <c>platform</c>, <c>crash_report_id</c> set from the summary.
-/// 4. Drop performance/profiling/session features (off by default in this code path).
-///
-/// Until Sentry is added the sink stays initialised but no-op, so consent, plumbing, and the local
-/// crash report flow are still validated end-to-end on Android.
+/// Opt-in critical-crash sink for Android. The DSN is injected at build time via the
+/// <c>SentryDsn</c> MSBuild property (set from the <c>SENTRY_DSN</c> env var / GitHub secret) and
+/// embedded as an <see cref="AssemblyMetadataAttribute"/>. When no DSN is provided the sink stays
+/// initialised but no-op, so the local crash report flow keeps working in dev builds.
 /// </summary>
 public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
 {
     private bool _initialized;
+    private bool _sentryActive;
 
     public bool IsInitialized => _initialized;
 
@@ -32,15 +27,39 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
         _initialized = true;
         try
         {
-            Android.Util.Log.Info("Pix2d.Crash", "Crash telemetry sink initialized (no-op until Sentry SDK is wired).");
+            var dsn = ReadDsnFromAssemblyMetadata();
+            if (string.IsNullOrWhiteSpace(dsn))
+            {
+                Android.Util.Log.Info("Pix2d.Crash", "Sentry DSN not configured; telemetry sink will run no-op.");
+                return;
+            }
+
+            SentrySdk.Init(o =>
+            {
+                o.Dsn = dsn;
+                o.AutoSessionTracking = false;
+                o.IsGlobalModeEnabled = true;
+            });
+            _sentryActive = true;
+            Android.Util.Log.Info("Pix2d.Crash", "Sentry crash telemetry sink initialized.");
         }
-        catch
+        catch (Exception ex)
         {
+            Android.Util.Log.Error("Pix2d.Crash", $"Failed to initialize Sentry: {ex}");
         }
     }
 
     public void Shutdown()
     {
+        try
+        {
+            if (_sentryActive)
+                SentrySdk.Close();
+        }
+        catch
+        {
+        }
+        _sentryActive = false;
         _initialized = false;
     }
 
@@ -49,13 +68,33 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
         if (!_initialized) return;
         try
         {
-            // Filter point: only fatal/critical events arrive here. Non-fatal Logger.LogException
-            // calls bypass this sink entirely.
             Android.Util.Log.Error("Pix2d.Crash",
                 $"FATAL {summary.ExceptionType}: {summary.Message} (id={summary.Id})");
+
+            if (!_sentryActive) return;
+
+            SentrySdk.CaptureException(exception, scope =>
+            {
+                scope.SetTag("app_version", summary.AppVersion);
+                scope.SetTag("platform", string.IsNullOrEmpty(summary.Platform) ? "android" : summary.Platform);
+                scope.SetTag("crash_report_id", summary.Id);
+                scope.SetTag("crash_source", summary.Source);
+                if (summary.IsImplicit)
+                    scope.SetTag("crash_implicit", "true");
+                if (!string.IsNullOrEmpty(summary.LastCommandName))
+                    scope.SetTag("last_command", summary.LastCommandName);
+            });
+            SentrySdk.Flush(TimeSpan.FromSeconds(2));
         }
         catch
         {
         }
+    }
+
+    private static string? ReadDsnFromAssemblyMetadata()
+    {
+        return typeof(AndroidSentryCrashTelemetrySink).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => string.Equals(a.Key, "SentryDsn", StringComparison.Ordinal))?.Value;
     }
 }

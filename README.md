@@ -72,6 +72,17 @@ We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTIN
 - Telegram channel: [https://t.me/pix2dApp](https://t.me/pix2dApp)
 - Bug Reports: GitHub Issues
 
+## Privacy & Crash Reporting
+
+The Android build of Pix2D integrates [Sentry](https://sentry.io/) to collect anonymous reports of fatal crashes. This helps us diagnose issues that escape testing on real devices.
+
+- **Opt-in only.** No telemetry is sent until the user explicitly allows anonymous crash reporting; until then the local crash report flow is the only path.
+- **Fatal crashes only.** Non-fatal log/exception calls are filtered out — only unhandled/critical exceptions are forwarded.
+- **No personal data.** Reports include the exception, stack trace, app version, platform, and an opaque crash report id. No project files, image content, or user-identifying information are transmitted.
+- **Source-free DSN.** The Sentry DSN is injected at build time from a CI secret rather than being checked into source.
+
+The non-Android builds (Windows, Linux, macOS, Web) currently do not ship with a crash telemetry sink and only produce local crash reports.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
@@ -80,14 +91,11 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 | Module/Dependency      | License/Source       | Notes                                        |
 | :--------------------- | :------------------- | :------------------------------------------- |
-| [Spine Runtimes](http://esotericsoftware.com/spine-runtimes) | Spine Editor License | Used in Spine plugin, license headers present |
 | [Newtonsoft.Json](https://www.newtonsoft.com/json) | MIT                  | JSON serialization                           |
 | [Avalonia](https://avaloniaui.net/) | MIT                  | UI framework                                 |
 | [Avalonia.Markup.Declarative](https://github.com/AvaloniaUI/Avalonia.Markup.Declarative) | MIT                  | Declarative UI framework for defining views with C# code instead of XAML, including .NET 6.0+ Hot Reload support |
 | [SixLabors.ImageSharp](https://github.com/SixLabors/ImageSharp) | Apache 2.0 (details in [Six Labors Split License](https://github.com/SixLabors/ImageSharp?tab=License-1-ov-file#readme)) | The Best image processing library for .net |
-| [CommonServiceLocator](https://github.com/unitycontainer/commonservicelocator) | MIT                  | Service locator pattern                      |
-| [Mvvm.Messaging](https://github.com/mvvmcross/MvvmCross) | MIT                  | MVVM messaging                               |
-| [xUnit](https://xunit.net/) | Apache 2.0           | Unit testing                                 |
+| [Sentry](https://sentry.io/) | MIT                  | Crash analytics on Android (opt-in, fatal only) |
 
 ## Acknowledgements
 

@@ -24,6 +24,15 @@
 		<AndroidVersionCode>$(Pix2dAndroidVersion)</AndroidVersionCode>
 		<AndroidVersionName>$(Pix2dVersion)</AndroidVersionName>
 	</PropertyGroup>
+	<PropertyGroup>
+		<SentryDsn Condition="'$(SentryDsn)' == '' and '$(SENTRY_DSN)' != ''">$(SENTRY_DSN)</SentryDsn>
+	</PropertyGroup>
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+			<_Parameter1>SentryDsn</_Parameter1>
+			<_Parameter2>$(SentryDsn)</_Parameter2>
+		</AssemblyAttribute>
+	</ItemGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
 	<ItemGroup>
 		<None Remove="Assets\Fonts\v31\zed-mono-extended.ttf" />
@@ -49,6 +58,13 @@
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.1" />
 		<PackageReference Include="Microsoft.Maui.Essentials" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
+		<PackageReference Include="Sentry" Version="6.4.1" />
+		<PackageReference Include="System.Numerics.Tensors" Version="10.0.7" />
+		<PackageReference Include="Xamarin.AndroidX.Browser" Version="1.9.0.2" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Common" Version="2.10.0.2" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Common.Java8" Version="2.10.0.2" />
+		<PackageReference Include="Xamarin.Google.Code.FindBugs.JSR305" Version="3.0.2.23" />
+		<PackageReference Include="Xamarin.Kotlin.StdLib.Jdk8" Version="2.3.20" />
 		<PackageReference Update="Microsoft.Maui.Essentials" Version="10.0.51" />
 		<PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.2.0.2" />
 	</ItemGroup>

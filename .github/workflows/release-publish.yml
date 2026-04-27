@@ -146,7 +146,9 @@ jobs:
       run: dotnet restore ${{ env.ANDROID_PROJECT_PATH }} --property WarningLevel=0
 
     - name: Build
-      run: dotnet build --no-restore ${{ env.ANDROID_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }}
+      env:
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      run: dotnet build --no-restore ${{ env.ANDROID_PROJECT_PATH }} --property WarningLevel=0 -p:Version=${{ env.VERSION }} -p:SentryDsn=$env:SENTRY_DSN
 
     - name: Test
       run: dotnet test --no-build --verbosity normal ${{ env.ANDROID_PROJECT_PATH }}
@@ -163,6 +165,7 @@ jobs:
         ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
       run: |
         New-Item -ItemType Directory -Path "$env:RUNNER_TEMP/keystore" -Force
         $keyStorePath = "$env:RUNNER_TEMP/keystore/Pix2d.keystore"
@@ -175,6 +178,7 @@ jobs:
           -p:AndroidSigningKeyAlias=$env:ANDROID_KEY_ALIAS `
           -p:AndroidSigningKeyPass=$env:ANDROID_KEY_PASSWORD `
           -p:AndroidSigningPackage=true `
+          -p:SentryDsn=$env:SENTRY_DSN `
           -o ${{ env.OUTPUT_PATH }} `
           --property WarningLevel=0
 
