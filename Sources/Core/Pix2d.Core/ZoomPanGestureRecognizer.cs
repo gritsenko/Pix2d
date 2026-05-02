@@ -8,6 +8,7 @@ namespace Pix2d;
 public class ZoomPanGestureRecognizer : GestureRecognizer
 {
     private const PointerType SupportedPointerType = PointerType.Touch;
+    private const double PinchStartThreshold = 8.0;
     private float _initialDistance;
     private IPointer? _firstContact;
     private Point _firstPoint;
@@ -64,7 +65,23 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
             return;
 
         if (!_isPinching)
-            return;
+        {
+            var currentDistance = this.GetDistance(this._firstPoint, this._secondPoint);
+            var currentOrigin = new Point((this._firstPoint.X + this._secondPoint.X) / 2.0,
+                (this._firstPoint.Y + this._secondPoint.Y) / 2.0);
+
+            if (!ShouldStartPinch(currentDistance, currentOrigin))
+                return;
+
+            if (!_hasCaptured)
+            {
+                this.Capture(this._firstContact);
+                this.Capture(this._secondContact);
+                _hasCaptured = true;
+            }
+
+            _isPinching = true;
+        }
 
         var origin = new Point((this._firstPoint.X + this._secondPoint.X) / 2.0,
             (this._firstPoint.Y + this._secondPoint.Y) / 2.0);
@@ -108,19 +125,6 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
             this._initialDistance = this.GetDistance(this._firstPoint, this._secondPoint);
             this._origin = new Point((this._firstPoint.X + this._secondPoint.X) / 2.0,
                 (this._firstPoint.Y + this._secondPoint.Y) / 2.0);
-
-            if (!_hasCaptured)
-            {
-                this.Capture(this._firstContact);
-                this.Capture(this._secondContact);
-                _hasCaptured = true;
-            }
-
-            _isPinching = true;
-
-            PinchEventArgs e1 = new PinchEventArgs(1.0, this._origin);
-            this.Target?.RaiseEvent((RoutedEventArgs)e1);
-            e.Handled = e1.Handled;
         }
     }
 
@@ -154,14 +158,28 @@ public class ZoomPanGestureRecognizer : GestureRecognizer
 
         this._origin = default;
         this._hasCaptured = false;
+        var wasPinching = this._isPinching;
         this._isPinching = false;
 
-        this.Target?.RaiseEvent((RoutedEventArgs) new PinchEndedEventArgs());
+        if (wasPinching)
+            this.Target?.RaiseEvent((RoutedEventArgs) new PinchEndedEventArgs());
     }
 
     private float GetDistance(Point a, Point b)
     {
         Point point = b - a;
         return (float) new Vector(point.X, point.Y).Length;
+    }
+
+    private bool ShouldStartPinch(float currentDistance, Point currentOrigin)
+    {
+        if (_initialDistance <= 0)
+            return false;
+
+        var distanceDelta = Math.Abs(currentDistance - _initialDistance);
+        var originDelta = currentOrigin - _origin;
+        var originDistance = new Vector(originDelta.X, originDelta.Y).Length;
+
+        return distanceDelta >= PinchStartThreshold || originDistance >= PinchStartThreshold;
     }
 }
