@@ -70,7 +70,7 @@ public class SKInput
         if (!IsInitialized)
             return;
 
-        Pointer = new SKInputPointer(pos, GetViewport()!, true, EraserMode, true);
+        Pointer = new SKInputPointer(pos, GetViewport()!, true, EraserMode, isTouch);
         var args = new PointerActionEventArgs(PointerActionType.Pressed, Pointer, modifiers);
 
         HandlePointerEventByInteractives((interactive) =>

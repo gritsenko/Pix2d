@@ -13,6 +13,8 @@ public class AppSettings
     public int MouseWheelBehavior { get; set; } = 1;
     public bool IsTwoFingerDoubleTapUndoEnabled { get; set; } = true;
     public int TwoFingerDoubleTapTimeoutMs { get; set; } = 200;
+    public bool IsStylusModeEnabled { get; set; }
+    public bool IsSingleFingerPanEnabled { get; set; }
 
     // Crash reporting
     /// <summary>Tri-state consent for anonymous crash telemetry: 0=unset, 1=allowed, 2=denied.</summary>

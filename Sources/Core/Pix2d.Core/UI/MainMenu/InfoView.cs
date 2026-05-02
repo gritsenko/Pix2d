@@ -179,11 +179,35 @@ public partial class InfoView : ViewBase<InfoView.State>
                             .Margin(8, 0, 0, 0)
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Text(state, x => x.TwoFingerDoubleTapTimeoutText)
+                    ),
+
+                    new TextBlock()
+                        .Text(L("Stylus mode"))
+                        .Margin(0, 16, 0, 8)
+                        .FontSize(20)
+                        .VerticalAlignment(VerticalAlignment.Center)
+                        .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
+                    new ToggleSwitch()
+                        .IsChecked(state, x => x.IsStylusModeEnabled, BindingMode.TwoWay)
+                        .Margin(0, 0, 0, 6),
+                    new TextBlock()
+                        .Text(L("Blocks accidental single-finger canvas edits while keeping pen input active."))
+                        .Margin(0, 0, 0, 12)
+                        .TextWrapping(TextWrapping.Wrap)
+                        .FontSize(14),
+
+                    new TextBlock()
+                        .Text(L("Pan with single finger"))
+                        .Margin(0, 8, 0, 8)
+                        .FontSize(20)
+                        .VerticalAlignment(VerticalAlignment.Center)
+                        .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
+                    new ToggleSwitch()
+                        .IsChecked(state, x => x.IsSingleFingerPanEnabled, BindingMode.TwoWay)
+                        .IsEnabled(state, x => x.IsStylusModeEnabled)
+                        .Margin(0, 0, 0, 12)
                     )
-                ),
-                new StackPanel()
-                    .Children()
-            ));
+                ));
 
     public sealed partial class State : ObservableObject
     {
@@ -217,6 +241,12 @@ public partial class InfoView : ViewBase<InfoView.State>
         [NotifyPropertyChangedFor(nameof(TwoFingerDoubleTapTimeoutText))]
         public partial int TwoFingerDoubleTapTimeoutMs { get; set; }
 
+        [ObservableProperty]
+        public partial bool IsStylusModeEnabled { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsSingleFingerPanEnabled { get; set; }
+
         public State(
             IMessenger messenger,
             AppState appState,
@@ -244,6 +274,8 @@ public partial class InfoView : ViewBase<InfoView.State>
             _appState.WatchFor(x => x.MouseWheelBehavior, OnMouseWheelBehaviorChangedExternally);
             _appState.WatchFor(x => x.IsTwoFingerDoubleTapUndoEnabled, OnTwoFingerUndoChangedExternally);
             _appState.WatchFor(x => x.TwoFingerDoubleTapTimeoutMs, OnTwoFingerTimeoutChangedExternally);
+            _appState.WatchFor(x => x.IsStylusModeEnabled, OnStylusModeChangedExternally);
+            _appState.WatchFor(x => x.IsSingleFingerPanEnabled, OnSingleFingerPanChangedExternally);
 
             messenger.Register<ProjectLoadedMessage>(this, _ => UpdateCurrentProjectTitle());
             messenger.Register<ProjectSavedMessage>(this, _ => UpdateCurrentProjectTitle());
@@ -310,6 +342,24 @@ public partial class InfoView : ViewBase<InfoView.State>
             _settingsService.Set(nameof(AppState.TwoFingerDoubleTapTimeoutMs), value);
         }
 
+        partial void OnIsStylusModeEnabledChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            _appState.IsStylusModeEnabled = value;
+            _settingsService.Set(nameof(AppState.IsStylusModeEnabled), value);
+        }
+
+        partial void OnIsSingleFingerPanEnabledChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            _appState.IsSingleFingerPanEnabled = value;
+            _settingsService.Set(nameof(AppState.IsSingleFingerPanEnabled), value);
+        }
+
         public void ApplyScale()
         {
             _uiScaleService.SetUiScale(_appState.UiScale);
@@ -342,6 +392,8 @@ public partial class InfoView : ViewBase<InfoView.State>
                 ?? AvailableMouseWheelBehaviors[0];
             IsTwoFingerDoubleTapUndoEnabled = _appState.IsTwoFingerDoubleTapUndoEnabled;
             TwoFingerDoubleTapTimeoutMs = _appState.TwoFingerDoubleTapTimeoutMs;
+            IsStylusModeEnabled = _appState.IsStylusModeEnabled;
+            IsSingleFingerPanEnabled = _appState.IsSingleFingerPanEnabled;
 
             _isSyncing = false;
         }
@@ -362,6 +414,18 @@ public partial class InfoView : ViewBase<InfoView.State>
         {
             SyncFromAppState();
             _settingsService.Set(nameof(AppState.TwoFingerDoubleTapTimeoutMs), _appState.TwoFingerDoubleTapTimeoutMs);
+        }
+
+        private void OnStylusModeChangedExternally()
+        {
+            SyncFromAppState();
+            _settingsService.Set(nameof(AppState.IsStylusModeEnabled), _appState.IsStylusModeEnabled);
+        }
+
+        private void OnSingleFingerPanChangedExternally()
+        {
+            SyncFromAppState();
+            _settingsService.Set(nameof(AppState.IsSingleFingerPanEnabled), _appState.IsSingleFingerPanEnabled);
         }
     }
 

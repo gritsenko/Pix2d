@@ -47,6 +47,18 @@ public class AppState : StateBase
         set => Set(value);
     }
 
+    public bool IsStylusModeEnabled
+    {
+        get => Get(false);
+        set => Set(value);
+    }
+
+    public bool IsSingleFingerPanEnabled
+    {
+        get => Get(false);
+        set => Set(value);
+    }
+
 
     public LicenseType LicenseType
     {

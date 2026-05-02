@@ -82,6 +82,8 @@ public class SkiaCanvas : Control
 
         _appState.WatchFor(x => x.IsTwoFingerDoubleTapUndoEnabled, ApplyUndoGestureSettings);
         _appState.WatchFor(x => x.TwoFingerDoubleTapTimeoutMs, ApplyUndoGestureSettings);
+        _appState.WatchFor(x => x.IsStylusModeEnabled, OnTouchInputModeChanged);
+        _appState.WatchFor(x => x.IsSingleFingerPanEnabled, OnTouchInputModeChanged);
 
         ClipToBounds = true;
         if (Design.IsDesignMode)
@@ -345,6 +347,7 @@ public class SkiaCanvas : Control
                                        && !_isPinching
                                        && !_isUndoGestureTracking
                                        && !Input.PanMode;
+        var shouldIgnoreSingleTouch = ShouldIgnoreSingleTouch(pointerType);
 
         if (pointerType == PointerType.Touch)
         {
@@ -353,6 +356,12 @@ public class SkiaCanvas : Control
         }
 
         if (_isPinching)
+        {
+            _isPointerPressed = false;
+            return;
+        }
+
+        if (shouldIgnoreSingleTouch)
         {
             _isPointerPressed = false;
             return;
@@ -426,16 +435,25 @@ public class SkiaCanvas : Control
             }
         }
 
+        var shouldIgnoreSingleTouch = ShouldIgnoreSingleTouch(pointerType);
         if (ShouldBlockTouchDrawing(pointerType))
         {
             return;
         }
 
-        _isPointerPressed = true;
         _initialPos = e.GetPosition(this);
         var props = e.GetCurrentPoint(this).Properties;
+        var isTouchPan = ShouldUseTouchPan(pointerType);
 
-        if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed)
+        if (shouldIgnoreSingleTouch)
+        {
+            _isPointerPressed = false;
+            return;
+        }
+
+        _isPointerPressed = true;
+
+        if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed || isTouchPan)
         {
             Input.PanMode = true;
         }
@@ -460,16 +478,16 @@ public class SkiaCanvas : Control
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (_isPinching || _isUndoGestureTracking || ShouldBlockTouchDrawing(e.Pointer.Type))
+        var pointerType = e.Pointer.Type;
+        if (_isPinching || _isUndoGestureTracking || ShouldBlockTouchDrawing(pointerType) || ShouldIgnoreSingleTouch(pointerType))
         {
             return;
         }
 
         var props = e.GetCurrentPoint(this).Properties;
-        var pointerType = e.Pointer.Type;
         var pos = e.GetPosition(this);
 
-        if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed)
+        if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed || ShouldUseTouchPan(pointerType))
         {
             Input.PanMode = true;
         }
@@ -596,6 +614,18 @@ public class SkiaCanvas : Control
         }
     }
 
+    private void OnTouchInputModeChanged()
+    {
+        if (_activeTouchPointers.Count == 0 && !_isPinching && !_isUndoGestureTracking)
+        {
+            Input.PanMode = false;
+            UpdateCursor();
+            return;
+        }
+
+        CancelTouchOnlyGestureState();
+    }
+
     private bool HasTouchOnlyGestureState()
     {
         return _isPinching
@@ -638,6 +668,22 @@ public class SkiaCanvas : Control
     private bool ShouldBlockTouchDrawing(PointerType pointerType)
     {
         return pointerType == PointerType.Touch && (_isTouchDrawingSuppressed || IsUndoTapSequencePending() || IsSuppressionCooldownActive());
+    }
+
+    private bool ShouldUseTouchPan(PointerType pointerType)
+    {
+        return pointerType == PointerType.Touch
+               && _appState.IsStylusModeEnabled
+               && _appState.IsSingleFingerPanEnabled
+               && _activeTouchPointers.Count == 1;
+    }
+
+    private bool ShouldIgnoreSingleTouch(PointerType pointerType)
+    {
+        return pointerType == PointerType.Touch
+               && _appState.IsStylusModeEnabled
+               && !_appState.IsSingleFingerPanEnabled
+               && _activeTouchPointers.Count == 1;
     }
 
     private bool IsSuppressionCooldownActive()

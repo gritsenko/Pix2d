@@ -140,6 +140,8 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         _appState.MouseWheelBehavior =  (MouseWheelBehavior) settingsService.Get<int>(nameof(AppState.MouseWheelBehavior));
         _appState.IsTwoFingerDoubleTapUndoEnabled = settingsService.Get<bool?>(nameof(AppState.IsTwoFingerDoubleTapUndoEnabled)) ?? true;
         _appState.TwoFingerDoubleTapTimeoutMs = settingsService.Get<int?>(nameof(AppState.TwoFingerDoubleTapTimeoutMs)) ?? 500;
+        _appState.IsStylusModeEnabled = settingsService.Get<bool?>(nameof(AppState.IsStylusModeEnabled)) ?? false;
+        _appState.IsSingleFingerPanEnabled = settingsService.Get<bool?>(nameof(AppState.IsSingleFingerPanEnabled)) ?? false;
 
         var commandService = serviceProvider.GetRequiredService<ICommandService>();
         commandService.Initialize();
