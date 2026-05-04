@@ -1,6 +1,11 @@
-﻿using Avalonia.Styling;
-using Pix2d.Command;
+using System;
+using System.Collections.Generic;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Styling;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Pix2d.Command;
 using Pix2d.Messages.ViewPort;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
@@ -12,17 +17,54 @@ namespace Pix2d.UI;
 public partial class ZoomPanelView(IViewPortService viewPortService, IMessenger messenger, ICommandService commandService)
     : ViewBase<ZoomPanelView.State>(new State(viewPortService, messenger, commandService))
 {
+    private static readonly IReadOnlyList<float> KeyZoomScales = [0.25f, 0.5f, 1f, 2f, 4f, 8f, 16f];
+    private const int LongPressDelayMs = 450;
+
     protected override StyleGroup BuildStyles() =>
     [
         new StyleGroup(_ => VisualStates.Narrow())
         {
-            new Style<BlurPanel>(s=>s.Name("ZoomButtonsPanel"))
+            new Style<BlurPanel>(s => s.Name("ZoomButtonsPanel"))
                 .IsVisible(false)
         }
     ];
 
-    protected override object Build(State state) =>
-        new Grid()
+    protected override object Build(State state) => BuildContent(state);
+
+    private object BuildContent(State state)
+    {
+        var longPressTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(LongPressDelayMs) };
+        Button zoomButton = null!;
+        var isLongPressTriggered = false;
+        var isLongPressTracking = false;
+
+        void StopLongPressTracking()
+        {
+            longPressTimer.Stop();
+            isLongPressTracking = false;
+        }
+
+        void ShowZoomFlyout()
+        {
+            if (zoomButton == null)
+                return;
+
+            var flyout = CreateZoomFlyout(state);
+            flyout.Closed += (_, _) => isLongPressTriggered = false;
+            flyout.ShowAt(zoomButton);
+        }
+
+        longPressTimer.Tick += (_, _) =>
+        {
+            longPressTimer.Stop();
+            if (!isLongPressTracking)
+                return;
+
+            isLongPressTriggered = true;
+            ShowZoomFlyout();
+        };
+
+        return new Grid()
             .Styles(
                 new Style<Button>()
                     .FontSize(12)
@@ -37,8 +79,47 @@ public partial class ZoomPanelView(IViewPortService viewPortService, IMessenger 
                     .MinWidth(80)
                     .Content(
                         new Button()
+                            .Ref(out zoomButton)
                             .Classes("app-button")
-                            .Command(state.ViewCommands.ZoomAll)
+                            .OnPointerPressed(e =>
+                            {
+                                var point = e.GetCurrentPoint(zoomButton);
+                                var isSecondaryPress = point.Properties.IsRightButtonPressed;
+                                if (isSecondaryPress)
+                                {
+                                    StopLongPressTracking();
+                                    isLongPressTriggered = false;
+                                    ShowZoomFlyout();
+                                    e.Handled = true;
+                                    return;
+                                }
+
+                                var isPrimaryPress = point.Properties.IsLeftButtonPressed || e.Pointer.Type == PointerType.Touch;
+                                if (!isPrimaryPress)
+                                    return;
+
+                                isLongPressTriggered = false;
+                                isLongPressTracking = true;
+                                longPressTimer.Stop();
+                                longPressTimer.Start();
+                            })
+                            .OnPointerReleased(_ => StopLongPressTracking())
+                            .OnPointerCaptureLost(_ => StopLongPressTracking())
+                            .OnPointerExited(_ =>
+                            {
+                                if (isLongPressTracking && !isLongPressTriggered)
+                                    StopLongPressTracking();
+                            })
+                            .OnClick(_ =>
+                            {
+                                if (isLongPressTriggered)
+                                {
+                                    isLongPressTriggered = false;
+                                    return;
+                                }
+
+                                state.ViewCommands.ZoomAll.Execute(null);
+                            })
                             .Content(state, x => x.CurrentPercentZoom)
                         ),
 
@@ -72,6 +153,39 @@ public partial class ZoomPanelView(IViewPortService viewPortService, IMessenger 
                             )
                     )
             );
+    }
+
+    private MenuFlyout CreateZoomFlyout(State state)
+    {
+        var flyout = new MenuFlyout { Placement = PlacementMode.Bottom };
+        var viewPort = viewPortService.ViewPort;
+
+        flyout.Items.Add(new MenuItem()
+            .Header(L("Zoom In"))
+            .Command(state.ViewCommands.ZoomIn));
+        flyout.Items.Add(new MenuItem()
+            .Header(L("Zoom Out"))
+            .Command(state.ViewCommands.ZoomOut));
+        flyout.Items.Add(new MenuItem()
+            .Header("100%")
+            .Command(state.ViewCommands.Zoom100));
+        flyout.Items.Add(new MenuItem()
+            .Header(L("Zoom All"))
+            .Command(state.ViewCommands.ZoomAll));
+        flyout.Items.Add(new Separator());
+
+        foreach (var scale in KeyZoomScales)
+        {
+            var currentScale = scale;
+            var isActive = Math.Abs(viewPort.Zoom - currentScale) < 0.0001f;
+
+            flyout.Items.Add(new MenuItem()
+                .Header($"{currentScale * 100:0}%{(isActive ? " \u2713" : string.Empty)}")
+                .OnClick(_ => viewPort.SetZoom(currentScale)));
+        }
+
+        return flyout;
+    }
 
     public sealed partial class State : ObservableObject
     {

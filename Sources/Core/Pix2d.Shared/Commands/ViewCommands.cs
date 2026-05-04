@@ -22,6 +22,11 @@ public class ViewCommands : CommandsListBase
 
     public Pix2dCommand ZoomOut => GetCommand(() => ServiceProvider.GetRequiredService<IViewPortService>().ViewPort.ZoomOut(), "Zoom Out", new CommandShortcut(VirtualKeys.OEMMinus), EditContextType.All);
 
+    public Pix2dCommand Zoom100 => GetCommand(() =>
+    {
+        ServiceProvider.GetRequiredService<IViewPortService>().ViewPort.SetZoom(1);
+    }, "100%", null, EditContextType.All);
+
     public Pix2dCommand ZoomAll => GetCommand(() =>
     {
         var vp = ServiceProvider.GetRequiredService<IViewPortService>().ViewPort;
