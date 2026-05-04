@@ -74,7 +74,7 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
                 if (value is T typedValue)
                     return typedValue;
                 if (value != null)
-                    return (T)Convert.ChangeType(value, typeof(T));
+                    return (T?)Coerce(value, typeof(T));
             }
         }
         catch (Exception ex) {
@@ -101,8 +101,8 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
                 }
                 if (propValue != null)
                 {
-                    value = (T)Convert.ChangeType(propValue, typeof(T));
-                    return true;
+                    value = (T?)Coerce(propValue, typeof(T));
+                    return value is not null;
                 }
             }
         }
@@ -113,6 +113,28 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
 
         value = default;
         return false;
+    }
+
+    /// <summary>
+    /// Convert.ChangeType only handles IConvertible (primitives, string, DateTime, ...).
+    /// AppSettings can hold complex types declared as <c>object</c> — System.Text.Json
+    /// restores those as <see cref="System.Text.Json.JsonElement"/>, which is NOT
+    /// IConvertible and would throw "Object must implement IConvertible".
+    /// We route JsonElement values through the JSON deserializer; everything else
+    /// falls back to the original Convert.ChangeType behaviour.
+    /// </summary>
+    private object? Coerce(object value, Type targetType)
+    {
+        if (value is System.Text.Json.JsonElement je)
+        {
+            // Deserialize directly to the requested type.
+            return je.Deserialize(targetType, _serializerOptions);
+        }
+
+        if (targetType.IsInstanceOfType(value))
+            return value;
+
+        return Convert.ChangeType(value, targetType);
     }
 
     private void EnsureSettingsInitialized()
