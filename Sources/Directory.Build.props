@@ -1,8 +1,8 @@
 <Project>
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
-		<Pix2dAndroidVersion>89</Pix2dAndroidVersion>
-		<Pix2dVersion>3.7.2</Pix2dVersion>
+		<Pix2dAndroidVersion>90</Pix2dAndroidVersion>
+		<Pix2dVersion>3.7.3</Pix2dVersion>
 		<Platforms>AnyCPU;x64;ARM64</Platforms>
 
 		<!--Used by microsoft store bridge project-->
