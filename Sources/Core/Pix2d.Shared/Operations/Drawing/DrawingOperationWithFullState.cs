@@ -1,16 +1,19 @@
+using System;
+using System.Collections.Generic;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
 using Pix2d.Abstract.Operations;
+using Pix2d.Abstract.Services;
 using SkiaNodes;
 
 namespace Pix2d.Operations.Drawing;
 
-public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISpriteEditorOperation
+public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISpriteEditorOperation, ICacheableOperation
 {
     private readonly IDrawingTarget _drawingTarget = null!;
 
-    private byte[]? _initialData;
-    private byte[]? _finalData;
+    private CachedPayload<byte[]>? _initialPayload;
+    private CachedPayload<byte[]>? _finalPayload;
     private int _frame;
     private int _layerIndex;
     private int _finalFrame;
@@ -26,7 +29,7 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
 
     public void SetInitialData(byte[]? initialData)
     {
-        _initialData = initialData;
+        _initialPayload = initialData != null ? new CachedPayload<byte[]>(initialData, "full_initial") : null;
 
         if (_drawingTarget is IAnimatedNode sprite)
         {
@@ -40,7 +43,7 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
 
     public void SetFinalData(byte[]? finalData)
     {
-        _finalData = finalData;
+        _finalPayload = finalData != null ? new CachedPayload<byte[]>(finalData, "full_final") : null;
 
         if (_drawingTarget is IAnimatedNode sprite)
         {
@@ -61,9 +64,9 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
         }
 
         // Only restore if we have valid final data (null means no data captured)
-        if (_finalData != null)
+        if (_finalPayload != null)
         {
-            _drawingTarget.SetData(_finalData);
+            _drawingTarget.SetData(_finalPayload.GetValue());
         }
     }
 
@@ -76,9 +79,9 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
         }
 
         // Only restore if we have valid initial data (null means no data captured)
-        if (_initialData != null)
+        if (_initialPayload != null)
         {
-            _drawingTarget.SetData(_initialData);
+            _drawingTarget.SetData(_initialPayload.GetValue());
         }
     }
 
@@ -94,23 +97,25 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
 
     public bool HasChanges()
     {
-        if (_finalData == null)
+        if (_finalPayload == null)
         {
-            return _initialData != null;
+            return _initialPayload != null;
         }
 
-        if (_initialData == null)
+        if (_initialPayload == null)
         {
             return true;
         }
 
-        return !((ReadOnlySpan<byte>)_finalData).SequenceEqual((ReadOnlySpan<byte>)_initialData);
+        if (_initialPayload.IsEvicted || _finalPayload.IsEvicted) throw new InvalidOperationException("Cannot compare evicted data.");
+
+        return !((ReadOnlySpan<byte>)_finalPayload.GetValue()).SequenceEqual((ReadOnlySpan<byte>)_initialPayload.GetValue());
     }
 
     public void Dispose()
     {
-        _initialData = null;
-        _finalData = null;
+        _initialPayload = null;
+        _finalPayload = null;
     }
 
     public bool CanMerge(DrawingOperationWithFullState? operation)
@@ -126,6 +131,18 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
             throw new InvalidOperationException("Operation drawing targets are not same");
         }
 
-        _finalData = operation._finalData;
+        _finalPayload = operation._finalPayload;
+    }
+
+    public void EvictToDisk(IOperationDiskCacheService cache)
+    {
+        _initialPayload?.EvictToDisk(cache, b => b);
+        _finalPayload?.EvictToDisk(cache, b => b);
+    }
+
+    public void RestoreFromDisk(IOperationDiskCacheService cache)
+    {
+        _initialPayload?.RestoreFromDisk(cache, b => b);
+        _finalPayload?.RestoreFromDisk(cache, b => b);
     }
 }

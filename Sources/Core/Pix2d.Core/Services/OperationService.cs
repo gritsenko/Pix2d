@@ -24,10 +24,41 @@ public class OperationService : IOperationService
 
     public event EventHandler<OperationInvokeEventArgs>? OperationInvoked;
 
-    public OperationService(AppState appState)
+    private readonly IOperationDiskCacheService _diskCache;
+    private const int HotCacheLimit = 10;
+
+    public OperationService(AppState appState, IOperationDiskCacheService diskCache)
     {
         AppState = appState;
+        _diskCache = diskCache;
         Messenger.Default.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
+    }
+
+    private void UpdateCacheStates()
+    {
+        // 1. Process Undo stack: first 10 stay hot, rest evict
+        int index = 0;
+        foreach (var op in _undoOperations)
+        {
+            if (op is ICacheableOperation cacheable)
+            {
+                if (index < HotCacheLimit) cacheable.RestoreFromDisk(_diskCache);
+                else cacheable.EvictToDisk(_diskCache);
+            }
+            index++;
+        }
+
+        // 2. Process Redo stack: similarly, keep first 10 hot
+        index = 0;
+        foreach (var op in _redoOperations)
+        {
+            if (op is ICacheableOperation cacheable)
+            {
+                if (index < HotCacheLimit) cacheable.RestoreFromDisk(_diskCache);
+                else cacheable.EvictToDisk(_diskCache);
+            }
+            index++;
+        }
     }
 
     private void OnProjectLoaded(ProjectLoadedMessage message)
@@ -47,6 +78,7 @@ public class OperationService : IOperationService
         _undoOperations.Push(operation);
 
         ClearRedoOperations();
+        UpdateCacheStates();
 
 #if DEBUG
         System.Diagnostics.StackTrace t = new System.Diagnostics.StackTrace();
@@ -67,7 +99,15 @@ public class OperationService : IOperationService
 
     private void ClearRedoOperations()
     {
-        foreach (var operation in _redoOperations.OfType<IDisposable>()) operation.Dispose();
+        foreach (var operation in _redoOperations)
+        {
+            if (operation is ICacheableOperation cacheable)
+            {
+                // we could also explicitely clear the individual file, but it'll be garbage collected / cleared on exit right now, or we can add ClearDiskCache to ICacheableOperation
+                // but let's stick to full clear on close.
+            }
+            if (operation is IDisposable disposable) disposable.Dispose();
+        }
         _redoOperations.Clear();
     }
 
@@ -124,6 +164,8 @@ public class OperationService : IOperationService
         _currentOperation.OnPerformUndo();
         _redoOperations.Push(_currentOperation);
 
+        UpdateCacheStates();
+
         Debug.WriteLine("Operation Undo performed: " + _currentOperation.GetType());
 
         OnOperationInvoked(new OperationInvokeEventArgs(OperationEventType.Undo, _currentOperation));
@@ -137,6 +179,8 @@ public class OperationService : IOperationService
         _currentOperation!.OnPerform();
 
         _undoOperations.Push(_currentOperation);
+        
+        UpdateCacheStates();
 
         Debug.WriteLine("Operation Redo performed: " + _currentOperation.GetType());
 
@@ -147,6 +191,7 @@ public class OperationService : IOperationService
     {
         _undoOperations.Clear();
         _redoOperations.Clear();
+        _diskCache.ClearAll();
 
         GC.Collect();
     }

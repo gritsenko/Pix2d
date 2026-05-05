@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Pix2d.Abstract.Operations;
+using Pix2d.Abstract.Services;
 using SkiaNodes;
 
 namespace Pix2d.Operations;
@@ -8,7 +9,7 @@ namespace Pix2d.Operations;
 /// <summary>
 /// Allows to perform several edit operations sequentially as one operation
 /// </summary>
-public class BulkEditOperation : EditOperationBase, ISpriteEditorOperation
+public class BulkEditOperation : EditOperationBase, ISpriteEditorOperation, ICacheableOperation
 {
     private readonly List<IEditOperation> _operations = new List<IEditOperation>();
 
@@ -74,5 +75,21 @@ public class BulkEditOperation : EditOperationBase, ISpriteEditorOperation
     public bool HasOperation(IEditOperation operation)
     {
         return _operations.Any(x => x == operation);
+    }
+
+    public void EvictToDisk(IOperationDiskCacheService cache)
+    {
+        foreach (var op in _operations.OfType<ICacheableOperation>())
+        {
+            op.EvictToDisk(cache);
+        }
+    }
+
+    public void RestoreFromDisk(IOperationDiskCacheService cache)
+    {
+        foreach (var op in _operations.OfType<ICacheableOperation>())
+        {
+            op.RestoreFromDisk(cache);
+        }
     }
 }

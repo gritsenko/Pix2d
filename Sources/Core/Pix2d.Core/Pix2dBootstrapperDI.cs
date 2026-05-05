@@ -67,7 +67,8 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         services.AddSingleton<IEffectsService, EffectsService>(); // no dependencies
 
         services.AddSingleton<IImportService, ImportService>(); // Depends on: AppState
-        services.AddSingleton<IOperationService, OperationService>(); // Depends on: AppState
+        services.AddSingleton<Pix2d.Abstract.Services.IOperationDiskCacheService, Pix2d.Services.OperationDiskCacheService>();
+        services.AddSingleton<IOperationService, OperationService>(); // Depends on: AppState, IOperationDiskCacheService
         services.AddSingleton<ISceneService, SceneService>(); // Depends on: AppState, IMessenger
         services.AddSingleton<IViewPortService, ViewPortService>(); // Depends on: IMessenger, AppState
         services.AddSingleton<IViewPortRefreshService, ViewPortRefreshService>(); // Depends on: IViewPortService, IMessenger, AppState
