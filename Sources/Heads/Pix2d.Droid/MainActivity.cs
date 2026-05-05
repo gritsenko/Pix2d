@@ -35,9 +35,6 @@ public partial class MainActivity : AvaloniaMainActivity
     private Android.Net.Uri? _uriAwaitingSafPermission;
     private bool _appCreated = false;
 
-    private static long _lastLifecycleSaveTicks;
-    private static int _lifecycleSaveInFlight;
-
     public MainActivity()
     {
         Instance = this;
@@ -227,13 +224,13 @@ public partial class MainActivity : AvaloniaMainActivity
 
     protected override void OnPause()
     {
-        SaveSessionSafely(critical: true);
+        SaveSessionSafely();
         base.OnPause();
     }
 
     protected override void OnStop()
     {
-        SaveSessionSafely(critical: true);
+        SaveSessionSafely();
         base.OnStop();
     }
 
@@ -257,61 +254,30 @@ public partial class MainActivity : AvaloniaMainActivity
             platformStuff.AttachActivity(Instance!);
     }
 
-    private void SaveSessionSafely(bool critical)
+    // Bounded wait for the lifecycle save. Android gives an app ~5 s after
+    // onPause / onStop before it may freeze or tombstone the process, so we
+    // stay safely under that. The actual save runs synchronously on this
+    // (UI / Activity main) thread; only the file-I/O commit is offloaded.
+    private static readonly TimeSpan LifecycleSaveTimeout = TimeSpan.FromSeconds(4);
+
+    internal static void SaveSessionSafely()
     {
         try
         {
-            // OnPause -> OnStop -> OnDestroy can happen back-to-back. Don’t queue multiple saves.
-            if (System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 1) == 1)
-                return;
-
-            var now = DateTime.UtcNow.Ticks;
-            var last = System.Threading.Interlocked.Read(ref _lastLifecycleSaveTicks);
-
-            // Throttle to at most once per 2 seconds.
-            if (last != 0 && new TimeSpan(now - last) < TimeSpan.FromSeconds(2))
-            {
-                System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);
-                return;
-            }
-
-            System.Threading.Interlocked.Exchange(ref _lastLifecycleSaveTicks, now);
-
+            // OnPause / OnStop and the explicit double-back exit can call this
+            // back-to-back on the same UI thread. AutoSaveService.ForceSaveSync
+            // coalesces via its commit lock — repeated calls during the same
+            // transition are cheap no-ops. Importantly, the save runs inline on
+            // the Activity main thread (drain + snapshot are UI-thread
+            // operations) and only the file-I/O commit is offloaded.
             if (EditorApp.Pix2dBootstrapper?.GetServiceProvider() is not { } sp)
-            {
-                System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);
                 return;
-            }
 
-            var sessionService = sp.GetService<Pix2d.Abstract.Services.ISessionService>();
-            if (sessionService is null)
-            {
-                System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);
-                return;
-            }
-
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    if (critical)
-                        await sessionService.ForceSaveAsync(TimeSpan.FromSeconds(3));
-                    else
-                        await sessionService.TrySaveSessionAsync();
-                }
-                catch (Exception ex)
-                {
-                    Android.Util.Log.Error("Pix2d", $"Failed to save session: {ex}");
-                }
-                finally
-                {
-                    System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);
-                }
-            });
+            var autoSave = sp.GetService<Pix2d.Abstract.Services.IAutoSaveService>();
+            autoSave?.ForceSaveSync(LifecycleSaveTimeout);
         }
         catch (Exception ex)
         {
-            System.Threading.Interlocked.Exchange(ref _lifecycleSaveInFlight, 0);
             Android.Util.Log.Error("Pix2d", $"Error in SaveSessionSafely: {ex}");
         }
     }

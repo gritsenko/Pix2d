@@ -22,11 +22,12 @@ namespace Pix2d.Services.AutoSave;
 public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncDisposable
 {
     private readonly AppState _appState;
-    private readonly IFileService _fileService;
+    private readonly IPlatformStuffService _platformStuff;
     private readonly IMessenger _messenger;
     private readonly IProjectChangeTracker _tracker;
     private readonly ISessionSnapshotProvider _snapshotProvider;
     private readonly AutoSaveRecovery _recovery;
+    private readonly string _sessionsRoot;
 
     private readonly SemaphoreSlim _commitLock = new(1, 1);
     private readonly CancellationTokenSource _cts = new();
@@ -39,19 +40,19 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
 
     public AutoSaveService(
         AppState appState,
-        IFileService fileService,
+        IPlatformStuffService platformStuff,
         IMessenger messenger,
         IProjectChangeTracker tracker,
         ISessionSnapshotProvider snapshotProvider)
     {
         _appState = appState;
-        _fileService = fileService;
+        _platformStuff = platformStuff;
         _messenger = messenger;
         _tracker = tracker;
         _snapshotProvider = snapshotProvider;
 
-        var sessionsRoot = ResolveSessionsRoot(fileService);
-        _recovery = new AutoSaveRecovery(sessionsRoot);
+        _sessionsRoot = ResolveSessionsRoot(platformStuff);
+        _recovery = new AutoSaveRecovery(_sessionsRoot);
     }
 
     public async Task StartAsync()
@@ -60,9 +61,9 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
 
         if (_store is null)
         {
-            var sessionsRoot = ResolveSessionsRoot(_fileService);
-            _store = new IncrementalSessionStore(sessionsRoot, Guid.NewGuid().ToString("N"));
+            _store = new IncrementalSessionStore(_sessionsRoot, Guid.NewGuid().ToString("N"));
             await _store.InitializeAsync().ConfigureAwait(false);
+            Logger.Log($"AutoSave: initialized session store under {_sessionsRoot}");
         }
 
         var period = _appState.Settings.AutoSaveInterval;
@@ -70,6 +71,7 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
 
         _timer = new PeriodicTimer(period);
         _loop = RunLoopAsync(_timer, _cts.Token);
+        Logger.Log($"AutoSave: started periodic loop ({period.TotalSeconds:0.#}s)");
     }
 
     public async Task StopAsync()
@@ -91,23 +93,111 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
     public Task ForceSaveAsync(TimeSpan timeout)
         => TickOnceAsync(forceFullSnapshot: true, timeout: timeout);
 
+    public void ForceSaveSync(TimeSpan timeout)
+    {
+        // Android lifecycle callbacks (OnPause / OnStop / IActivatableLifetime.Deactivated)
+        // run on the Avalonia UI thread. We CANNOT bounce the save through a
+        // worker task that needs to come back to the UI thread via
+        // Dispatcher.UIThread.InvokeAsync — the UI thread would already be
+        // blocked on .Wait(...), causing a deadlock until the bounded timeout
+        // expires and the save silently fails. That's the "session lost on
+        // double-back" path the previous fix didn't catch: the SIGKILL was
+        // gone, but the save still wasn't actually completing.
+        //
+        // Instead we run drain + snapshot SYNCHRONOUSLY on the calling thread
+        // (we are on the UI thread, so no marshalling is needed) and only
+        // block on the commit, which is pure file I/O without dispatcher
+        // round-trips.
+        Dispatcher.UIThread.VerifyAccess();
+        if (_store is null)
+        {
+            Logger.Log("AutoSave: force-save skipped because the session store is not initialized");
+            return;
+        }
+
+        // If a periodic / async save is in flight we cannot wait on it from
+        // here — that save will need to come back to this same UI thread via
+        // InvokeAsync to drain. Skip; the in-flight save is doing its job and
+        // the next callback will pick up anything new.
+        if (!_commitLock.Wait(0)) return;
+
+        DirtySet drained = DirtySet.Empty;
+        SceneSnapshot? snapshot = null;
+        try
+        {
+            // 1. Drain (UI thread).
+            _tracker.MarkAllDirty();
+            if (!_tracker.HasPendingChanges) return;
+            drained = _tracker.Drain();
+            if (drained.IsEmpty) return;
+
+            // 2. Snapshot (UI thread, COW — cheap).
+            var scene = _appState.CurrentProject.SceneNode;
+            var srcPath = _appState.CurrentProject.File?.Path;
+            snapshot = _snapshotProvider.TakeSync(scene, drained, srcPath);
+            if (snapshot is null) return;
+
+            // 3. Commit on a background thread; block UI thread on the commit
+            //    only. No dispatcher calls happen inside CommitAsync, so the
+            //    bounded wait here is safe.
+            var localSnap = snapshot;
+            var ct = _cts.Token;
+            var commitTask = Task.Run(() => _store.CommitAsync(localSnap, ct), ct);
+            try
+            {
+                if (!commitTask.Wait(timeout))
+                {
+                    // Commit didn't finish in time. Push dirty cells back so
+                    // they retry on the next tick. We are still on the UI
+                    // thread so Reapply is safe to call directly.
+                    if (!drained.IsEmpty) _tracker.Reapply(drained);
+                }
+                else
+                {
+                    Logger.Log("AutoSave: synchronous force-save committed");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+                if (!drained.IsEmpty) _tracker.Reapply(drained);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+            if (!drained.IsEmpty)
+            {
+                try { _tracker.Reapply(drained); } catch { /* shutdown */ }
+            }
+        }
+        finally
+        {
+            snapshot?.Dispose();
+            _commitLock.Release();
+        }
+    }
+
     public async Task<bool> TryRecoverAsync()
     {
         if (OperatingSystem.IsBrowser()) return false;
 
         var loaded = await _recovery.LoadMostRecentAsync(_cts.Token).ConfigureAwait(false);
-        if (loaded is null) return false;
+        if (loaded is null)
+        {
+            Logger.Log($"AutoSave: no recoverable session found under {_sessionsRoot}");
+            return false;
+        }
 
         var (scene, store) = loaded.Value;
         _store = store;
+        Logger.Log($"AutoSave: recovered previous session from {_sessionsRoot}");
 
-        // Inject the recovered scene back into the editor on the UI thread.
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             _appState.CurrentProject.HasUnsavedChanges = true;
             _messenger.Send(new ProjectLoadedMessage(scene));
         });
-
         return true;
     }
 
@@ -200,17 +290,9 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
         }
     }
 
-    // ─────────────── helpers ───────────────
-
-    private static string ResolveSessionsRoot(IFileService fs)
+    private static string ResolveSessionsRoot(IPlatformStuffService platformStuff)
     {
-        // GetLocalFolderAsync returns a platform-native folder; for the sessions
-        // *root* we need a synchronous string path because IncrementalSessionStore
-        // uses System.IO directly (we can do that safely on desktop / Android,
-        // and we no-op on Browser through the IsBrowser() check above).
-        // Fall back to ApplicationData when that abstraction is not async-friendly.
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        return Path.Combine(appData, "Pix2d", "Sessions");
+        return Path.Combine(platformStuff.GetAppFolderPath(), "Sessions");
     }
 
     public async ValueTask DisposeAsync()

@@ -13,4 +13,13 @@ namespace Pix2d.Project.AutoSave;
 public interface ISessionSnapshotProvider
 {
     Task<SceneSnapshot?> TakeAsync(SKNode? scene, DirtySet dirty, string? sourceProjectPath);
+
+    /// <summary>
+    /// Synchronous variant of <see cref="TakeAsync"/>. MUST be called on the
+    /// Avalonia UI thread. Used by the lifecycle save path on Android, where
+    /// the OS callback already runs on the UI thread and any
+    /// <c>Dispatcher.UIThread.InvokeAsync</c> round-trip would deadlock against
+    /// a bounded <c>.Wait(...)</c> on the same thread.
+    /// </summary>
+    SceneSnapshot? TakeSync(SKNode? scene, DirtySet dirty, string? sourceProjectPath);
 }

@@ -8,6 +8,11 @@
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<ItemGroup>
+		<Compile Remove=".tmpbuild\**;.tmpbuild_scenefix\**;artifacts\**" />
+		<EmbeddedResource Remove=".tmpbuild\**;.tmpbuild_scenefix\**;artifacts\**" />
+		<None Remove=".tmpbuild\**;.tmpbuild_scenefix\**;artifacts\**" />
+	</ItemGroup>
+	<ItemGroup>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="SkiaSharp" Version="3.119.3-preview.1.1" />
 	</ItemGroup>

@@ -43,6 +43,14 @@ public sealed class UiThreadSnapshotProvider : ISessionSnapshotProvider
             () => TakeOnUiThread(scene, dirty, sourceProjectPath));
     }
 
+    public SceneSnapshot? TakeSync(SKNode? scene, DirtySet dirty, string? sourceProjectPath)
+    {
+        Dispatcher.UIThread.VerifyAccess();
+        if (scene is null || dirty.IsEmpty)
+            return null;
+        return TakeOnUiThread(scene, dirty, sourceProjectPath);
+    }
+
     private static SceneSnapshot TakeOnUiThread(SKNode scene, DirtySet dirty, string? sourceProjectPath)
     {
         var sprite = scene.Nodes.FirstOrDefault() as Pix2dSprite;

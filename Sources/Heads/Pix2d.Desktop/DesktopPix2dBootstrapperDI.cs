@@ -46,8 +46,8 @@ public class DesktopPix2dBootstrapperDI : Pix2dBootstrapperDI // Inherits: Pix2d
     
     public override bool OnAppClosing()
     {
-        var sessionService = GetServiceProvider().GetRequiredService<ISessionService>();
-        Task.Run(() => sessionService.ForceSaveAsync(TimeSpan.FromSeconds(5))).GetAwaiter().GetResult();
+        var autoSave = GetServiceProvider().GetRequiredService<IAutoSaveService>();
+        autoSave.ForceSaveSync(TimeSpan.FromSeconds(5));
         return true;
     }
 
