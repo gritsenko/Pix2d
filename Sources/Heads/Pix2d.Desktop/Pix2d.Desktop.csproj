@@ -72,6 +72,13 @@
 		</AvaloniaResource>
 	</ItemGroup>
 	<ItemGroup>
+	  <AvaloniaResource Remove="artifacts\**" />
+	  <AvaloniaXaml Remove="artifacts\**" />
+	  <Compile Remove="artifacts\**" />
+	  <EmbeddedResource Remove="artifacts\**" />
+	  <None Remove="artifacts\**" />
+	</ItemGroup>
+	<ItemGroup>
 		<PackageReference Include="Avalonia" Version="12.0.1" />
 		<PackageReference Include="Avalonia.Desktop" Version="12.0.1" />
 		<PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1" />
