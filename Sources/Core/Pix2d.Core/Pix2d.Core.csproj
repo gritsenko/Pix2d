@@ -112,7 +112,7 @@ public static class BuildInfo
 		<WriteLinesToFile File="$(VersionFilePath)" Lines="$(VersionSource)" Overwrite="true" WriteOnlyWhenDifferent="true" />
 
 		<ItemGroup>
-			<Compile Update="$(VersionFilePath)">
+			<Compile Include="$(VersionFilePath)">
 				<Visible>false</Visible>
 			</Compile>
 			<FileWrites Include="$(VersionFilePath)" />
