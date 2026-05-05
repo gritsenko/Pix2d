@@ -10,13 +10,9 @@ public partial class SKBitmapConverter : JsonConverter
 
     public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
-            reader.Read();
-            reader.Read();
-            reader.Read();
-            var id = reader.ReadAsString();
-            reader.Read();
-            return id != null && DataStorage != null ? DataStorage.GetEntry(id) : null;
-        }
+        var bmdef = serializer.Deserialize<SKBitmapRef>(reader);
+        return bmdef?.Id != null && DataStorage != null ? DataStorage.GetEntry(bmdef.Id) : null;
+    }
 
     public override bool CanConvert(Type objectType)
     {

@@ -13,10 +13,14 @@ public class SKBitmapRef
 
     public SKBitmapRef(SKBitmap sourceObject, IDataStorage? dataStorage)
     {
-        Id = Guid.NewGuid() + ".png";
-
-        ///todo: slow - make raw bytes instaed of png
-        dataStorage?.SetEntry(Id, sourceObject);
+        if (dataStorage != null)
+        {
+            Id = dataStorage.GetOrCreateId(sourceObject);
+        }
+        else
+        {
+            Id = Guid.NewGuid() + ".png";
+        }
     }
 
     public SKBitmap? Load(IDataStorage? dataStorage = null)

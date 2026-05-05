@@ -141,8 +141,7 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
             //    only. No dispatcher calls happen inside CommitAsync, so the
             //    bounded wait here is safe.
             var localSnap = snapshot;
-            var ct = _cts.Token;
-            var commitTask = Task.Run(() => _store.CommitAsync(localSnap, ct), ct);
+            var commitTask = Task.Run(() => _store.CommitAsync(localSnap, CancellationToken.None));
             try
             {
                 if (!commitTask.Wait(timeout))
