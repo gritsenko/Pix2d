@@ -1,13 +1,7 @@
-using Pix2d.Primitives;
-
 namespace Pix2d.Services;
 
 public class AppSettings
 {
-    // Strongly-typed: System.Text.Json restores this as SessionInfo, so SettingsService.TryGet<SessionInfo>
-    // hits the "propValue is T" fast path. The previous `object?` declaration deserialized as JsonElement
-    // and tripped Convert.ChangeType with "Object must implement IConvertible".
-    public SessionInfo? Session { get; set; }
     public List<MruRecord>? Mru { get; set; }
     public string? Locale { get; set; }
     public bool ShowLayers { get; set; } = true;

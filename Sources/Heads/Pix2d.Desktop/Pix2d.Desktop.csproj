@@ -77,6 +77,7 @@
 		<PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1" />
 		<PackageReference Include="Clowd.Clipboard" Version="1.1.4" />
 		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.1.4" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="Tmds.DBus.Protocol" Version="0.92.0" />
 	</ItemGroup>
 	<ItemGroup>

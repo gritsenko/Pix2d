@@ -6,4 +6,5 @@ public interface IDataStorage
 {
     void SetEntry(string id, SKBitmap data);
     SKBitmap? GetEntry(string id);
+    string GetOrCreateId(SKBitmap data);
 }

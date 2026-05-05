@@ -43,6 +43,14 @@ public sealed class UiThreadSnapshotProvider : ISessionSnapshotProvider
             () => TakeOnUiThread(scene, dirty, sourceProjectPath));
     }
 
+    public SceneSnapshot? TakeSync(SKNode? scene, DirtySet dirty, string? sourceProjectPath)
+    {
+        Dispatcher.UIThread.VerifyAccess();
+        if (scene is null || dirty.IsEmpty)
+            return null;
+        return TakeOnUiThread(scene, dirty, sourceProjectPath);
+    }
+
     private static SceneSnapshot TakeOnUiThread(SKNode scene, DirtySet dirty, string? sourceProjectPath)
     {
         var sprite = scene.Nodes.FirstOrDefault() as Pix2dSprite;
@@ -66,7 +74,20 @@ public sealed class UiThreadSnapshotProvider : ISessionSnapshotProvider
         string? sceneJson = null;
         if (dirty.StructureChanged || sprite is null)
         {
-            using var serializer = new NodeSerializer();
+            var initialImages = new Dictionary<string, SKBitmap>();
+            if (sprite is not null)
+            {
+                foreach (var layer in sprite.Layers)
+                {
+                    foreach (var node in layer.Nodes.OfType<SpriteNode>())
+                    {
+                        if (node.Bitmap is not null)
+                            initialImages[node.Id.ToString("N") + ".png"] = node.Bitmap;
+                    }
+                }
+            }
+
+            using var serializer = new NodeSerializer(initialImages);
             sceneJson = serializer.Serialize(scene);
         }
 

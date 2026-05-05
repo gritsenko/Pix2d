@@ -18,20 +18,17 @@ internal class BackPress : OnBackPressedCallback
 
     public override void HandleOnBackPressed()
     {
-        //var navigation = Microsoft.Maui.Controls.Application.Current?.MainPage?.Navigation;
-        //if (navigation is not null && navigation.NavigationStack.Count <= 1 && navigation.ModalStack.Count <= 0)
+        const int delay = 2000;
+        if (backPressed + delay > DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
         {
-            const int delay = 2000;
-            if (backPressed + delay > DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
-            {
-                activity.FinishAndRemoveTask();
-                Process.KillProcess(Process.MyPid());
-            }
-            else
-            {
-                Toast.MakeText(activity, "Close", ToastLength.Long)?.Show();
-                backPressed = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            }
+            MainActivity.SaveSessionSafely();
+            activity.FinishAndRemoveTask();
+            Process.KillProcess(Process.MyPid());
+        }
+        else
+        {
+            Toast.MakeText(activity, "Close", ToastLength.Long)?.Show();
+            backPressed = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         }
     }
 }

@@ -6,9 +6,14 @@ namespace SkiaNodes.Serialization;
 
 public class NodeSerializer : IDisposable
 {
-    private SimpleDictionaryStorage _dataStorage = new();
+    private SimpleDictionaryStorage _dataStorage;
     private static TypeNameAssemblyExcludingSerializationBinder? _assemblyBinderInstance;
     public static Assembly[] ExtraAssemblies { get; set; } = [];
+
+    public NodeSerializer(IDictionary<string, SKBitmap>? initialImages = null)
+    {
+        _dataStorage = new SimpleDictionaryStorage(initialImages);
+    }
 
     public string Serialize(SKNode node)
     {

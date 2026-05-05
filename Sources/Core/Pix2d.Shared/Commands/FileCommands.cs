@@ -80,5 +80,32 @@ public class FileCommands : CommandsListBase
     //         await CoreServices.ProjectService.SaveCurrentProjectAsAsync(ExportImportProjectType.Pix2dFolder);
     //     });
 
-    public Pix2dCommand Exit => GetCommand(() => Environment.Exit(0), "Exit", new CommandShortcut(VirtualKeys.F4, KeyModifier.Alt), EditContextType.All);
+    // Reached only via the File menu. Alt+F4 is intentionally NOT bound here
+    // because it is also a system shortcut (WM_CLOSE on Windows). When both paths
+    // fired together, the menu command kicked off ForceSaveAsync which took the
+    // session lock, and MainWindow.Closing's OnAppClosing kicked off a SECOND
+    // ForceSaveAsync that blocked on the same semaphore for 5 s and timed out
+    // ("Force save timed out after 5 seconds"). With the shortcut removed, Alt+F4
+    // goes through the natural OS path — MainWindow.Closing → OnAppClosing →
+    // ForceSaveAsync — exactly once, and the in-flight save can complete.
+    //
+    // Environment.Exit still has to live here because we cannot reach the
+    // Avalonia application lifetime from this assembly (Pix2d.Shared has no
+    // Avalonia reference). 15 s is enough headroom for a full session flush on
+    // large projects.
+    public Pix2dCommand Exit => GetCommand(async () =>
+    {
+        try
+        {
+            var session = ServiceProvider.GetService<ISessionService>();
+            if (session is not null)
+                await session.ForceSaveAsync(TimeSpan.FromSeconds(15));
+        }
+        catch (Exception ex)
+        {
+            // Best-effort: a save failure must not block the user from exiting.
+            Logger.LogException(ex);
+        }
+        Environment.Exit(0);
+    }, "Exit", shortcut: null, EditContextType.All);
 }

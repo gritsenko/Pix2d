@@ -16,6 +16,18 @@ public class SimpleDictionaryStorage(IDictionary<string, SKBitmap>? data = null)
         return _data.TryGetValue(id, out var data) ? data : null;
     }
 
+    public string GetOrCreateId(SKBitmap data)
+    {
+        foreach (var kvp in _data)
+        {
+            if (ReferenceEquals(kvp.Value, data))
+                return kvp.Key;
+        }
+        var newId = Guid.NewGuid() + ".png";
+        _data[newId] = data;
+        return newId;
+    }
+
     public IDictionary<string, SKBitmap> GetDataEntries()
     {
         return _data;

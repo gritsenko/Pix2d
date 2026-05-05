@@ -4,14 +4,17 @@ using Pix2d.Operations;
 using SkiaNodes;
 using System.Runtime.InteropServices;
 using Pix2d.Abstract.Operations;
+using Pix2d.Abstract.Services;
 
-public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISpriteEditorOperation
+namespace Pix2d.Operations.Drawing;
+
+public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISpriteEditorOperation, ICacheableOperation
 {
     public record struct DiffBlock(int Len, int OldColor, int NewColor);
 
     private readonly IDrawingTarget _drawingTarget;
 
-    private List<DiffBlock> _changes; // Stores the differences
+    private CachedPayload<List<DiffBlock>> _changesPayload; // Stores the differences
     private int _frame;
     private int _layerIndex;
     private int _finalFrame;
@@ -22,7 +25,7 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
     public DrawingOperationWithDiffState(IDrawingTarget drawingTarget, List<DiffBlock> changes)
     {
         _drawingTarget = drawingTarget;
-        _changes = changes;
+        _changesPayload = new CachedPayload<List<DiffBlock>>(changes, "diff_changes");
 
         if (_drawingTarget is IAnimatedNode sprite)
         {
@@ -54,7 +57,7 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
             sprite.SetFrameIndex(_finalFrame);
         }
 
-        ApplyChanges(_drawingTarget, _changes);
+        ApplyChanges(_drawingTarget, _changesPayload.GetValue());
     }
 
     public override void OnPerformUndo()
@@ -65,7 +68,7 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
             sprite.SetFrameIndex(_frame);
         }
 
-        ApplyChanges(_drawingTarget, _changes, true);
+        ApplyChanges(_drawingTarget, _changesPayload.GetValue(), true);
     }
 
     public override IEnumerable<SKNode> GetEditedNodes()
@@ -78,12 +81,15 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
 
     public bool HasChanges()
     {
-        return _changes.Count > 0;
+        return _changesPayload.IsEvicted ? true : _changesPayload.GetValue().Count > 0;
     }
 
     public void Dispose()
     {
-        _changes.Clear();
+        if (!_changesPayload.IsEvicted)
+        {
+            _changesPayload.GetValue().Clear();
+        }
     }
 
     public bool CanMerge(DrawingOperationWithDiffState operation)
@@ -99,9 +105,29 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
             throw new InvalidOperationException("Operation drawing targets are not same");
         }
 
-        //_changes.AddRange(operation._changes);
+        //_changesPayload.GetValue().AddRange(operation._changesPayload.GetValue());
     }
 
+    public void EvictToDisk(IOperationDiskCacheService cache)
+    {
+        _changesPayload.EvictToDisk(cache, changes =>
+        {
+            var span = CollectionsMarshal.AsSpan(changes);
+            return MemoryMarshal.AsBytes(span).ToArray();
+        });
+    }
+
+    public void RestoreFromDisk(IOperationDiskCacheService cache)
+    {
+        _changesPayload.RestoreFromDisk(cache, bytes =>
+        {
+            var span = MemoryMarshal.Cast<byte, DiffBlock>(bytes.AsSpan());
+            var list = new List<DiffBlock>(span.Length);
+            CollectionsMarshal.SetCount(list, span.Length);
+            span.CopyTo(CollectionsMarshal.AsSpan(list));
+            return list;
+        });
+    }
 
     private void ApplyChanges(IDrawingTarget target, List<DiffBlock> changes, bool reverse = false)
     {

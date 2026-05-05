@@ -241,11 +241,13 @@ public sealed class IncrementalSessionStore : IIncrementalSessionStore
         await using (var fs = new FileStream(
                          tempPath, FileMode.Create, FileAccess.Write,
                          FileShare.None, bufferSize: 64 * 1024, useAsync: true))
-        await using (var sw = new StreamWriter(fs))
         {
-            await sw.WriteAsync(content.AsMemory(), ct).ConfigureAwait(false);
-            await sw.FlushAsync().ConfigureAwait(false);
-            await fs.FlushAsync(ct).ConfigureAwait(false);
+            await using (var sw = new StreamWriter(fs))
+            {
+                await sw.WriteAsync(content.AsMemory(), ct).ConfigureAwait(false);
+                await sw.FlushAsync().ConfigureAwait(false);
+                await fs.FlushAsync(ct).ConfigureAwait(false);
+            }
         }
         AtomicReplace(tempPath, finalPath);
     }

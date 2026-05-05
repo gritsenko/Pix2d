@@ -15,6 +15,8 @@ using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Primitives;
 using Pix2d.Services.Project;
+using Pix2d.Services.AutoSave;
+using Pix2d.Project.AutoSave;
 using SkiaNodes.Serialization;
 using System.Reflection;
 using Pix2d.Command;
@@ -65,7 +67,8 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         services.AddSingleton<IEffectsService, EffectsService>(); // no dependencies
 
         services.AddSingleton<IImportService, ImportService>(); // Depends on: AppState
-        services.AddSingleton<IOperationService, OperationService>(); // Depends on: AppState
+        services.AddSingleton<Pix2d.Abstract.Services.IOperationDiskCacheService, Pix2d.Services.OperationDiskCacheService>();
+        services.AddSingleton<IOperationService, OperationService>(); // Depends on: AppState, IOperationDiskCacheService
         services.AddSingleton<ISceneService, SceneService>(); // Depends on: AppState, IMessenger
         services.AddSingleton<IViewPortService, ViewPortService>(); // Depends on: IMessenger, AppState
         services.AddSingleton<IViewPortRefreshService, ViewPortRefreshService>(); // Depends on: IViewPortService, IMessenger, AppState
@@ -79,7 +82,16 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
 
         services.AddSingleton<IExportService, ExportService>(); // Depends on: AppState, IMessenger, IPlatformStuffService
 
-        services.AddSingleton<ISessionService, SessionService>(); // Depends on: ISessionProjectLoader, AppState, IFileService, ISettingsService
+        // Auto-save subsystem (incremental work-folder + atomic manifest, COW snapshots).
+        // Replaces the legacy SessionService. AutoSaveService implements ISessionService
+        // as a thin adapter, so existing callers (DesktopPix2dBootstrapperDI.OnAppClosing,
+        // MainActivity.SaveSessionSafely, FileCommands.Exit) keep working unchanged.
+        services.AddSingleton<IProjectChangeTracker, ProjectChangeTracker>(); // Depends on: IMessenger, AppState
+        services.AddSingleton<ISessionSnapshotProvider, UiThreadSnapshotProvider>();
+        services.AddSingleton<AutoSaveService>(); // Depends on: AppState, IPlatformStuffService, IMessenger, IProjectChangeTracker, ISessionSnapshotProvider
+        services.AddSingleton<IAutoSaveService>(sp => sp.GetRequiredService<AutoSaveService>());
+        services.AddSingleton<ISessionService>(sp => sp.GetRequiredService<AutoSaveService>());
+
         services.AddSingleton<IProjectService, ProjectService>(); // Depends on: AppState, IImportService, IMessenger
         services.AddSingleton<ISessionProjectLoader, ProjectService>(); // Same as above
 
@@ -174,11 +186,12 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
             if (sp == null) return;
 
             var appState = sp.GetRequiredService<AppState>();
-            //If we already have loaded scene
-            //case: android after back button and return
+            // If a real project is already loaded, don't try to recover another
+            // session over the top of it. A blank in-memory "new project"
+            // created by viewport startup is NOT a loaded project and must not
+            // suppress session recovery on desktop / cold app launch.
             if (appState.CurrentProject.SceneNode != null
-                && (!string.IsNullOrWhiteSpace(appState.CurrentProject.File?.Path) ||
-                    appState.CurrentProject.IsNewProject))
+                && !string.IsNullOrWhiteSpace(appState.CurrentProject.File?.Path))
             {
                 MarkLaunchCompletedSafe();
                 return;

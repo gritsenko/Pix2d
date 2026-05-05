@@ -69,7 +69,7 @@ public sealed class ProjectChangeTracker : IProjectChangeTracker, IDisposable
             msg.OperationType == OperationEventType.Command)
             return;
 
-        if (msg.Operation is IFrameAffectingOperation framed &&
+        if (msg.Operation is ISpriteEditorOperation framed &&
             framed.AffectedLayerIndexes.Count > 0 &&
             framed.AffectedFrameIndexes.Count > 0)
         {
