@@ -1,11 +1,13 @@
 #nullable enable
 using System.Collections.Generic;
+using Avalonia.Controls.Platform;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Services;
 using Pix2d.UI.Resources;
@@ -30,6 +32,7 @@ public class SkiaCanvas : Control
     private bool _isPointerPressed;
     private Point _initialPos;
     private SKPoint _initialPan;
+    private Point? _cachedOriginInTopLevel;
 
     //pinch gesture stuff
     bool _isPinching = false;
@@ -54,23 +57,6 @@ public class SkiaCanvas : Control
 
     public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
-
-    // Safe area insets (e.g., notch, status bar)
-    private Thickness _safeAreaInsets = new Thickness(0);
-    public Thickness SafeAreaInsets
-    {
-        get => _safeAreaInsets;
-        set
-        {
-            if (_safeAreaInsets != value)
-            {
-                _safeAreaInsets = value;
-                // Apply margin to the SkiaCanvas itself
-                Margin = value;
-                OnSizeChanged();
-            }
-        }
-    }
 
     public SkiaCanvas(IServiceProvider serviceProvider)
     {
@@ -110,6 +96,7 @@ public class SkiaCanvas : Control
         _undoGesture.TrackingEnded += OnUndoGestureTrackingEnded;
 
         AttachedToVisualTree += SkiaCanvas_AttachedToVisualTree;
+        DetachedFromVisualTree += SkiaCanvas_DetachedFromVisualTree;
 
         _viewPortService = serviceProvider.GetRequiredService<IViewPortService>();
 
@@ -119,7 +106,15 @@ public class SkiaCanvas : Control
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel != null)
+        {
             topLevel.ScalingChanged += SkiaCanvas_ScalingChanged;
+            if (topLevel.InsetsManager is { } insetsManager)
+                insetsManager.SafeAreaChanged += OnSafeAreaChanged;
+        }
+
+        LayoutUpdated += OnLayoutUpdated;
+
+        UpdateOriginInTopLevel();
 
         if (e.RootVisual is Control root)
         {
@@ -128,9 +123,41 @@ public class SkiaCanvas : Control
         }
     }
 
+    private void SkiaCanvas_DetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        LayoutUpdated -= OnLayoutUpdated;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel != null)
+        {
+            topLevel.ScalingChanged -= SkiaCanvas_ScalingChanged;
+            if (topLevel.InsetsManager is { } insetsManager)
+                insetsManager.SafeAreaChanged -= OnSafeAreaChanged;
+        }
+    }
+
     private void SkiaCanvas_ScalingChanged(object? sender, EventArgs e)
     {
+        UpdateOriginInTopLevel();
         OnSizeChanged();
+    }
+
+    private void OnLayoutUpdated(object? sender, EventArgs e)
+    {
+        RefreshOriginIfChanged();
+    }
+
+    private void OnSafeAreaChanged(object? sender, SafeAreaChangedArgs e)
+    {
+        RefreshOriginIfChanged();
+    }
+
+    private void RefreshOriginIfChanged()
+    {
+        var previous = _cachedOriginInTopLevel;
+        UpdateOriginInTopLevel();
+        if (_cachedOriginInTopLevel != previous)
+            InvalidateVisual();
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
@@ -175,6 +202,8 @@ public class SkiaCanvas : Control
     protected override void ArrangeCore(Rect finalRect)
     {
         base.ArrangeCore(finalRect);
+
+        UpdateOriginInTopLevel();
 
         if (Design.IsDesignMode) return;
 
@@ -266,6 +295,36 @@ public class SkiaCanvas : Control
         var top = Bounds.Top;
 
         _drawingOp = new SkNodeDrawOp(new Rect(left, top, Bounds.Width, Bounds.Height), this);
+    }
+
+    private void UpdateOriginInTopLevel()
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        _cachedOriginInTopLevel = topLevel == null ? null : this.TranslatePoint(default, topLevel);
+    }
+
+    private void UpdatePivotTransform(Matrix currentTransform, Point? controlOriginInTopLevel)
+    {
+        if (ViewPort == null)
+            return;
+
+        var pivotTransform = ToSKMatrix(currentTransform);
+        pivotTransform.TransX *= ViewPort.ScaleFactor;
+        pivotTransform.TransY *= ViewPort.ScaleFactor;
+
+        if (OperatingSystem.IsAndroid() && controlOriginInTopLevel.HasValue)
+        {
+            var fallbackTransX = (float)(controlOriginInTopLevel.Value.X * ViewPort.ScaleFactor);
+            var fallbackTransY = (float)(controlOriginInTopLevel.Value.Y * ViewPort.ScaleFactor);
+
+            if (Math.Abs(pivotTransform.TransX) < 0.01f && Math.Abs(fallbackTransX) > 0.01f)
+                pivotTransform.TransX = fallbackTransX;
+
+            if (Math.Abs(pivotTransform.TransY) < 0.01f && Math.Abs(fallbackTransY) > 0.01f)
+                pivotTransform.TransY = fallbackTransY;
+        }
+
+        ViewPort.PivotTransformMatrix = pivotTransform;
     }
 
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
@@ -761,6 +820,23 @@ public class SkiaCanvas : Control
         (float)((ViewPort?.ScaleFactor ?? 1f) * p.Y)
     );
 
+    private static SKMatrix ToSKMatrix(Matrix m)
+    {
+        var sm = new SKMatrix
+        {
+            ScaleX = (float)m.M11,
+            SkewX = (float)m.M21,
+            TransX = (float)m.M31,
+            SkewY = (float)m.M12,
+            ScaleY = (float)m.M22,
+            TransY = (float)m.M32,
+            Persp0 = 0,
+            Persp1 = 0,
+            Persp2 = 1
+        };
+
+        return sm;
+    }
 
     public override void Render(DrawingContext context)
     {
@@ -814,6 +890,7 @@ public class SkiaCanvas : Control
         public bool Equals(ICustomDrawOperation? other) => false;
         private SKCanvas? _skCanvas;
         private Matrix _lastTransform;
+        private Point? _lastOrigin;
 
         public void Dispose()
         {
@@ -834,12 +911,13 @@ public class SkiaCanvas : Control
 
                 if (parent is { _rootNode: not null, ViewPort: not null })
                 {
-                    if (_lastTransform != context.CurrentTransform)
+                    var controlOriginInTopLevel = parent._cachedOriginInTopLevel;
+
+                    if (_lastTransform != context.CurrentTransform || _lastOrigin != controlOriginInTopLevel)
                     {
-                        parent.ViewPort.PivotTransformMatrix = ToSKMatrix(context.CurrentTransform);
-                        parent.ViewPort.PivotTransformMatrix.TransX *= parent.ViewPort.ScaleFactor;
-                        parent.ViewPort.PivotTransformMatrix.TransY *= parent.ViewPort.ScaleFactor;
+                        parent.UpdatePivotTransform(context.CurrentTransform, controlOriginInTopLevel);
                         _lastTransform = context.CurrentTransform;
+                        _lastOrigin = controlOriginInTopLevel;
                     }
 
                     SKNodeRenderer.Render(parent._rootNode, new RenderContext(canvas, parent.ViewPort));
@@ -871,24 +949,6 @@ public class SkiaCanvas : Control
                 var canvas = lease.SkCanvas;
                 return canvas;
             }
-        }
-
-        static SKMatrix ToSKMatrix(Matrix m)
-        {
-            var sm = new SKMatrix
-            {
-                ScaleX = (float)m.M11,
-                SkewX = (float)m.M21,
-                TransX = (float)m.M31,
-                SkewY = (float)m.M12,
-                ScaleY = (float)m.M22,
-                TransY = (float)m.M32,
-                Persp0 = 0,
-                Persp1 = 0,
-                Persp2 = 1
-            };
-
-            return sm;
         }
 
     }

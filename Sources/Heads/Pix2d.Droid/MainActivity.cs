@@ -2,9 +2,7 @@ using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
-using Android.Views;
 using AndroidX.Core.View;
-using Avalonia;
 using Avalonia.Android;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -58,7 +56,6 @@ public partial class MainActivity : AvaloniaMainActivity
             app.UpdateTopLevelFromHostView();
 
         HideSystemUI();
-        SetupWindowInsetsListener();
 
         _appCreated = true;
     }
@@ -92,72 +89,6 @@ public partial class MainActivity : AvaloniaMainActivity
         }
 
         // if (SupportActionBar != null) SupportActionBar.Hide();
-    }
-
-    private void SetupWindowInsetsListener()
-    {
-        if (Window?.DecorView != null)
-        {
-            ViewCompat.SetOnApplyWindowInsetsListener(Window.DecorView, new WindowInsetsListener(this));
-        }
-    }
-
-    private class WindowInsetsListener : Java.Lang.Object, IOnApplyWindowInsetsListener
-    {
-        private readonly MainActivity _activity;
-
-        public WindowInsetsListener(MainActivity activity)
-        {
-            _activity = activity;
-        }
-
-        public WindowInsetsCompat? OnApplyWindowInsets(Android.Views.View? v, WindowInsetsCompat? insets)
-        {
-            if (v == null || insets == null)
-                return insets;
-
-            var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
-            var displayCutout = insets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
-
-            if (systemBars != null && displayCutout != null)
-            {
-                // Combine system bars and display cutout insets
-                var topInset = Math.Max(systemBars.Top, displayCutout.Top);
-                var leftInset = Math.Max(systemBars.Left, displayCutout.Left);
-                var rightInset = Math.Max(systemBars.Right, displayCutout.Right);
-                var bottomInset = Math.Max(systemBars.Bottom, displayCutout.Bottom);
-
-                _activity.ApplySafeAreaInsets(leftInset, topInset, rightInset, bottomInset);
-            }
-
-            return insets;
-        }
-    }
-
-    private void ApplySafeAreaInsets(int left, int top, int right, int bottom)
-    {
-        if (Avalonia.Application.Current is EditorApp app)
-        {
-            // Convert Android pixels to Avalonia device-independent pixels
-            var density = Resources?.DisplayMetrics?.Density ?? 1f;
-            var safeAreaMargin = new Thickness(
-                left / density,
-                top / density,
-                right / density,
-                bottom / density
-            );
-
-            // Apply margin to the HostView to offset its position once
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                var hostView = app.HostView;
-                if (hostView != null)
-                {
-                    //hostView.Margin = safeAreaMargin;
-                    System.Diagnostics.Debug.WriteLine($"Applied SafeAreaMargin to HostView: L={safeAreaMargin.Left}, T={safeAreaMargin.Top}, R={safeAreaMargin.Right}, B={safeAreaMargin.Bottom}");
-                }
-            });
-        }
     }
 
     public override void OnWindowFocusChanged(bool hasFocus)

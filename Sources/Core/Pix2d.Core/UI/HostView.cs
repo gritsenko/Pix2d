@@ -6,6 +6,11 @@ namespace Pix2d.UI;
 
 public class HostView : ViewBase
 {
+    public HostView()
+    {
+        TopLevel.SetAutoSafeAreaPadding(this, true);
+    }
+
     protected override object Build() =>
         new Grid()
             .Children(

@@ -2,7 +2,6 @@ using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.LogicalTree;
 using Avalonia.Media.Transformation;
 using Avalonia.Styling;
 using Pix2d.UI.Animation;
@@ -16,7 +15,6 @@ using Pix2d.UI.Styles;
 using Pix2d.UI.ToolBar;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace Pix2d.UI;
 
@@ -308,7 +306,6 @@ public partial class MainView : ViewBase<MainViewModel>
 
         UpdateResponsiveLayout();
         UpdateTimelineVisibility();
-        ApplySafeAreaMargin();
     }
 
     protected override void OnUnloaded(RoutedEventArgs e)
@@ -325,7 +322,6 @@ public partial class MainView : ViewBase<MainViewModel>
 
         UpdateResponsiveLayout();
         RepositionFloatingPanels();
-        ApplySafeAreaMargin();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -376,28 +372,6 @@ public partial class MainView : ViewBase<MainViewModel>
         await ViewModel!.HandleDropAsync(droppedFiles);
     }
 
-    private void ApplySafeAreaMargin()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")))
-        {
-            if (_topBarView is not null)
-            {
-                var skiaCanvas = FindSkiaCanvas(this);
-                if (skiaCanvas is SkiaCanvas canvas)
-                {
-                    var safeAreaInsets = canvas.SafeAreaInsets;
-                    var currentMargin = _topBarView.Margin;
-                    _topBarView.Margin = new Thickness(
-                        currentMargin.Left,
-                        safeAreaInsets.Top,
-                        currentMargin.Right,
-                        currentMargin.Bottom
-                    );
-                }
-            }
-        }
-    }
-
     private void RepositionFloatingPanels()
     {
         _colorPickerPopup?.ResetPositionForCurrentLayout();
@@ -405,22 +379,5 @@ public partial class MainView : ViewBase<MainViewModel>
         _artworkPreviewPopup?.ResetPositionForCurrentLayout();
         _resizeCanvasPopup?.ResetPositionForCurrentLayout();
         _layerOptionsPopup?.ResetPositionForCurrentLayout();
-    }
-
-    private static SkiaCanvas? FindSkiaCanvas(Visual? visual)
-    {
-        if (visual == null)
-            return null;
-        if (visual is SkiaCanvas canvas)
-            return canvas;
-
-        foreach (var child in visual.GetLogicalChildren().OfType<Visual>())
-        {
-            var result = FindSkiaCanvas(child);
-            if (result != null)
-                return result;
-        }
-
-        return null;
     }
 }
