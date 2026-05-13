@@ -60,7 +60,11 @@ public class DrawingService : IDrawingService
         _viewPortRefreshService = viewPortRefreshService;
         _messenger = messenger;
 
-        SetNewDrawingLayer(new DrawingLayerNode() { AspectSnapper = snappingService });
+        SetNewDrawingLayer(new DrawingLayerNode()
+        {
+            AspectSnapper = snappingService,
+            ActiveToolKeyProvider = () => _appState.ToolsState.CurrentToolKey,
+        });
 
         messenger.Register<ProjectCloseMessage>(this, OnProjectClose);
         messenger.Register<ProjectLoadedMessage>(this, m => UpdateFromDesignerState());
@@ -313,7 +317,7 @@ public class DrawingService : IDrawingService
         if (_drawingLayer == null || CurrentDrawingTarget == null)
             return;
         
-        var pasteOperation = new PasteOperation(bitmap, pos, CurrentDrawingTarget, _drawingLayer, this, _toolService);
+        var pasteOperation = new PasteOperation(bitmap, pos, CurrentDrawingTarget, _drawingLayer, this, _toolService, _appState.ToolsState.CurrentToolKey);
         _operationService.InvokeAndPushOperations(pasteOperation);
     }
 

@@ -38,6 +38,11 @@ public interface IDrawingLayer
     PixelSelectionMode SelectionMode { get; set; }
     bool HasSelection { get; }
     bool HasSelectionChanges { get; }
+
+    /// <summary>
+    /// Lifecycle of the current selection marquee. None / MarqueeReady (contour-only) / Transforming (pixels lifted).
+    /// </summary>
+    SelectionPhase SelectionPhase { get; }
     bool MirrorX { get; set; }
     bool MirrorY { get; set; }
     SKPointI GetMirroredPoint(SKPointI p, SKPointI brushOffset = default, int brushSize = default);
@@ -72,10 +77,25 @@ public interface IDrawingLayer
     void ActivateEditor();
 
     /// <summary>
+    /// Activates the selection editor in an explicit mode. <c>contourOnly: true</c> keeps pixels in place and
+    /// just shows the marching-ants outline; <c>contourOnly: false</c> lifts pixels onto the selection layer
+    /// and exposes resize/rotate handles. Called by the transform tool when the user wants to manipulate
+    /// the selected pixels.
+    /// </summary>
+    void ActivateEditor(bool contourOnly);
+
+    /// <summary>
     /// Switches an existing (contour-only) selection into the full transform mode with move/resize/rotate
     /// handles. Invoked explicitly by the user via the Transform action. No-op when there is no selection.
     /// </summary>
     void EnterTransformMode();
+
+    /// <summary>
+    /// Switches the live selection editor between full transform mode (resize/rotate handles, blue circles)
+    /// and contour-edit mode (marching-ants outline + simple dark move/resize thumbs). No-op when there
+    /// is no active selection.
+    /// </summary>
+    void SetSelectionTransformMode(bool transformMode);
     void SetCustomPixelSelector(IPixelSelector pixelSelector);
     void ClearCustomPixelSelector();
     void CancelCurrentOperation();

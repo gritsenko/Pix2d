@@ -71,6 +71,14 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
     public bool HasSelectionChanges => _selectionEditor.IsChanged;
 
+    /// <summary>
+    /// True while the selected pixels are "lifted" out of the canvas — i.e. the source area is cleared
+    /// from the background bitmap and the selection layer is composited on top via the working bitmap.
+    /// In contour-edit mode (toggle off) the pixels are never lifted: dragging the marquee only reshapes
+    /// what's selected without transforming the underlying image.
+    /// </summary>
+    private bool _pixelsLifted;
+
     public bool IsPixelPerfectMode { get; set; }
 
     public SKColor DrawingColor
@@ -105,6 +113,16 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     public IDrawingTarget? DrawingTarget { get; private set; }
     public PixelSelectionMode SelectionMode { get; set; }
     public bool HasSelection => _selectionLayer != null;
+
+    /// <summary>
+    /// Derived from <see cref="HasSelection"/> + <see cref="_pixelsLifted"/>. Source of truth for tools deciding
+    /// what selection-related actions are valid right now.
+    /// </summary>
+    public SelectionPhase SelectionPhase => !HasSelection
+        ? SelectionPhase.None
+        : _pixelsLifted
+            ? SelectionPhase.Transforming
+            : SelectionPhase.MarqueeReady;
     public bool MirrorX { get; set; }
     public bool MirrorY { get; set; }
     public static int MirrorYOffset { get; set; } = -1;
@@ -122,6 +140,13 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         return _selectionLayer ?? throw new InvalidOperationException("Selection layer is not initialized");
     }
     public IAspectSnapper? AspectSnapper { get; set; }
+
+    /// <summary>
+    /// Snapshot of the currently-active tool key. Used by selection-related operations so that
+    /// <c>Undo</c>/<c>Redo</c> can restore the right tool and keep UI/drawing-layer state consistent
+    /// (see <see cref="IToolAwareOperation"/>).
+    /// </summary>
+    public Func<string?>? ActiveToolKeyProvider { get; set; }
 
     public AxisLockMode AxisLockMode { get; set; }
 
@@ -146,7 +171,10 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
     private void SelectionEditor_SelectionEditing(object? sender, EventArgs e)
     {
-        UpdateWorkingBitmapFromSelection();
+        if (_pixelsLifted)
+            UpdateWorkingBitmapFromSelection();
+        else
+            Refresh();
     }
 
     /// <summary>
@@ -180,7 +208,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     {
         if (_currentSelectionOperation == null)
         {
-            return new SelectionOperation(this);
+            return new SelectionOperation(this, ActiveToolKeyProvider?.Invoke());
         }
         else
         {
@@ -190,15 +218,19 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
     private void SelectionEditor_SelectionEdited(object? sender, EventArgs e)
     {
-        _currentSelectionOperation!.SetFinalState();
-        UpdateWorkingBitmapFromSelection();
+        _currentSelectionOperation!.SetFinalState(ActiveToolKeyProvider?.Invoke());
+        if (_pixelsLifted)
+            UpdateWorkingBitmapFromSelection();
+        else
+            Refresh();
         OnSelectionTransformed(_currentSelectionOperation);
     }
 
     private void SelectionEditor_SelectionEditStarted(object? sender, EventArgs e)
     {
         _currentSelectionOperation = GetCurrentSelectionOperation();
-        UpdateWorkingBitmapFromSelection();
+        if (_pixelsLifted)
+            UpdateWorkingBitmapFromSelection();
     }
 
     public override bool ContainsPoint(SKPoint worldPos)
@@ -536,6 +568,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
     public void SetTarget(IDrawingTarget target)
     {
+        var sameTarget = ReferenceEquals(target, DrawingTarget);
         DrawingTarget = target;
         DrawingTarget.FlushRequestedAction = FlushCurrentEditing;
 
@@ -552,10 +585,14 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
             Size = newSize;
         }
-        else
+        else if (!sameTarget)
         {
+            // Target changed (different sprite/frame/layer) but size matches — clear stale state so the new
+            // target starts with clean working/background bitmaps.
             ClearWorkingBitmap();
         }
+        // Same-target reattach (typical for tool switches) intentionally preserves working/background bitmaps:
+        // an active selection's lifted-pixels state lives there and a tool transition shouldn't destroy it.
 
         if (State == DrawingLayerState.Drawing)
         {
@@ -1097,7 +1134,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         ApplySelection(true);
     }
 
-    public void SetSelection(SpriteSelectionNode selectionLayer, SKBitmap? backgroundBitmap)
+    public void SetSelection(SpriteSelectionNode selectionLayer, SKBitmap? backgroundBitmap, bool contourOnly = false)
     {
         if (DrawingTarget == null)
             return;
@@ -1122,9 +1159,12 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
         Opacity = DrawingTarget.GetOpacity();
 
-        UpdateWorkingBitmapFromSelection();
+        // In transform mode the lifted pixels need to be rendered onto the working bitmap; in contour mode
+        // they stay on the target and the working bitmap stays empty (marching ants only).
+        if (!contourOnly)
+            UpdateWorkingBitmapFromSelection();
 
-        ActivateEditor();
+        ActivateEditor(contourOnly: contourOnly);
 
         _selectionEditor.SetIsChanged();
         OnPixelsSelected();
@@ -1192,7 +1232,11 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
             return;
         }
 
-        if (_selectionEditor.IsChanged)
+        // In contour-edit mode pixels aren't lifted, so the working bitmap doesn't carry the
+        // transformed state — applying must not stamp it onto the target (that would just erase
+        // the marquee's source area). The contour-mode marquee changes only reshape the selection
+        // region, not the image.
+        if (_pixelsLifted && _selectionEditor.IsChanged)
         {
             ApplyWorkingBitmap();
             OnDrawingApplied(saveToUndo);
@@ -1276,12 +1320,25 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
             Opacity = DrawingTarget.GetOpacity();
             _backgroundBitmap = tmpBitmap;
 
-            ActivateEditor();
+            // Selection tools (Rect / Lasso / Color) always finish in contour-only mode — they never lift
+            // pixels. Auto-enter into transform mode (if enabled) is handled by DrawingService switching to
+            // PixelTransformTool, which is the single owner of the "pixels lifted" state.
+            ActivateEditor(contourOnly: true);
             OnPixelsSelected();
         }
     }
 
-    public void ActivateEditor() => ActivateEditor(contourOnly: false);
+    /// <summary>
+    /// Activates the selection editor. Use the overload taking <c>contourOnly</c> explicitly to make the mode
+    /// choice obvious at the call site.
+    /// </summary>
+    public void ActivateEditor()
+    {
+        // Defaults to transform mode for backwards-compat with callers that conceptually want the "lifted"
+        // experience (e.g. paste / undo of selection ops). Selection tools should call the overload with
+        // contourOnly: true explicitly.
+        ActivateEditor(contourOnly: false);
+    }
 
     public void ActivateEditor(bool contourOnly)
     {
@@ -1298,11 +1355,23 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
             UseSwapBitmap = true;
 
-            UpdateWorkingBitmapFromSelection();
-
-            if (_backgroundBitmap != null)
+            if (contourOnly)
             {
-                DrawingTarget.SetTargetBitmapSubstitute(() => _backgroundBitmap!);
+                // Marquee-only mode: don't lift pixels. Working bitmap stays empty so the underlying
+                // canvas is shown unchanged, and dragging the thumbs only reshapes the selection.
+                _pixelsLifted = false;
+                _workingBitmap?.Clear();
+                _swapBitmap?.Clear();
+                DrawingTarget.SetTargetBitmapSubstitute(null);
+            }
+            else
+            {
+                _pixelsLifted = true;
+                UpdateWorkingBitmapFromSelection();
+                if (_backgroundBitmap != null)
+                {
+                    DrawingTarget.SetTargetBitmapSubstitute(() => _backgroundBitmap!);
+                }
             }
         }
     }
@@ -1326,6 +1395,82 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
         // Toggling thumb visibility doesn't dirty the scene tree on its own, so force a redraw here.
         Refresh();
+    }
+
+    public void SetSelectionTransformMode(bool transformMode)
+    {
+        if (_selectionLayer == null || !_selectionEditor.IsVisible) return;
+
+        var contourOnly = !transformMode;
+        if (_selectionEditor.ContourOnly == contourOnly) return;
+
+        if (transformMode)
+            LiftSelectionFromCanvas();
+        else
+            CommitWorkingBitmapToCanvas();
+
+        _selectionEditor.ContourOnly = contourOnly;
+        Refresh();
+    }
+
+    private void LiftSelectionFromCanvas()
+    {
+        if (_pixelsLifted || DrawingTarget == null || _selectionLayer == null) return;
+
+        var size = DrawingTarget.GetSize();
+        var snapshot = new SKBitmap(new SKImageInfo((int)size.Width, (int)size.Height, SKColorType.Rgba8888));
+        DrawingTarget.CopyBitmapTo(snapshot);
+
+        var bounds = _selectionLayer.GetBoundingBox();
+        var origin = ((SKNode)DrawingTarget).Position;
+        int x = (int)Math.Round(bounds.Left - origin.X);
+        int y = (int)Math.Round(bounds.Top - origin.Y);
+        int w = (int)Math.Round(bounds.Width);
+        int h = (int)Math.Round(bounds.Height);
+        if (w <= 0 || h <= 0) return;
+
+        var selBitmap = new SKBitmap(new SKImageInfo(w, h, SKColorType.Rgba8888));
+        using (var c = new SKCanvas(selBitmap))
+        {
+            c.DrawBitmap(snapshot, new SKRect(x, y, x + w, y + h), new SKRect(0, 0, w, h));
+        }
+
+        using (var c = new SKCanvas(snapshot))
+        using (var clear = new SKPaint { BlendMode = SKBlendMode.Clear })
+        {
+            c.DrawRect(new SKRect(x, y, x + w, y + h), clear);
+        }
+
+        _selectionLayer.Bitmap = selBitmap;
+        _selectionLayer.Size = new SKSize(w, h);
+        _selectionLayer.Position = new SKPoint(bounds.Left, bounds.Top);
+        _selectionLayer.SelectionPath = null;
+        _selectionLayer.Rotation = 0;
+
+        _backgroundBitmap = snapshot;
+        DrawingTarget.SetTargetBitmapSubstitute(() => _backgroundBitmap!);
+
+        // Re-sync the editor frame to the freshly aligned selection layer (axis-aligned, no rotation).
+        _selectionEditor.SetSelection(
+            new NodesSelection(new[] { _selectionLayer }, () => { }) { GenerateOperations = false },
+            null);
+
+        _pixelsLifted = true;
+        UpdateWorkingBitmapFromSelection();
+    }
+
+    private void CommitWorkingBitmapToCanvas()
+    {
+        if (!_pixelsLifted || DrawingTarget == null) return;
+
+        ApplyWorkingBitmap();
+
+        _workingBitmap?.Clear();
+        _swapBitmap?.Clear();
+        DrawingTarget.SetTargetBitmapSubstitute(null);
+        DrawingTarget.ShowTargetBitmap();
+
+        _pixelsLifted = false;
     }
 
     public void SetCustomPixelSelector(IPixelSelector pixelSelector)

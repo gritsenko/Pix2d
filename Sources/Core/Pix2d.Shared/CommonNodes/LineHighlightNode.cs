@@ -52,9 +52,6 @@ public class LineHighlightNode : SKNode, IDisposable
     {
         if (Path == null) return;
 
-        using var paint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1), SKColors.Black);
-        paint.PathEffect = SKPathEffect.CreateDash([vp.PixelsToWorld(2), vp.PixelsToWorld(2)], 0);
-
         var sx = Size.Width / _originalSize.Width;
         var sy = Size.Height / _originalSize.Height;
         var transformMatrix = SKMatrix.CreateTranslation(_offset.X, _offset.Y)
@@ -63,7 +60,15 @@ public class LineHighlightNode : SKNode, IDisposable
         var path = new SKPath();
         Path.Transform(transformMatrix, path);
 
-        canvas.DrawPath(path, paint);
+        // Two-tone marching ants so the contour stays visible on both light and dark canvases.
+        var dashLen = vp.PixelsToWorld(4);
+        using var blackPaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.Black);
+        using var whitePaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.White);
+        blackPaint.PathEffect = SKPathEffect.CreateDash([dashLen, dashLen], 0);
+        whitePaint.PathEffect = SKPathEffect.CreateDash([dashLen, dashLen], dashLen);
+
+        canvas.DrawPath(path, blackPaint);
+        canvas.DrawPath(path, whitePaint);
     }
 
     public void Dispose()

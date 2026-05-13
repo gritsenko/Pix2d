@@ -111,9 +111,16 @@ public class MoveThumbNode : NodeManipulateThumbBase
     {
         if (ContourOnly)
         {
-            using var paint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1), SKColors.Black);
-            paint.PathEffect = SKPathEffect.CreateDash([vp.PixelsToWorld(2), vp.PixelsToWorld(2)], 0);
-            canvas.DrawRect(0, 0, Size.Width, Size.Height, paint);
+            // Photoshop-style marching ants: two offset dashed strokes (black + white) so the
+            // outline stays visible regardless of canvas colour.
+            var dashLen = vp.PixelsToWorld(4);
+            using var blackPaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.Black);
+            using var whitePaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.White);
+            blackPaint.PathEffect = SKPathEffect.CreateDash([dashLen, dashLen], 0);
+            whitePaint.PathEffect = SKPathEffect.CreateDash([dashLen, dashLen], dashLen);
+            var rect = new SKRect(0, 0, Size.Width, Size.Height);
+            canvas.DrawRect(rect, blackPaint);
+            canvas.DrawRect(rect, whitePaint);
         }
         else
         {

@@ -1,20 +1,23 @@
 using Pix2d.Abstract.Drawing;
-using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
-using Pix2d.Messages;
-using Pix2d.Operations;
-using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Primitives.Drawing;
 using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Tools.PixelSelect;
 
+/// <summary>
+/// Base for the selection tools (Rect / Lasso / Color). Their sole job is to describe the marquee area — they
+/// never lift pixels or modify the drawing target. Lifting / transforming / committing is owned by
+/// <see cref="PixelTransformTool"/>. This split keeps undo/redo coherent across tool switches: a selection
+/// op produced here always restores to a selection tool, never to the transform tool.
+/// </summary>
 public abstract class PixelSelectToolBase : BaseTool, IDrawingTool, IPixelSelectionTool
 {
-	public IDrawingService DrawingService { get; }
+    public IDrawingService DrawingService { get; }
     public IMessenger Messenger { get; }
     public AppState AppState { get; }
     public SelectionState SelectionState => AppState.SelectionState;
+    protected IToolService ToolService { get; }
 
     private IDrawingLayer DrawingLayer => DrawingService.DrawingLayer;
 
@@ -24,11 +27,12 @@ public abstract class PixelSelectToolBase : BaseTool, IDrawingTool, IPixelSelect
         set => DrawingLayer.SelectionMode = value;
     }
 
-    public PixelSelectToolBase(IDrawingService drawingService, IMessenger messenger, AppState state)
+    public PixelSelectToolBase(IDrawingService drawingService, IMessenger messenger, AppState state, IToolService toolService)
     {
         DrawingService = drawingService;
         Messenger = messenger;
         AppState = (AppState)state;
+        ToolService = toolService;
     }
 
     public override async Task Activate()
@@ -39,9 +43,14 @@ public abstract class PixelSelectToolBase : BaseTool, IDrawingTool, IPixelSelect
         DrawingLayer.SelectionRemoved += DrawingLayer_SelectionRemoved;
         AppState.UiState.ShowClipboardBar = true;
 
-        await base.Activate();
+        // Restoration path: when undo/redo lands us on a selection tool while the layer is in transform mode
+        // (e.g. selection was created via paste, then undone), step the editor back to contour-only so the
+        // tool state matches what the user expects from a selection tool. Safe no-op when the marquee is
+        // already in contour mode or absent.
+        if (DrawingLayer.SelectionPhase == SelectionPhase.Transforming)
+            DrawingLayer.SetSelectionTransformMode(false);
 
-        Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
+        await base.Activate();
     }
 
     private void DrawingLayer_SelectionRemoved(object? sender, EventArgs e)
@@ -63,26 +72,8 @@ public abstract class PixelSelectToolBase : BaseTool, IDrawingTool, IPixelSelect
         base.OnPointerMoved(sender, e);
         if (SelectionState.IsUserSelecting)
         {
-            if(!SelectionState.UserSelectingFrameSize.Equals(DrawingLayer.SelectionSize))
+            if (!SelectionState.UserSelectingFrameSize.Equals(DrawingLayer.SelectionSize))
                 SelectionState.UserSelectingFrameSize = DrawingLayer.SelectionSize;
-        }
-    }
-
-    private void OnOperationInvoked(OperationInvokedMessage e)
-    {
-        if (e.Operation is SelectionOperation || e.Operation is PasteOperation)
-        {
-            return;
-        }
-        
-        if (e.Operation is MoveOperation)
-        {
-            if (e.OperationType != OperationEventType.Perform)
-                DrawingLayer.InvalidateSelectionEditor();
-        }
-        else
-        {
-            DrawingLayer.DeactivateSelectionEditor();
         }
     }
 
@@ -93,8 +84,16 @@ public abstract class PixelSelectToolBase : BaseTool, IDrawingTool, IPixelSelect
         AppState.UiState.ShowClipboardBar = false;
 
         DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;
-        Messenger.Unregister<OperationInvokedMessage>(this, OnOperationInvoked);
-        DrawingLayer.ApplySelection();
+        DrawingLayer.SelectionStarted -= DrawingLayer_SelectionStarted;
+        DrawingLayer.SelectionRemoved -= DrawingLayer_SelectionRemoved;
+
+        // Hand off cleanly to PixelTransformTool: that tool's whole job is to take ownership of the current
+        // marquee, so dropping it here would leave it nothing to work with (and it would just bounce us back
+        // to this tool, creating a loop). For any other transition we drop the marquee — drawing tools don't
+        // honour selections and leaving the editor alive would let its thumbs intercept brush strokes.
+        if (ToolService.IncomingToolKey != nameof(PixelTransformTool))
+            DrawingLayer.ApplySelection();
+
         if (DrawingLayer.DrawingTarget != null)
             SelectionState.UserSelectingFrameSize = DrawingLayer.DrawingTarget.GetSize();
     }

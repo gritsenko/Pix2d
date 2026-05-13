@@ -11,8 +11,8 @@ namespace Pix2d.Plugins.Drawing.Tools.PixelSelect;
     DisplayName = "Pixels select freeform tool",
     Group = "Pixel Select",
     HotKey = "M")]
-public class PixelSelectColorTool(IDrawingService drawingService, IMessenger messenger, AppState state)
-    : PixelSelectToolBase(drawingService, messenger, state)
+public class PixelSelectColorTool(IDrawingService drawingService, IMessenger messenger, AppState state, IToolService toolService)
+    : PixelSelectToolBase(drawingService, messenger, state, toolService)
 {
     public override Task Activate()
     {

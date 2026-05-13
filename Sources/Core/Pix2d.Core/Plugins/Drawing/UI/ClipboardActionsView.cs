@@ -4,8 +4,8 @@ namespace Pix2d.Plugins.Drawing.UI;
 
 public class ClipboardActionsView(ICommandService commandService) : ViewBase
 {
-    private ISpriteEditCommands SpriteEditCommands => 
-        commandService.GetCommandList<ISpriteEditCommands>() ?? 
+    private ISpriteEditCommands SpriteEditCommands =>
+        commandService.GetCommandList<ISpriteEditCommands>() ??
         throw new InvalidOperationException("CommandService is not available");
 
     protected override object Build() =>
@@ -28,17 +28,12 @@ public class ClipboardActionsView(ICommandService commandService) : ViewBase
                     .Command(SpriteEditCommands.CropPixels)
                     .With(ButtonStyle)
                     .Content("\xE7A8"),
-                //new Button()
-                //    .Command(SpriteEditCommands.ActivateSelectionTransform)
-                //    .With(ButtonStyle)
-                //    .Content("\xE7A7"),
                 new Button()
                     .With(ButtonStyle)
                     .With(b =>
                     {
                         var flyout = new MenuFlyout() { Placement = PlacementMode.Bottom };
                         flyout.AddItem("Fill selection", SpriteEditCommands.FillSelectionCommand);
-                        //flyout.AddItem("Select object", SpriteEditCommands.SelectObjectCommand);
                         b.Click += (s, e) => flyout.ShowAt(b);
                     })
                     .Content("\xE10C")

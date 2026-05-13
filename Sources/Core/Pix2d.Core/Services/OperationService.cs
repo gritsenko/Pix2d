@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Diagnostics;
 using Pix2d.Abstract.Operations;
+using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
 using Pix2d.Operations;
 using Pix2d.Primitives.Operations;
@@ -25,12 +26,16 @@ public class OperationService : IOperationService
     public event EventHandler<OperationInvokeEventArgs>? OperationInvoked;
 
     private readonly IOperationDiskCacheService _diskCache;
+    // Lazy IToolService accessor — OperationService is registered earlier than IToolService and several
+    // tools depend on IOperationService transitively, so a direct dependency would create a cycle.
+    private readonly Func<IToolService>? _toolServiceProvider;
     private const int HotCacheLimit = 10;
 
-    public OperationService(AppState appState, IOperationDiskCacheService diskCache)
+    public OperationService(AppState appState, IOperationDiskCacheService diskCache, Func<IToolService>? toolServiceProvider = null)
     {
         AppState = appState;
         _diskCache = diskCache;
+        _toolServiceProvider = toolServiceProvider;
         Messenger.Default.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
     }
 
@@ -164,6 +169,8 @@ public class OperationService : IOperationService
         _currentOperation.OnPerformUndo();
         _redoOperations.Push(_currentOperation);
 
+        RestoreToolForOperation(_currentOperation, OperationEventType.Undo);
+
         UpdateCacheStates();
 
         Debug.WriteLine("Operation Undo performed: " + _currentOperation.GetType());
@@ -179,12 +186,56 @@ public class OperationService : IOperationService
         _currentOperation!.OnPerform();
 
         _undoOperations.Push(_currentOperation);
-        
+
+        RestoreToolForOperation(_currentOperation, OperationEventType.Redo);
+
         UpdateCacheStates();
 
         Debug.WriteLine("Operation Redo performed: " + _currentOperation.GetType());
 
         OnOperationInvoked(new OperationInvokeEventArgs(OperationEventType.Redo, _currentOperation));
+    }
+
+    private void RestoreToolForOperation(IEditOperation operation, OperationEventType eventType)
+    {
+        if (_toolServiceProvider == null) return;
+
+        var toolKey = ResolveToolKey(operation, eventType);
+        if (string.IsNullOrEmpty(toolKey)) return;
+        if (toolKey == AppState.ToolsState.CurrentToolKey) return;
+
+        var toolType = AppState.ToolsState.Tools.FirstOrDefault(t => t.Name == toolKey)?.ToolType;
+        if (toolType == null) return;
+
+        try
+        {
+            _toolServiceProvider().ActivateTool(toolType);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Tool restoration failed for {toolKey}: {ex}");
+        }
+    }
+
+    private static string? ResolveToolKey(IEditOperation operation, OperationEventType eventType)
+    {
+        switch (operation)
+        {
+            case IToolAwareOperation toolAware:
+                return eventType == OperationEventType.Undo
+                    ? toolAware.ToolKeyBeforeOperation
+                    : toolAware.ToolKeyAfterOperation;
+            case BulkEditOperation bulk:
+                foreach (var inner in bulk.Operations)
+                {
+                    var key = ResolveToolKey(inner, eventType);
+                    if (!string.IsNullOrEmpty(key))
+                        return key;
+                }
+                return null;
+            default:
+                return null;
+        }
     }
 
     public void Clear()

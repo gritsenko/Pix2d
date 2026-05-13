@@ -24,6 +24,8 @@ public class ToolService : IToolService
         _appState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, OnAnimationStateChanged);
     }
 
+    public string? IncomingToolKey { get; private set; }
+
     private void ActivateTool(string key)
     {
         var tool = GetToolStateByKey(key);
@@ -33,9 +35,17 @@ public class ToolService : IToolService
         tool.ToolInstance ??= (ITool)_activatorFactoryFunc(tool.ToolType);
 
         var oldTool = GetToolStateByKey(ToolsState.CurrentToolKey);
-        oldTool?.ToolInstance?.Deactivate();
-        tool.ToolInstance?.Activate();
-        ToolsState.CurrentToolKey = tool.Name;
+        IncomingToolKey = tool.Name;
+        try
+        {
+            oldTool?.ToolInstance?.Deactivate();
+            tool.ToolInstance?.Activate();
+            ToolsState.CurrentToolKey = tool.Name;
+        }
+        finally
+        {
+            IncomingToolKey = null;
+        }
     }
 
     public void ActivateTool(Type toolType)
