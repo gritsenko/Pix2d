@@ -49,8 +49,12 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     private SKPoint _lastPos;
     private BrushDrawingMode _drawingMode;
     private SpriteSelectionNode? _selectionLayer;
-    private readonly SKColor _selectionColor = new(0, 0, 0, 127);
     private readonly FrameEditorNode _selectionEditor;
+
+    // 2-pixel black/white dashes alternating along the selection outline (Photoshop "marching ants"
+    // style). Visible on both light and dark backgrounds, unlike a single semi-transparent colour.
+    private static SKColor GetSelectionDashColor(int x, int y)
+        => (((x + y) >> 1) & 1) == 0 ? SKColors.White : SKColors.Black;
     private SKColor _drawingColor;
     private SKPointI _previewPos;
     private IPixelBrush? _brush;
@@ -1372,7 +1376,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
             (x, y) =>
             {
                 if (InBounds(x, y))
-                    SetPixel(x, y, _selectionColor);
+                    SetPixel(x, y, GetSelectionDashColor(x, y));
             });
     }
 
@@ -1394,7 +1398,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         void Plot(int x, int y)
         {
             if (InBounds(x, y))
-                SetPixel(x, y, _selectionColor);
+                SetPixel(x, y, GetSelectionDashColor(x, y));
         }
 
         _pixelSelector.BeginSelection(p1);
