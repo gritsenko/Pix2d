@@ -163,6 +163,10 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
         _selectionEditor = new FrameEditorNode();
         _selectionEditor.IsVisible = false;
+        // Pixel selection never exposes resize handles — reshaping the marquee belongs to the future
+        // crop tool, not to Rect/Lasso/Color or the transform tool. Move (and rotate, in transform
+        // mode) are the only handles the user gets here.
+        _selectionEditor.AllowResize = false;
         _selectionEditor.SelectionEditStarted += SelectionEditor_SelectionEditStarted;
         _selectionEditor.SelectionEdited += SelectionEditor_SelectionEdited;
         _selectionEditor.SelectionEditing += SelectionEditor_SelectionEditing;
@@ -1033,15 +1037,6 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     public void SetDrawingLayerMode(BrushDrawingMode drawingMode)
     {
         _drawingMode = drawingMode;
-        if (_drawingMode == BrushDrawingMode.MoveSelection)
-        {
-            _selectionEditor.AllowResize = false;
-        }
-        else if (_drawingMode == BrushDrawingMode.Select)
-        {
-            _selectionEditor.AllowResize = true;
-        }
-
         UpdateBrushPreview(_brush);
     }
 
