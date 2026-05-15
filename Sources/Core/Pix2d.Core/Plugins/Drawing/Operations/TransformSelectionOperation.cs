@@ -9,7 +9,7 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Operations;
 
-public class TransformSelectionOperation : EditOperationBase, IToolAwareOperation
+public class TransformSelectionOperation : EditOperationBase, IToolAwareOperation, ISelectionFlowOperation
 {
     private readonly SelectionData _selectionData;
     private readonly SKNodeTransformState _initialState;

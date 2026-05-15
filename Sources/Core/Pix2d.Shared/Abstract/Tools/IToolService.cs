@@ -12,4 +12,12 @@ public interface IToolService
     /// transition-aware decisions (e.g. keep the marquee when handing off to the transform tool).
     /// </summary>
     string? IncomingToolKey { get; }
+
+    /// <summary>
+    /// True when <paramref name="toolKey"/> identifies a registered tool implementing
+    /// <see cref="IPixelSelectionTool"/>. Lets the transform tool decide whether to keep the marquee alive
+    /// during a hand-off without hard-coding the set of selection tools — new selection plugins (AI,
+    /// future tools) participate automatically.
+    /// </summary>
+    bool IsSelectionTool(string? toolKey);
 }

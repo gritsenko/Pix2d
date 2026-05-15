@@ -12,7 +12,7 @@ namespace Pix2d.Plugins.Drawing.Operations;
 /// <see cref="DrawingLayerNode.MarqueeFinishedByUser"/>. Without this op the marquee creation is invisible
 /// to undo, so a user transforming a selection couldn't fully reverse out of the "I have a marquee" state.
 /// </summary>
-public class BeginSelectionOperation : EditOperationBase, IToolAwareOperation
+public class BeginSelectionOperation : EditOperationBase, IToolAwareOperation, ISelectionFlowOperation
 {
     private readonly DrawingLayerNode _drawingLayer;
     private readonly SpriteSelectionNode _selectionLayer;

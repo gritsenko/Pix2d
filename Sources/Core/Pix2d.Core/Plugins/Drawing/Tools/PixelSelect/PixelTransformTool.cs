@@ -93,9 +93,7 @@ public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
     }
 
     private bool IsHandoffToSelectionTool() =>
-        _toolService.IncomingToolKey is nameof(PixelSelectRectTool)
-            or nameof(PixelSelectLassoTool)
-            or nameof(PixelSelectColorTool);
+        _toolService.IsSelectionTool(_toolService.IncomingToolKey);
 
     protected override void OnPointerPressed(object? sender, PointerActionEventArgs e)
     {

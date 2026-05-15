@@ -66,7 +66,7 @@ Hot-reload of views is enabled for `DEBUG` desktop builds (`MetadataUpdateHandle
 - **Sprite plugin** ([Sources/Core/Pix2d.Core/Plugins/Sprite/](Sources/Core/Pix2d.Core/Plugins/Sprite/)) is the core editor experience; `SpriteEditor` is a singleton consumed by `IEditService`.
 - **Drawing plugin** ([Sources/Core/Pix2d.Core/Plugins/Drawing/](Sources/Core/Pix2d.Core/Plugins/Drawing/)) ships the brush/line/rect/oval/triangle/fill/eyedropper/selection tools, pixel selectors, and brushes.
 - **Image format plugins** (`PngFormatPlugin`, `JpgFormatPlugin`, `GifFormatPlugin`, `SvgFormatPlugin`) are the import/export backends; add new formats by following the same pattern under `Plugins/ImageFormats/`.
-- **External plugins** ([Sources/Plugins/](Sources/Plugins/)): `Pix2d.Plugins.Ai` (ONNX-based object extraction — always loaded on desktop), `Pix2d.Plugins.OpenCv`, `Pix2d.Plugins.Collaborate`, `Pix2d.Plugins.PngCompress`, `Pix2d.Plugins.SimplePlugin`, `Pix2d.Plugins.Psd`. Several are present but commented out in desktop `LoadPlugins()` — they can be enabled there.
+- **External plugins** ([Sources/Plugins/](Sources/Plugins/)): `Pix2d.Plugins.Ai` (ONNX-based object extraction — always loaded on desktop), `Pix2d.Plugins.OpenCv`, `Pix2d.Plugins.Collaborate`, `Pix2d.Plugins.SimplePlugin`, `Pix2d.Plugins.Psd`. Several are present but commented out in desktop `LoadPlugins()` — they can be enabled there.
 
 Tools implement `ITool` and are created lazily via `IToolService` which uses `ActivatorUtilities.CreateInstance` — tool constructors can take services directly.
 

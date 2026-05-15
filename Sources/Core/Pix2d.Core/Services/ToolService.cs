@@ -58,6 +58,13 @@ public class ToolService : IToolService
         ActivateTool(typeof(TTool).Name);
     }
 
+    public bool IsSelectionTool(string? toolKey)
+    {
+        if (string.IsNullOrEmpty(toolKey)) return false;
+        var tool = GetToolStateByKey(toolKey);
+        return tool != null && typeof(IPixelSelectionTool).IsAssignableFrom(tool.ToolType);
+    }
+
     private ToolState? GetToolStateByKey(string key) => ToolsState.Tools.FirstOrDefault(x => x.Name == key);
 
     public void ActivateDefaultTool()

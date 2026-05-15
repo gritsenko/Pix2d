@@ -15,7 +15,7 @@ namespace Pix2d.Plugins.Drawing.Operations;
 /// to its pre-transform state, but redoing it would put us back into the lifted state, never to the actually
 /// committed pixels.
 /// </summary>
-public class ApplyTransformOperation : EditOperationBase, ISpriteEditorOperation, IToolAwareOperation
+public class ApplyTransformOperation : EditOperationBase, ISpriteEditorOperation, IToolAwareOperation, ISelectionFlowOperation
 {
     private readonly IDrawingTarget _drawingTarget;
     private readonly DrawingLayerNode _drawingLayer;

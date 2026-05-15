@@ -88,12 +88,6 @@ Text tools for pixel art:
 - Pixel font rendering
 - Text manipulation tools
 
-### PNG Compress Plugin
-Located in: `Plugins/PngCompress/PngCompressPlugin.cs`
-PNG optimization features:
-- PNG file compression
-- Image optimization tools
-
 ### HTTP Host Plugin
 Located in: `Plugins/HttpHost/HttpHostPlugin.cs`
 Network functionality:
