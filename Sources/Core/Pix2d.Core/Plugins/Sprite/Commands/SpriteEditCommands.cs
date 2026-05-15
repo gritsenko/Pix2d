@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Commands;
 using Pix2d.Abstract.Platform;
 using Pix2d.CommonNodes;
+using Pix2d.Abstract.Tools;
+using Pix2d.Plugins.Drawing.Tools.PixelSelect;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Primitives;
 using Pix2d.Primitives.Edit;
@@ -109,9 +111,13 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 
     public Pix2dCommand ActivateSelectionTransform => GetCommand(() =>
     {
-        var drawingLayer = ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer;
-        if (drawingLayer.HasSelection)
-            drawingLayer.EnterTransformMode();
+        // PixelTransformTool is the single canonical owner of the Transforming phase — switching to it
+        // handles lift / editor mode and undo/redo tool restoration in a consistent way. We keep the
+        // legacy "no-op without selection" semantic so an accidental Ctrl+Shift+T doesn't yank the user
+        // out of their current tool. (The tool's own fallback to PixelSelectRectTool is meant for the
+        // hotkey-on-tool path, not for command-on-empty-selection.)
+        if (ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer.HasSelection)
+            ServiceProvider.GetRequiredService<IToolService>().ActivateTool<PixelTransformTool>();
     }, "Transform selection", new CommandShortcut(VirtualKeys.T, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 
     public Pix2dCommand SendLayerBackward =>

@@ -355,5 +355,37 @@ public class DrawingService : IDrawingService
 
     public void CancelActiveDrawing() => _operationFactory?.CancelActiveDrawing();
 
+    public void CommitTransformWithUndo(bool keepMarqueeInContour, string? toolKeyBefore, string? toolKeyAfter)
+    {
+        // Snapshot phase: capture everything we need BEFORE the commit, since either path below can drop the
+        // selection layer / background bitmap and we won't be able to re-read them off the layer after that.
+        if (_drawingLayer is not DrawingLayerNode dln) return;
+        if (CurrentDrawingTarget == null) return;
+        if (dln.SelectionPhase != SelectionPhase.Transforming) return;
+
+        var targetDataBefore = CurrentDrawingTarget.GetData();
+        var selectionLayer = (SpriteSelectionNode)dln.GetSelectionLayer();
+        var backgroundBitmap = dln.GetSelectionBackground();
+
+        if (keepMarqueeInContour)
+            dln.SetSelectionTransformMode(false);
+        else
+            dln.ApplySelection();
+
+        var targetDataAfter = CurrentDrawingTarget.GetData();
+
+        var op = new ApplyTransformOperation(
+            CurrentDrawingTarget,
+            dln,
+            selectionLayer,
+            backgroundBitmap,
+            targetDataBefore,
+            targetDataAfter,
+            keepMarqueeInContour,
+            toolKeyBefore,
+            toolKeyAfter);
+        _operationService.PushOperations(op);
+    }
+
     public void Refresh() => _viewPortRefreshService.Refresh();
 }

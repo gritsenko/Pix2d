@@ -71,6 +71,13 @@ public static class ToolIcons
                     .FontSize(22)
                     .Text("\xe790")),
 
+            ["PixelTransformTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
+                new Path()
+                    .Classes("ToolIcon")
+                    .Data(StaticResources.Icons.SelectionTransformIcon)
+                    .Stretch(Stretch.Uniform)
+                    .Fill(StaticResources.Brushes.ForegroundBrush)),
+
             ["TextTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
                 new Path()
                     .Classes("ToolIcon")

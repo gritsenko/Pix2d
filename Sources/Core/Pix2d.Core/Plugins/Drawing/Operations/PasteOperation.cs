@@ -24,8 +24,8 @@ public class PasteOperation : EditOperationBase, ISpriteEditorOperation, IToolAw
 
     public string? ToolKeyBeforeOperation { get; }
 
-    // Paste places a selection on the canvas — once Stage 2 lands this becomes PixelTransformTool.
-    // For now we just want Undo to restore the pre-paste tool; we don't override the active tool on Redo.
+    // OnPerform explicitly activates PixelTransformTool, so its own tool-restoration path already lands the
+    // user in the right tool on Redo — no need to repeat that here. Undo just rewinds to the pre-paste tool.
     public string? ToolKeyAfterOperation => null;
 
     public PasteOperation(SKBitmap image, SKPoint position,

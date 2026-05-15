@@ -85,15 +85,10 @@ public interface IDrawingLayer
     void ActivateEditor(bool contourOnly);
 
     /// <summary>
-    /// Switches an existing (contour-only) selection into the full transform mode with move/resize/rotate
-    /// handles. Invoked explicitly by the user via the Transform action. No-op when there is no selection.
-    /// </summary>
-    void EnterTransformMode();
-
-    /// <summary>
     /// Switches the live selection editor between full transform mode (resize/rotate handles, blue circles)
     /// and contour-edit mode (marching-ants outline + simple dark move/resize thumbs). No-op when there
-    /// is no active selection.
+    /// is no active selection. Called by the transform tool's deactivation hand-off; the canonical user-facing
+    /// path into transform mode is to activate <c>PixelTransformTool</c>, which owns the Transforming phase.
     /// </summary>
     void SetSelectionTransformMode(bool transformMode);
     void SetCustomPixelSelector(IPixelSelector pixelSelector);

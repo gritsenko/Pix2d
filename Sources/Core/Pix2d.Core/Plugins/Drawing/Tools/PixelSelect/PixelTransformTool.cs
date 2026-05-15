@@ -17,7 +17,9 @@ namespace Pix2d.Plugins.Drawing.Tools.PixelSelect;
     SettingsViewType = typeof(SelectionTransformToolSettingsView),
     DisplayName = "Transform selection",
     Group = "Pixel Select",
-    HotKey = "T")]
+    // Real binding lives on SpriteEditCommands.ActivateSelectionTransform (Ctrl+Shift+T). Plain "T"
+    // is already taken by ToolCommands.ActivateTriangleTool, so we must not advertise it here.
+    HotKey = "Ctrl+Shift+T")]
 public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
 {
     private readonly IDrawingService _drawingService;
@@ -74,8 +76,21 @@ public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
         // marquee is in MarqueeReady now and committing would also call DeactivateSelectionEditor — which
         // would destroy the marquee the user (or undo) wants to keep.
         if (DrawingLayer.SelectionPhase == SelectionPhase.Transforming)
-            DrawingLayer.ApplySelection();
+        {
+            // Hand-off to a selection tool keeps the marquee alive in contour mode so the receiving tool
+            // inherits it; anything else (drawing tools, paste, closing the sprite, …) drops it. Either way
+            // the stamp is recorded as a single undo step via CommitTransformWithUndo so redo can replay it.
+            _drawingService.CommitTransformWithUndo(
+                keepMarqueeInContour: IsHandoffToSelectionTool(),
+                toolKeyBefore: nameof(PixelTransformTool),
+                toolKeyAfter: _toolService.IncomingToolKey);
+        }
 
         SelectionState.IsUserSelecting = false;
     }
+
+    private bool IsHandoffToSelectionTool() =>
+        _toolService.IncomingToolKey is nameof(PixelSelectRectTool)
+            or nameof(PixelSelectLassoTool)
+            or nameof(PixelSelectColorTool);
 }
