@@ -2,6 +2,7 @@ using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Tools;
 using Pix2d.Plugins.Drawing.UI;
 using Pix2d.Primitives.Drawing;
+using SkiaNodes.Interactive;
 
 namespace Pix2d.Plugins.Drawing.Tools.PixelSelect;
 
@@ -95,4 +96,20 @@ public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
         _toolService.IncomingToolKey is nameof(PixelSelectRectTool)
             or nameof(PixelSelectLassoTool)
             or nameof(PixelSelectColorTool);
+
+    protected override void OnPointerPressed(object? sender, PointerActionEventArgs e)
+    {
+        base.OnPointerPressed(sender, e);
+
+        // Photoshop-style "click outside to commit" affordance. The thumbs (move/resize/rotate) all
+        // capture the pointer on press, which makes SKInput's CapturedPointerBy filter every other
+        // interactive — meaning this handler only fires when the click landed outside every thumb.
+        // No bounds check needed: reaching here IS the outside-the-marquee signal.
+        if (DrawingLayer.SelectionPhase != SelectionPhase.Transforming) return;
+
+        // Hand off to the rect-select tool. That triggers our own Deactivate → CommitTransformWithUndo
+        // case-A path (marquee preserved in contour mode, ApplyTransformOp pushed). Matches the Apply
+        // button in the settings panel, which routes through the same tool switch for consistency.
+        _toolService.ActivateTool<PixelSelectRectTool>();
+    }
 }
