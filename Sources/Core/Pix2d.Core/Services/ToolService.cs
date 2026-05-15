@@ -103,6 +103,7 @@ public class ToolService : IToolService
         if (toolAttr != null)
         {
             toolState.HasToolProperties = toolAttr.HasSettings;
+            toolState.ShowInToolbar = toolAttr.ShowInToolbar;
             toolState.EnabledDuringAnimation = toolAttr.EnabledDuringAnimation;
             toolState.ToolTip = toolAttr.HotKey != null ? $"{toolAttr.DisplayName} ({toolAttr.HotKey})" : toolAttr.DisplayName;
             toolState.GroupName = toolAttr.Group ?? "";

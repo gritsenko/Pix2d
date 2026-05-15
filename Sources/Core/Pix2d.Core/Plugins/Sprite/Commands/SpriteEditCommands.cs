@@ -85,6 +85,14 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
     public Pix2dCommand FlipVertical =>
         GetCommand(() => { SpriteEditor?.Flip(FlipMode.Vertical); }, "Flip Vertical", new CommandShortcut(VirtualKeys.V, KeyModifier.Shift), EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
+    public Pix2dCommand RotateMinus90 =>
+        GetCommand(() =>
+        {
+            var selectionEditor = DrawingService.GetSelectionEditor();
+            if (selectionEditor.HasSelection)
+                selectionEditor.RotateSelection(-90);
+        }, "Rotate -90°", null, EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
+
      public Pix2dCommand Rotate90 =>
          GetCommand(() =>
          {

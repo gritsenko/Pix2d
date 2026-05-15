@@ -15,9 +15,9 @@ namespace Pix2d.Plugins.Drawing.Tools.PixelSelect;
 [Pix2dTool(
     EditContextType = EditContextType.Sprite,
     HasSettings = true,
+    ShowInToolbar = false,
     SettingsViewType = typeof(SelectionTransformToolSettingsView),
     DisplayName = "Transform selection",
-    Group = "Pixel Select",
     // Real binding lives on SpriteEditCommands.ActivateSelectionTransform (Ctrl+Shift+T). Plain "T"
     // is already taken by ToolCommands.ActivateTriangleTool, so we must not advertise it here.
     HotKey = "Ctrl+Shift+T")]

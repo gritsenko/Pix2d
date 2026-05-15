@@ -134,7 +134,7 @@ internal sealed class SelectionController
 
     public void RotateSelection(int angle)
     {
-        _selectionEditor.Rotate(90);
+        _selectionEditor.Rotate(angle);
     }
 
     /// <summary>

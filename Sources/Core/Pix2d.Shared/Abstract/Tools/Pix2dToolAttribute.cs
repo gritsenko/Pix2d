@@ -5,6 +5,7 @@ namespace Pix2d.Abstract.Tools;
 public class Pix2dToolAttribute : Attribute
 {
     public bool HasSettings { get; set; }
+    public bool ShowInToolbar { get; set; } = true;
 
     /// <summary>
     /// if set to false it will be disabled while animation is playing
