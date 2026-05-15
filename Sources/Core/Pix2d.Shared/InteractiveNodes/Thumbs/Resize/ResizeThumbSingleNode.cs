@@ -15,12 +15,6 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
 
     public SKColor StrokeColor = SKColor.Parse("#ff4384de");
 
-    /// <summary>
-    /// When true, the thumb is rendered as a black square with a white outline instead of the default
-    /// blue-bordered white circle. Used by the contour-edit selection mode.
-    /// </summary>
-    public bool DarkStyle { get; set; }
-
     private SKPoint _initialThumbGlobalPos;
     protected SKMatrix _initialTargetLocalTransform;
     protected SKMatrix _initialTargetGlobalTransform;
@@ -109,47 +103,21 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
     protected override void OnDraw(SKCanvas canvas, ViewPort vp)
     {
         var hz = GetHitZone();
+        var r = Size.Width / 2f;
+
+        using var fillPaint = new SKPaint { Color = SKColors.White };
+        using var strokePaint = new SKPaint
+        {
+            IsStroke = true,
+            IsAntialias = true,
+            StrokeWidth = vp.PixelsToWorld(2),
+            Color = StrokeColor,
+        };
 
         canvas.Save();
-        var transform = vp.ResultTransformMatrix;
-        canvas.SetMatrix(transform);
-
-        if (DarkStyle)
-        {
-            // Smaller square handle: black fill + white outline. Drawn at ~60% of the touch hit zone
-            // so the visual stays compact while the interaction area remains generous.
-            var half = hz.Width * 0.5f * 0.6f;
-            var rect = new SKRect(hz.MidX - half, hz.MidY - half, hz.MidX + half, hz.MidY + half);
-
-            using var darkFill = new SKPaint { Color = SKColors.Black };
-            using var darkStroke = new SKPaint
-            {
-                IsStroke = true,
-                IsAntialias = false,
-                StrokeWidth = vp.PixelsToWorld(1.5f),
-                Color = SKColors.White,
-            };
-
-            canvas.DrawRect(rect, darkFill);
-            canvas.DrawRect(rect, darkStroke);
-        }
-        else
-        {
-            var r = Size.Width / 2f;
-
-            using var fillPaint = new SKPaint { Color = SKColors.White };
-            using var strokePaint = new SKPaint
-            {
-                IsStroke = true,
-                IsAntialias = true,
-                StrokeWidth = vp.PixelsToWorld(2),
-                Color = StrokeColor,
-            };
-
-            canvas.DrawCircle(hz.MidX, hz.MidY, r, fillPaint);
-            canvas.DrawCircle(hz.MidX, hz.MidY, r, strokePaint);
-        }
-
+        canvas.SetMatrix(vp.ResultTransformMatrix);
+        canvas.DrawCircle(hz.MidX, hz.MidY, r, fillPaint);
+        canvas.DrawCircle(hz.MidX, hz.MidY, r, strokePaint);
         canvas.Restore();
     }
 

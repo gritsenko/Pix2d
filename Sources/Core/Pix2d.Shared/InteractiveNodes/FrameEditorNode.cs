@@ -48,9 +48,10 @@ public class FrameEditorNode : SKNode
     private bool _contourOnly;
 
     /// <summary>
-    /// When true, the editor renders in contour-edit mode: the move thumb draws the marching-ants outline,
-    /// resize thumbs switch to a compact dark square style, and the rotate handle is hidden. The move thumb
-    /// stays interactive so the user can still drag and resize the selection. Set to false to expose the
+    /// When true, the editor renders in contour-edit mode: only the marching-ants outline is shown (drawn by
+    /// the move thumb), all resize and rotate manipulators are hidden. The move thumb stays interactive so
+    /// the user can still drag the marquee to reshape what's selected — that's the contour-mode contract:
+    /// no transforming of underlying pixels, just shifting the selection region. Set to false to expose the
     /// full transform handles (resize circles + rotate).
     /// </summary>
     public bool ContourOnly
@@ -173,14 +174,16 @@ public class FrameEditorNode : SKNode
 
     private void UpdateThumbs()
     {
+        // Resize & rotate manipulators belong to transform mode only — in contour mode the marquee is just
+        // a region selector and resize/rotate would imply pixel transformation, which is PixelTransformTool's
+        // job. The move thumb stays visible (it draws the marching-ants outline) AND interactive in both
+        // modes so the user can drag the marquee around in contour mode to reshape the selected region.
         foreach (var resizeThumbSingleNode in _sizeThumb)
         {
-            resizeThumbSingleNode.IsVisible = _allowResize && this.IsVisible;
-            resizeThumbSingleNode.DarkStyle = _contourOnly;
+            resizeThumbSingleNode.IsVisible = _allowResize && this.IsVisible && !_contourOnly;
             resizeThumbSingleNode.Opacity = 50;
         }
 
-        // Rotation isn't part of the contour-edit mode — only resize/move are exposed there.
         _rotateThumb.IsVisible = this.IsVisible && !_contourOnly;
 
         _moveThumb.ContourOnly = _contourOnly;
