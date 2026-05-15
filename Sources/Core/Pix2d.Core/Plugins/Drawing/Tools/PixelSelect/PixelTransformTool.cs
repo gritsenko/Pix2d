@@ -54,13 +54,11 @@ public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
         }
 
         DrawingLayer.SetDrawingLayerMode(BrushDrawingMode.MoveSelection);
-        // MoveSelection mode gates pointer events the way we want (clicks fall through to FrameEditorNode's
-        // thumbs) but its side-effect is AllowResize=false — meant for text/AI tools that want move-only
-        // semantics. Override it back to true so the transform tool actually shows its resize thumbs.
-        DrawingLayer.AllowSelectionResize = true;
         // Enter transform mode. Calling ActivateEditor(contourOnly: false) directly preserves the original
         // selection path (lasso/freeform contours stay intact) — using SetSelectionTransformMode(true) would
         // route through LiftSelectionFromCanvas which rewrites the selection to an axis-aligned rect.
+        // ActivateEditor flips on AllowResize via SelectionController.ApplyEditorMode, so the resize thumbs
+        // appear without any extra plumbing here.
         if (DrawingLayer.SelectionPhase == SelectionPhase.MarqueeReady)
             DrawingLayer.ActivateEditor(contourOnly: false);
 
