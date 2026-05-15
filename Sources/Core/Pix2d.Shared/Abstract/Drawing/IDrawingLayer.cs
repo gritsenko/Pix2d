@@ -22,6 +22,13 @@ public interface IDrawingLayer
     event EventHandler<SelectionTransformedEventArgs> SelectionTransformed;
     event EventHandler LayerModified;
 
+    /// <summary>
+    /// Fired only when a user just finished creating a fresh marquee (Rect/Lasso/Color drag, Select-All) —
+    /// distinct from <see cref="PixelsSelected"/> which also fires on undo/redo replay. Use this to push
+    /// a <c>BeginSelectionOperation</c> exactly once per user-initiated marquee.
+    /// </summary>
+    event EventHandler MarqueeFinishedByUser;
+
     bool IsPixelPerfectMode{ get; set; }
     bool UseSwapBitmap { get; set; }
         

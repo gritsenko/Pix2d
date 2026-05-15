@@ -122,6 +122,7 @@ public class DrawingService : IDrawingService
             _drawingLayer.SelectionStarted -= DrawingLayerOnDrawingStarted;
             _drawingLayer.LayerModified -= DrawingLayerOnModified;
             _drawingLayer.SelectionTransformed -= DrawingLayerSelectionTransformed;
+            _drawingLayer.MarqueeFinishedByUser -= DrawingLayer_MarqueeFinishedByUser;
         }
 
         _drawingLayer = newDrawingLayer;
@@ -134,12 +135,29 @@ public class DrawingService : IDrawingService
             _drawingLayer.DrawingStarted += DrawingLayerOnDrawingStarted;
             _drawingLayer.LayerModified += DrawingLayerOnModified;
             _drawingLayer.SelectionTransformed += DrawingLayerSelectionTransformed;
+            _drawingLayer.MarqueeFinishedByUser += DrawingLayer_MarqueeFinishedByUser;
         }
     }
 
     private void DrawingLayerSelectionTransformed(object? sender, SelectionTransformedEventArgs e)
     {
         _operationService.PushOperations(e.Operation);
+    }
+
+    private void DrawingLayer_MarqueeFinishedByUser(object? sender, EventArgs e)
+    {
+        // The event fires only from FinishSelection after the marquee is fully set up, so a downcast +
+        // GetSelectionLayer/GetSelectionBackground is safe here. The op holds the same selection-layer
+        // reference DrawingLayerNode uses, so subsequent SelectionOperation/ApplyTransformOperation pushed
+        // on top will share its state and chain consistently through undo/redo.
+        if (_drawingLayer is not DrawingLayerNode dln) return;
+
+        var selectionLayer = (SpriteSelectionNode)dln.GetSelectionLayer();
+        var backgroundBitmap = dln.GetSelectionBackground();
+        var toolKey = _appState.ToolsState.CurrentToolKey;
+
+        var op = new BeginSelectionOperation(dln, selectionLayer, backgroundBitmap, toolKey);
+        _operationService.PushOperations(op);
     }
 
     private void DrawingLayerOnModified(object? sender, EventArgs e)

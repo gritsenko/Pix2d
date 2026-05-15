@@ -31,6 +31,14 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     public event EventHandler? LayerModified;
     public event EventHandler? PixelsSelected;
 
+    /// <summary>
+    /// Fires from <see cref="FinishSelection"/> after a fresh marquee is fully set up. Distinct from
+    /// <see cref="PixelsSelected"/> which also fires on every <c>SetSelection</c> call (paste / undo / redo);
+    /// this one specifically marks the user just finishing a new marquee gesture, which is the point at
+    /// which <c>BeginSelectionOperation</c> should be pushed onto the undo stack.
+    /// </summary>
+    public event EventHandler? MarqueeFinishedByUser;
+
     private IPixelSelector? _customPixelSelector;
     private IPixelSelector? _pixelSelector;
 
@@ -1325,6 +1333,10 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
             // PixelTransformTool, which is the single owner of the "pixels lifted" state.
             ActivateEditor(contourOnly: true);
             OnPixelsSelected();
+            // Fired last so subscribers (DrawingService → BeginSelectionOperation push) see the marquee in
+            // its fully activated state. Distinct from PixelsSelected which also fires from SetSelection
+            // during undo/redo replay — we don't want to re-push an op for those.
+            MarqueeFinishedByUser?.Invoke(this, EventArgs.Empty);
         }
     }
 
