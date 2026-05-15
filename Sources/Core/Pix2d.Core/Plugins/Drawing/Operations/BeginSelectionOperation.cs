@@ -42,7 +42,7 @@ public class BeginSelectionOperation : EditOperationBase, IToolAwareOperation
     public override void OnPerform()
     {
         // Redo: replay the marquee creation in contour mode. Pixels stay on the canvas — selection tools
-        // never lift, and any subsequent SelectionOperation / ApplyTransformOperation on the redo path
+        // never lift, and any subsequent TransformSelectionOperation / ApplyTransformOperation on the redo path
         // will replay the lift / transform / commit cycle.
         _drawingLayer.SetSelection(_selectionLayer, _backgroundBitmap, contourOnly: true);
     }

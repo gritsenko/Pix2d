@@ -33,7 +33,7 @@ internal sealed class SelectionController
     private readonly FrameEditorNode _selectionEditor;
     private IPixelSelector? _pixelSelector;
     private IPixelSelector? _customPixelSelector;
-    private SelectionOperation? _currentSelectionOperation;
+    private TransformSelectionOperation? _currentSelectionOperation;
     private bool _pixelsLifted;
 
     public event EventHandler? SelectionStarted;
@@ -158,11 +158,11 @@ internal sealed class SelectionController
         _host.SwapWorkingBitmap();
     }
 
-    private SelectionOperation GetCurrentSelectionOperationOrNew()
+    private TransformSelectionOperation GetCurrentSelectionOperationOrNew()
     {
         return _currentSelectionOperation == null
-            ? new SelectionOperation(_ownerNode, _host.ActiveToolKeyProvider?.Invoke())
-            : new SelectionOperation(_currentSelectionOperation);
+            ? new TransformSelectionOperation(_ownerNode, _host.ActiveToolKeyProvider?.Invoke())
+            : new TransformSelectionOperation(_currentSelectionOperation);
     }
 
     private void SelectionEditor_SelectionEditing(object? sender, EventArgs e)
@@ -660,6 +660,6 @@ internal sealed class SelectionController
     private void OnPixelsSelected() => PixelsSelected?.Invoke(this, EventArgs.Empty);
     private void OnPixelsBeforeSelected(SKBitmap selectionBitmap)
         => PixelsBeforeSelected?.Invoke(this, new PixelsBeforeSelectedEventArgs(selectionBitmap));
-    private void OnSelectionTransformed(SelectionOperation operation)
+    private void OnSelectionTransformed(TransformSelectionOperation operation)
         => SelectionTransformed?.Invoke(this, new SelectionTransformedEventArgs(operation));
 }

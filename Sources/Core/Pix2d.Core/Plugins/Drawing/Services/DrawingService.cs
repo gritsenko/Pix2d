@@ -148,7 +148,7 @@ public class DrawingService : IDrawingService
     {
         // The event fires only from FinishSelection after the marquee is fully set up, so a downcast +
         // GetSelectionLayer/GetSelectionBackground is safe here. The op holds the same selection-layer
-        // reference DrawingLayerNode uses, so subsequent SelectionOperation/ApplyTransformOperation pushed
+        // reference DrawingLayerNode uses, so subsequent TransformSelectionOperation/ApplyTransformOperation pushed
         // on top will share its state and chain consistently through undo/redo.
         if (_drawingLayer is not DrawingLayerNode dln) return;
 

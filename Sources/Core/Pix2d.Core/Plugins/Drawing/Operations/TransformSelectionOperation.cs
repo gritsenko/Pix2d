@@ -9,7 +9,7 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Operations;
 
-public class SelectionOperation : EditOperationBase, IToolAwareOperation
+public class TransformSelectionOperation : EditOperationBase, IToolAwareOperation
 {
     private readonly SelectionData _selectionData;
     private readonly SKNodeTransformState _initialState;
@@ -24,7 +24,7 @@ public class SelectionOperation : EditOperationBase, IToolAwareOperation
     public string? ToolKeyBeforeOperation { get; }
     public string? ToolKeyAfterOperation { get; private set; }
 
-    public SelectionOperation(DrawingLayerNode drawingLayer, string? activeToolKey = null)
+    public TransformSelectionOperation(DrawingLayerNode drawingLayer, string? activeToolKey = null)
     {
         _drawingLayer = drawingLayer;
         _selectionData = new SelectionData
@@ -41,7 +41,7 @@ public class SelectionOperation : EditOperationBase, IToolAwareOperation
         ToolKeyAfterOperation = activeToolKey;
     }
 
-    public SelectionOperation(SelectionOperation previousOperation)
+    public TransformSelectionOperation(TransformSelectionOperation previousOperation)
     {
         _drawingLayer = previousOperation._drawingLayer;
         _selectionData = previousOperation._selectionData;

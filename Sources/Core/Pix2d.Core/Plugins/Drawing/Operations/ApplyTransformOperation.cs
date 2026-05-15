@@ -11,7 +11,7 @@ namespace Pix2d.Plugins.Drawing.Operations;
 /// <summary>
 /// Records the commit step of a pixel-selection transform — the moment <see cref="DrawingLayerNode"/> stamps the
 /// lifted selection bitmap onto its <see cref="IDrawingTarget"/> and drops the marquee. Without this operation in
-/// the stack the commit is invisible to redo: undoing the last <c>SelectionOperation</c> would rewind the canvas
+/// the stack the commit is invisible to redo: undoing the last <c>TransformSelectionOperation</c> would rewind the canvas
 /// to its pre-transform state, but redoing it would put us back into the lifted state, never to the actually
 /// committed pixels.
 /// </summary>
@@ -65,7 +65,7 @@ public class ApplyTransformOperation : EditOperationBase, ISpriteEditorOperation
 
     public override void OnPerform()
     {
-        // Redo: the canvas state right before this commit lives in the previous SelectionOperation; what redo
+        // Redo: the canvas state right before this commit lives in the previous TransformSelectionOperation; what redo
         // adds is the stamp + marquee adjustment. Re-applying _targetDataAfter is enough because the lifted
         // bitmap has already been baked into it.
         _drawingTarget.SetData(_targetDataAfter);

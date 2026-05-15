@@ -7,6 +7,7 @@ using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
 using Pix2d.Operations.Drawing;
 using Pix2d.Plugins.Ai.Selection;
+using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Primitives.Drawing;
 using Pix2d.State;
 using SkiaNodes.Interactive;
@@ -121,7 +122,10 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 
     private void OnOperationInvoked(OperationInvokedMessage e)
     {
-        if (e.Operation.GetType().Name == "SelectionOperation")
+        // Keep the marquee alive across transform-related ops (each transform handle drag pushes one of
+        // these); any other op type means the user did something non-selection that should clear the
+        // marquee so the extracted-object preview disappears.
+        if (e.Operation.GetType().Name == nameof(TransformSelectionOperation))
         {
             if (e.OperationType != OperationEventType.Perform)
                 DrawingLayer.InvalidateSelectionEditor();
