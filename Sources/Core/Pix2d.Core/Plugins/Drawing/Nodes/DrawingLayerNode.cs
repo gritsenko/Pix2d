@@ -1053,6 +1053,12 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         UpdateBrushPreview(_brush);
     }
 
+    public bool AllowSelectionResize
+    {
+        get => _selectionEditor.AllowResize;
+        set => _selectionEditor.AllowResize = value;
+    }
+
     public void ClearTarget()
     {
         if (DrawingTarget == null)

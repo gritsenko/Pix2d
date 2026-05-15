@@ -42,6 +42,15 @@ public interface IDrawingLayer
 
     void SetDrawingLayerMode(BrushDrawingMode drawingMode);
 
+    /// <summary>
+    /// Controls whether the selection editor exposes its resize thumbs (the corner circles in transform
+    /// mode). <see cref="SetDrawingLayerMode"/> sets this to a sensible default for each drawing mode
+    /// (true for <c>Select</c>, false for <c>MoveSelection</c>) — callers that need a different default
+    /// (notably <c>PixelTransformTool</c>, which uses <c>MoveSelection</c> for pointer-gating but DOES
+    /// want resize thumbs) override it explicitly afterwards.
+    /// </summary>
+    bool AllowSelectionResize { get; set; }
+
     PixelSelectionMode SelectionMode { get; set; }
     bool HasSelection { get; }
     bool HasSelectionChanges { get; }
