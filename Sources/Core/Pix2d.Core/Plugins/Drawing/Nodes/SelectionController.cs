@@ -31,6 +31,7 @@ internal sealed class SelectionController
     // pull those methods into the controller, the accessors will tighten to `private`.
     private SpriteSelectionNode? _selectionLayer;
     private readonly FrameEditorNode _selectionEditor;
+    private readonly SelectionMarqueeOverlayNode _marqueeOverlay;
     private IPixelSelector? _pixelSelector;
     private IPixelSelector? _customPixelSelector;
     private TransformSelectionOperation? _currentSelectionOperation;
@@ -100,6 +101,8 @@ internal sealed class SelectionController
         _selectionEditor.SelectionEdited += SelectionEditor_SelectionEdited;
         _selectionEditor.SelectionEditing += SelectionEditor_SelectionEditing;
         _selectionEditor.AspectSnapperProviderFunc = () => _host.AspectSnapper!;
+
+        _marqueeOverlay = new SelectionMarqueeOverlayNode { IsVisible = false };
     }
 
     public SKNode GetSelectionLayerNode()
@@ -111,7 +114,10 @@ internal sealed class SelectionController
     public void InvalidateSelectionEditor()
     {
         if (_selectionLayer != null)
-            _selectionEditor.SetSelection(new NodesSelection(new[] { _selectionLayer }, () => { }) { GenerateOperations = false });
+            _selectionEditor.SetSelection(
+                new NodesSelection(new[] { _selectionLayer }, () => { }) { GenerateOperations = false },
+                _selectionLayer.SelectionPath,
+                _selectionLayer.SelectionContours);
     }
 
     public void FlipSelection(FlipMode mode)
@@ -190,10 +196,32 @@ internal sealed class SelectionController
             UpdateWorkingBitmapFromSelection();
     }
 
-    // 2-pixel black/white dashes alternating along the selection outline (Photoshop "marching ants"
-    // style). Visible on both light and dark backgrounds, unlike a single semi-transparent colour.
-    private static SKColor GetSelectionDashColor(int x, int y)
-        => (((x + y) >> 1) & 1) == 0 ? SKColors.White : SKColors.Black;
+    private void EnsureMarqueeOverlayAttached()
+    {
+        var drawingTarget = _host.DrawingTarget;
+        if (drawingTarget is not SKNode targetNode)
+            return;
+
+        var adornerLayer = SkiaNodes.AdornerLayer.GetAdornerLayer(targetNode.Parent ?? targetNode);
+        if (_marqueeOverlay.Parent != adornerLayer)
+            adornerLayer.Add(_marqueeOverlay);
+
+        _marqueeOverlay.Position = targetNode.Position;
+    }
+
+    private void ShowMarqueeOverlay()
+    {
+        EnsureMarqueeOverlayAttached();
+        _marqueeOverlay.Clear();
+        _marqueeOverlay.IsVisible = true;
+    }
+
+    private void HideMarqueeOverlay()
+    {
+        _marqueeOverlay.IsVisible = false;
+        _marqueeOverlay.Clear();
+        _host.RequestRefresh();
+    }
 
     public SKBitmap GetSelectionBackground()
         => _host.BackgroundBitmap?.Copy() ?? throw new InvalidOperationException("BackgroundBitmap is not initialized");
@@ -227,8 +255,23 @@ internal sealed class SelectionController
             _pixelSelector = _customPixelSelector ?? new PixelSelector();
         }
 
-        _host.UseSwapBitmap = SelectionMode == PixelSelectionMode.Rectangle;
+        // Working bitmap is no longer used to host the marching-ants visualization (the
+        // SelectionMarqueeOverlayNode draws those as vectors). Keep UseSwapBitmap false so
+        // OnDraw doesn't show stale swap content during the drag.
+        _host.UseSwapBitmap = false;
         _pixelSelector.BeginSelection(new SKPointI((int)pos.X, (int)pos.Y));
+
+        ShowMarqueeOverlay();
+
+        if (SelectionMode != PixelSelectionMode.Rectangle)
+        {
+            // Freeform marquee: seed the visual path with the starting point so the first move-event
+            // already produces a visible line segment, matching the pointer trace.
+            var pivot = SKPoint.Empty;
+            _host.GetGlobalTransform().TryInvert(out var invertedTransform);
+            var localStart = invertedTransform.MapPoint(pos + pivot);
+            _marqueeOverlay.BeginFreeformPath(localStart);
+        }
     }
 
     public void AddSelectionPoint(SKPoint p)
@@ -239,12 +282,14 @@ internal sealed class SelectionController
         var pivot = SKPoint.Empty;
         _host.GetGlobalTransform().TryInvert(out var invertedTransform);
         var selectionPoint = invertedTransform.MapPoint(p + pivot);
-        _pixelSelector.AddSelectionPoint(new SKPointI((int)selectionPoint.X, (int)selectionPoint.Y),
-            (x, y) =>
-            {
-                if (_host.IsInBounds(new SKPointI(x, y)))
-                    _host.SetPixel(x, y, GetSelectionDashColor(x, y));
-            });
+
+        // Pass a no-op plot: the pixel-level visualization is now handled by SelectionMarqueeOverlayNode.
+        // The selector still needs the call to keep _selectionPoints populated (used by FinishSelection
+        // to build the actual selection bitmap and contour).
+        _pixelSelector.AddSelectionPoint(new SKPointI((int)selectionPoint.X, (int)selectionPoint.Y), NoPlot);
+
+        _marqueeOverlay.AddFreeformPoint(selectionPoint);
+        _host.RequestRefresh();
     }
 
     public void SetSelectionRect(SKPoint startPos, SKPoint endPos)
@@ -260,23 +305,21 @@ internal sealed class SelectionController
         var p3 = invertedTransform.MapPoint(endPos + pivot).ToSkPointI();
         var p4 = invertedTransform.MapPoint(new SKPoint(startPos.X, endPos.Y) + pivot).ToSkPointI();
 
-        void Plot(int x, int y)
-        {
-            if (_host.IsInBounds(new SKPointI(x, y)))
-                _host.SetPixel(x, y, GetSelectionDashColor(x, y));
-        }
-
         _pixelSelector.BeginSelection(p1);
-        _pixelSelector.AddSelectionPoint(p2, Plot);
-        _pixelSelector.AddSelectionPoint(p3, Plot);
-        _pixelSelector.AddSelectionPoint(p4, Plot);
-        _pixelSelector.AddSelectionPoint(p1, Plot);
+        _pixelSelector.AddSelectionPoint(p2, NoPlot);
+        _pixelSelector.AddSelectionPoint(p3, NoPlot);
+        _pixelSelector.AddSelectionPoint(p4, NoPlot);
+        _pixelSelector.AddSelectionPoint(p1, NoPlot);
 
         var w = Math.Abs(p3.X - p1.X);
         var h = Math.Abs(p3.Y - p1.Y);
         SelectionSize = new SKSizeI(w + 1, h + 1);
-        _host.SwapWorkingBitmap();
+
+        _marqueeOverlay.SetRectanglePath(p1, p3);
+        _host.RequestRefresh();
     }
+
+    private static void NoPlot(int x, int y) { }
 
     /// <summary>
     /// Activates selection editor using currently drawn selection area. If nothing is selected
@@ -287,6 +330,9 @@ internal sealed class SelectionController
         var drawingTarget = _host.DrawingTarget;
         if (_pixelSelector == null || drawingTarget == null)
             return;
+
+        // Drag-phase visualization is done — the static frame (FrameEditorNode + LineHighlightNode) takes over below.
+        HideMarqueeOverlay();
 
         _host.State = DrawingLayerState.Ready;
 
@@ -308,6 +354,7 @@ internal sealed class SelectionController
             {
                 Bitmap = selectionBitmap,
                 SelectionPath = selector.GetSelectionPath(),
+                SelectionContours = selector.GetSelectionContours(),
                 Opacity = 1,
                 Position = selector.Offset + ((SKNode)drawingTarget).Position,
             };
@@ -361,9 +408,23 @@ internal sealed class SelectionController
 
     public void CancelSelect() => DeactivateSelectionEditor();
 
+    /// <summary>
+    /// Called by <see cref="DrawingLayerNode.CancelActiveDrawing"/> when a marquee drag is interrupted (pinch,
+    /// escape, etc.). Drops the in-progress pixel selector and removes the vector marquee overlay so nothing
+    /// stale stays on screen. No-op when no marquee is in flight.
+    /// </summary>
+    public void CancelMarqueeDrag()
+    {
+        if (!_marqueeOverlay.IsVisible)
+            return;
+        _pixelSelector = null;
+        HideMarqueeOverlay();
+    }
+
     public void DeactivateSelectionEditor()
     {
         _selectionEditor.Hide();
+        HideMarqueeOverlay();
 
         _selectionLayer = null;
         _currentSelectionOperation = null;
@@ -399,7 +460,7 @@ internal sealed class SelectionController
 
             var selection = new NodesSelection(new[] { _selectionLayer }, () => { }) { GenerateOperations = false };
 
-            _selectionEditor.SetSelection(selection, _selectionLayer.SelectionPath);
+            _selectionEditor.SetSelection(selection, _selectionLayer.SelectionPath, _selectionLayer.SelectionContours);
             ApplyEditorMode(contourOnly);
             _selectionEditor.IsVisible = true;
 
@@ -508,6 +569,7 @@ internal sealed class SelectionController
         _selectionLayer.Size = new SKSize(w, h);
         _selectionLayer.Position = new SKPoint(bounds.Left, bounds.Top);
         _selectionLayer.SelectionPath = null;
+        _selectionLayer.SelectionContours = null;
         _selectionLayer.Rotation = 0;
 
         _host.BackgroundBitmap = snapshot;

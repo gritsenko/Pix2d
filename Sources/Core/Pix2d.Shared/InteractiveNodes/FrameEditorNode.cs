@@ -119,24 +119,39 @@ public class FrameEditorNode : SKNode
     private void SizeThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
         _selection?.InitOperation<ResizeOperation>();
+        FreezeContourForDrag();
         OnSelectionEditStarted();
     }
 
     private void MoveThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
         _selection?.InitOperation<MoveOperation>();
+        FreezeContourForDrag();
         OnSelectionEditStarted();
     }
     private void RotateThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
         _selection?.InitOperation<RotateOperation>();
+        FreezeContourForDrag();
         OnSelectionEditStarted();
     }
 
     private void ThumbOnDragComplete(object? sender, DragCompletedEventArgs e)
     {
+        // Unfreeze first so SelectionEdited consumers see the final state, then re-sync the contour to the
+        // pixel-snapped frame the thumbs left behind. Doing this in one step on release avoids the visual
+        // wobble of recalculating the dashed outline every drag-delta.
+        UnfreezeContourAfterDrag();
         OnSelectionEdited();
         _selection?.FinishOperation();
+    }
+
+    private void FreezeContourForDrag() => _highlightNode.FreezeTransformUpdates = true;
+
+    private void UnfreezeContourAfterDrag()
+    {
+        _highlightNode.FreezeTransformUpdates = false;
+        _highlightNode.SyncTransformToFrame();
     }
 
     private void Thumb_DragDelta(object? sender, DragDeltaEventArgs e)
@@ -153,13 +168,17 @@ public class FrameEditorNode : SKNode
         OnSelectionEditing();
     }
 
-    public void SetSelection(INodesSelection selection, SKPath? highlightPath = null)
+    public void SetSelection(INodesSelection selection, SKPath? highlightPath = null, IReadOnlyList<IReadOnlyList<SKPoint>>? highlightContours = null)
     {
         EditStarted = false;
         _selection = selection as NodesSelection;
-        _highlightNode.SetSelection(_selection, highlightPath);
+        _highlightNode.SetSelection(_selection, highlightPath, highlightContours);
 
         this.IsVisible = _selection?.Nodes.Any() ?? false;
+
+        // When a real contour is supplied (lasso / same-colour), LineHighlightNode renders it; the move
+        // thumb must not double-draw a bounding rect on top.
+        _moveThumb.HasCustomContour = highlightPath != null;
 
         foreach (var thumb in Nodes.OfType<NodeManipulateThumbBase>())
         {

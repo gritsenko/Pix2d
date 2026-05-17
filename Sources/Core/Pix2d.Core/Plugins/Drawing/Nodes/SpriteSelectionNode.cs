@@ -11,6 +11,14 @@ public class SpriteSelectionNode : BitmapNode
     private SKBitmap? _upscaledBitmap = null;
     public SKPath? SelectionPath { get; set; } = null;
 
+    /// <summary>
+    /// Raw per-contour vertex lists captured at selection time. Lets later code (the marching-ants
+    /// overlay) rebuild a snapped/scaled <see cref="SKPath"/> after a transform resize without losing
+    /// per-contour topology — <see cref="SKPath.Points"/> alone wouldn't preserve it. Null for selectors
+    /// that don't produce contours (rectangle marquee, select-all).
+    /// </summary>
+    public List<List<SKPoint>>? SelectionContours { get; set; } = null;
+
     public new void Clear()
     {
         Bitmap?.Clear();

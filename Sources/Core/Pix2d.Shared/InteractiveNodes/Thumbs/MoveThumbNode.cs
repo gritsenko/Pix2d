@@ -25,6 +25,14 @@ public class MoveThumbNode : NodeManipulateThumbBase
     /// </summary>
     public bool ContourOnly { get; set; }
 
+    /// <summary>
+    /// Set to true when a sibling node (e.g. <see cref="Pix2d.CommonNodes.LineHighlightNode"/>) is already rendering
+    /// the real selection contour. In that case the move thumb skips its own bounding-rect outline in
+    /// <see cref="ContourOnly"/> mode — otherwise a non-rectangular selection (lasso/same-colour) would show
+    /// both the true contour and a redundant rectangle around it.
+    /// </summary>
+    public bool HasCustomContour { get; set; }
+
     public Func<bool> AxisLockProviderFunc { get; set; } = null!;
     public AxisLockMode AxisLockMode { get; set; }
 
@@ -111,6 +119,11 @@ public class MoveThumbNode : NodeManipulateThumbBase
     {
         if (ContourOnly)
         {
+            // Non-rectangular selections (lasso, same-colour) render their real outline via LineHighlightNode —
+            // drawing the bounding rect here on top of that would defeat the point of a contour-only mode.
+            if (HasCustomContour)
+                return;
+
             // Photoshop-style marching ants: two offset dashed strokes (black + white) so the
             // outline stays visible regardless of canvas colour.
             var dashLen = vp.PixelsToWorld(4);

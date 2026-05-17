@@ -752,6 +752,11 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         // A second finger / gesture suppression interrupts any pending touch selection before it promotes.
         _pointerInputRouter.CancelDeferredSelection();
 
+        // Drop any in-flight marquee overlay so the dashed outline doesn't linger after a cancel.
+        // Runs first so it covers both the DrawingSelectionArea path below and any state slip where the
+        // overlay was attached but the layer state didn't track it.
+        _selection.CancelMarqueeDrag();
+
         if (State is DrawingLayerState.Drawing or DrawingLayerState.DrawingSelectionArea)
         {
             CancelDrawing();
