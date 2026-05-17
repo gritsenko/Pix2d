@@ -68,7 +68,7 @@ class Program
                 .LogToTrace();
 
         // Проверяем, запущено ли приложение на Windows и архитектуре ARM64
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
+        /*if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
             RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
             builder.With(new Win32PlatformOptions
@@ -85,7 +85,7 @@ class Program
                 ]
             });
         }
-
+*/
         return builder;
     }
 
