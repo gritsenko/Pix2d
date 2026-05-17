@@ -28,6 +28,20 @@ internal interface ISelectionLayerHost
     void SwapWorkingBitmap();
     void ApplyWorkingBitmap();
 
+    /// <summary>
+    /// Takes a copy-on-write snapshot of the current working bitmap and publishes it as the bitmap
+    /// the compositor displays. While a snapshot is published, the live working bitmap can be written
+    /// to freely without tearing — the compositor reads from the immutable snapshot instead.
+    /// </summary>
+    void PromoteWorkingBitmapToDisplay();
+
+    /// <summary>
+    /// Drops the current display snapshot. After this the compositor goes back to reading the live
+    /// working bitmap directly. Called when the selection editor deactivates so subsequent drawing
+    /// operations show the live bitmap.
+    /// </summary>
+    void ClearDisplaySnapshot();
+
     bool LockTransparentPixels { get; }
 
     void RequestRefresh();

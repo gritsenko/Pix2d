@@ -47,6 +47,24 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     private SKBitmap? _swapBitmap;
     private SKBitmap? _workingBitmap;
 
+    // Immutable copy-on-write view of _workingBitmap handed to the compositor. While set, OnDraw
+    // draws this instead of the live bitmap. Avalonia composites on a separate render thread, and
+    // canvas.DrawBitmap reads pixel memory during flush; if the UI thread writes to the bitmap in
+    // that window the user sees torn horizontal bands. SKImage.FromBitmap is allocation-free in the
+    // steady state (shares the SkPixelRef) and Skia forks on the next write — so the compositor
+    // keeps reading the snapshot's original bytes while UI thread renders the next frame freely.
+    // Used by SelectionController during a transform drag (write rate >> paint rate) and cleared
+    // when the editor deactivates.
+    //
+    // Access is guarded by _snapshotLock: OnDraw runs on Avalonia's render thread while
+    // PromoteWorkingBitmapToDisplay / ClearDisplaySnapshot run on the UI thread. Without the lock,
+    // the UI thread could Dispose() the SKImage between the render thread reading the field and
+    // calling canvas.DrawImage on it — at which point the handle is IntPtr.Zero and SkiaSharp
+    // throws. DrawImage takes its own sk_sp ref on the native side, so dispose-after-DrawImage is
+    // safe; the lock only needs to cover the field read + the DrawImage call itself.
+    private SKImage? _workingBitmapDisplaySnapshot;
+    private readonly Lock _snapshotLock = new();
+
     public bool UseSwapBitmap { get; set; }
 
     /// <summary>
@@ -569,7 +587,17 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         }
         else
         {
-            canvas.DrawBitmap(_workingBitmap, 0, 0);
+            // Prefer the COW snapshot when one is published — see _workingBitmapDisplaySnapshot's note.
+            // Falls back to the live bitmap when no snapshot is active (every path outside the selection
+            // transform drag, where tearing isn't an issue). Lock covers the field read + DrawImage to
+            // keep the UI thread from disposing the SKImage mid-call.
+            lock (_snapshotLock)
+            {
+                if (_workingBitmapDisplaySnapshot != null)
+                    canvas.DrawImage(_workingBitmapDisplaySnapshot, 0, 0);
+                else
+                    canvas.DrawBitmap(_workingBitmap, 0, 0);
+            }
         }
     }
 
@@ -810,6 +838,34 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     void ISelectionLayerHost.ApplyWorkingBitmap() => ApplyWorkingBitmap();
     void ISelectionLayerHost.RequestRefresh() => Refresh();
     void ISelectionLayerHost.RaiseDrawingApplied(bool saveToUndo) => OnDrawingApplied(saveToUndo);
+
+    void ISelectionLayerHost.PromoteWorkingBitmapToDisplay()
+    {
+        if (_workingBitmap == null) return;
+        // Build the new image outside the lock to keep the render-thread critical section short.
+        var newImage = SKImage.FromBitmap(_workingBitmap);
+        SKImage? old;
+        lock (_snapshotLock)
+        {
+            old = _workingBitmapDisplaySnapshot;
+            _workingBitmapDisplaySnapshot = newImage;
+        }
+        // Safe to dispose: the only other reader is OnDraw, and once we're past the lock OnDraw
+        // can no longer observe `old` from the field. DrawImage calls that already started took
+        // their own native ref, so the underlying SkImage stays alive for the GPU flush.
+        old?.Dispose();
+    }
+
+    void ISelectionLayerHost.ClearDisplaySnapshot()
+    {
+        SKImage? old;
+        lock (_snapshotLock)
+        {
+            old = _workingBitmapDisplaySnapshot;
+            _workingBitmapDisplaySnapshot = null;
+        }
+        old?.Dispose();
+    }
 
     BrushDrawingMode IPointerInputRouterHost.GetDrawingMode() => _drawingMode;
     bool IPointerInputRouterHost.IsTargetBitmapVisible => DrawingTarget!.IsTargetBitmapVisible();

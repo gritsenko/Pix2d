@@ -162,6 +162,12 @@ internal sealed class SelectionController
         canvas.Flush();
         _host.WorkingBitmap.NotifyPixelsChanged();
         _host.SwapWorkingBitmap();
+
+        // Publish an immutable COW snapshot of the freshly-swapped working bitmap so the compositor
+        // reads stable pixels even if the next drag delta starts modifying the bitmap before this
+        // frame finishes painting. Without this, pointer events arriving faster than the paint rate
+        // caused the compositor to read the bitmap mid-write, showing as horizontal tear bands.
+        _host.PromoteWorkingBitmapToDisplay();
     }
 
     private TransformSelectionOperation GetCurrentSelectionOperationOrNew()
@@ -430,6 +436,7 @@ internal sealed class SelectionController
         _currentSelectionOperation = null;
 
         _host.ClearWorkingBuffers();
+        _host.ClearDisplaySnapshot();
 
         _host.UseSwapBitmap = false;
         _host.Opacity = 1;
@@ -593,6 +600,7 @@ internal sealed class SelectionController
         _host.ApplyWorkingBitmap();
 
         _host.ClearWorkingAndSwapBitmaps();
+        _host.ClearDisplaySnapshot();
         drawingTarget.SetTargetBitmapSubstitute(null);
         drawingTarget.ShowTargetBitmap();
 
