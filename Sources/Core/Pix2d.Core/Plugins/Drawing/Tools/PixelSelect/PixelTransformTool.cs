@@ -45,6 +45,8 @@ public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
 
     public override Task Activate()
     {
+        RememberReturnSelectionTool();
+
         // Transform tool is only useful when there is an existing selection. Without one we fall back to the
         // rectangular selection tool so the user can describe an area first; this matches the user's intent
         // when they press the Transform hotkey without a selection in place.
@@ -55,13 +57,16 @@ public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
         }
 
         DrawingLayer.SetDrawingLayerMode(BrushDrawingMode.MoveSelection);
-        // Enter transform mode. Calling ActivateEditor(contourOnly: false) directly preserves the original
-        // selection path (lasso/freeform contours stay intact) — using SetSelectionTransformMode(true) would
-        // route through LiftSelectionFromCanvas which rewrites the selection to an axis-aligned rect.
-        // ActivateEditor flips on AllowResize via SelectionController.ApplyEditorMode, so the resize thumbs
-        // appear without any extra plumbing here.
+        // Enter transform mode. If the marquee was moved in contour-only mode, the cached selection bitmap is
+        // now stale; re-lift from the canvas so the transform tool picks up the pixels under the frame's
+        // current position. For untouched marquees we keep the old path so lasso/freeform contours survive.
         if (DrawingLayer.SelectionPhase == SelectionPhase.MarqueeReady)
-            DrawingLayer.ActivateEditor(contourOnly: false);
+        {
+            if (DrawingLayer.HasSelectionChanges)
+                DrawingLayer.SetSelectionTransformMode(true);
+            else
+                DrawingLayer.ActivateEditor(contourOnly: false);
+        }
 
         _appState.UiState.ShowClipboardBar = true;
 
@@ -95,6 +100,28 @@ public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
     private bool IsHandoffToSelectionTool() =>
         _toolService.IsSelectionTool(_toolService.IncomingToolKey);
 
+    private void RememberReturnSelectionTool()
+    {
+        var currentToolKey = _appState.ToolsState.CurrentToolKey;
+        SelectionState.ReturnSelectionToolKey = _toolService.IsSelectionTool(currentToolKey)
+            && currentToolKey != nameof(PixelTransformTool)
+                ? currentToolKey
+                : nameof(PixelSelectRectTool);
+    }
+
+    private void ActivateReturnSelectionTool()
+    {
+        var toolKey = SelectionState.ReturnSelectionToolKey;
+        if (!_toolService.IsSelectionTool(toolKey) || toolKey == nameof(PixelTransformTool))
+            toolKey = nameof(PixelSelectRectTool);
+
+        var toolType = _appState.ToolsState.Tools.FirstOrDefault(x => x.Name == toolKey)?.ToolType;
+        if (toolType != null)
+            _toolService.ActivateTool(toolType);
+        else
+            _toolService.ActivateTool<PixelSelectRectTool>();
+    }
+
     protected override void OnPointerPressed(object? sender, PointerActionEventArgs e)
     {
         base.OnPointerPressed(sender, e);
@@ -105,9 +132,9 @@ public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
         // No bounds check needed: reaching here IS the outside-the-marquee signal.
         if (DrawingLayer.SelectionPhase != SelectionPhase.Transforming) return;
 
-        // Hand off to the rect-select tool. That triggers our own Deactivate → CommitTransformWithUndo
-        // case-A path (marquee preserved in contour mode, ApplyTransformOp pushed). Matches the Apply
-        // button in the settings panel, which routes through the same tool switch for consistency.
-        _toolService.ActivateTool<PixelSelectRectTool>();
+        // Hand off to the selection tool the user came from. That triggers our own Deactivate →
+        // CommitTransformWithUndo case-A path (marquee preserved in contour mode, ApplyTransformOp pushed).
+        // Matches the Apply command/button so every "commit transform" affordance exits the same way.
+        ActivateReturnSelectionTool();
     }
 }

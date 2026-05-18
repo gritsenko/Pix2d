@@ -21,13 +21,30 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 
     private SpriteEditor? SpriteEditor => AppState.CurrentProject.CurrentNodeEditor as SpriteEditor;
     private IDrawingService DrawingService => ServiceProvider.GetRequiredService<IDrawingService>();
+    private IToolService ToolService => ServiceProvider.GetRequiredService<IToolService>();
+
+    private bool IsTransformToolActive() => AppState.ToolsState.CurrentToolKey == nameof(PixelTransformTool);
+
+    private void ActivateReturnSelectionTool()
+    {
+        var toolKey = AppState.SelectionState.ReturnSelectionToolKey;
+        if (!ToolService.IsSelectionTool(toolKey) || toolKey == nameof(PixelTransformTool))
+            toolKey = nameof(PixelSelectRectTool);
+
+        var toolType = AppState.ToolsState.Tools.FirstOrDefault(x => x.Name == toolKey)?.ToolType;
+        if (toolType != null)
+            ToolService.ActivateTool(toolType);
+        else
+            ToolService.ActivateTool<PixelSelectRectTool>();
+    }
 
     public Pix2dCommand CopyPixels =>
         GetCommand(() =>
         {
             var (nodes, backgroundColor) = ServiceProvider.GetRequiredService<SpritePlugin>().GetDataForCutOrCopy(AppState);
             ServiceProvider.GetRequiredService<IClipboardService>().TryCopyNodesAsBitmapAsync(nodes, backgroundColor);
-        }, "Copy selected pixels", new CommandShortcut(VirtualKeys.C, KeyModifier.Ctrl), EditContextType.Sprite);
+        }, "Copy selected pixels", new CommandShortcut(VirtualKeys.C, KeyModifier.Ctrl), EditContextType.Sprite,
+            behaviour: ServiceProvider.GetRequiredService<EnableOnClipboardSelectionCommandBehavior>());
 
     public Pix2dCommand CopyMerged => GetCommand(() =>
     {
@@ -44,7 +61,8 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
         {
             var (nodes, backgroundColor) = ServiceProvider.GetRequiredService<SpritePlugin>().GetDataForCutOrCopy(AppState);
             ServiceProvider.GetRequiredService<IClipboardService>().TryCutNodesAsBitmapAsync(nodes, backgroundColor);
-        }, "Cut selected pixels", new CommandShortcut(VirtualKeys.X, KeyModifier.Ctrl), EditContextType.Sprite);
+        }, "Cut selected pixels", new CommandShortcut(VirtualKeys.X, KeyModifier.Ctrl), EditContextType.Sprite,
+            behaviour: ServiceProvider.GetRequiredService<EnableOnClipboardSelectionCommandBehavior>());
 
     public Pix2dCommand TryPaste => GetCommand(() => { ServiceProvider.GetRequiredService<IClipboardService>().TryPaste(); }, "Paste pixels", new CommandShortcut(VirtualKeys.V, KeyModifier.Ctrl), EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
@@ -113,9 +131,28 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
     public Pix2dCommand Clear => GetCommand(() => { ServiceProvider.GetRequiredService<IDrawingService>().ClearCurrentLayer(); },
         "Clear pixels", new CommandShortcut(VirtualKeys.Delete), EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
-    public Pix2dCommand Cancel => GetCommand(() => { ServiceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation(); }, "Cancel drawing", new CommandShortcut(VirtualKeys.Escape), EditContextType.Sprite);
+    public Pix2dCommand Cancel => GetCommand(() =>
+    {
+        if (IsTransformToolActive())
+        {
+            DrawingService.CancelCurrentOperation();
+            ActivateReturnSelectionTool();
+            return;
+        }
 
-    public Pix2dCommand ApplySelection => GetCommand(() => { ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer.ApplySelection(); }, "Apply selection", new CommandShortcut(VirtualKeys.Return), EditContextType.Sprite);
+        DrawingService.CancelCurrentOperation();
+    }, "Cancel drawing", new CommandShortcut(VirtualKeys.Escape), EditContextType.Sprite);
+
+    public Pix2dCommand ApplySelection => GetCommand(() =>
+    {
+        if (IsTransformToolActive())
+        {
+            ActivateReturnSelectionTool();
+            return;
+        }
+
+        DrawingService.DrawingLayer.ApplySelection();
+    }, "Apply selection", new CommandShortcut(VirtualKeys.Return), EditContextType.Sprite);
 
     public Pix2dCommand ActivateSelectionTransform => GetCommand(() =>
     {
@@ -124,8 +161,8 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
         // legacy "no-op without selection" semantic so an accidental Ctrl+Shift+T doesn't yank the user
         // out of their current tool. (The tool's own fallback to PixelSelectRectTool is meant for the
         // hotkey-on-tool path, not for command-on-empty-selection.)
-        if (ServiceProvider.GetRequiredService<IDrawingService>().DrawingLayer.HasSelection)
-            ServiceProvider.GetRequiredService<IToolService>().ActivateTool<PixelTransformTool>();
+        if (DrawingService.DrawingLayer.HasSelection)
+            ToolService.ActivateTool<PixelTransformTool>();
     }, "Transform selection", new CommandShortcut(VirtualKeys.T, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 
     public Pix2dCommand SendLayerBackward =>

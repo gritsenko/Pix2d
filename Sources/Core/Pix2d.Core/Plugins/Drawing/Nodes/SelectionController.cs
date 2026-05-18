@@ -505,9 +505,20 @@ internal sealed class SelectionController
             return;
 
         if (!_selectionEditor.IsVisible)
+        {
             ActivateEditor(contourOnly: false);
+        }
+        else if (_selectionEditor.ContourOnly)
+        {
+            if (HasSelectionChanges)
+                SetSelectionTransformMode(true);
+            else
+                ActivateEditor(contourOnly: false);
+        }
         else
+        {
             ApplyEditorMode(contourOnly: false);
+        }
 
         // Toggling thumb visibility doesn't dirty the scene tree on its own, so force a redraw here.
         _host.RequestRefresh();

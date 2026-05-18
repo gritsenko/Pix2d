@@ -12,9 +12,7 @@ namespace Pix2d.Plugins.Drawing.UI;
 /// disappear in transform mode so the top UI clearly communicates that we are editing the selected pixels now.
 /// </summary>
 public class SelectionTransformToolSettingsView(
-    ICommandService commandService,
-    IToolService toolService,
-    IDrawingService drawingService) : ViewBase
+    ICommandService commandService) : ViewBase
 {
     private ISpriteEditCommands SpriteEditCommands =>
         commandService.GetCommandList<ISpriteEditCommands>() ??
@@ -24,13 +22,12 @@ public class SelectionTransformToolSettingsView(
         new StackPanel()
             .Orientation(Orientation.Horizontal)
             .Children(
-                // Apply — leave transform mode by handing the selection back to PixelSelectRectTool, which
-                // triggers PixelTransformTool.Deactivate → commit. Same effect as pressing M.
+                // Apply — leave transform mode via the shared ApplySelection command so Enter / toolbar click
+                // / click-outside all commit through the same return-to-selection-tool path.
                 new Button()
+                    .Command(SpriteEditCommands.ApplySelection)
                     .With(ButtonStyle)
-                    .ToolTip_Tip("Apply transform")
-                    .Content(CreateIcon(StaticResources.Icons.CheckIcon))
-                    .OnClick(_ => toolService.ActivateTool<PixelSelectRectTool>()),
+                    .Content(CreateIcon(StaticResources.Icons.CheckIcon)),
 
                 new Button()
                     .Command(SpriteEditCommands.FlipHorizontal)
@@ -49,14 +46,10 @@ public class SelectionTransformToolSettingsView(
                     .With(ButtonStyle)
                     .Content(CreateIcon(StaticResources.Icons.RotateContentRightIcon)),
                 new Button()
+                    .Command(SpriteEditCommands.Cancel)
                     .With(ButtonStyle)
-                    .ToolTip_Tip("Cancel transform")
                     .Content(CreateIcon(StaticResources.Icons.CursorRemoveSelectionIcon))
-                    .OnClick(_ =>
-                    {
-                        drawingService.DrawingLayer.CancelCurrentOperation();
-                        toolService.ActivateTool<PixelSelectRectTool>();
-                    })
+
             );
 
     private static void ButtonStyle(Button b)

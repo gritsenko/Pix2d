@@ -111,6 +111,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         //services.AddSingleton<ReviewService>();
 
         services.AddSingleton<DisableOnAnimationCommandBehavior>(); // Depends on: AppState
+        services.AddSingleton<EnableOnClipboardSelectionCommandBehavior>(); // Depends on: AppState, IDrawingService, IMessenger
 
         // UI scaling service
         services.AddSingleton<IUiScaleService, AvaloniaUiScaleService>();
