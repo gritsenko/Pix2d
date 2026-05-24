@@ -15,6 +15,14 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
 
     public SKColor StrokeColor = SKColor.Parse("#ff4384de");
 
+    /// <summary>
+    /// When true, the thumb renders with a black stroke and white fill instead of the blue transform
+    /// styling. Used for the crop-tool frame-resize affordance, where the marquee is a region selector
+    /// (no pixel transformation), so the manipulator should visually distinguish itself from the
+    /// blue transform handles.
+    /// </summary>
+    public bool ContourOnly { get; set; }
+
     private SKPoint _initialThumbGlobalPos;
     protected SKMatrix _initialTargetLocalTransform;
     protected SKMatrix _initialTargetGlobalTransform;
@@ -111,7 +119,7 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
             IsStroke = true,
             IsAntialias = true,
             StrokeWidth = vp.PixelsToWorld(2),
-            Color = StrokeColor,
+            Color = ContourOnly ? SKColors.Black : StrokeColor,
         };
 
         canvas.Save();

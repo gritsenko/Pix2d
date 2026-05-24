@@ -87,11 +87,13 @@ public abstract class PixelSelectToolBase : BaseTool, IDrawingTool, IPixelSelect
         DrawingLayer.SelectionStarted -= DrawingLayer_SelectionStarted;
         DrawingLayer.SelectionRemoved -= DrawingLayer_SelectionRemoved;
 
-        // Hand off cleanly to PixelTransformTool: that tool's whole job is to take ownership of the current
-        // marquee, so dropping it here would leave it nothing to work with (and it would just bounce us back
-        // to this tool, creating a loop). For any other transition we drop the marquee — drawing tools don't
-        // honour selections and leaving the editor alive would let its thumbs intercept brush strokes.
-        if (ToolService.IncomingToolKey != nameof(PixelTransformTool))
+        // Hand off cleanly to tools that take ownership of the current marquee — PixelTransformTool lifts
+        // it for transform handles, CropTool reuses it as the initial crop frame. Dropping the marquee in
+        // either case would leave the receiving tool nothing to work with. For any other transition we
+        // drop it — drawing tools don't honour selections and leaving the editor alive would let its
+        // thumbs intercept brush strokes.
+        if (ToolService.IncomingToolKey != nameof(PixelTransformTool)
+            && ToolService.IncomingToolKey != nameof(CropTool))
             DrawingLayer.ApplySelection();
 
         if (DrawingLayer.DrawingTarget != null)

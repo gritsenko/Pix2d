@@ -46,6 +46,7 @@ public class FrameEditorNode : SKNode
     }
 
     private bool _contourOnly;
+    private bool _frameResizeMode;
 
     /// <summary>
     /// When true, the editor renders in contour-edit mode: only the marching-ants outline is shown (drawn by
@@ -61,6 +62,25 @@ public class FrameEditorNode : SKNode
         {
             if (_contourOnly == value) return;
             _contourOnly = value;
+            UpdateThumbs();
+        }
+    }
+
+    /// <summary>
+    /// Frame-resize mode (crop tool). Layered ON TOP of <see cref="ContourOnly"/>: when both are true the
+    /// move thumb still draws marching ants (no pixel lift), but the resize handles are forced visible and
+    /// rendered in the contour/black styling — signalling that dragging them resizes the marquee region
+    /// itself, not transforming any underlying pixels. The rotate thumb stays hidden because rotating a
+    /// crop frame doesn't fit the Photoshop model. No-op when <see cref="ContourOnly"/> is false (transform
+    /// mode owns its own resize affordance).
+    /// </summary>
+    public bool FrameResizeMode
+    {
+        get => _frameResizeMode;
+        set
+        {
+            if (_frameResizeMode == value) return;
+            _frameResizeMode = value;
             UpdateThumbs();
         }
     }
@@ -193,13 +213,17 @@ public class FrameEditorNode : SKNode
 
     private void UpdateThumbs()
     {
-        // Resize & rotate manipulators belong to transform mode only — in contour mode the marquee is just
-        // a region selector and resize/rotate would imply pixel transformation, which is PixelTransformTool's
-        // job. The move thumb stays visible (it draws the marching-ants outline) AND interactive in both
-        // modes so the user can drag the marquee around in contour mode to reshape the selected region.
+        // Resize & rotate manipulators belong to transform mode by default — in contour mode the marquee is
+        // just a region selector and resize/rotate would imply pixel transformation, which is
+        // PixelTransformTool's job. Exception: crop tool's frame-resize mode forces resize handles visible
+        // even in contour mode (rendered in black) so the user can adjust the crop rectangle without
+        // lifting pixels. The move thumb stays visible (it draws the marching-ants outline) AND interactive
+        // in both modes so the user can drag the marquee around to reshape it.
+        var showResize = _allowResize && this.IsVisible && (!_contourOnly || _frameResizeMode);
         foreach (var resizeThumbSingleNode in _sizeThumb)
         {
-            resizeThumbSingleNode.IsVisible = _allowResize && this.IsVisible && !_contourOnly;
+            resizeThumbSingleNode.IsVisible = showResize;
+            resizeThumbSingleNode.ContourOnly = _contourOnly;
             resizeThumbSingleNode.Opacity = 50;
         }
 

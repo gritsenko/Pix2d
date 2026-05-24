@@ -98,6 +98,14 @@ public interface IDrawingLayer
     /// path into transform mode is to activate <c>PixelTransformTool</c>, which owns the Transforming phase.
     /// </summary>
     void SetSelectionTransformMode(bool transformMode);
+
+    /// <summary>
+    /// Crop-tool frame-resize mode. While enabled, the selection editor keeps the resize handles visible
+    /// in contour styling (black) on top of contour mode, so the user can resize the marquee region
+    /// without lifting pixels — used by the crop tool to present its frame. Persists across fresh
+    /// marquees drawn while the mode is active; reset when the crop tool deactivates.
+    /// </summary>
+    void SetFrameResizeMode(bool enabled);
     void SetCustomPixelSelector(IPixelSelector pixelSelector);
     void ClearCustomPixelSelector();
     void CancelCurrentOperation();

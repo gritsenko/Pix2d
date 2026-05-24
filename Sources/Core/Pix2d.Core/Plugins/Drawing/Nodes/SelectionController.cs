@@ -36,6 +36,7 @@ internal sealed class SelectionController
     private IPixelSelector? _customPixelSelector;
     private TransformSelectionOperation? _currentSelectionOperation;
     private bool _pixelsLifted;
+    private bool _frameResizeMode;
 
     public event EventHandler? SelectionStarted;
     public event EventHandler? SelectionRemoved;
@@ -544,12 +545,30 @@ internal sealed class SelectionController
 
     /// <summary>
     /// Single point where the editor's mode flags are kept consistent. Contour mode (marquee tools)
-    /// hides resize thumbs; transform mode (lifted pixels) exposes them so the user can scale.
+    /// hides resize thumbs; transform mode (lifted pixels) exposes them so the user can scale. The
+    /// crop tool's frame-resize mode is a third layer on top of contour mode — it keeps the pixels
+    /// untouched but forces the resize handles visible (rendered in black) so the user can adjust
+    /// the crop rectangle.
     /// </summary>
     private void ApplyEditorMode(bool contourOnly)
     {
         _selectionEditor.ContourOnly = contourOnly;
-        _selectionEditor.AllowResize = !contourOnly;
+        _selectionEditor.FrameResizeMode = _frameResizeMode;
+        _selectionEditor.AllowResize = !contourOnly || _frameResizeMode;
+    }
+
+    /// <summary>
+    /// Toggles crop-tool frame-resize mode. While enabled, every subsequent <see cref="ApplyEditorMode"/>
+    /// keeps the resize handles visible (in contour styling) on top of contour mode, so the user can
+    /// resize the marquee through tool switches and through fresh marquees they draw. Disabled when
+    /// the crop tool deactivates.
+    /// </summary>
+    public void SetFrameResizeMode(bool enabled)
+    {
+        if (_frameResizeMode == enabled) return;
+        _frameResizeMode = enabled;
+        if (_selectionEditor.IsVisible)
+            ApplyEditorMode(_selectionEditor.ContourOnly);
     }
 
     private void LiftSelectionFromCanvas()

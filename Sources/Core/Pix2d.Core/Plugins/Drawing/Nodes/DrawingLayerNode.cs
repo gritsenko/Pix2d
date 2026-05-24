@@ -786,6 +786,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     public void ActivateEditor(bool contourOnly) => _selection.ActivateEditor(contourOnly);
     public void EnterTransformMode() => _selection.EnterTransformMode();
     public void SetSelectionTransformMode(bool transformMode) => _selection.SetSelectionTransformMode(transformMode);
+    public void SetFrameResizeMode(bool enabled) => _selection.SetFrameResizeMode(enabled);
 
     public void SetCustomPixelSelector(IPixelSelector pixelSelector) => _selection.SetCustomPixelSelector(pixelSelector);
     public void ClearCustomPixelSelector() => _selection.ClearCustomPixelSelector();
