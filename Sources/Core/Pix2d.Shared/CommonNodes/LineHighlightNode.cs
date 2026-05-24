@@ -102,15 +102,26 @@ public class LineHighlightNode : SKNode, IDisposable
             Path.Transform(transformMatrix, path);
         }
 
-        // Two-tone marching ants so the contour stays visible on both light and dark canvases.
-        var dashLen = vp.PixelsToWorld(4);
-        using var blackPaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.Black);
-        using var whitePaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.White);
-        blackPaint.PathEffect = SKPathEffect.CreateDash([dashLen, dashLen], 0);
-        whitePaint.PathEffect = SKPathEffect.CreateDash([dashLen, dashLen], dashLen);
+        try
+        {
+            // Two-tone marching ants so the contour stays visible on both light and dark canvases.
+            // Path effects MUST be disposed — assigning to paint.PathEffect doesn't transfer ownership,
+            // and OnDraw runs every frame so an undisposed dash effect leaks a managed handle per frame.
+            var dashLen = vp.PixelsToWorld(4);
+            using var blackPaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.Black);
+            using var whitePaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.White);
+            using var blackDash = SKPathEffect.CreateDash([dashLen, dashLen], 0);
+            using var whiteDash = SKPathEffect.CreateDash([dashLen, dashLen], dashLen);
+            blackPaint.PathEffect = blackDash;
+            whitePaint.PathEffect = whiteDash;
 
-        canvas.DrawPath(path, blackPaint);
-        canvas.DrawPath(path, whitePaint);
+            canvas.DrawPath(path, blackPaint);
+            canvas.DrawPath(path, whitePaint);
+        }
+        finally
+        {
+            path.Dispose();
+        }
     }
 
     private static SKPath BuildSnappedPath(IReadOnlyList<IReadOnlyList<SKPoint>> contours, float sx, float sy, SKPoint offset)

@@ -495,36 +495,6 @@ internal sealed class SelectionController
         }
     }
 
-    /// <summary>
-    /// Switches an active contour-only selection into the full transform mode (move/resize/rotate
-    /// handles). Invoked from the Clipboard Actions panel "Transform" button. No-op if there is
-    /// no selection.
-    /// </summary>
-    public void EnterTransformMode()
-    {
-        if (_selectionLayer == null)
-            return;
-
-        if (!_selectionEditor.IsVisible)
-        {
-            ActivateEditor(contourOnly: false);
-        }
-        else if (_selectionEditor.ContourOnly)
-        {
-            if (HasSelectionChanges)
-                SetSelectionTransformMode(true);
-            else
-                ActivateEditor(contourOnly: false);
-        }
-        else
-        {
-            ApplyEditorMode(contourOnly: false);
-        }
-
-        // Toggling thumb visibility doesn't dirty the scene tree on its own, so force a redraw here.
-        _host.RequestRefresh();
-    }
-
     public void SetSelectionTransformMode(bool transformMode)
     {
         if (_selectionLayer == null || !_selectionEditor.IsVisible)
