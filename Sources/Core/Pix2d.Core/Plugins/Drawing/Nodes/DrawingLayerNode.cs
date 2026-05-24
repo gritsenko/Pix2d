@@ -197,6 +197,32 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     {
         _backgroundBitmap?.Clear();
         _workingBitmap?.Clear();
+        ClearDisplaySnapshot();
+    }
+
+    private void PublishDisplaySnapshot()
+    {
+        if (_workingBitmap == null) return;
+        // Build the new image outside the lock to keep the render-thread critical section short.
+        var newImage = SKImage.FromBitmap(_workingBitmap);
+        SKImage? old;
+        lock (_snapshotLock)
+        {
+            old = _workingBitmapDisplaySnapshot;
+            _workingBitmapDisplaySnapshot = newImage;
+        }
+        old?.Dispose();
+    }
+
+    private void ClearDisplaySnapshot()
+    {
+        SKImage? old;
+        lock (_snapshotLock)
+        {
+            old = _workingBitmapDisplaySnapshot;
+            _workingBitmapDisplaySnapshot = null;
+        }
+        old?.Dispose();
     }
 
     public override bool ContainsPoint(SKPoint worldPos)
@@ -477,6 +503,11 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     public void FinishCurrentDrawing()
     {
         SwapWorkingBitmap();
+        // Shape tools (line/rect/oval/triangle) call this every pointer-move during preview. Publishing
+        // an immutable COW snapshot here hands the compositor stable pixels — without it the next
+        // delta's bitmap writes race the compositor's flush, which the user sees as horizontal tear
+        // bands across the preview. Same fix as the selection-transform path.
+        PublishDisplaySnapshot();
     }
 
     private void ApplyWorkingBitmap()
@@ -833,39 +864,15 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     {
         _workingBitmap?.Clear();
         _swapBitmap?.Clear();
+        ClearDisplaySnapshot();
     }
     void ISelectionLayerHost.SwapWorkingBitmap() => SwapWorkingBitmap();
     void ISelectionLayerHost.ApplyWorkingBitmap() => ApplyWorkingBitmap();
     void ISelectionLayerHost.RequestRefresh() => Refresh();
     void ISelectionLayerHost.RaiseDrawingApplied(bool saveToUndo) => OnDrawingApplied(saveToUndo);
 
-    void ISelectionLayerHost.PromoteWorkingBitmapToDisplay()
-    {
-        if (_workingBitmap == null) return;
-        // Build the new image outside the lock to keep the render-thread critical section short.
-        var newImage = SKImage.FromBitmap(_workingBitmap);
-        SKImage? old;
-        lock (_snapshotLock)
-        {
-            old = _workingBitmapDisplaySnapshot;
-            _workingBitmapDisplaySnapshot = newImage;
-        }
-        // Safe to dispose: the only other reader is OnDraw, and once we're past the lock OnDraw
-        // can no longer observe `old` from the field. DrawImage calls that already started took
-        // their own native ref, so the underlying SkImage stays alive for the GPU flush.
-        old?.Dispose();
-    }
-
-    void ISelectionLayerHost.ClearDisplaySnapshot()
-    {
-        SKImage? old;
-        lock (_snapshotLock)
-        {
-            old = _workingBitmapDisplaySnapshot;
-            _workingBitmapDisplaySnapshot = null;
-        }
-        old?.Dispose();
-    }
+    void ISelectionLayerHost.PromoteWorkingBitmapToDisplay() => PublishDisplaySnapshot();
+    void ISelectionLayerHost.ClearDisplaySnapshot() => ClearDisplaySnapshot();
 
     BrushDrawingMode IPointerInputRouterHost.GetDrawingMode() => _drawingMode;
     bool IPointerInputRouterHost.IsTargetBitmapVisible => DrawingTarget!.IsTargetBitmapVisible();
