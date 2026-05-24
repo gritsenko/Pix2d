@@ -19,11 +19,14 @@ public class SameColorSelector : IPixelSelector
     private int _imageRight;
     private int _imageBot;
     private SKPath? _selectionPath;
+    private List<List<SKPoint>>? _selectionContours;
 
     public SKPath? GetSelectionPath()
     {
         return _selectionPath;
     }
+
+    public List<List<SKPoint>>? GetSelectionContours() => _selectionContours;
 
     public SKPoint Offset => new SKPoint(_offsetX, _offsetY);
 
@@ -131,11 +134,12 @@ public class SameColorSelector : IPixelSelector
         {
             _selectionPath = Algorithms.GetContour(selectionPoints, _pixelsBuff,
                 new SKRectI(0, 0, _bitmap.Width - 1, _bitmap.Height - 1), new SKPointI(0, 0),
-                new SKSizeI(_bitmap.Width, _bitmap.Height));
+                new SKSizeI(_bitmap.Width, _bitmap.Height), out _selectionContours);
         }
         else
         {
             _selectionPath = null;
+            _selectionContours = null;
         }
     }
 

@@ -12,6 +12,7 @@ public class PixelSelector : IPixelSelector
     private SKPointI _lastSelectionPoint;
     private readonly HashSet<SKPointI> _selectionPoints = new HashSet<SKPointI>();
     private SKPath? _selectionPath;
+    private List<List<SKPoint>>? _selectionContours;
     private byte[]? _pixelsBuff;
     private int _offsetX;
     private int _offsetY;
@@ -103,8 +104,14 @@ public class PixelSelector : IPixelSelector
     {
         if (_pixelsBuff == null)
             return;
-            
-        _selectionPath = Algorithms.GetContour(_selectionPoints, _pixelsBuff, new SKRectI(_imageLeft, _imageTop, _imageRight, _imageBot), new SKPointI(_offsetX, _offsetY), new SKSizeI(_width, _height));
+
+        _selectionPath = Algorithms.GetContour(
+            _selectionPoints,
+            _pixelsBuff,
+            new SKRectI(_imageLeft, _imageTop, _imageRight, _imageBot),
+            new SKPointI(_offsetX, _offsetY),
+            new SKSizeI(_width, _height),
+            out _selectionContours);
     }
 
     public void ClearSelectionFromBitmap(ref SKBitmap bitmap)
@@ -188,4 +195,6 @@ public class PixelSelector : IPixelSelector
     }
 
     public SKPath? GetSelectionPath() => _selectionPath;
+
+    public List<List<SKPoint>>? GetSelectionContours() => _selectionContours;
 }

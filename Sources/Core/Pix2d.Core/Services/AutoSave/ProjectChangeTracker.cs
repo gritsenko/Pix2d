@@ -69,6 +69,13 @@ public sealed class ProjectChangeTracker : IProjectChangeTracker, IDisposable
             msg.OperationType == OperationEventType.Command)
             return;
 
+        // Selection-flow ops describe transient marquee/transform state. Only the commit step persists
+        // pixels, and it additionally implements ISpriteEditorOperation, so it still flows through the
+        // framed-cell branch below. Without this guard, simply drawing a marquee would call MarkAllDirty
+        // and force autosave to re-snapshot the whole project.
+        if (msg.Operation is ISelectionFlowOperation && msg.Operation is not ISpriteEditorOperation)
+            return;
+
         if (msg.Operation is ISpriteEditorOperation framed &&
             framed.AffectedLayerIndexes.Count > 0 &&
             framed.AffectedFrameIndexes.Count > 0)

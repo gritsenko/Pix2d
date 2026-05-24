@@ -7,6 +7,7 @@ namespace Pix2d.State;
 public class ToolState
 {
     public string? GroupName { get; set; }
+    public bool ShowInToolbar { get; set; } = true;
 
     public Func<object>? TopBarUi { get; set; }
 

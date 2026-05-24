@@ -194,7 +194,9 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
             _toolsStackPanel.Children.Clear();
 
             var groupItems = new List<ToolItemGroupView>();
-            var tools = _appState.ToolsState.Tools.Where(x => x.Context == _appState.CurrentProject.CurrentContextType);
+            var tools = _appState.ToolsState.Tools.Where(x =>
+                x.Context == _appState.CurrentProject.CurrentContextType &&
+                x.ShowInToolbar);
             foreach (var tool in tools)
             {
                 var toolItemView = ActivatorUtilities.CreateInstance<ToolItemView>(_serviceProvider, tool);

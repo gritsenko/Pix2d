@@ -16,6 +16,8 @@ public class AllPixelSelector : IPixelSelector
 
     public SKPath? GetSelectionPath() => null;
 
+    public List<List<SKPoint>>? GetSelectionContours() => null;
+
     public SKPoint Offset { get; }
     public void BeginSelection(SKPointI point)
     {

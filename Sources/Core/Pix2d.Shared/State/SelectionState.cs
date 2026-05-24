@@ -10,6 +10,12 @@ public class SelectionState : StateBase
         set => Set(value);
     }
 
+    public string? ReturnSelectionToolKey
+    {
+        get => Get<string?>();
+        set => Set(value);
+    }
+
     public SKSize UserSelectingFrameSize
     {
         get => Get<SKSize>();

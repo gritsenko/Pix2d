@@ -40,6 +40,8 @@ public class DrawingPlugin(ICommandService commandService, IToolService toolServ
         RegisterTool<PixelSelectRectTool>();
         RegisterTool<PixelSelectLassoTool>();
         RegisterTool<PixelSelectColorTool>();
+        RegisterTool<PixelTransformTool>();
+        RegisterTool<CropTool>();
 
         RegisterTool<EyedropperTool>();
 

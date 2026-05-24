@@ -121,15 +121,19 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 
     private void OnOperationInvoked(OperationInvokedMessage e)
     {
-        if (e.Operation.GetType().Name == "SelectionOperation")
+        // Selection-flow ops (marquee create, transform, commit) belong to this tool's lifecycle and must
+        // never clear the AI marquee — when the user creates the marquee we'd otherwise destroy it on the
+        // very next OperationInvoked, and undo/redo through transform handles would have the same effect.
+        // Anything else (drawing, paste, layer ops, …) means the user moved on from selection, so the
+        // extracted-object preview should disappear.
+        if (e.Operation is ISelectionFlowOperation)
         {
             if (e.OperationType != OperationEventType.Perform)
                 DrawingLayer.InvalidateSelectionEditor();
+            return;
         }
-        else
-        {
-            DrawingLayer.DeactivateSelectionEditor();
-        }
+
+        DrawingLayer.DeactivateSelectionEditor();
     }
 
     public override void Deactivate()

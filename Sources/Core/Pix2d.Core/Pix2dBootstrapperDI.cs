@@ -68,7 +68,14 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
 
         services.AddSingleton<IImportService, ImportService>(); // Depends on: AppState
         services.AddSingleton<Pix2d.Abstract.Services.IOperationDiskCacheService, Pix2d.Services.OperationDiskCacheService>();
-        services.AddSingleton<IOperationService, OperationService>(); // Depends on: AppState, IOperationDiskCacheService
+        // OperationService takes a Func<IToolService> instead of IToolService directly: IToolService is registered
+        // later (line ~99) and several tools depend on IOperationService through DrawingService, so a direct
+        // reference would create a construction cycle. The lazy func is resolved at Undo/Redo time, by which
+        // point IToolService is fully wired up.
+        services.AddSingleton<IOperationService, OperationService>(sp => new OperationService(
+            sp.GetRequiredService<AppState>(),
+            sp.GetRequiredService<Pix2d.Abstract.Services.IOperationDiskCacheService>(),
+            () => sp.GetRequiredService<IToolService>())); // Depends on: AppState, IOperationDiskCacheService, Func<IToolService>
         services.AddSingleton<ISceneService, SceneService>(); // Depends on: AppState, IMessenger
         services.AddSingleton<IViewPortService, ViewPortService>(); // Depends on: IMessenger, AppState
         services.AddSingleton<IViewPortRefreshService, ViewPortRefreshService>(); // Depends on: IViewPortService, IMessenger, AppState
@@ -104,6 +111,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         //services.AddSingleton<ReviewService>();
 
         services.AddSingleton<DisableOnAnimationCommandBehavior>(); // Depends on: AppState
+        services.AddSingleton<EnableOnClipboardSelectionCommandBehavior>(); // Depends on: AppState, IDrawingService, IMessenger
 
         // UI scaling service
         services.AddSingleton<IUiScaleService, AvaloniaUiScaleService>();

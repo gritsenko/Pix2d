@@ -25,6 +25,14 @@ public class MoveThumbNode : NodeManipulateThumbBase
     /// </summary>
     public bool ContourOnly { get; set; }
 
+    /// <summary>
+    /// Set to true when a sibling node (e.g. <see cref="Pix2d.CommonNodes.LineHighlightNode"/>) is already rendering
+    /// the real selection contour. In that case the move thumb skips its own bounding-rect outline in
+    /// <see cref="ContourOnly"/> mode — otherwise a non-rectangular selection (lasso/same-colour) would show
+    /// both the true contour and a redundant rectangle around it.
+    /// </summary>
+    public bool HasCustomContour { get; set; }
+
     public Func<bool> AxisLockProviderFunc { get; set; } = null!;
     public AxisLockMode AxisLockMode { get; set; }
 
@@ -111,9 +119,25 @@ public class MoveThumbNode : NodeManipulateThumbBase
     {
         if (ContourOnly)
         {
-            using var paint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1), SKColors.Black);
-            paint.PathEffect = SKPathEffect.CreateDash([vp.PixelsToWorld(2), vp.PixelsToWorld(2)], 0);
-            canvas.DrawRect(0, 0, Size.Width, Size.Height, paint);
+            // Non-rectangular selections (lasso, same-colour) render their real outline via LineHighlightNode —
+            // drawing the bounding rect here on top of that would defeat the point of a contour-only mode.
+            if (HasCustomContour)
+                return;
+
+            // Photoshop-style marching ants: two offset dashed strokes (black + white) so the
+            // outline stays visible regardless of canvas colour. Path effects must be disposed —
+            // paint.PathEffect setter doesn't take ownership, so each OnDraw would otherwise leak
+            // a managed handle per frame.
+            var dashLen = vp.PixelsToWorld(4);
+            using var blackPaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.Black);
+            using var whitePaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.White);
+            using var blackDash = SKPathEffect.CreateDash([dashLen, dashLen], 0);
+            using var whiteDash = SKPathEffect.CreateDash([dashLen, dashLen], dashLen);
+            blackPaint.PathEffect = blackDash;
+            whitePaint.PathEffect = whiteDash;
+            var rect = new SKRect(0, 0, Size.Width, Size.Height);
+            canvas.DrawRect(rect, blackPaint);
+            canvas.DrawRect(rect, whitePaint);
         }
         else
         {

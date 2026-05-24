@@ -14,6 +14,15 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
     private SKSize _initialTargetSize;
 
     public SKColor StrokeColor = SKColor.Parse("#ff4384de");
+
+    /// <summary>
+    /// When true, the thumb renders with a black stroke and white fill instead of the blue transform
+    /// styling. Used for the crop-tool frame-resize affordance, where the marquee is a region selector
+    /// (no pixel transformation), so the manipulator should visually distinguish itself from the
+    /// blue transform handles.
+    /// </summary>
+    public bool ContourOnly { get; set; }
+
     private SKPoint _initialThumbGlobalPos;
     protected SKMatrix _initialTargetLocalTransform;
     protected SKMatrix _initialTargetGlobalTransform;
@@ -104,24 +113,19 @@ public abstract class ResizeThumbSingleNode : NodeManipulateThumbBase, IViewPort
         var hz = GetHitZone();
         var r = Size.Width / 2f;
 
-        using var fillPaint = new SKPaint();
-        fillPaint.Color = SKColors.White;
-
-        using var strokePaint = new SKPaint();
-        strokePaint.IsStroke = true;
-        strokePaint.IsAntialias = true;
-        strokePaint.StrokeWidth = vp.PixelsToWorld(2);
-        strokePaint.Color = StrokeColor;
+        using var fillPaint = new SKPaint { Color = SKColors.White };
+        using var strokePaint = new SKPaint
+        {
+            IsStroke = true,
+            IsAntialias = true,
+            StrokeWidth = vp.PixelsToWorld(2),
+            Color = ContourOnly ? SKColors.Black : StrokeColor,
+        };
 
         canvas.Save();
-        var transform = vp.ResultTransformMatrix;
-        canvas.SetMatrix(transform);
+        canvas.SetMatrix(vp.ResultTransformMatrix);
         canvas.DrawCircle(hz.MidX, hz.MidY, r, fillPaint);
         canvas.DrawCircle(hz.MidX, hz.MidY, r, strokePaint);
-
-#if DEBUG
-        //DrawBoundingBox(canvas, vp, 2, BBoxColor);
-#endif
         canvas.Restore();
     }
 

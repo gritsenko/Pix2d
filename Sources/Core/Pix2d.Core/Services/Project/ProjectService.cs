@@ -1,5 +1,6 @@
 #nullable enable
 using System.Runtime.CompilerServices;
+using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Infrastructure;
@@ -35,9 +36,15 @@ public class ProjectService : IProjectService, ISessionProjectLoader
         AppState = appState;
         ImportService = importService;
 
-        Messenger.Register<OperationInvokedMessage>(this, _ =>
+        Messenger.Register<OperationInvokedMessage>(this, msg =>
         {
             if (HasUnsavedChanges) return;
+            // Marquee creation and in-flight transform live entirely in transient UI state; only the
+            // commit step (ApplyTransformOperation, also ISpriteEditorOperation) writes to a layer. Without
+            // this filter, drawing a selection would flip the "unsaved" star on the title bar even though
+            // nothing the .pix2d file cares about has changed.
+            if (msg.Operation is ISelectionFlowOperation && msg.Operation is not ISpriteEditorOperation)
+                return;
             HasUnsavedChanges = true;
         });
     }

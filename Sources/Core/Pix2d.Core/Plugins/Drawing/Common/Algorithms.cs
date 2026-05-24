@@ -213,6 +213,14 @@ public static class Algorithms
     }
     
     public static SKPath GetContour(HashSet<SKPointI> points, byte[] pixelBuff, SKRectI bounds, SKPointI offset, SKSizeI size)
+        => GetContour(points, pixelBuff, bounds, offset, size, out _);
+
+    /// <summary>
+    /// Variant that also returns the raw vertex lists per contour. The caller can keep these to rebuild a
+    /// snapped/scaled <see cref="SKPath"/> later (e.g. after a transform resize) without losing the
+    /// per-contour topology that <c>SKPath.Points</c> alone wouldn't preserve.
+    /// </summary>
+    public static SKPath GetContour(HashSet<SKPointI> points, byte[] pixelBuff, SKRectI bounds, SKPointI offset, SKSizeI size, out List<List<SKPoint>> contoursOut)
     {
         bool IsPSet(int x, int y)
         {
@@ -309,6 +317,7 @@ public static class Algorithms
             path.AddPoly(contour.ToArray());
         }
 
+        contoursOut = contours;
         return path;
-    }   
+    }
 }

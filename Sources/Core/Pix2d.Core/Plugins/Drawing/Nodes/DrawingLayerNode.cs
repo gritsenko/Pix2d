@@ -18,25 +18,52 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Nodes;
 
-public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
+public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, ISelectionLayerHost, IStrokeRendererHost, IPointerInputRouterHost
 {
 
     public event EventHandler? DrawingStarted;
     public event EventHandler<DrawingAppliedEventArgs>? DrawingApplied;
+    public event EventHandler? LayerModified;
+
+    // Selection events live on SelectionController. We re-raise them with `this` as sender so
+    // existing consumers (PixelSelectToolBase, ExtractObjectTool, DrawingService, PixelTextTool)
+    // keep seeing the drawing layer node, not the controller.
     public event EventHandler? SelectionStarted;
     public event EventHandler? SelectionRemoved;
-
+    public event EventHandler? PixelsSelected;
     public event EventHandler<PixelsBeforeSelectedEventArgs>? PixelsBeforeSelected;
     public event EventHandler<SelectionTransformedEventArgs>? SelectionTransformed;
-    public event EventHandler? LayerModified;
-    public event EventHandler? PixelsSelected;
 
-    private IPixelSelector? _customPixelSelector;
-    private IPixelSelector? _pixelSelector;
+    /// <summary>
+    /// Fires from the underlying <see cref="SelectionController.FinishSelection"/> after a fresh marquee
+    /// is fully set up. Distinct from <see cref="PixelsSelected"/> which also fires on every
+    /// <c>SetSelection</c> call (paste / undo / redo); this one specifically marks the user just
+    /// finishing a new marquee gesture, which is the point at which <c>BeginSelectionOperation</c>
+    /// should be pushed onto the undo stack.
+    /// </summary>
+    public event EventHandler? MarqueeFinishedByUser;
 
     private SKBitmap? _backgroundBitmap;
     private SKBitmap? _swapBitmap;
     private SKBitmap? _workingBitmap;
+
+    // Immutable copy-on-write view of _workingBitmap handed to the compositor. While set, OnDraw
+    // draws this instead of the live bitmap. Avalonia composites on a separate render thread, and
+    // canvas.DrawBitmap reads pixel memory during flush; if the UI thread writes to the bitmap in
+    // that window the user sees torn horizontal bands. SKImage.FromBitmap is allocation-free in the
+    // steady state (shares the SkPixelRef) and Skia forks on the next write — so the compositor
+    // keeps reading the snapshot's original bytes while UI thread renders the next frame freely.
+    // Used by SelectionController during a transform drag (write rate >> paint rate) and cleared
+    // when the editor deactivates.
+    //
+    // Access is guarded by _snapshotLock: OnDraw runs on Avalonia's render thread while
+    // PromoteWorkingBitmapToDisplay / ClearDisplaySnapshot run on the UI thread. Without the lock,
+    // the UI thread could Dispose() the SKImage between the render thread reading the field and
+    // calling canvas.DrawImage on it — at which point the handle is IntPtr.Zero and SkiaSharp
+    // throws. DrawImage takes its own sk_sp ref on the native side, so dispose-after-DrawImage is
+    // safe; the lock only needs to cover the field read + the DrawImage call itself.
+    private SKImage? _workingBitmapDisplaySnapshot;
+    private readonly Lock _snapshotLock = new();
 
     public bool UseSwapBitmap { get; set; }
 
@@ -46,30 +73,17 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     /// </summary>
     public SKBitmap WorkingBitmap => (UseSwapBitmap ? _swapBitmap : _workingBitmap) ?? throw new InvalidOperationException("WorkingBitmap is not initialized");
 
-    private SKPoint _lastPos;
     private BrushDrawingMode _drawingMode;
-    private SpriteSelectionNode? _selectionLayer;
-    private readonly FrameEditorNode _selectionEditor;
+    private readonly SelectionController _selection;
+    private readonly StrokeRenderer _strokeRenderer;
+    private readonly PointerInputRouter _pointerInputRouter;
 
-    // 2-pixel black/white dashes alternating along the selection outline (Photoshop "marching ants"
-    // style). Visible on both light and dark backgrounds, unlike a single semi-transparent colour.
-    private static SKColor GetSelectionDashColor(int x, int y)
-        => (((x + y) >> 1) & 1) == 0 ? SKColors.White : SKColors.Black;
     private SKColor _drawingColor;
-    private SKPointI _previewPos;
     private IPixelBrush? _brush;
     private SKSurface? _brushPreviewSurface;
     private readonly List<SKPointI> _strokePoints = new();
-    private SelectionOperation? _currentSelectionOperation;
 
-    // On touch, BeginSelection is deferred until the first pointer move past a small threshold so that
-    // a pinch/pan gesture (which starts with a touch-down on the canvas) does not clear the current
-    // selection. Distances are tracked in viewport pixels so the threshold stays physical regardless of zoom.
-    private bool _deferredTouchSelectionStart;
-    private SKPoint _deferredTouchStartViewportPos;
-    private const float TouchDragThresholdViewportPixels = 12f;
-
-    public bool HasSelectionChanges => _selectionEditor.IsChanged;
+    public bool HasSelectionChanges => _selection.HasSelectionChanges;
 
     public bool IsPixelPerfectMode { get; set; }
 
@@ -103,8 +117,16 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     /// they are applied to the DrawingTarget.
     /// </summary>
     public IDrawingTarget? DrawingTarget { get; private set; }
-    public PixelSelectionMode SelectionMode { get; set; }
-    public bool HasSelection => _selectionLayer != null;
+
+    public PixelSelectionMode SelectionMode
+    {
+        get => _selection.SelectionMode;
+        set => _selection.SelectionMode = value;
+    }
+
+    public bool HasSelection => _selection.HasSelection;
+
+    public SelectionPhase SelectionPhase => _selection.SelectionPhase;
     public bool MirrorX { get; set; }
     public bool MirrorY { get; set; }
     public static int MirrorYOffset { get; set; } = -1;
@@ -113,92 +135,94 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     public bool LockTransparentPixels => DrawingTarget?.LockTransparentPixels ?? false;
     public bool ShowBrushPreview { get; set; }
 
-    public SKSize SelectionSize { get; set; }
+    public SKSize SelectionSize
+    {
+        get => _selection.SelectionSize;
+        private set => _selection.SelectionSize = value;
+    }
+
+    private SKPoint LastPointerPosition
+    {
+        get => _pointerInputRouter.LastPointerPosition;
+        set => _pointerInputRouter.LastPointerPosition = value;
+    }
+
+    private SKPointI PreviewPosition
+    {
+        get => _pointerInputRouter.PreviewPosition;
+        set => _pointerInputRouter.PreviewPosition = value;
+    }
 
     private SKPointI StartPosI => StartPos.ToSkPointI();
     private SKPointI EndPosI => EndPos.ToSkPointI();
-    public SKNode GetSelectionLayer()
-    {
-        return _selectionLayer ?? throw new InvalidOperationException("Selection layer is not initialized");
-    }
+    public SKNode GetSelectionLayer() => _selection.GetSelectionLayerNode();
     public IAspectSnapper? AspectSnapper { get; set; }
 
-    public AxisLockMode AxisLockMode { get; set; }
+    /// <summary>
+    /// Snapshot of the currently-active tool key. Used by selection-related operations so that
+    /// <c>Undo</c>/<c>Redo</c> can restore the right tool and keep UI/drawing-layer state consistent
+    /// (see <see cref="IToolAwareOperation"/>).
+    /// </summary>
+    public Func<string?>? ActiveToolKeyProvider { get; set; }
+
+    public AxisLockMode AxisLockMode
+    {
+        get => _pointerInputRouter.AxisLockMode;
+        set => _pointerInputRouter.AxisLockMode = value;
+    }
 
     private bool IsInitialized => DrawingTarget != null && _backgroundBitmap != null && _workingBitmap != null;
 
-    public SKBitmap GetSelectionBackground()
-    {
-        return _backgroundBitmap?.Copy() ?? throw new InvalidOperationException("BackgroundBitmap is not initialized");
-    }
+    public SKBitmap GetSelectionBackground() => _selection.GetSelectionBackground();
 
     public DrawingLayerNode()
     {
         IsInteractive = true;
 
-        _selectionEditor = new FrameEditorNode();
-        _selectionEditor.IsVisible = false;
-        _selectionEditor.SelectionEditStarted += SelectionEditor_SelectionEditStarted;
-        _selectionEditor.SelectionEdited += SelectionEditor_SelectionEdited;
-        _selectionEditor.SelectionEditing += SelectionEditor_SelectionEditing;
-        _selectionEditor.AspectSnapperProviderFunc = () => AspectSnapper!;
-    }
+        _selection = new SelectionController(this);
+        _strokeRenderer = new StrokeRenderer(this);
+        _pointerInputRouter = new PointerInputRouter(this);
 
-    private void SelectionEditor_SelectionEditing(object? sender, EventArgs e)
-    {
-        UpdateWorkingBitmapFromSelection();
-    }
-
-    /// <summary>
-    /// Sets the content of working bitmap to the selection layer contents.
-    /// </summary>
-    private void UpdateWorkingBitmapFromSelection()
-    {
-        if (HasSelection)
-        {
-            using var canvas = new SKCanvas(WorkingBitmap);
-            
-            var target = ((SKNode)DrawingTarget!).Position;
-
-            var vp = new ViewPort((int)Size.Width, (int)Size.Height);
-            vp.SetPan(target.X, target.Y);
-
-            SKNodeRenderer.Render(_selectionLayer!, new RenderContext(canvas, vp));
-            canvas.Flush();
-            WorkingBitmap.NotifyPixelsChanged();
-            SwapWorkingBitmap();
-        }
+        // Re-raise selection events through the node so external consumers (PixelSelectToolBase,
+        // ExtractObjectTool, DrawingService, PixelTextTool) keep seeing the node as event sender.
+        _selection.SelectionStarted     += (_, e) => SelectionStarted?.Invoke(this, e);
+        _selection.SelectionRemoved     += (_, e) => SelectionRemoved?.Invoke(this, e);
+        _selection.PixelsSelected       += (_, e) => PixelsSelected?.Invoke(this, e);
+        _selection.PixelsBeforeSelected += (_, e) => PixelsBeforeSelected?.Invoke(this, e);
+        _selection.SelectionTransformed += (_, e) => SelectionTransformed?.Invoke(this, e);
+        _selection.MarqueeFinishedByUser += (_, e) => MarqueeFinishedByUser?.Invoke(this, e);
     }
 
     private void ClearWorkingBitmap()
     {
         _backgroundBitmap?.Clear();
         _workingBitmap?.Clear();
+        ClearDisplaySnapshot();
     }
 
-    private SelectionOperation GetCurrentSelectionOperation()
+    private void PublishDisplaySnapshot()
     {
-        if (_currentSelectionOperation == null)
+        if (_workingBitmap == null) return;
+        // Build the new image outside the lock to keep the render-thread critical section short.
+        var newImage = SKImage.FromBitmap(_workingBitmap);
+        SKImage? old;
+        lock (_snapshotLock)
         {
-            return new SelectionOperation(this);
+            old = _workingBitmapDisplaySnapshot;
+            _workingBitmapDisplaySnapshot = newImage;
         }
-        else
+        old?.Dispose();
+    }
+
+    private void ClearDisplaySnapshot()
+    {
+        SKImage? old;
+        lock (_snapshotLock)
         {
-            return new SelectionOperation(_currentSelectionOperation);
+            old = _workingBitmapDisplaySnapshot;
+            _workingBitmapDisplaySnapshot = null;
         }
-    }
-
-    private void SelectionEditor_SelectionEdited(object? sender, EventArgs e)
-    {
-        _currentSelectionOperation!.SetFinalState();
-        UpdateWorkingBitmapFromSelection();
-        OnSelectionTransformed(_currentSelectionOperation);
-    }
-
-    private void SelectionEditor_SelectionEditStarted(object? sender, EventArgs e)
-    {
-        _currentSelectionOperation = GetCurrentSelectionOperation();
-        UpdateWorkingBitmapFromSelection();
+        old?.Dispose();
     }
 
     public override bool ContainsPoint(SKPoint worldPos)
@@ -211,12 +235,9 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         if (_drawingMode == BrushDrawingMode.Draw)
             CancelDrawing();
 
-        if (isPanModeEnabled && _deferredTouchSelectionStart)
-        {
-            // Pinch/pan gesture started before the user actually began a new selection:
-            // drop the deferred start so the existing selection is preserved.
-            _deferredTouchSelectionStart = false;
-        }
+        // Pinch/pan gesture started before the user actually began a new selection:
+        // drop the deferred start so the existing selection is preserved.
+        _pointerInputRouter.OnPanModeChanged(isPanModeEnabled);
 
         //if (_drawingMode == BrushDrawingMode.Select)
         //    CancelSelect();
@@ -228,47 +249,15 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
         // On touch screens move event might not capture last position, so we need to update it here
         // to prevent bugs with axis locked drawing.
-        _previewPos = eventArgs.Pointer.GetPosition(this).ToSkPointI();
+        PreviewPosition = eventArgs.Pointer.GetPosition(this).ToSkPointI();
 
-        if (_drawingMode == BrushDrawingMode.MoveSelection)
-            return;
-
-        if (State == DrawingLayerState.Paste)
-        {
-            ApplySelection();
-        }
-
-        if (_drawingMode == BrushDrawingMode.ExternalDraw || _drawingMode == BrushDrawingMode.Fill || _drawingMode == BrushDrawingMode.FillErase || (eventArgs.KeyModifiers & KeyModifier.Alt) != 0)
+        if (_pointerInputRouter.ShouldIgnorePointerPressed(eventArgs))
             return;
 
         base.OnPointerPressed(eventArgs, clickCount);
 
-        _lastPos = eventArgs.Pointer.WorldPosition.ToSkPointI();
-        if (_drawingMode == BrushDrawingMode.Select)
-        {
-            if (eventArgs.Pointer.IsTouch)
-            {
-                _deferredTouchSelectionStart = true;
-                _deferredTouchStartViewportPos = eventArgs.Pointer.ViewportPosition;
-                return;
-            }
-
-            CapturePointer();
-            BeginSelection(StartPosI);
-            AddSelectionPoint(StartPosI);
-        }
-        else
-        {
-            CapturePointer();
-            if (DrawingTarget!.IsTargetBitmapVisible())
-                BeginDrawing();
-
-            if (State == DrawingLayerState.Drawing)
-            {
-                DrawStroke(_lastPos);
-                Refresh();
-            }
-        }
+        LastPointerPosition = eventArgs.Pointer.WorldPosition.ToSkPointI();
+        _pointerInputRouter.HandlePointerPressed(eventArgs);
     }
 
     public override void OnPointerReleased(PointerActionEventArgs eventArgs)
@@ -277,76 +266,15 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
         ReleasePointerCapture();
 
-        if (_deferredTouchSelectionStart)
+        if (_pointerInputRouter.TryHandleDeferredTouchTapRelease())
         {
-            // Touch tap (release below drag threshold) — same semantics as a mouse click in an empty area:
-            // drop the current selection. Pinch/pan never reaches release because OnPanModeChanged cancels
-            // the deferred start on the first finger when the second finger arrives.
-            _deferredTouchSelectionStart = false;
-            if (HasSelection)
-            {
-                ApplySelection();
-                Refresh();
-            }
             base.OnPointerReleased(eventArgs);
             return;
         }
 
         try
         {
-            if (_selectionEditor.IsVisible &&
-                _selectionEditor.SelectionBounds.Contains(eventArgs.Pointer.WorldPosition))
-            {
-                return;
-            }
-
-
-            AxisLockMode = AxisLockMode.None;
-
-            if (_drawingMode == BrushDrawingMode.ExternalDraw || _drawingMode == BrushDrawingMode.MoveSelection)
-            {
-                return;
-            }
-
-            if (State == DrawingLayerState.DrawingSelectionArea && _drawingMode == BrushDrawingMode.Select)
-            {
-                AddSelectionPoint(StartPosI);
-                FinishSelection();
-            }
-            else if (_drawingMode == BrushDrawingMode.Fill)
-            {
-                FillRegion(EndPos, DrawingColor);
-            }
-            else if (_drawingMode == BrushDrawingMode.FillErase)
-            {
-                FillRegion(EndPos, SKColors.White, blendMode: SKBlendMode.DstOut);
-            }
-            else
-            {
-                if (IsPixelPerfectMode && _strokePoints.Count > 1)
-                {
-                    var ppf = PixelPerfect(_strokePoints);
-                    DrawStroke(ppf);
-                    SwapWorkingBitmap();
-                }
-
-                if (State == DrawingLayerState.Drawing && StartPosI == EndPosI)
-                {
-                    if (_drawingMode == BrushDrawingMode.Draw)
-                    {
-                        DrawPointStroke(EndPosI, Brush, DrawingColor, Opacity, 1);
-                    }
-                    else
-                    {
-                        ErasePoint(Brush, EndPosI, 1);
-                    }
-                }
-
-                if (State != DrawingLayerState.Ready)
-                {
-                    FinishDrawing();
-                }
-            }
+            _pointerInputRouter.HandlePointerReleased(eventArgs);
         }
         finally
         {
@@ -366,10 +294,10 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     {
         if (!IsInitialized) return;
 
-        var prevPointerPosition = _previewPos;
+        var prevPointerPosition = PreviewPosition;
         var currPointerPosition = eventArgs.Pointer.GetPosition(this).ToSkPointI();
 
-        _previewPos = currPointerPosition;
+        PreviewPosition = currPointerPosition;
 
         if (_drawingMode == BrushDrawingMode.ExternalDraw)
             return;
@@ -378,68 +306,39 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
         if (eventArgs.Pointer.IsPressed || eventArgs.Pointer.IsEraser)
         {
-            if (_deferredTouchSelectionStart)
-            {
-                var dx = eventArgs.Pointer.ViewportPosition.X - _deferredTouchStartViewportPos.X;
-                var dy = eventArgs.Pointer.ViewportPosition.Y - _deferredTouchStartViewportPos.Y;
-                if (dx * dx + dy * dy < TouchDragThresholdViewportPixels * TouchDragThresholdViewportPixels)
-                {
-                    // Still within the dead zone — keep waiting, user might be about to pinch/pan.
-                    return;
-                }
-
-                _deferredTouchSelectionStart = false;
-                CapturePointer();
-                BeginSelection(StartPosI);
-                AddSelectionPoint(StartPosI);
-                _lastPos = StartPos.ToSkPointI();
-            }
-
-            if (State == DrawingLayerState.Drawing)
-            {
-                var strokeEndPos = EndPosI;
-                if (AspectSnapper?.IsAspectLocked == true)
-                {
-                    if (AxisLockMode == AxisLockMode.None && currPointerPosition != prevPointerPosition)
-                    {
-                        var delta = _previewPos - prevPointerPosition;
-                        AxisLockMode = Math.Abs(delta.X) > Math.Abs(delta.Y) ? AxisLockMode.Horizontal : AxisLockMode.Vertical;
-                        StartPos = prevPointerPosition;
-                    }
-
-                    if (AxisLockMode == AxisLockMode.Horizontal)
-                    {
-                        strokeEndPos = new SKPointI(EndPosI.X, StartPosI.Y);
-                    }
-                    else if (AxisLockMode == AxisLockMode.Vertical)
-                    {
-                        strokeEndPos = new SKPointI(StartPosI.X, EndPosI.Y);
-                    }
-                }
-
-                DrawStroke(strokeEndPos);
-            }
-            else if (State == DrawingLayerState.DrawingSelectionArea)
-            {
-                switch (SelectionMode)
-                {
-                    case PixelSelectionMode.Rectangle:
-                        SetSelectionRect(StartPosI, EndPosI);
-                        break;
-                    case PixelSelectionMode.Freeform:
-                        AddSelectionPoint(EndPos);
-                        break;
-                    case PixelSelectionMode.SameColor:
-                        //nothing to-do in while pointer moving
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-            }
+            _pointerInputRouter.HandlePointerMoved(eventArgs, prevPointerPosition, currPointerPosition);
         }
 
         Refresh();
     }
+
+    private void FinishReleasedDrawing()
+    {
+        if (IsPixelPerfectMode && _strokePoints.Count > 1)
+        {
+            var ppf = PixelPerfect(_strokePoints);
+            DrawStroke(ppf);
+            SwapWorkingBitmap();
+        }
+
+        if (State == DrawingLayerState.Drawing && StartPosI == EndPosI)
+        {
+            if (_drawingMode == BrushDrawingMode.Draw)
+            {
+                DrawPointStroke(EndPosI, Brush, DrawingColor, Opacity, 1);
+            }
+            else
+            {
+                _strokeRenderer.ErasePoint(Brush, EndPosI, 1);
+            }
+        }
+
+        if (State != DrawingLayerState.Ready)
+        {
+            FinishDrawing();
+        }
+    }
+
 
     private void DrawStroke(IEnumerable<SKPointI> path)
     {
@@ -452,7 +351,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
             if (_drawingMode == BrushDrawingMode.Draw)
                 DrawPointStroke(new SKPoint(pp[0].X, pp[0].Y), Brush, DrawingColor, Opacity, 1);
             else if (_drawingMode == BrushDrawingMode.Erase)
-                ErasePoint(Brush, pp[0], 1);
+                _strokeRenderer.ErasePoint(Brush, pp[0], 1);
             return;
         }
 
@@ -479,13 +378,13 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
             if (IsPixelPerfectMode)
                 DrawPixelPerfect(pos);
             else
-                DrawStroke(_lastPos, pos, Brush, DrawingColor, 1);
+                DrawStroke(LastPointerPosition, pos, Brush, DrawingColor, 1);
         }
 
         if (_drawingMode == BrushDrawingMode.Erase)
-            EraseStroke(_lastPos, pos, Brush, 1);
+            EraseStroke(LastPointerPosition, pos, Brush, 1);
 
-        _lastPos = pos;
+        LastPointerPosition = pos;
     }
 
     private void DrawPixelPerfect(SKPoint pos)
@@ -536,6 +435,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
     public void SetTarget(IDrawingTarget target)
     {
+        var sameTarget = ReferenceEquals(target, DrawingTarget);
         DrawingTarget = target;
         DrawingTarget.FlushRequestedAction = FlushCurrentEditing;
 
@@ -552,10 +452,14 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
             Size = newSize;
         }
-        else
+        else if (!sameTarget)
         {
+            // Target changed (different sprite/frame/layer) but size matches — clear stale state so the new
+            // target starts with clean working/background bitmaps.
             ClearWorkingBitmap();
         }
+        // Same-target reattach (typical for tool switches) intentionally preserves working/background bitmaps:
+        // an active selection's lifted-pixels state lives there and a tool transition shouldn't destroy it.
 
         if (State == DrawingLayerState.Drawing)
         {
@@ -563,14 +467,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         }
     }
 
-    private void FlushCurrentEditing()
-    {
-        if (_selectionEditor == null || !_selectionEditor.IsVisible) return;
-        if (_selectionEditor.IsChanged)
-            ApplySelection();
-        else
-            CancelSelect();
-    }
+    private void FlushCurrentEditing() => _selection.FlushCurrentEditing();
 
     public void SetPixel(int x, int y, SKColor color)
     {
@@ -606,6 +503,11 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     public void FinishCurrentDrawing()
     {
         SwapWorkingBitmap();
+        // Shape tools (line/rect/oval/triangle) call this every pointer-move during preview. Publishing
+        // an immutable COW snapshot here hands the compositor stable pixels — without it the next
+        // delta's bitmap writes race the compositor's flush, which the user sees as horizontal tear
+        // bands across the preview. Same fix as the selection-transform path.
+        PublishDisplaySnapshot();
     }
 
     private void ApplyWorkingBitmap()
@@ -655,10 +557,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     }
 
     public void CancelDrawing() => FinishDrawing(true);
-    public void CancelSelect()
-    {
-        DeactivateSelectionEditor();
-    }
+    public void CancelSelect() => _selection.CancelSelect();
 
     private void UpdateBrushPreview(IPixelBrush? brush)
     {
@@ -719,17 +618,27 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         }
         else
         {
-            canvas.DrawBitmap(_workingBitmap, 0, 0);
+            // Prefer the COW snapshot when one is published — see _workingBitmapDisplaySnapshot's note.
+            // Falls back to the live bitmap when no snapshot is active (every path outside the selection
+            // transform drag, where tearing isn't an issue). Lock covers the field read + DrawImage to
+            // keep the UI thread from disposing the SKImage mid-call.
+            lock (_snapshotLock)
+            {
+                if (_workingBitmapDisplaySnapshot != null)
+                    canvas.DrawImage(_workingBitmapDisplaySnapshot, 0, 0);
+                else
+                    canvas.DrawBitmap(_workingBitmap, 0, 0);
+            }
         }
     }
 
     private void RenderBrushPreview(SKCanvas canvas)
     {
-        canvas.DrawSurface(_brushPreviewSurface, _previewPos.X - Brush.PixelOffset.X, _previewPos.Y - Brush.PixelOffset.Y);
+        canvas.DrawSurface(_brushPreviewSurface, PreviewPosition.X - Brush.PixelOffset.X, PreviewPosition.Y - Brush.PixelOffset.Y);
 
         if (MirrorY || MirrorX)
         {
-            var mirrorPos = GetMirroredPoint(_previewPos, Brush.PixelOffset, Brush.Size);
+            var mirrorPos = GetMirroredPoint(PreviewPosition, Brush.PixelOffset, Brush.Size);
             canvas.DrawSurface(_brushPreviewSurface, mirrorPos.X, mirrorPos.Y);
         }
     }
@@ -760,20 +669,12 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
     public void DrawLine(SKPoint p0, SKPoint p1)
     {
-        DrawStroke(p0, p1, Brush, DrawingColor, Opacity, 1);
+        _strokeRenderer.DrawLine(p0, p1, Brush, DrawingColor, Opacity, 1);
     }
 
     public void DrawRect(SKPoint p0, SKPoint p1, bool fromCenter = false)
     {
-        var p00 = p0;
-        var p01 = new SKPoint(p1.X, p0.Y);
-        var p02 = p1;
-        var p03 = new SKPoint(p0.X, p1.Y);
-
-        DrawStroke(p00, p01, Brush, DrawingColor, Opacity, 1);
-        DrawStroke(p01, p02, Brush, DrawingColor, Opacity, 1);
-        DrawStroke(p02, p03, Brush, DrawingColor, Opacity, 1);
-        DrawStroke(p00, p03, Brush, DrawingColor, Opacity, 1);
+        _strokeRenderer.DrawRect(p0, p1, Brush, DrawingColor, Opacity, 1);
     }
 
     public SKPoint ProjectAspectPoint(SKPoint p, SKPoint a, SKPoint? b)
@@ -796,168 +697,27 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
     public void DrawEllipse(SKPoint p0, SKPoint p1, bool fromCenter = false)
     {
-        var xc = p0.X;
-        var yc = p0.Y;
-
-        var w = (int)Math.Abs((p1.X - p0.X));
-        var h = (int)Math.Abs((p1.Y - p0.Y));
-
-        int dx = 0, dy = 0;
-
-        var width = w;
-        var height = h;
-
-        if (!fromCenter)
-        {
-            xc = (int)((p0.X + p1.X) * 0.5);
-            yc = (int)((p0.Y + p1.Y) * 0.5);
-
-            dx = w % 2 > 0 ? 1 : 0;
-            dy = h % 2 > 0 ? 1 : 0;
-
-            width = (int)w / 2;
-            height = (int)h / 2;
-        }
-
-        if (w < 3 || h < 3)
-        {
-            DrawRect(p0, p1, fromCenter);
-            return;
-        }
-
-        int a2 = width * width;
-        int b2 = height * height;
-        int fa2 = 4 * a2, fb2 = 4 * b2;
-        int x, y, sigma;
-
-        Action<double, double> plot = (xp, yp) => DrawPoint(Brush, new SKPointI((int)xp, (int)yp), DrawingColor, Brush.Size, false);
-        Action<double, double> plot4 = (xp, yp) =>
-        {
-            plot(xc + xp + dx, yc + yp + dy);
-            plot(xc - xp, yc + yp + dy);
-            plot(xc + xp + dx, yc - yp);
-            plot(xc - xp, yc - yp);
-        };
-        /* first half */
-        for (x = 0, y = height, sigma = 2 * b2 + a2 * (1 - 2 * height); b2 * x <= a2 * y; x++)
-        {
-            plot4(x, y);
-            if (sigma >= 0)
-            {
-                sigma += fa2 * (1 - y);
-                y--;
-            }
-            sigma += b2 * ((4 * x) + 6);
-        }
-
-        /* second half */
-        for (x = width, y = 0, sigma = 2 * a2 + b2 * (1 - 2 * width); a2 * y <= b2 * x; y++)
-        {
-            plot4(x, y);
-            if (sigma >= 0)
-            {
-                sigma += fb2 * (1 - x);
-                x--;
-            }
-            sigma += a2 * ((4 * y) + 6);
-        }
+        _strokeRenderer.DrawEllipse(p0, p1, Brush, DrawingColor, fromCenter);
     }
 
     public void DrawPointStroke(SKPoint p0, IPixelBrush brush, SKColor color, float opacity, float scale = 1)
     {
-        GetGlobalTransform().TryInvert(out var invertedTransform);
-        var pivot = SKPoint.Empty;
-        var p00 = invertedTransform.MapPoint(p0 + pivot).ToSkPointI();
-        DrawPoint(brush, p00, color, (int)scale, true);
+        _strokeRenderer.DrawPointStroke(p0, brush, color, opacity, scale);
     }
 
     public void DrawStroke(SKPoint p0, SKPoint p1, IPixelBrush brush, SKColor color, float opacity, float scale = 1)
     {
-        if (float.IsNaN(p1.Length) || float.IsNaN(p0.Length))
-            return;
-
-        GetGlobalTransform().TryInvert(out var invertedTransform);
-        var p00 = invertedTransform.MapPoint(p0).ToSkPointI();
-        var p01 = invertedTransform.MapPoint(p1).ToSkPointI();
-
-        Algorithms.LineNotSwapped(p00.X, p00.Y, p01.X, p01.Y, (x, y) =>
-        {
-            var p = new SKPointI(x, y);
-            if (!IsInBounds(p))
-                return false;
-
-            DrawPoint(brush, p, color, (int)scale);
-            return true;
-        });
-    }
-
-    private void DrawPoint(IPixelBrush brush, SKPointI p, SKColor color, int scale, bool ignoreSpacing = false)
-    {
-        var isDrawn = brush.Draw(this, p, color, scale, ignoreSpacing);
-
-        if (isDrawn && (MirrorX || MirrorY))
-        {
-            var ox = MirrorX ? brush.PixelOffset.X * 2 : 0;
-            var oy = MirrorY ? brush.PixelOffset.Y * 2 : 0;
-            brush.Draw(this, GetMirroredPoint(p, new SKPointI(ox, oy), Brush.Size), color, scale, true);
-        }
+        _strokeRenderer.DrawStroke(p0, p1, brush, color, opacity, scale);
     }
 
     public SKPointI GetMirroredPoint(SKPointI p, SKPointI brushOffset = default, int brushSize = default)
     {
-        var xx = p.X;
-        if (MirrorX)
-        {
-            xx = (int)(Size.Width - p.X) - brushSize;
-        }
-
-        var yy = p.Y;
-        if (MirrorY)
-        {
-            yy = (int)(Size.Height - p.Y) - brushSize;
-        }
-
-        if (brushOffset != default)
-        {
-            xx += MirrorX ? brushOffset.X : -brushOffset.X;
-            yy += MirrorY ? brushOffset.Y : -brushOffset.Y;
-        }
-
-        return new SKPointI(xx, yy);
-    }
-
-    private void ErasePoint(IPixelBrush brush, SKPointI p, int scale)
-    {
-        var isDrawn = brush.Erase(this, p, scale, true);
-
-        if (isDrawn && (MirrorX || MirrorY))
-        {
-            var ox = MirrorX ? brush.PixelOffset.X * 2 : 0;
-            var oy = MirrorY ? brush.PixelOffset.Y * 2 : 0;
-            brush.Erase(this, GetMirroredPoint(p, new SKPointI(ox, oy), Brush.Size), scale, true);
-        }
+        return _strokeRenderer.GetMirroredPoint(p, brushOffset, brushSize);
     }
 
     public void EraseStroke(SKPoint p0, SKPoint p1, IPixelBrush brush, float opacity)
     {
-        var Pivot = SKPoint.Empty;
-        GetGlobalTransform().TryInvert(out var invertedTransform);
-
-        var p00 = invertedTransform.MapPoint(p0 + Pivot);
-        var p01 = invertedTransform.MapPoint(p1 + Pivot);
-
-        Algorithms.LineNotSwapped((int)p00.X, (int)p00.Y, (int)p01.X, (int)p01.Y, (x, y) =>
-        {
-            var p = new SKPointI(x, y);
-            if (!IsInBounds(p))
-                return false;
-
-            ErasePoint(brush, p, 1);
-            //brush.Erase(this, p, 1, true);
-            //layer.DrawPoint(x, y, brush, color, pressure, false);
-
-            return true;
-        });
+        _strokeRenderer.EraseStroke(p0, p1, brush, opacity);
     }
 
     public void FillRegion(SKPoint origin, SKColor fillColor, float tolerance = 0, SKBlendMode blendMode = SKBlendMode.SrcOver)
@@ -967,44 +727,15 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
         DrawingStarted?.Invoke(this, EventArgs.Empty);
 
-        var Pivot = SKPoint.Empty;
-
-        //get local transform of pointer relative working bitmap
-        GetGlobalTransform().TryInvert(out var invertedTransform);
-        var origin0 = invertedTransform.MapPoint(origin + Pivot);
-
-        if (!InBounds((int)origin0.X, (int)origin0.Y))
+        if (!_strokeRenderer.FillRegion(origin, fillColor, tolerance, blendMode))
             return;
 
-        DrawingTarget.ModifyBitmap(bitmap => FloodFillBitmap(origin0, fillColor, bitmap, tolerance, blendMode));
         OnDrawingApplied(true);
-    }
-
-    private void FloodFillBitmap(SKPoint origin0, SKColor fillColor, SKBitmap bitmap, float tolerance, SKBlendMode blendMode)
-    {
-        var floodFiller = new FloodFiller(bitmap.Pixels, new SKSizeI(bitmap.Width, bitmap.Height));
-        floodFiller.FloodFill(new SKPointI((int)origin0.X, (int)origin0.Y), fillColor);
-
-        var data = floodFiller.GetPixelBytes();
-        WorkingBitmap.CopyPixelsToBitmap(data);
-
-        using var canvas = new SKCanvas(bitmap);
-        using var paint = new SKPaint { BlendMode = blendMode };
-        canvas.DrawBitmap(WorkingBitmap, 0, 0, paint);
     }
 
     public void SetDrawingLayerMode(BrushDrawingMode drawingMode)
     {
         _drawingMode = drawingMode;
-        if (_drawingMode == BrushDrawingMode.MoveSelection)
-        {
-            _selectionEditor.AllowResize = false;
-        }
-        else if (_drawingMode == BrushDrawingMode.Select)
-        {
-            _selectionEditor.AllowResize = true;
-        }
-
         UpdateBrushPreview(_brush);
     }
 
@@ -1013,7 +744,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         if (DrawingTarget == null)
             return;
 
-        if (_selectionEditor.IsVisible)
+        if (_selection.IsEditorVisible)
         {
             EraseSelection();
             OnDrawingApplied(true);
@@ -1027,179 +758,15 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
 
     }
 
-    public void SelectAll()
-    {
-        ApplySelection();
-        OnSelectionStarted();
-        _pixelSelector = new AllPixelSelector();
-        FinishSelection();
-    }
-
-    public void FillSelection(SKColor color)
-    {
-        if (!HasSelection || _selectionLayer == null) return;
-
-        using (var canvas = new SKCanvas(WorkingBitmap))
-        {
-            canvas.Clear();
-
-            var blendMode = SKBlendMode.SrcOver;
-            if (LockTransparentPixels && _selectionLayer.Bitmap != null)
-            {
-                canvas.DrawBitmap(_selectionLayer.Bitmap, _selectionLayer.Position);
-                blendMode = SKBlendMode.SrcIn;
-            }
-
-            canvas.Save();
-
-            var rot = SKMatrix.CreateRotationDegrees(_selectionLayer.Rotation, _selectionLayer.PivotPosition.X, _selectionLayer.PivotPosition.Y);
-            var trans = SKMatrix.CreateTranslation(_selectionLayer.Position.X - _selectionLayer.PivotPosition.X, _selectionLayer.Position.Y - _selectionLayer.PivotPosition.Y);
-            var scaleX = _selectionLayer.Size.Width / (_selectionLayer.Bitmap?.Width ?? 1);
-            var scaleY = _selectionLayer.Size.Height / (_selectionLayer.Bitmap?.Height ?? 1);
-            var scale = SKMatrix.CreateScale(scaleX, scaleY);
-
-            if (_selectionLayer.SelectionPath != null)
-            {
-                // TODO: There is a bug here. If selection is scaled by not right bottom handle, or if rotation and
-                // scale applied, position of the fill will be wrong.
-                var localTransform = SKMatrix.Identity;
-                SKMatrix.Concat(ref localTransform, localTransform, trans);
-                SKMatrix.Concat(ref localTransform, localTransform, rot);
-                SKMatrix.Concat(ref localTransform, localTransform, scale);
-                SKMatrix.Concat(ref localTransform, localTransform, trans.Invert());
-
-                canvas.SetMatrix(localTransform);
-                canvas.DrawPath(_selectionLayer.SelectionPath, new SKPaint { IsStroke = false, Color = color, BlendMode = blendMode });
-            }
-            else
-            {
-                var localTransform = trans;
-                SKMatrix.Concat(ref localTransform, localTransform, rot);
-                SKMatrix.Concat(ref localTransform, localTransform, scale);
-
-                canvas.SetMatrix(localTransform);
-
-                if (_selectionLayer.Bitmap != null)
-                {
-                    _selectionLayer.Bitmap.Erase(color);
-                    canvas.DrawBitmap(_selectionLayer.Bitmap, SKPoint.Empty, new SKPaint() { BlendMode = blendMode });
-                }
-            }
-            canvas.Restore();
-        }
-
-        if (WorkingBitmap == _swapBitmap)
-        {
-            SwapWorkingBitmap();
-        }
-
-        _selectionEditor.SetIsChanged();
-        ApplySelection(true);
-    }
-
-    public void SetSelection(SpriteSelectionNode selectionLayer, SKBitmap? backgroundBitmap)
-    {
-        if (DrawingTarget == null)
-            return;
-
-        OnSelectionStarted();
-        ClearWorkingBitmap();
-
-        _selectionLayer = selectionLayer;
-
-
-        if (backgroundBitmap == null)
-        {
-            if (_backgroundBitmap != null)
-                DrawingTarget.CopyBitmapTo(_backgroundBitmap);
-            State = DrawingLayerState.Paste;
-        }
-        else
-        {
-            State = DrawingLayerState.Ready;
-            _backgroundBitmap = backgroundBitmap.Copy();
-        }
-
-        Opacity = DrawingTarget.GetOpacity();
-
-        UpdateWorkingBitmapFromSelection();
-
-        ActivateEditor();
-
-        _selectionEditor.SetIsChanged();
-        OnPixelsSelected();
-    }
-
+    public void SelectAll() => _selection.SelectAll();
+    public void FillSelection(SKColor color) => _selection.FillSelection(color);
+    public void SetSelection(SpriteSelectionNode selectionLayer, SKBitmap? backgroundBitmap, bool contourOnly = false)
+        => _selection.SetSelection(selectionLayer, backgroundBitmap, contourOnly);
     public void SetSelectionFromExternal(SKBitmap bitmap, in SKPoint position)
-    {
-        if (DrawingTarget == null)
-            return;
-
-        var layer = new SpriteSelectionNode
-        {
-            Bitmap = bitmap,
-            Opacity = 1,
-            Position = position + ((SKNode)DrawingTarget).Position,
-            Size = bitmap.Info.Size,
-        };
-
-        SetSelection(layer, null);
-    }
-
-    public void BeginSelection(SKPoint pos)
-    {
-        ApplySelection();
-        OnSelectionStarted();
-        State = DrawingLayerState.DrawingSelectionArea;
-        ClearWorkingBitmap();
-        WorkingBitmap.NotifyPixelsChanged();
-
-        if (DrawingTarget != null && SelectionMode == PixelSelectionMode.SameColor)
-        {
-            var size = DrawingTarget.GetSize();
-            var bitmap = new SKBitmap(new SKImageInfo((int)size.Width, (int)size.Height, SKColorType.Rgba8888));
-            DrawingTarget.CopyBitmapTo(bitmap);
-            _pixelSelector = new SameColorSelector(bitmap);
-        }
-        else
-        {
-            _pixelSelector = _customPixelSelector ?? new PixelSelector();
-        }
-
-        UseSwapBitmap = SelectionMode == PixelSelectionMode.Rectangle;
-        _pixelSelector.BeginSelection(new SKPointI((int)pos.X, (int)pos.Y));
-    }
-
-    public void EraseSelection()
-    {
-        _pixelSelector = null;
-        if (_selectionLayer == null)
-        {
-            return;
-        }
-
-        if (_workingBitmap != null)
-            _workingBitmap.Clear();
-        ApplyWorkingBitmap();
-        DeactivateSelectionEditor();
-    }
-
-    public void ApplySelection(bool saveToUndo = false)
-    {
-        _pixelSelector = null;
-        if (_selectionLayer == null)
-        {
-            return;
-        }
-
-        if (_selectionEditor.IsChanged)
-        {
-            ApplyWorkingBitmap();
-            OnDrawingApplied(saveToUndo);
-        }
-
-        DeactivateSelectionEditor();
-    }
+        => _selection.SetSelectionFromExternal(bitmap, position);
+    public void BeginSelection(SKPoint pos) => _selection.BeginSelection(pos);
+    public void EraseSelection() => _selection.EraseSelection();
+    public void ApplySelection(bool saveToUndo = false) => _selection.ApplySelection(saveToUndo);
 
     public void DrawBitmap(SKBitmap bitmap, SKPoint position)
     {
@@ -1212,131 +779,17 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         OnDrawingApplied(true);
     }
 
-    public void InvalidateSelectionEditor()
-    {
-        if (_selectionLayer != null)
-            _selectionEditor.SetSelection(new NodesSelection(new[] { _selectionLayer }, () => { }) { GenerateOperations = false });
-    }
+    public void InvalidateSelectionEditor() => _selection.InvalidateSelectionEditor();
+    public void DeactivateSelectionEditor() => _selection.DeactivateSelectionEditor();
+    public void FinishSelection() => _selection.FinishSelection();
+    public void ActivateEditor() => _selection.ActivateEditor();
+    public void ActivateEditor(bool contourOnly) => _selection.ActivateEditor(contourOnly);
+    public void SetSelectionTransformMode(bool transformMode) => _selection.SetSelectionTransformMode(transformMode);
+    public void SetFrameResizeMode(bool enabled) => _selection.SetFrameResizeMode(enabled);
 
-    public void DeactivateSelectionEditor()
-    {
-        _selectionEditor.Hide();
+    public void SetCustomPixelSelector(IPixelSelector pixelSelector) => _selection.SetCustomPixelSelector(pixelSelector);
+    public void ClearCustomPixelSelector() => _selection.ClearCustomPixelSelector();
 
-        _selectionLayer = null;
-        _currentSelectionOperation = null;
-
-        _backgroundBitmap?.Clear();
-        _workingBitmap?.Clear();
-
-        UseSwapBitmap = false;
-        Opacity = 1;
-
-        DrawingTarget?.SetTargetBitmapSubstitute(null);
-        DrawingTarget?.ShowTargetBitmap();
-
-        OnSelectionRemoved();
-        OnDrawingApplied(false);
-
-        State = DrawingLayerState.Ready;
-    }
-
-    /// <summary>
-    /// Activates selection editor using currently drawn selection area. If nothing is selected (1 pixel is in
-    /// the selected area), editor is not activated.
-    /// </summary>
-    public void FinishSelection()
-    {
-        if (_pixelSelector == null || DrawingTarget == null)
-            return;
-
-        State = DrawingLayerState.Ready;
-
-        var selector = _pixelSelector;
-        selector.FinishSelection(SelectionMode != PixelSelectionMode.Rectangle);
-
-        var size = DrawingTarget.GetSize();
-        var tmpBitmap = new SKBitmap(new SKImageInfo((int)size.Width, (int)size.Height, SKColorType.Rgba8888));
-        DrawingTarget.CopyBitmapTo(tmpBitmap);
-        var selectionBitmap = selector.GetSelectionBitmap(tmpBitmap);
-
-        selector.ClearSelectionFromBitmap(ref tmpBitmap);
-
-        if (selectionBitmap.Pixels.Length > 1)
-        {
-            OnPixelsBeforeSelected(selectionBitmap);
-
-            _selectionLayer = new SpriteSelectionNode
-            {
-                Bitmap = selectionBitmap,
-                SelectionPath = selector.GetSelectionPath(),
-                Opacity = 1,
-                Position = selector.Offset + ((SKNode)DrawingTarget).Position,
-            };
-
-            Opacity = DrawingTarget.GetOpacity();
-            _backgroundBitmap = tmpBitmap;
-
-            ActivateEditor();
-            OnPixelsSelected();
-        }
-    }
-
-    public void ActivateEditor() => ActivateEditor(contourOnly: false);
-
-    public void ActivateEditor(bool contourOnly)
-    {
-        if (DrawingTarget is SKNode target && _selectionLayer != null)
-        {
-            var adornerLayer = SkiaNodes.AdornerLayer.GetAdornerLayer(target.Parent ?? target);
-            adornerLayer.Add(_selectionEditor);
-
-            var selection = new NodesSelection(new[] { _selectionLayer }, () => { }) { GenerateOperations = false };
-
-            _selectionEditor.SetSelection(selection, _selectionLayer.SelectionPath);
-            _selectionEditor.ContourOnly = contourOnly;
-            _selectionEditor.IsVisible = true;
-
-            UseSwapBitmap = true;
-
-            UpdateWorkingBitmapFromSelection();
-
-            if (_backgroundBitmap != null)
-            {
-                DrawingTarget.SetTargetBitmapSubstitute(() => _backgroundBitmap!);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Switches an active contour-only selection into the full transform mode (move/resize/rotate handles).
-    /// Invoked from the Clipboard Actions panel "Transform" button. No-op if there is no selection.
-    /// </summary>
-    public void EnterTransformMode()
-    {
-        if (_selectionLayer == null) return;
-
-        if (!_selectionEditor.IsVisible)
-        {
-            ActivateEditor(contourOnly: false);
-        }
-        else
-        {
-            _selectionEditor.ContourOnly = false;
-        }
-
-        // Toggling thumb visibility doesn't dirty the scene tree on its own, so force a redraw here.
-        Refresh();
-    }
-
-    public void SetCustomPixelSelector(IPixelSelector pixelSelector)
-    {
-        _customPixelSelector = pixelSelector;
-    }
-
-    public void ClearCustomPixelSelector()
-    {
-        _customPixelSelector = null;
-    }
 
     public void CancelCurrentOperation()
     {
@@ -1356,7 +809,12 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
     public void CancelActiveDrawing()
     {
         // A second finger / gesture suppression interrupts any pending touch selection before it promotes.
-        _deferredTouchSelectionStart = false;
+        _pointerInputRouter.CancelDeferredSelection();
+
+        // Drop any in-flight marquee overlay so the dashed outline doesn't linger after a cancel.
+        // Runs first so it covers both the DrawingSelectionArea path below and any state slip where the
+        // overlay was attached but the layer state didn't track it.
+        _selection.CancelMarqueeDrag();
 
         if (State is DrawingLayerState.Drawing or DrawingLayerState.DrawingSelectionArea)
         {
@@ -1364,106 +822,16 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         }
     }
 
-    public void AddSelectionPoint(SKPoint p)
-    {
-        if (_pixelSelector == null)
-            return;
-
-        var pivot = SKPoint.Empty;
-        GetGlobalTransform().TryInvert(out var invertedTransform);
-        var selectionPoint = invertedTransform.MapPoint(p + pivot);
-        _pixelSelector.AddSelectionPoint(new SKPointI((int)selectionPoint.X, (int)selectionPoint.Y),
-            (x, y) =>
-            {
-                if (InBounds(x, y))
-                    SetPixel(x, y, GetSelectionDashColor(x, y));
-            });
-    }
-
-    public void SetSelectionRect(SKPoint startPos, SKPoint endPos)
-    {
-        if (_pixelSelector == null)
-        {
-            return;
-        }
-
-        var pivot = SKPoint.Empty;
-        GetGlobalTransform().TryInvert(out var invertedTransform);
-
-        var p1 = invertedTransform.MapPoint(startPos + pivot).ToSkPointI();
-        var p2 = invertedTransform.MapPoint(new SKPoint(endPos.X, startPos.Y) + pivot).ToSkPointI();
-        var p3 = invertedTransform.MapPoint(endPos + pivot).ToSkPointI();
-        var p4 = invertedTransform.MapPoint(new SKPoint(startPos.X, endPos.Y) + pivot).ToSkPointI();
-
-        void Plot(int x, int y)
-        {
-            if (InBounds(x, y))
-                SetPixel(x, y, GetSelectionDashColor(x, y));
-        }
-
-        _pixelSelector.BeginSelection(p1);
-        _pixelSelector.AddSelectionPoint(p2, Plot);
-        _pixelSelector.AddSelectionPoint(p3, Plot);
-        _pixelSelector.AddSelectionPoint(p4, Plot);
-        _pixelSelector.AddSelectionPoint(p1, Plot);
-
-        var w = Math.Abs(p3.X - p1.X);
-        var h = Math.Abs(p3.Y - p1.Y);
-        SelectionSize = new SKSizeI(w + 1, h + 1);
-        SwapWorkingBitmap();
-    }
+    public void AddSelectionPoint(SKPoint p) => _selection.AddSelectionPoint(p);
+    public void SetSelectionRect(SKPoint startPos, SKPoint endPos) => _selection.SetSelectionRect(startPos, endPos);
 
     protected virtual void OnDrawingApplied(bool saveToUndo)
     {
         DrawingApplied?.Invoke(this, new DrawingAppliedEventArgs(saveToUndo));
     }
 
-    protected virtual void OnPixelsSelected()
-    {
-        PixelsSelected?.Invoke(this, EventArgs.Empty);
-    }
-
-    protected virtual void OnPixelsBeforeSelected(SKBitmap selectionBitmap)
-    {
-        PixelsBeforeSelected?.Invoke(this, new PixelsBeforeSelectedEventArgs(selectionBitmap));
-    }
-
-    protected virtual void OnSelectionStarted()
-    {
-        SelectionStarted?.Invoke(this, EventArgs.Empty);
-    }
-
-    public void FlipSelection(FlipMode mode)
-    {
-        _selectionEditor.ManipulateSelection(() =>
-        {
-            var sl = _selectionLayer;
-            if (sl == null)
-                return;
-
-            if (mode == FlipMode.Horizontal)
-                sl.FlipHorizontal();
-
-            if (mode == FlipMode.Vertical)
-                sl.FlipVertical();
-
-            sl.InvalidateBitmap();
-        });
-    }
-
-    public void RotateSelection(int angle)
-    {
-        _selectionEditor.Rotate(90);
-        //_selectionEditor.ManipulateSelection(() =>
-        //{
-
-        //    var sl = _selectionLayer;
-
-        //    sl.RotateSourceBitmap(true);
-
-        //    sl.InvalidateBitmap();
-        //});
-    }
+    public void FlipSelection(FlipMode mode) => _selection.FlipSelection(mode);
+    public void RotateSelection(int angle) => _selection.RotateSelection(angle);
 
     public SKPoint SnapPointToAngleGrid(SKPoint p0, SKPoint p1, float angleStepDegrees = 15f)
     {
@@ -1481,10 +849,46 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor
         return ProjectAspectPoint(p1, p0, tp);
     }
 
-    protected virtual void OnSelectionTransformed(SelectionOperation operation)
+    // ISelectionLayerHost — narrow seam for SelectionController. Public members of DrawingLayerNode
+    // (DrawingTarget, Size, WorkingBitmap, UseSwapBitmap, State, Opacity, IsInBounds, SetPixel,
+    // AspectSnapper, ActiveToolKeyProvider, GetGlobalTransform) already satisfy the interface
+    // implicitly. The rest is wired explicitly so it doesn't leak into the public API.
+    SKBitmap? ISelectionLayerHost.BackgroundBitmap
     {
-        SelectionTransformed?.Invoke(this, new SelectionTransformedEventArgs(operation));
+        get => _backgroundBitmap;
+        set => _backgroundBitmap = value;
     }
 
-    protected virtual void OnSelectionRemoved() => SelectionRemoved?.Invoke(this, EventArgs.Empty);
+    void ISelectionLayerHost.ClearWorkingBuffers() => ClearWorkingBitmap();
+    void ISelectionLayerHost.ClearWorkingAndSwapBitmaps()
+    {
+        _workingBitmap?.Clear();
+        _swapBitmap?.Clear();
+        ClearDisplaySnapshot();
+    }
+    void ISelectionLayerHost.SwapWorkingBitmap() => SwapWorkingBitmap();
+    void ISelectionLayerHost.ApplyWorkingBitmap() => ApplyWorkingBitmap();
+    void ISelectionLayerHost.RequestRefresh() => Refresh();
+    void ISelectionLayerHost.RaiseDrawingApplied(bool saveToUndo) => OnDrawingApplied(saveToUndo);
+
+    void ISelectionLayerHost.PromoteWorkingBitmapToDisplay() => PublishDisplaySnapshot();
+    void ISelectionLayerHost.ClearDisplaySnapshot() => ClearDisplaySnapshot();
+
+    BrushDrawingMode IPointerInputRouterHost.GetDrawingMode() => _drawingMode;
+    bool IPointerInputRouterHost.IsTargetBitmapVisible => DrawingTarget!.IsTargetBitmapVisible();
+    SKPoint IPointerInputRouterHost.StartPos
+    {
+        get => StartPos;
+        set => StartPos = value;
+    }
+    SKPoint IPointerInputRouterHost.EndPos => EndPos;
+    SKPointI IPointerInputRouterHost.StartPosI => StartPosI;
+    SKPointI IPointerInputRouterHost.EndPosI => EndPosI;
+    bool IPointerInputRouterHost.IsPointerOverSelection(SKPoint worldPos) => _selection.SelectionBoundsContains(worldPos);
+    void IPointerInputRouterHost.ApplySelection() => ApplySelection();
+    void IPointerInputRouterHost.Refresh() => Refresh();
+    void IPointerInputRouterHost.CapturePointer() => CapturePointer();
+    void IPointerInputRouterHost.DrawStroke(SKPoint pos) => DrawStroke(pos);
+    void IPointerInputRouterHost.SetSelectionRect(SKPoint startPos, SKPoint endPos) => SetSelectionRect(startPos, endPos);
+    void IPointerInputRouterHost.FinishReleasedDrawing() => FinishReleasedDrawing();
 }

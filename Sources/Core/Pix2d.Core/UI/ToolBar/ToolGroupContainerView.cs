@@ -94,7 +94,7 @@ public partial class ToolGroupContainerView : ViewBase<ToolGroupContainerView.St
                 return;
 
             _currentGroup = group;
-            var items = _appState.ToolsState.Tools.Where(x => x.GroupName == group);
+            var items = _appState.ToolsState.Tools.Where(x => x.GroupName == group && x.ShowInToolbar);
             _itemsPanel.Children.Clear();
             foreach (var item in items)
             {

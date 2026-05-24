@@ -9,7 +9,7 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Operations;
 
-public class PasteOperation : EditOperationBase, ISpriteEditorOperation
+public class PasteOperation : EditOperationBase, ISpriteEditorOperation, IToolAwareOperation
 {
     private readonly SKBitmap _image;
     private readonly SKPoint _position;
@@ -22,11 +22,18 @@ public class PasteOperation : EditOperationBase, ISpriteEditorOperation
     public HashSet<int> AffectedFrameIndexes { get; } = new();
     public HashSet<int> AffectedLayerIndexes { get; } = new();
 
+    public string? ToolKeyBeforeOperation { get; }
+
+    // OnPerform explicitly activates PixelTransformTool, so its own tool-restoration path already lands the
+    // user in the right tool on Redo — no need to repeat that here. Undo just rewinds to the pre-paste tool.
+    public string? ToolKeyAfterOperation => null;
+
     public PasteOperation(SKBitmap image, SKPoint position,
         IDrawingTarget drawingTarget,
         IDrawingLayer drawingLayer,
         IDrawingService drawingService,
-        IToolService toolService)
+        IToolService toolService,
+        string? activeToolKey = null)
     {
         _image = image;
         _position = position;
@@ -35,6 +42,7 @@ public class PasteOperation : EditOperationBase, ISpriteEditorOperation
         _drawingService = drawingService;
         _toolService = toolService;
         _initialTargetData = _drawingTarget.GetData();
+        ToolKeyBeforeOperation = activeToolKey;
 
         // Track affected frames/layers for timeline preview refresh
         if (_drawingTarget is IAnimatedNode animatedNode)
@@ -46,11 +54,13 @@ public class PasteOperation : EditOperationBase, ISpriteEditorOperation
 
     public override void OnPerform()
     {
-        _toolService.ActivateTool<PixelSelectToolBase>();
+        // Paste always lifts pixels (the pasted bitmap is shown above the canvas, ready to be positioned),
+        // so we hand off to PixelTransformTool — the single owner of the "pixels lifted" state. Note: order
+        // matters — set up the selection FIRST so the transform tool's Activate sees HasSelection=true and
+        // enters the editor in transform mode rather than falling back to PixelSelectRectTool.
         _drawingLayer?.ApplySelection();
         _drawingLayer?.SetSelectionFromExternal(_image, _position);
-
-        //        CoreServices.DrawingService.PasteBitmap(_image, _position);
+        _toolService.ActivateTool<PixelTransformTool>();
     }
 
     public override void OnPerformUndo()

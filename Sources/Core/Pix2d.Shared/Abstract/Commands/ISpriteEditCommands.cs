@@ -11,6 +11,7 @@ public interface ISpriteEditCommands : ICommandList
     Pix2dCommand CropPixels { get; }
     Pix2dCommand FlipHorizontal { get; }
     Pix2dCommand FlipVertical { get; }
+    Pix2dCommand RotateMinus90 { get; }
     Pix2dCommand Rotate90 { get; }
     Pix2dCommand Rotate90All { get; }
     Pix2dCommand Clear { get; }

@@ -13,6 +13,8 @@ public class BulkEditOperation : EditOperationBase, ISpriteEditorOperation, ICac
 {
     private readonly List<IEditOperation> _operations = new List<IEditOperation>();
 
+    public IReadOnlyList<IEditOperation> Operations => _operations;
+
     public bool Empty => !_operations.Any();
 
     public HashSet<int> AffectedFrameIndexes { get; private set; } = new();

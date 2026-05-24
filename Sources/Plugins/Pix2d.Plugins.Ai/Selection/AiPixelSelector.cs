@@ -24,6 +24,8 @@ public class AiPixelSelector : IPixelSelector
         return null;
     }
 
+    public List<List<SKPoint>>? GetSelectionContours() => null;
+
     public SKPoint Offset => new SKPoint(-_offsetX, -_offsetY);
 
     public void AddSelectionPoint(SKPointI pos, Action<int, int> plot)

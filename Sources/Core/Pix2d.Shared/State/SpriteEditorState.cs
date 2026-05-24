@@ -114,5 +114,4 @@ public class SpriteEditorState : StateBase
         get => Get(false);
         set => Set(value);
     }
-
 }

@@ -60,7 +60,11 @@ public class DrawingService : IDrawingService
         _viewPortRefreshService = viewPortRefreshService;
         _messenger = messenger;
 
-        SetNewDrawingLayer(new DrawingLayerNode() { AspectSnapper = snappingService });
+        SetNewDrawingLayer(new DrawingLayerNode()
+        {
+            AspectSnapper = snappingService,
+            ActiveToolKeyProvider = () => _appState.ToolsState.CurrentToolKey,
+        });
 
         messenger.Register<ProjectCloseMessage>(this, OnProjectClose);
         messenger.Register<ProjectLoadedMessage>(this, m => UpdateFromDesignerState());
@@ -118,6 +122,7 @@ public class DrawingService : IDrawingService
             _drawingLayer.SelectionStarted -= DrawingLayerOnDrawingStarted;
             _drawingLayer.LayerModified -= DrawingLayerOnModified;
             _drawingLayer.SelectionTransformed -= DrawingLayerSelectionTransformed;
+            _drawingLayer.MarqueeFinishedByUser -= DrawingLayer_MarqueeFinishedByUser;
         }
 
         _drawingLayer = newDrawingLayer;
@@ -130,12 +135,29 @@ public class DrawingService : IDrawingService
             _drawingLayer.DrawingStarted += DrawingLayerOnDrawingStarted;
             _drawingLayer.LayerModified += DrawingLayerOnModified;
             _drawingLayer.SelectionTransformed += DrawingLayerSelectionTransformed;
+            _drawingLayer.MarqueeFinishedByUser += DrawingLayer_MarqueeFinishedByUser;
         }
     }
 
     private void DrawingLayerSelectionTransformed(object? sender, SelectionTransformedEventArgs e)
     {
         _operationService.PushOperations(e.Operation);
+    }
+
+    private void DrawingLayer_MarqueeFinishedByUser(object? sender, EventArgs e)
+    {
+        // The event fires only from FinishSelection after the marquee is fully set up, so a downcast +
+        // GetSelectionLayer/GetSelectionBackground is safe here. The op holds the same selection-layer
+        // reference DrawingLayerNode uses, so subsequent TransformSelectionOperation/ApplyTransformOperation pushed
+        // on top will share its state and chain consistently through undo/redo.
+        if (_drawingLayer is not DrawingLayerNode dln) return;
+
+        var selectionLayer = (SpriteSelectionNode)dln.GetSelectionLayer();
+        var backgroundBitmap = dln.GetSelectionBackground();
+        var toolKey = _appState.ToolsState.CurrentToolKey;
+
+        var op = new BeginSelectionOperation(dln, selectionLayer, backgroundBitmap, toolKey);
+        _operationService.PushOperations(op);
     }
 
     private void DrawingLayerOnModified(object? sender, EventArgs e)
@@ -313,7 +335,7 @@ public class DrawingService : IDrawingService
         if (_drawingLayer == null || CurrentDrawingTarget == null)
             return;
         
-        var pasteOperation = new PasteOperation(bitmap, pos, CurrentDrawingTarget, _drawingLayer, this, _toolService);
+        var pasteOperation = new PasteOperation(bitmap, pos, CurrentDrawingTarget, _drawingLayer, this, _toolService, _appState.ToolsState.CurrentToolKey);
         _operationService.InvokeAndPushOperations(pasteOperation);
     }
 
@@ -350,6 +372,38 @@ public class DrawingService : IDrawingService
     public void CancelCurrentOperation() => _operationFactory?.CancelCurrentOperation();
 
     public void CancelActiveDrawing() => _operationFactory?.CancelActiveDrawing();
+
+    public void CommitTransformWithUndo(bool keepMarqueeInContour, string? toolKeyBefore, string? toolKeyAfter)
+    {
+        // Snapshot phase: capture everything we need BEFORE the commit, since either path below can drop the
+        // selection layer / background bitmap and we won't be able to re-read them off the layer after that.
+        if (_drawingLayer is not DrawingLayerNode dln) return;
+        if (CurrentDrawingTarget == null) return;
+        if (dln.SelectionPhase != SelectionPhase.Transforming) return;
+
+        var targetDataBefore = CurrentDrawingTarget.GetData();
+        var selectionLayer = (SpriteSelectionNode)dln.GetSelectionLayer();
+        var backgroundBitmap = dln.GetSelectionBackground();
+
+        if (keepMarqueeInContour)
+            dln.SetSelectionTransformMode(false);
+        else
+            dln.ApplySelection();
+
+        var targetDataAfter = CurrentDrawingTarget.GetData();
+
+        var op = new ApplyTransformOperation(
+            CurrentDrawingTarget,
+            dln,
+            selectionLayer,
+            backgroundBitmap,
+            targetDataBefore,
+            targetDataAfter,
+            keepMarqueeInContour,
+            toolKeyBefore,
+            toolKeyAfter);
+        _operationService.PushOperations(op);
+    }
 
     public void Refresh() => _viewPortRefreshService.Refresh();
 }

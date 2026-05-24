@@ -102,4 +102,13 @@ public interface IDrawingService
     /// removing the user's selection would be surprising.
     /// </summary>
     void CancelActiveDrawing();
+
+    /// <summary>
+    /// Commits the currently-transforming pixel selection onto its drawing target AND records the commit as a
+    /// single undo step. Only valid when <see cref="IDrawingLayer.SelectionPhase"/> is <c>Transforming</c>;
+    /// returns silently otherwise. The recorded operation is tool-aware so undo/redo can restore the transform
+    /// tool that produced the commit. Pass <paramref name="keepMarqueeInContour"/>=true when handing off to a
+    /// selection tool that should keep the marquee alive in contour mode; false to drop the marquee outright.
+    /// </summary>
+    void CommitTransformWithUndo(bool keepMarqueeInContour, string? toolKeyBefore, string? toolKeyAfter);
 }

@@ -46,11 +46,14 @@ public class FrameEditorNode : SKNode
     }
 
     private bool _contourOnly;
+    private bool _frameResizeMode;
 
     /// <summary>
-    /// When true, the editor displays only the marching-ants contour (via the move thumb) and hides all
-    /// manipulation handles. The move thumb also becomes non-interactive so taps fall through. Set to false
-    /// via the explicit "Transform selection" action to expose the full transform handles.
+    /// When true, the editor renders in contour-edit mode: only the marching-ants outline is shown (drawn by
+    /// the move thumb), all resize and rotate manipulators are hidden. The move thumb stays interactive so
+    /// the user can still drag the marquee to reshape what's selected — that's the contour-mode contract:
+    /// no transforming of underlying pixels, just shifting the selection region. Set to false to expose the
+    /// full transform handles (resize circles + rotate).
     /// </summary>
     public bool ContourOnly
     {
@@ -59,6 +62,25 @@ public class FrameEditorNode : SKNode
         {
             if (_contourOnly == value) return;
             _contourOnly = value;
+            UpdateThumbs();
+        }
+    }
+
+    /// <summary>
+    /// Frame-resize mode (crop tool). Layered ON TOP of <see cref="ContourOnly"/>: when both are true the
+    /// move thumb still draws marching ants (no pixel lift), but the resize handles are forced visible and
+    /// rendered in the contour/black styling — signalling that dragging them resizes the marquee region
+    /// itself, not transforming any underlying pixels. The rotate thumb stays hidden because rotating a
+    /// crop frame doesn't fit the Photoshop model. No-op when <see cref="ContourOnly"/> is false (transform
+    /// mode owns its own resize affordance).
+    /// </summary>
+    public bool FrameResizeMode
+    {
+        get => _frameResizeMode;
+        set
+        {
+            if (_frameResizeMode == value) return;
+            _frameResizeMode = value;
             UpdateThumbs();
         }
     }
@@ -117,24 +139,39 @@ public class FrameEditorNode : SKNode
     private void SizeThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
         _selection?.InitOperation<ResizeOperation>();
+        FreezeContourForDrag();
         OnSelectionEditStarted();
     }
 
     private void MoveThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
         _selection?.InitOperation<MoveOperation>();
+        FreezeContourForDrag();
         OnSelectionEditStarted();
     }
     private void RotateThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
         _selection?.InitOperation<RotateOperation>();
+        FreezeContourForDrag();
         OnSelectionEditStarted();
     }
 
     private void ThumbOnDragComplete(object? sender, DragCompletedEventArgs e)
     {
+        // Unfreeze first so SelectionEdited consumers see the final state, then re-sync the contour to the
+        // pixel-snapped frame the thumbs left behind. Doing this in one step on release avoids the visual
+        // wobble of recalculating the dashed outline every drag-delta.
+        UnfreezeContourAfterDrag();
         OnSelectionEdited();
         _selection?.FinishOperation();
+    }
+
+    private void FreezeContourForDrag() => _highlightNode.FreezeTransformUpdates = true;
+
+    private void UnfreezeContourAfterDrag()
+    {
+        _highlightNode.FreezeTransformUpdates = false;
+        _highlightNode.SyncTransformToFrame();
     }
 
     private void Thumb_DragDelta(object? sender, DragDeltaEventArgs e)
@@ -151,13 +188,17 @@ public class FrameEditorNode : SKNode
         OnSelectionEditing();
     }
 
-    public void SetSelection(INodesSelection selection, SKPath? highlightPath = null)
+    public void SetSelection(INodesSelection selection, SKPath? highlightPath = null, IReadOnlyList<IReadOnlyList<SKPoint>>? highlightContours = null)
     {
         EditStarted = false;
         _selection = selection as NodesSelection;
-        _highlightNode.SetSelection(_selection, highlightPath);
+        _highlightNode.SetSelection(_selection, highlightPath, highlightContours);
 
         this.IsVisible = _selection?.Nodes.Any() ?? false;
+
+        // When a real contour is supplied (lasso / same-colour), LineHighlightNode renders it; the move
+        // thumb must not double-draw a bounding rect on top.
+        _moveThumb.HasCustomContour = highlightPath != null;
 
         foreach (var thumb in Nodes.OfType<NodeManipulateThumbBase>())
         {
@@ -172,18 +213,24 @@ public class FrameEditorNode : SKNode
 
     private void UpdateThumbs()
     {
+        // Resize & rotate manipulators belong to transform mode by default — in contour mode the marquee is
+        // just a region selector and resize/rotate would imply pixel transformation, which is
+        // PixelTransformTool's job. Exception: crop tool's frame-resize mode forces resize handles visible
+        // even in contour mode (rendered in black) so the user can adjust the crop rectangle without
+        // lifting pixels. The move thumb stays visible (it draws the marching-ants outline) AND interactive
+        // in both modes so the user can drag the marquee around to reshape it.
+        var showResize = _allowResize && this.IsVisible && (!_contourOnly || _frameResizeMode);
         foreach (var resizeThumbSingleNode in _sizeThumb)
         {
-            resizeThumbSingleNode.IsVisible = _allowResize && this.IsVisible && !_contourOnly;
+            resizeThumbSingleNode.IsVisible = showResize;
+            resizeThumbSingleNode.ContourOnly = _contourOnly;
             resizeThumbSingleNode.Opacity = 50;
         }
 
         _rotateThumb.IsVisible = this.IsVisible && !_contourOnly;
 
-        // Move thumb always stays visible (it draws the border / contour) but becomes non-interactive
-        // in contour-only mode so taps on the selected area go through to the drawing layer.
         _moveThumb.ContourOnly = _contourOnly;
-        _moveThumb.IsInteractive = !_contourOnly;
+        _moveThumb.IsInteractive = true;
     }
 
     private void ResetIsChanged()
