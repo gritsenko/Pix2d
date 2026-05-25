@@ -22,6 +22,11 @@ public partial class ToolGroupContainerView : ViewBase<ToolGroupContainerView.St
             .Height(44)
             .Margin(6),
 
+        new Style<Button>(s => s.Class("toolbar-button"))
+            .Foreground(StaticResources.Brushes.ForegroundBrush)
+            .Background(Brushes.Transparent)
+            .Padding(new Thickness(0)),
+
         new Style<StackPanel>(s => s.OfType<ToolGroupContainerView>().Descendant().OfType<StackPanel>())
             .Orientation(Orientation.Vertical),
 
@@ -30,6 +35,12 @@ public partial class ToolGroupContainerView : ViewBase<ToolGroupContainerView.St
 
         new Style<Shape>(s => s.Class("selected").Descendant().Is<Shape>())
             .Fill(Brushes.White.ToImmutable()),
+
+        new Style<Button>(s => s.Class("selected"))
+            .BorderThickness(1)
+            .Foreground(Brushes.White)
+            .BorderBrush(StaticResources.Brushes.SelectedToolBorderBrush)
+            .Background(StaticResources.Brushes.SelectedToolBrush),
 
         new Style<TextBlock>(x => x.Class("ToolIcon"))
             .Height(26)
