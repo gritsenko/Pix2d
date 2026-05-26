@@ -124,6 +124,10 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         set => _selection.SelectionMode = value;
     }
 
+    public int ColorSelectionTolerance { get; set; }
+
+    public ColorSelectionScope ColorSelectionScope { get; set; } = ColorSelectionScope.Connected;
+
     public bool HasSelection => _selection.HasSelection;
 
     public SelectionPhase SelectionPhase => _selection.SelectionPhase;

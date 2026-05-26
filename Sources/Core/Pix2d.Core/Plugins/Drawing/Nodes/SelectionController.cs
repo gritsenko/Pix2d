@@ -255,7 +255,7 @@ internal sealed class SelectionController
             var size = drawingTarget.GetSize();
             var bitmap = new SKBitmap(new SKImageInfo((int)size.Width, (int)size.Height, SKColorType.Rgba8888));
             drawingTarget.CopyBitmapTo(bitmap);
-            _pixelSelector = new SameColorSelector(bitmap);
+            _pixelSelector = new SameColorSelector(bitmap, _ownerNode.ColorSelectionTolerance, _ownerNode.ColorSelectionScope);
         }
         else
         {

@@ -43,6 +43,8 @@ public interface IDrawingLayer
     void SetDrawingLayerMode(BrushDrawingMode drawingMode);
 
     PixelSelectionMode SelectionMode { get; set; }
+    int ColorSelectionTolerance { get; set; }
+    ColorSelectionScope ColorSelectionScope { get; set; }
     bool HasSelection { get; }
     bool HasSelectionChanges { get; }
 
