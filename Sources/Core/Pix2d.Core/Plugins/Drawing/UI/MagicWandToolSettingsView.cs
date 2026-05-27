@@ -7,6 +7,7 @@ using Pix2d.Plugins.Drawing.Tools.PixelSelect;
 using Pix2d.Primitives;
 using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
+using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.Plugins.Drawing.UI;
 
@@ -18,7 +19,7 @@ public partial class MagicWandToolSettingsView(ICommandService commandService, I
         new StackPanel()
             .Orientation(Orientation.Horizontal)
             .Children(
-                // ViewFactory.Create<MagicWandClipboardActionsView>(),
+                ViewFactory.Create<MagicWandClipboardActionsView>(),
                 new Border()
                     .Padding(new Thickness(14, 8))
                     .Background(StaticResources.Brushes.PanelsBackgroundBrush)
@@ -31,32 +32,27 @@ public partial class MagicWandToolSettingsView(ICommandService commandService, I
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Spacing(12)
                             .Children(
-                                new TextBlock()
-                                    .Width(84)
-                                    .VerticalAlignment(VerticalAlignment.Center)
-                                    .FontSize(12)
-                                    .Foreground(StaticResources.Brushes.ForegroundBrush)
-                                    .Text("TOLERANCE"),
-                                new Slider()
-                                    .Width(160)
-                                    .VerticalAlignment(VerticalAlignment.Center)
+                                new SliderEx()
+                                    .LayoutMode(SliderExLayoutMode.OneLine)
+                                    .NarrowMode(SliderExNarrowMode.PopupEditor)
+                                    .NarrowWidthThreshold(250)
+                                    .Label("TOLERANCE")
                                     .Minimum(0)
                                     .Maximum(255)
-                                    .TickFrequency(1)
-                                    .IsSnapToTickEnabled(true)
-                                    .SmallChange(1)
-                                    .LargeChange(10)
                                     .Value(_state, x => x.Tolerance, BindingMode.TwoWay),
-                                new TextBlock()
-                                    .Width(28)
+                                new AppToggleButton()
                                     .VerticalAlignment(VerticalAlignment.Center)
-                                    .Foreground(StaticResources.Brushes.ForegroundBrush)
-                                    .Text(_state, x => x.ToleranceText),
-                                new ToggleSwitch()
-                                    .VerticalAlignment(VerticalAlignment.Center)
-                                    .OffContent("Connected")
-                                    .OnContent("Whole layer")
                                     .IsChecked(_state, x => x.SelectWholeLayer, BindingMode.TwoWay)
+                                    .Content(
+                                        new Path()
+                                            .Data(StaticResources.Icons.GlobalIcon)
+                                            .Stretch(Stretch.Uniform)
+                                            .Width(18)
+                                            .Height(18)
+                                            .RenderTransform(new ScaleTransform(1, -1))
+                                            .RenderTransformOrigin(new RelativePoint(0.5, 0.5, RelativeUnit.Relative))
+                                            .Fill(StaticResources.Brushes.ForegroundBrush))
+                                    .Label("Global")
                             )
                     )
             );
@@ -104,7 +100,6 @@ public partial class MagicWandToolSettingsView(ICommandService commandService, I
         public partial bool CanTransformSelection { get; set; }
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(ToleranceText))]
         public partial double Tolerance { get; set; }
 
         [ObservableProperty]
@@ -120,8 +115,6 @@ public partial class MagicWandToolSettingsView(ICommandService commandService, I
         }
 
         public ISpriteEditCommands SpriteEditCommands { get; }
-
-        public string ToleranceText => ((int)Math.Round(Tolerance)).ToString();
 
         public void Subscribe()
         {
