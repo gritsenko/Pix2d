@@ -18,27 +18,40 @@ public partial class MagicWandToolSettingsView(ICommandService commandService, I
         new StackPanel()
             .Orientation(Orientation.Horizontal)
             .Children(
-                new Button()
-                    .Command(_state.SpriteEditCommands.ActivateSelectionTransform)
-                    .IsEnabled(_state, x => x.CanTransformSelection)
-                    .With(ButtonStyle)
-                    .Content("\xE7C5"),
-                ViewFactory.Create<ClipboardActionsView>(),
+                // ViewFactory.Create<MagicWandClipboardActionsView>(),
                 new Border()
-                    .Margin(new Thickness(12, 0, 0, 0))
-                    .Padding(new Thickness(12, 6))
+                    .Padding(new Thickness(14, 8))
+                    .Background(StaticResources.Brushes.PanelsBackgroundBrush)
+                    .BorderBrush(StaticResources.Brushes.PanelsBorderBrush)
+                    .BorderThickness(new Thickness(1))
+                    .CornerRadius(new CornerRadius(12))
                     .Child(
                         new StackPanel()
                             .Orientation(Orientation.Horizontal)
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Spacing(12)
                             .Children(
-                                new SliderEx()
-                                    .Width(220)
-                                    .Label("Sensitivity")
+                                new TextBlock()
+                                    .Width(84)
+                                    .VerticalAlignment(VerticalAlignment.Center)
+                                    .FontSize(12)
+                                    .Foreground(StaticResources.Brushes.ForegroundBrush)
+                                    .Text("TOLERANCE"),
+                                new Slider()
+                                    .Width(160)
+                                    .VerticalAlignment(VerticalAlignment.Center)
                                     .Minimum(0)
                                     .Maximum(255)
+                                    .TickFrequency(1)
+                                    .IsSnapToTickEnabled(true)
+                                    .SmallChange(1)
+                                    .LargeChange(10)
                                     .Value(_state, x => x.Tolerance, BindingMode.TwoWay),
+                                new TextBlock()
+                                    .Width(28)
+                                    .VerticalAlignment(VerticalAlignment.Center)
+                                    .Foreground(StaticResources.Brushes.ForegroundBrush)
+                                    .Text(_state, x => x.ToleranceText),
                                 new ToggleSwitch()
                                     .VerticalAlignment(VerticalAlignment.Center)
                                     .OffContent("Connected")
@@ -91,6 +104,7 @@ public partial class MagicWandToolSettingsView(ICommandService commandService, I
         public partial bool CanTransformSelection { get; set; }
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ToleranceText))]
         public partial double Tolerance { get; set; }
 
         [ObservableProperty]
@@ -106,6 +120,8 @@ public partial class MagicWandToolSettingsView(ICommandService commandService, I
         }
 
         public ISpriteEditCommands SpriteEditCommands { get; }
+
+        public string ToleranceText => ((int)Math.Round(Tolerance)).ToString();
 
         public void Subscribe()
         {

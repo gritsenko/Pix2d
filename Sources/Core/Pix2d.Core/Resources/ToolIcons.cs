@@ -74,10 +74,17 @@ public static class ToolIcons
                     .Text("\xf408")),
             
             ["PixelSelectColorTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
-                new TextBlock().Classes("ToolIcon")
-                    .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                    .FontSize(22)
-                    .Text("\xe790")),
+                new Path()
+                    .Classes("ToolIcon")
+                    .Data(StaticResources.Icons.MagicWandIcon)
+                    .Stretch(Stretch.Uniform)
+                    .Width(28)
+                    .Height(28)
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .RenderTransform(new ScaleTransform(1, -1))
+                    .RenderTransformOrigin(new RelativePoint(0.5, 0.5, RelativeUnit.Relative))
+                    .Fill(StaticResources.Brushes.ForegroundBrush)),
 
             ["PixelTransformTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
                 new Path()

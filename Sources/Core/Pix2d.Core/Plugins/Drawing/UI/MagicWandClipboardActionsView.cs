@@ -2,7 +2,7 @@ using Pix2d.UI.Resources;
 
 namespace Pix2d.Plugins.Drawing.UI;
 
-public class ClipboardActionsView(ICommandService commandService) : ViewBase
+public class MagicWandClipboardActionsView(ICommandService commandService) : ViewBase
 {
     private ISpriteEditCommands SpriteEditCommands =>
         commandService.GetCommandList<ISpriteEditCommands>() ??
@@ -24,10 +24,6 @@ public class ClipboardActionsView(ICommandService commandService) : ViewBase
                     .Command(SpriteEditCommands.CutPixels)
                     .With(ButtonStyle)
                     .Content("\xE8C6"),
-                // new Button()
-                //     .Command(SpriteEditCommands.CropPixels)
-                //     .With(ButtonStyle)
-                //     .Content("\xE7A8"),
                 new Button()
                     .With(ButtonStyle)
                     .With(b =>
@@ -39,19 +35,16 @@ public class ClipboardActionsView(ICommandService commandService) : ViewBase
                     .Content("\xE10C")
             );
 
-
     private void ButtonStyle(Button b)
     {
         b.Classes("btn")
-        .Width(48)
-        .Height(48)
-        .FontSize(16)
-        .FontFamily(StaticResources.Fonts.IconFontSegoe)
-        .Padding(new Thickness(0));
+            .Width(48)
+            .Height(48)
+            .FontSize(16)
+            .FontFamily(StaticResources.Fonts.IconFontSegoe)
+            .Padding(new Thickness(0));
 
         if (b.Command is Pix2dCommand pc)
-        {
             b.ToolTip_Tip(pc.Tooltip);
-        }
     }
 }
