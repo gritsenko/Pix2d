@@ -101,6 +101,7 @@ internal sealed class SelectionController
         _selectionEditor.SelectionEditStarted += SelectionEditor_SelectionEditStarted;
         _selectionEditor.SelectionEdited += SelectionEditor_SelectionEdited;
         _selectionEditor.SelectionEditing += SelectionEditor_SelectionEditing;
+        _selectionEditor.SelectionEditCanceled += SelectionEditor_SelectionEditCanceled;
         _selectionEditor.AspectSnapperProviderFunc = () => _host.AspectSnapper!;
 
         _marqueeOverlay = new SelectionMarqueeOverlayNode { IsVisible = false };
@@ -201,6 +202,12 @@ internal sealed class SelectionController
         _currentSelectionOperation = GetCurrentSelectionOperationOrNew();
         if (_pixelsLifted)
             UpdateWorkingBitmapFromSelection();
+    }
+
+    private void SelectionEditor_SelectionEditCanceled(object? sender, EventArgs e)
+    {
+        _currentSelectionOperation = null;
+        _host.RequestRefresh();
     }
 
     private void EnsureMarqueeOverlayAttached()

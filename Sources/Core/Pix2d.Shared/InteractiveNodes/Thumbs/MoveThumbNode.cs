@@ -16,6 +16,7 @@ public class MoveThumbNode : NodeManipulateThumbBase
     private SKPoint _initialThumbPos;
     private Dictionary<SKNode, SKPoint>? _initialTargetsPos;
     private SKPoint _initialFramePos;
+    private SKPath? _customContourPath;
 
     public bool ClickThrough { get; set; } = true;
 
@@ -32,6 +33,12 @@ public class MoveThumbNode : NodeManipulateThumbBase
     /// both the true contour and a redundant rectangle around it.
     /// </summary>
     public bool HasCustomContour { get; set; }
+
+    public void SetCustomContourPath(SKPath? path)
+    {
+        _customContourPath?.Dispose();
+        _customContourPath = path;
+    }
 
     public Func<bool> AxisLockProviderFunc { get; set; } = null!;
     public AxisLockMode AxisLockMode { get; set; }
@@ -52,6 +59,17 @@ public class MoveThumbNode : NodeManipulateThumbBase
 
 
         Rotation = selection.Rotation;
+    }
+
+    public override bool ContainsPoint(SKPoint worldPos)
+    {
+        if (ContourOnly && HasCustomContour && _customContourPath != null)
+        {
+            var localPos = GetLocalPosition(worldPos);
+            return _customContourPath.Contains(localPos.X, localPos.Y);
+        }
+
+        return base.ContainsPoint(worldPos);
     }
 
     private void MoveThumbNode_DragComplete(object? sender, DragCompletedEventArgs e)
@@ -144,6 +162,13 @@ public class MoveThumbNode : NodeManipulateThumbBase
             using var paint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(2), StrokeColor);
             canvas.DrawRect(0, 0, Size.Width, Size.Height, paint);
         }
+    }
+
+    public override void OnUnload()
+    {
+        _customContourPath?.Dispose();
+        _customContourPath = null;
+        base.OnUnload();
     }
 
 }

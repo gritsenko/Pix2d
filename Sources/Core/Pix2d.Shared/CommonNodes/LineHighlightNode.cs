@@ -9,31 +9,40 @@ namespace Pix2d.CommonNodes;
 
 public class LineHighlightNode : SKNode, IDisposable
 {
-    private SKPoint _offset;
     private SKSize _originalSize;
-    private SKPath? Path { get; set; }
-    private IReadOnlyList<IReadOnlyList<SKPoint>>? _contours;
+    private SKPath? _localPath;
+    private IReadOnlyList<IReadOnlyList<SKPoint>>? _localContours;
     private NodesSelection? TargetSelection { get; set; }
 
     public LineHighlightNode()
     {
-        Path = new SKPath();
         NodeInvalidated += AdjustToTarget;
     }
 
     public void SetSelection(NodesSelection? targetSelection, SKPath? selectionPath, IReadOnlyList<IReadOnlyList<SKPoint>>? contours = null)
     {
-        Path = selectionPath;
-        _contours = contours;
-        if (targetSelection?.Frame != null)
+        _localPath?.Dispose();
+        _localPath = null;
+        _localContours = null;
+
+        TargetSelection = targetSelection;
+
+        if (selectionPath != null)
         {
-            TargetSelection = targetSelection;
-            _offset = targetSelection.Frame!.PivotPosition - targetSelection.Frame!.Position;
-            _originalSize = targetSelection.Frame!.Size;
+            var bounds = GetPathBounds(selectionPath, contours);
+            var origin = bounds.Location;
+
+            _originalSize = bounds.Size;
+            _localPath = NormalizePath(selectionPath, origin);
+            _localContours = NormalizeContours(contours, origin);
+        }
+        else if (targetSelection?.Frame != null)
+        {
+            _originalSize = targetSelection.Frame.Size;
         }
         else
         {
-            TargetSelection = null;
+            _originalSize = default;
         }
 
         // Visibility tracks the path: a node selection (rectangle marquee) passes null and falls back to the
@@ -72,34 +81,31 @@ public class LineHighlightNode : SKNode, IDisposable
         Size = frame.Size;
         Position = frame.Position;
         Rotation = frame.Rotation;
-        PivotPosition = frame.PivotPosition - _offset;
+        PivotPosition = frame.PivotPosition;
     }
 
     protected override void OnDraw(SKCanvas canvas, ViewPort vp)
     {
-        if (Path == null) return;
+        if (_localPath == null) return;
 
-        var sx = Size.Width / _originalSize.Width;
-        var sy = Size.Height / _originalSize.Height;
+        var sx = _originalSize.Width <= 0 ? 1 : Size.Width / _originalSize.Width;
+        var sy = _originalSize.Height <= 0 ? 1 : Size.Height / _originalSize.Height;
 
         SKPath path;
-        if (_contours != null)
+        if (_localContours != null)
         {
             // After a transform resize, sub-pixel scaling makes the marching ants drift inside physical
             // pixels (the user-visible bug: contour appears squished smaller than the actual fragment).
             // Rebuild from raw contour vertices, snapping each scaled vertex to the nearest pixel boundary
             // so the dashed outline always lands on whole-pixel edges of the displayed fragment.
-            path = BuildSnappedPath(_contours, sx, sy, _offset);
+            path = BuildSnappedPath(_localContours, sx, sy);
         }
         else
         {
             // Fallback for selections without raw contour data (legacy entry points). Math-scale the
             // stored path — no snap, but the bounds still match for purely axis-aligned selections.
             path = new SKPath();
-            var transformMatrix = SKMatrix.CreateTranslation(_offset.X, _offset.Y)
-                .PostConcat(SKMatrix.CreateScale(sx, sy))
-                .PostConcat(SKMatrix.CreateTranslation(-_offset.X, -_offset.Y));
-            Path.Transform(transformMatrix, path);
+            _localPath.Transform(SKMatrix.CreateScale(sx, sy), path);
         }
 
         try
@@ -124,18 +130,70 @@ public class LineHighlightNode : SKNode, IDisposable
         }
     }
 
-    private static SKPath BuildSnappedPath(IReadOnlyList<IReadOnlyList<SKPoint>> contours, float sx, float sy, SKPoint offset)
+    private static SKPath? NormalizePath(SKPath? selectionPath, SKPoint origin)
     {
-        // Must match the matrix-form transform in the fallback branch:
-        //   M = translate(offset).PostConcat(scale).PostConcat(translate(-offset))
-        //     = T(-offset) * S * T(offset)
-        //   M(p) = S * (p + offset) - offset
-        // The "anchor" of the scale is therefore at -offset (= selection top-left in local coords), not at
-        // +offset. Getting this wrong dumps every vertex near the origin and the contour visually vanishes.
-        // After scaling, snap to integer (= pixel boundary) so the dashed outline lands on whole-pixel edges.
+        if (selectionPath == null)
+            return null;
+
+        var localPath = new SKPath();
+        selectionPath.Transform(SKMatrix.CreateTranslation(-origin.X, -origin.Y), localPath);
+        return localPath;
+    }
+
+    private static List<List<SKPoint>>? NormalizeContours(IReadOnlyList<IReadOnlyList<SKPoint>>? contours, SKPoint origin)
+    {
+        if (contours == null)
+            return null;
+
+        var normalizedContours = new List<List<SKPoint>>(contours.Count);
+        foreach (var contour in contours)
+        {
+            var normalizedContour = new List<SKPoint>(contour.Count);
+            foreach (var point in contour)
+            {
+                normalizedContour.Add(new SKPoint(point.X - origin.X, point.Y - origin.Y));
+            }
+
+            normalizedContours.Add(normalizedContour);
+        }
+
+        return normalizedContours;
+    }
+
+    private static SKRect GetPathBounds(SKPath selectionPath, IReadOnlyList<IReadOnlyList<SKPoint>>? contours)
+    {
+        if (contours == null || contours.Count == 0)
+            return selectionPath.Bounds;
+
+        var minX = float.PositiveInfinity;
+        var minY = float.PositiveInfinity;
+        var maxX = float.NegativeInfinity;
+        var maxY = float.NegativeInfinity;
+
+        foreach (var contour in contours)
+        {
+            foreach (var point in contour)
+            {
+                minX = MathF.Min(minX, point.X);
+                minY = MathF.Min(minY, point.Y);
+                maxX = MathF.Max(maxX, point.X);
+                maxY = MathF.Max(maxY, point.Y);
+            }
+        }
+
+        if (float.IsInfinity(minX) || float.IsInfinity(minY) || float.IsInfinity(maxX) || float.IsInfinity(maxY))
+            return selectionPath.Bounds;
+
+        return new SKRect(minX, minY, maxX, maxY);
+    }
+
+    private static SKPath BuildSnappedPath(IReadOnlyList<IReadOnlyList<SKPoint>> contours, float sx, float sy)
+    {
+        // Contours are normalized to the selection-local coordinate space in SetSelection(), so scaling
+        // can happen directly around the local top-left corner without depending on canvas-space offsets.
         SKPoint Transform(SKPoint p) => new(
-            MathF.Round(sx * (p.X + offset.X) - offset.X),
-            MathF.Round(sy * (p.Y + offset.Y) - offset.Y));
+            MathF.Round(sx * p.X),
+            MathF.Round(sy * p.Y));
 
         var path = new SKPath();
         foreach (var contour in contours)
@@ -160,5 +218,6 @@ public class LineHighlightNode : SKNode, IDisposable
     public void Dispose()
     {
         NodeInvalidated -= AdjustToTarget;
+        _localPath?.Dispose();
     }
 }

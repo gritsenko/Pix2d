@@ -18,6 +18,7 @@ public class FrameEditorNode : SKNode
     public event EventHandler? SelectionEditStarted;
     public event EventHandler? SelectionEditing;
     public event EventHandler? SelectionEdited;
+    public event EventHandler? SelectionEditCanceled;
 
     private readonly MoveThumbNode _moveThumb;
     private readonly ResizeThumbSingleNode[] _sizeThumb = new ResizeThumbSingleNode[4];
@@ -29,6 +30,8 @@ public class FrameEditorNode : SKNode
     private bool _allowResize = true;
     private RotateThumbNode _rotateThumb;
     private readonly LineHighlightNode _highlightNode;
+    private bool _dragSessionActive;
+    private bool _dragMoved;
 
     public NodeReparentMode ReparentMode { get; set; }
 
@@ -105,6 +108,7 @@ public class FrameEditorNode : SKNode
         _moveThumb.DragStarted += MoveThumb_DragStarted;
         _moveThumb.DragDelta += Thumb_DragDelta;
         _moveThumb.DragComplete += ThumbOnDragComplete;
+        _moveThumb.PointerReleased += ThumbOnPointerReleased;
 
         _sizeThumb[0].DragDelta += Thumb_DragDelta;
         _sizeThumb[1].DragDelta += Thumb_DragDelta;
@@ -120,10 +124,15 @@ public class FrameEditorNode : SKNode
         _sizeThumb[1].DragComplete += ThumbOnDragComplete;
         _sizeThumb[2].DragComplete += ThumbOnDragComplete;
         _sizeThumb[3].DragComplete += ThumbOnDragComplete;
+        _sizeThumb[0].PointerReleased += ThumbOnPointerReleased;
+        _sizeThumb[1].PointerReleased += ThumbOnPointerReleased;
+        _sizeThumb[2].PointerReleased += ThumbOnPointerReleased;
+        _sizeThumb[3].PointerReleased += ThumbOnPointerReleased;
 
         _rotateThumb.DragStarted += RotateThumb_DragStarted;
         _rotateThumb.DragDelta += Thumb_DragDelta;
         _rotateThumb.DragComplete += ThumbOnDragComplete;
+        _rotateThumb.PointerReleased += ThumbOnPointerReleased;
 
         Nodes.Add(_highlightNode);
         Nodes.Add(_moveThumb);
@@ -138,32 +147,49 @@ public class FrameEditorNode : SKNode
 
     private void SizeThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
+        BeginDragSession();
         _selection?.InitOperation<ResizeOperation>();
-        FreezeContourForDrag();
-        OnSelectionEditStarted();
     }
 
     private void MoveThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
+        BeginDragSession();
         _selection?.InitOperation<MoveOperation>();
-        FreezeContourForDrag();
-        OnSelectionEditStarted();
     }
     private void RotateThumb_DragStarted(object? sender, DragStartedEventArgs e)
     {
+        BeginDragSession();
         _selection?.InitOperation<RotateOperation>();
+    }
+
+    private void BeginDragSession()
+    {
+        _dragSessionActive = true;
+        _dragMoved = false;
         FreezeContourForDrag();
         OnSelectionEditStarted();
     }
 
     private void ThumbOnDragComplete(object? sender, DragCompletedEventArgs e)
     {
+        _dragSessionActive = false;
         // Unfreeze first so SelectionEdited consumers see the final state, then re-sync the contour to the
         // pixel-snapped frame the thumbs left behind. Doing this in one step on release avoids the visual
         // wobble of recalculating the dashed outline every drag-delta.
         UnfreezeContourAfterDrag();
         OnSelectionEdited();
         _selection?.FinishOperation();
+    }
+
+    private void ThumbOnPointerReleased(object? sender, PointerActionEventArgs e)
+    {
+        if (!_dragSessionActive || _dragMoved)
+            return;
+
+        _dragSessionActive = false;
+        EditStarted = false;
+        UnfreezeContourAfterDrag();
+        SelectionEditCanceled?.Invoke(this, EventArgs.Empty);
     }
 
     private void FreezeContourForDrag() => _highlightNode.FreezeTransformUpdates = true;
@@ -176,6 +202,8 @@ public class FrameEditorNode : SKNode
 
     private void Thumb_DragDelta(object? sender, DragDeltaEventArgs e)
     {
+        _dragMoved = true;
+
         var skip = sender as NodeManipulateThumbBase;
 
         foreach (var thumb in Nodes.OfType<NodeManipulateThumbBase>())
@@ -199,6 +227,7 @@ public class FrameEditorNode : SKNode
         // When a real contour is supplied (lasso / same-colour), LineHighlightNode renders it; the move
         // thumb must not double-draw a bounding rect on top.
         _moveThumb.HasCustomContour = highlightPath != null;
+        _moveThumb.SetCustomContourPath(CreateLocalContourPath(highlightPath, highlightContours));
 
         foreach (var thumb in Nodes.OfType<NodeManipulateThumbBase>())
         {
@@ -209,6 +238,44 @@ public class FrameEditorNode : SKNode
         UpdateThumbs();
 
         ResetIsChanged();
+    }
+
+    private static SKPath? CreateLocalContourPath(SKPath? highlightPath, IReadOnlyList<IReadOnlyList<SKPoint>>? highlightContours)
+    {
+        if (highlightPath == null)
+            return null;
+
+        var bounds = highlightContours == null || highlightContours.Count == 0
+            ? highlightPath.Bounds
+            : GetContourBounds(highlightContours);
+
+        var localPath = new SKPath();
+        highlightPath.Transform(SKMatrix.CreateTranslation(-bounds.Left, -bounds.Top), localPath);
+        return localPath;
+    }
+
+    private static SKRect GetContourBounds(IReadOnlyList<IReadOnlyList<SKPoint>> contours)
+    {
+        var minX = float.PositiveInfinity;
+        var minY = float.PositiveInfinity;
+        var maxX = float.NegativeInfinity;
+        var maxY = float.NegativeInfinity;
+
+        foreach (var contour in contours)
+        {
+            foreach (var point in contour)
+            {
+                minX = MathF.Min(minX, point.X);
+                minY = MathF.Min(minY, point.Y);
+                maxX = MathF.Max(maxX, point.X);
+                maxY = MathF.Max(maxY, point.Y);
+            }
+        }
+
+        if (float.IsInfinity(minX) || float.IsInfinity(minY) || float.IsInfinity(maxX) || float.IsInfinity(maxY))
+            return SKRect.Empty;
+
+        return new SKRect(minX, minY, maxX, maxY);
     }
 
     private void UpdateThumbs()
