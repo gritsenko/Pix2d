@@ -59,7 +59,17 @@ public static class ToolIcons
             //         .Fill(StaticResources.Brushes.ForegroundBrush)),
             
             ["FillTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
-                new TextBlock().Classes("ToolIcon").Text("\xe915")),
+                new Path()
+                    .Classes("ToolIcon")
+                    .Data(StaticResources.Icons.FillToolIcon)
+                    .Stretch(Stretch.Uniform)
+                    .Width(22)
+                    .Height(22)
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .RenderTransform(new ScaleTransform(1, -1))
+                    .RenderTransformOrigin(new RelativePoint(0.5, 0.5, RelativeUnit.Relative))
+                    .Fill(StaticResources.Brushes.ForegroundBrush)),
 
 			["PixelSelectRectTool"] = new FuncDataTemplate(typeof(object), (o, ns) =>
 				new TextBlock().Classes("ToolIcon")

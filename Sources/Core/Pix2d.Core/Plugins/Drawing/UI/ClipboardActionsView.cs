@@ -1,4 +1,7 @@
 using Pix2d.UI.Resources;
+using Pix2d.UI.Shared;
+
+using Path = Avalonia.Controls.Shapes.Path;
 
 namespace Pix2d.Plugins.Drawing.UI;
 
@@ -29,15 +32,23 @@ public class ClipboardActionsView(ICommandService commandService) : ViewBase
                 //     .With(ButtonStyle)
                 //     .Content("\xE7A8"),
                 new Button()
+                    .Command(SpriteEditCommands.FillSelectionCommand)
                     .With(ButtonStyle)
-                    .With(b =>
-                    {
-                        var flyout = new MenuFlyout() { Placement = PlacementMode.Bottom };
-                        flyout.AddItem("Fill selection", SpriteEditCommands.FillSelectionCommand);
-                        b.Click += (s, e) => flyout.ShowAt(b);
-                    })
-                    .Content("\xE10C")
+                    .Content(CreateFillIcon())
             );
+
+
+    private static Path CreateFillIcon() =>
+        new Path()
+            .Data(StaticResources.Icons.FillToolIcon)
+            .Stretch(Stretch.Uniform)
+            .Width(20)
+            .Height(20)
+            .HorizontalAlignment(HorizontalAlignment.Center)
+            .VerticalAlignment(VerticalAlignment.Center)
+            .RenderTransform(new ScaleTransform(1, -1))
+            .RenderTransformOrigin(new RelativePoint(0.5, 0.5, RelativeUnit.Relative))
+            .Fill(StaticResources.Brushes.ForegroundBrush);
 
 
     private void ButtonStyle(Button b)

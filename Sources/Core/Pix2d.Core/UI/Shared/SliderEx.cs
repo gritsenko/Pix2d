@@ -216,9 +216,9 @@ public class SliderEx : ViewBase
                     .Child(
                         new TextBlock()
                             .Ref(out _narrowValueTextBlock)
-                            .MinWidth(52)
                             .HorizontalAlignment(HorizontalAlignment.Center)
                             .Text(GetNarrowValueText())
+                            .FontSize(10)
                     ));
 
     private Control BuildNarrowFlyoutContent() =>

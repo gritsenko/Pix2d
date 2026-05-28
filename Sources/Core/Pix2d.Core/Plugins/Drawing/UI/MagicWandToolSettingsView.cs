@@ -19,13 +19,8 @@ public partial class MagicWandToolSettingsView(ICommandService commandService, I
         new StackPanel()
             .Orientation(Orientation.Horizontal)
             .Children(
-                ViewFactory.Create<MagicWandClipboardActionsView>(),
+                ViewFactory.Create<ClipboardActionsView>(),
                 new Border()
-                    .Padding(new Thickness(14, 8))
-                    .Background(StaticResources.Brushes.PanelsBackgroundBrush)
-                    .BorderBrush(StaticResources.Brushes.PanelsBorderBrush)
-                    .BorderThickness(new Thickness(1))
-                    .CornerRadius(new CornerRadius(12))
                     .Child(
                         new StackPanel()
                             .Orientation(Orientation.Horizontal)
@@ -36,7 +31,7 @@ public partial class MagicWandToolSettingsView(ICommandService commandService, I
                                     .LayoutMode(SliderExLayoutMode.OneLine)
                                     .NarrowMode(SliderExNarrowMode.PopupEditor)
                                     .NarrowWidthThreshold(250)
-                                    .Label("TOLERANCE")
+                                    .Label("Tolerance")
                                     .Minimum(0)
                                     .Maximum(255)
                                     .Value(_state, x => x.Tolerance, BindingMode.TwoWay),
