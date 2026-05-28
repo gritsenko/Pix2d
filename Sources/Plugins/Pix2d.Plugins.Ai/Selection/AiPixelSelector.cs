@@ -191,12 +191,87 @@ public class AiPixelSelector : IPixelSelector
             for (int x = 0; x < bitmap.Width; x++)
                 _pixelsBuff[x + y * _width] = (byte)(maskPixels[x + y * _width] >> 24);
 
-        BuildSelectionPath();
-
         using var canvas = bitmap.GetSKSurface().Canvas;
         canvas.DrawBitmap(extractedMask, SKPoint.Empty, new SKPaint() { BlendMode = SKBlendMode.DstIn });
 
+        bitmap = CropToMaskBounds(bitmap);
+        BuildSelectionPath();
+
         return bitmap;
+    }
+
+    private SKBitmap CropToMaskBounds(SKBitmap bitmap)
+    {
+        if (_pixelsBuff == null)
+            return bitmap;
+
+        var oldWidth = _width;
+        var oldHeight = _height;
+        var maskLeft = oldWidth;
+        var maskTop = oldHeight;
+        var maskRight = -1;
+        var maskBottom = -1;
+
+        for (int y = 0; y < oldHeight; y++)
+        {
+            for (int x = 0; x < oldWidth; x++)
+            {
+                if (_pixelsBuff[x + y * oldWidth] == 0)
+                    continue;
+
+                maskLeft = Math.Min(maskLeft, x);
+                maskTop = Math.Min(maskTop, y);
+                maskRight = Math.Max(maskRight, x);
+                maskBottom = Math.Max(maskBottom, y);
+            }
+        }
+
+        if (maskRight < maskLeft || maskBottom < maskTop)
+            return bitmap;
+
+        if (maskLeft == 0 && maskTop == 0 && maskRight == oldWidth - 1 && maskBottom == oldHeight - 1)
+            return bitmap;
+
+        var newWidth = maskRight - maskLeft + 1;
+        var newHeight = maskBottom - maskTop + 1;
+        var croppedMask = new byte[newWidth * newHeight];
+
+        for (int y = 0; y < newHeight; y++)
+        {
+            Array.Copy(
+                _pixelsBuff,
+                (maskTop + y) * oldWidth + maskLeft,
+                croppedMask,
+                y * newWidth,
+                newWidth);
+        }
+
+        var croppedBitmap = new SKBitmap(newWidth, newHeight, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
+        var sourcePixels = MemoryMarshal.Cast<byte, int>(bitmap.GetPixelSpan());
+        var croppedPixels = MemoryMarshal.Cast<byte, int>(croppedBitmap.GetPixelSpan());
+
+        for (int y = 0; y < newHeight; y++)
+        {
+            var sourceRow = (maskTop + y) * oldWidth + maskLeft;
+            var destRow = y * newWidth;
+            for (int x = 0; x < newWidth; x++)
+                croppedPixels[destRow + x] = sourcePixels[sourceRow + x];
+        }
+
+        var seedLeft = _imageLeft;
+        var seedTop = _imageTop;
+        _imageLeft = seedLeft + maskLeft;
+        _imageTop = seedTop + maskTop;
+        _imageRight = seedLeft + maskRight;
+        _imageBot = seedTop + maskBottom;
+        _width = newWidth;
+        _height = newHeight;
+        _offsetX = -_imageLeft;
+        _offsetY = -_imageTop;
+        _pixelsBuff = croppedMask;
+
+        bitmap.Dispose();
+        return croppedBitmap;
     }
 
     private void BuildSelectionPath()

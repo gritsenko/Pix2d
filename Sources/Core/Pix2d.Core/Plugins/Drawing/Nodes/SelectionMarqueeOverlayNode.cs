@@ -1,4 +1,5 @@
 #nullable enable
+using Pix2d.Selection;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -63,9 +64,10 @@ internal sealed class SelectionMarqueeOverlayNode : SKNode
         // Path effects must be disposed — assigning to paint.PathEffect doesn't transfer ownership,
         // and OnDraw runs every frame during a marquee drag so an undisposed dash effect leaks a
         // managed handle per frame.
-        var dashLen = vp.PixelsToWorld(4);
-        using var blackPaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.Black);
-        using var whitePaint = canvas.GetSimpleStrokePaint(vp.PixelsToWorld(1.5f), SKColors.White);
+        var dashLen = SelectionOutlineMetrics.GetDashLengthWorld(vp);
+        var strokeWidth = SelectionOutlineMetrics.GetStrokeWidthWorld(vp);
+        using var blackPaint = canvas.GetSimpleStrokePaint(strokeWidth, SKColors.Black);
+        using var whitePaint = canvas.GetSimpleStrokePaint(strokeWidth, SKColors.White);
         using var blackDash = SKPathEffect.CreateDash([dashLen, dashLen], 0);
         using var whiteDash = SKPathEffect.CreateDash([dashLen, dashLen], dashLen);
         blackPaint.PathEffect = blackDash;
