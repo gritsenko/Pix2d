@@ -63,6 +63,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     // throws. DrawImage takes its own sk_sp ref on the native side, so dispose-after-DrawImage is
     // safe; the lock only needs to cover the field read + the DrawImage call itself.
     private SKImage? _workingBitmapDisplaySnapshot;
+    private SKImage? _swapBitmapDisplaySnapshot;
     private readonly Lock _snapshotLock = new();
 
     public bool UseSwapBitmap { get; set; }
@@ -202,30 +203,52 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     {
         _backgroundBitmap?.Clear();
         _workingBitmap?.Clear();
+        _swapBitmap?.Clear();
         ClearDisplaySnapshot();
     }
 
     private void PublishDisplaySnapshot()
     {
-        if (_workingBitmap == null) return;
+        PublishBitmapSnapshot(_workingBitmap, ref _workingBitmapDisplaySnapshot);
+    }
+
+    private void PublishSwapBitmapDisplaySnapshot()
+    {
+        PublishBitmapSnapshot(_swapBitmap, ref _swapBitmapDisplaySnapshot);
+    }
+
+    private void PublishBitmapSnapshot(SKBitmap? bitmap, ref SKImage? snapshot)
+    {
+        if (bitmap == null) return;
         // Build the new image outside the lock to keep the render-thread critical section short.
-        var newImage = SKImage.FromBitmap(_workingBitmap);
+        var newImage = SKImage.FromBitmap(bitmap);
         SKImage? old;
         lock (_snapshotLock)
         {
-            old = _workingBitmapDisplaySnapshot;
-            _workingBitmapDisplaySnapshot = newImage;
+            old = snapshot;
+            snapshot = newImage;
         }
         old?.Dispose();
     }
 
     private void ClearDisplaySnapshot()
     {
+        ClearBitmapSnapshot(ref _workingBitmapDisplaySnapshot);
+        ClearBitmapSnapshot(ref _swapBitmapDisplaySnapshot);
+    }
+
+    private void ClearSwapBitmapDisplaySnapshot()
+    {
+        ClearBitmapSnapshot(ref _swapBitmapDisplaySnapshot);
+    }
+
+    private void ClearBitmapSnapshot(ref SKImage? snapshot)
+    {
         SKImage? old;
         lock (_snapshotLock)
         {
-            old = _workingBitmapDisplaySnapshot;
-            _workingBitmapDisplaySnapshot = null;
+            old = snapshot;
+            snapshot = null;
         }
         old?.Dispose();
     }
@@ -321,16 +344,16 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     {
         if (IsPixelPerfectMode && _strokePoints.Count > 1)
         {
-            var ppf = PixelPerfect(_strokePoints);
             if (UseSwapBitmap)
             {
+                var ppf = PixelPerfect(_strokePoints);
                 DrawStroke(ppf);
                 SwapWorkingBitmap();
             }
             else
             {
-                _workingBitmap?.Clear();
-                DrawStroke(ppf);
+                CommitPixelPerfectPreviewTailToWorkingBitmap();
+                ClearPixelPerfectPreviewTail();
             }
         }
 
@@ -410,8 +433,8 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
 
         if (!UseSwapBitmap)
         {
-            DrawPixelPerfectPreviewIncremental(intpos);
-            PublishDisplaySnapshot();
+            UpdatePixelPerfectPreviewIncremental(intpos);
+            Refresh();
             return;
         }
 
@@ -423,84 +446,105 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         PublishDisplaySnapshot();
     }
 
-    private void DrawPixelPerfectPreviewIncremental(SKPointI point)
+    private void UpdatePixelPerfectPreviewIncremental(SKPointI point)
     {
         if (_pixelPerfectPreviewPoints.Count == 0)
         {
             _pixelPerfectPreviewPoints.Add(point);
-            DrawPixelPerfectPreviewPoint(point);
+            RedrawPixelPerfectPreviewTail();
             return;
         }
 
-        var previousRenderedPoint = _pixelPerfectPreviewPoints[^1];
         var shouldSkipPreviousRenderedPoint = _strokePoints.Count >= 3
             && ShouldSkipPixelPerfectPoint(_strokePoints[^3], _strokePoints[^2], point);
 
         if (!shouldSkipPreviousRenderedPoint)
         {
+            if (_pixelPerfectPreviewPoints.Count > 1)
+            {
+                CommitPixelPerfectPreviewTailToWorkingBitmap();
+            }
+
             _pixelPerfectPreviewPoints.Add(point);
-            DrawPixelPerfectPreviewSegment(previousRenderedPoint, point);
-            return;
+        }
+        else
+        {
+            _pixelPerfectPreviewPoints[^1] = point;
         }
 
-        var anchorPoint = _pixelPerfectPreviewPoints.Count > 1 ? _pixelPerfectPreviewPoints[^2] : previousRenderedPoint;
-        ClearPixelPerfectPreviewTail(anchorPoint, previousRenderedPoint, point);
-        _pixelPerfectPreviewPoints[^1] = point;
-        DrawPixelPerfectPreviewSegment(anchorPoint, point);
+        RedrawPixelPerfectPreviewTail();
     }
 
-    private void DrawPixelPerfectPreviewSegment(SKPointI start, SKPointI end)
+    private void CommitPixelPerfectPreviewTailToWorkingBitmap()
     {
-        Algorithms.LineNotSwapped(start.X, start.Y, end.X, end.Y, (x, y) =>
+        if (_pixelPerfectPreviewPoints.Count == 0)
+            return;
+
+        if (_pixelPerfectPreviewPoints.Count == 1)
         {
-            DrawPixelPerfectPreviewPoint(new SKPointI(x, y));
-            return true;
+            var point = _pixelPerfectPreviewPoints[0];
+            DrawPointStroke(new SKPoint(point.X, point.Y), Brush, DrawingColor, Opacity, 1);
+        }
+        else
+        {
+            var start = _pixelPerfectPreviewPoints[^2];
+            var end = _pixelPerfectPreviewPoints[^1];
+            DrawStroke(new SKPoint(start.X, start.Y), new SKPoint(end.X, end.Y), Brush, DrawingColor, 1);
+        }
+
+        PublishDisplaySnapshot();
+    }
+
+    private void RedrawPixelPerfectPreviewTail()
+    {
+        if (_swapBitmap == null)
+            return;
+
+        RenderIntoSwapBitmap(() =>
+        {
+            if (_pixelPerfectPreviewPoints.Count == 0)
+                return;
+
+            if (_pixelPerfectPreviewPoints.Count == 1)
+            {
+                var point = _pixelPerfectPreviewPoints[0];
+                DrawPointStroke(new SKPoint(point.X, point.Y), Brush, DrawingColor, Opacity, 1);
+                return;
+            }
+
+            var start = _pixelPerfectPreviewPoints[^2];
+            var end = _pixelPerfectPreviewPoints[^1];
+            DrawStroke(new SKPoint(start.X, start.Y), new SKPoint(end.X, end.Y), Brush, DrawingColor, 1);
         });
+
+        PublishSwapBitmapDisplaySnapshot();
     }
 
-    private void DrawPixelPerfectPreviewPoint(SKPointI point)
+    private void ClearPixelPerfectPreviewTail()
     {
-        if (!IsInBounds(point))
+        if (_swapBitmap == null)
             return;
 
-        var isDrawn = Brush.Draw(this, point, DrawingColor, 1, true);
-        if (isDrawn && (MirrorX || MirrorY))
-        {
-            var mirrorOffset = new SKPointI(MirrorX ? Brush.PixelOffset.X * 2 : 0, MirrorY ? Brush.PixelOffset.Y * 2 : 0);
-            Brush.Draw(this, GetMirroredPoint(point, mirrorOffset, Brush.Size), DrawingColor, 1, true);
-        }
+        _swapBitmap.Clear();
+        ClearSwapBitmapDisplaySnapshot();
     }
 
-    private void ClearPixelPerfectPreviewTail(SKPointI anchor, SKPointI previousEnd, SKPointI newEnd)
+    private void RenderIntoSwapBitmap(Action render)
     {
-        if (_workingBitmap == null)
+        if (_swapBitmap == null)
             return;
 
-        var boundsPoints = new List<SKPointI> { anchor, previousEnd, newEnd };
-        if (MirrorX || MirrorY)
+        _swapBitmap.Clear();
+        var previousUseSwapBitmap = UseSwapBitmap;
+        UseSwapBitmap = true;
+        try
         {
-            var mirrorOffset = new SKPointI(MirrorX ? Brush.PixelOffset.X * 2 : 0, MirrorY ? Brush.PixelOffset.Y * 2 : 0);
-            boundsPoints.Add(GetMirroredPoint(anchor, mirrorOffset, Brush.Size));
-            boundsPoints.Add(GetMirroredPoint(previousEnd, mirrorOffset, Brush.Size));
-            boundsPoints.Add(GetMirroredPoint(newEnd, mirrorOffset, Brush.Size));
+            render();
         }
-
-        var leftPadding = Math.Max(1, Brush.PixelOffset.X + 1);
-        var topPadding = Math.Max(1, Brush.PixelOffset.Y + 1);
-        var rightPadding = Math.Max(1, Brush.Size - Brush.PixelOffset.X + 1);
-        var bottomPadding = Math.Max(1, Brush.Size - Brush.PixelOffset.Y + 1);
-
-        var left = Math.Max(0, boundsPoints.Min(p => p.X) - leftPadding);
-        var top = Math.Max(0, boundsPoints.Min(p => p.Y) - topPadding);
-        var right = Math.Min(_workingBitmap.Width, boundsPoints.Max(p => p.X) + rightPadding);
-        var bottom = Math.Min(_workingBitmap.Height, boundsPoints.Max(p => p.Y) + bottomPadding);
-        if (left >= right || top >= bottom)
-            return;
-
-        using var canvas = new SKCanvas(_workingBitmap);
-        using var clear = new SKPaint { BlendMode = SKBlendMode.Clear };
-        canvas.DrawRect(new SKRect(left, top, right, bottom), clear);
-        canvas.Flush();
+        finally
+        {
+            UseSwapBitmap = previousUseSwapBitmap;
+        }
     }
 
     private static bool ShouldSkipPixelPerfectPoint(SKPointI previous, SKPointI point, SKPointI next)
@@ -589,6 +633,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     {
         _strokePoints.Clear();
         _pixelPerfectPreviewPoints.Clear();
+        ClearPixelPerfectPreviewTail();
 
         DrawingStarted?.Invoke(this, EventArgs.Empty);
 
@@ -660,6 +705,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         ClearWorkingBitmap();
         _strokePoints.Clear();
         _pixelPerfectPreviewPoints.Clear();
+        ClearPixelPerfectPreviewTail();
         Opacity = 1;
         UseSwapBitmap = false;
 
@@ -738,6 +784,14 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
                     canvas.DrawImage(_workingBitmapDisplaySnapshot, 0, 0);
                 else
                     canvas.DrawBitmap(_workingBitmap, 0, 0);
+
+                if (State == DrawingLayerState.Drawing && IsPixelPerfectMode && !UseSwapBitmap)
+                {
+                    if (_swapBitmapDisplaySnapshot != null)
+                        canvas.DrawImage(_swapBitmapDisplaySnapshot, 0, 0);
+                    else if (_swapBitmap != null)
+                        canvas.DrawBitmap(_swapBitmap, 0, 0);
+                }
             }
         }
     }
