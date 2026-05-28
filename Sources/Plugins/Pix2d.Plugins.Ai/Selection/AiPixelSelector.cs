@@ -1,4 +1,5 @@
 ﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Plugins.Drawing.Common.Drawing;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 using System.Runtime.InteropServices;
@@ -9,6 +10,8 @@ public class AiPixelSelector : IPixelSelector
 {
     private SKPointI _lastSelectionPoint;
     private readonly HashSet<SKPointI> _selectionPoints = new HashSet<SKPointI>();
+    private SKPath? _selectionPath;
+    private List<List<SKPoint>>? _selectionContours;
     private byte[]? _pixelsBuff;
     private int _offsetX;
     private int _offsetY;
@@ -19,12 +22,9 @@ public class AiPixelSelector : IPixelSelector
     private int _imageRight;
     private int _imageBot;
     public SKSizeI SelectionSize => new SKSizeI(_width, _height);
-    public SKPath? GetSelectionPath()
-    {
-        return null;
-    }
+    public SKPath? GetSelectionPath() => _selectionPath;
 
-    public List<List<SKPoint>>? GetSelectionContours() => null;
+    public List<List<SKPoint>>? GetSelectionContours() => _selectionContours;
 
     public SKPoint Offset => new SKPoint(-_offsetX, -_offsetY);
 
@@ -85,12 +85,18 @@ public class AiPixelSelector : IPixelSelector
     public void BeginSelection(SKPointI pos)
     {
         _selectionPoints.Clear();
+        _selectionPath = null;
+        _selectionContours = null;
         _lastSelectionPoint = pos;
     }
 
     public void FinishSelection(bool highlightSelection)
     {
-        var pts = _selectionPoints.Select(x => new SKPoint(x.X, x.Y)).ToArray();
+        _selectionPath = null;
+        _selectionContours = null;
+
+        if (_selectionPoints.Count == 0)
+            return;
 
         _imageLeft = _selectionPoints.Min(x => x.X);
         _imageTop = _selectionPoints.Min(x => x.Y);
@@ -104,12 +110,6 @@ public class AiPixelSelector : IPixelSelector
         _offsetX = -_imageLeft;
         _offsetY = -_imageTop;
         _pixelsBuff = new byte[_width * _height];
-
-        //foreach (var p in _selectionPoints)
-        //    SetPixel(p.X, p.Y);
-
-        //Algorithms.FillPolygon(pts, SetPixel);
-        //BuildSlectionPath();
     }
 
     private void SetPixel(int x, int y)
@@ -154,6 +154,8 @@ public class AiPixelSelector : IPixelSelector
     public unsafe SKBitmap GetSelectionBitmap(SKBitmap sourceBitmap)
     {
         var bitmap = new SKBitmap(_width, _height, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
+        _selectionPath = null;
+        _selectionContours = null;
 
         //skip ai stuff if selection is too small
         if (_pixelsBuff == null)
@@ -189,10 +191,42 @@ public class AiPixelSelector : IPixelSelector
             for (int x = 0; x < bitmap.Width; x++)
                 _pixelsBuff[x + y * _width] = (byte)(maskPixels[x + y * _width] >> 24);
 
+        BuildSelectionPath();
+
         using var canvas = bitmap.GetSKSurface().Canvas;
         canvas.DrawBitmap(extractedMask, SKPoint.Empty, new SKPaint() { BlendMode = SKBlendMode.DstIn });
 
         return bitmap;
+    }
+
+    private void BuildSelectionPath()
+    {
+        if (_pixelsBuff == null)
+            return;
+
+        var selectionPoints = new HashSet<SKPointI>();
+        for (int y = 0; y < _height; y++)
+        {
+            for (int x = 0; x < _width; x++)
+            {
+                if (_pixelsBuff[x + y * _width] == 0)
+                    continue;
+
+                selectionPoints.Add(new SKPointI(x - _offsetX, y - _offsetY));
+            }
+        }
+
+        if (selectionPoints.Count == 0)
+            return;
+
+        _selectionPath = Algorithms.GetContour(
+            selectionPoints,
+            _pixelsBuff,
+            new SKRectI(_imageLeft, _imageTop, _imageRight, _imageBot),
+            new SKPointI(_offsetX, _offsetY),
+            new SKSizeI(_width, _height),
+            out var contours);
+        _selectionContours = contours;
     }
 
 }

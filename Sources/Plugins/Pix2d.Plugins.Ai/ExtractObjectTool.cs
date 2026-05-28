@@ -7,6 +7,8 @@ using Pix2d.Abstract.Tools;
 using Pix2d.Messages;
 using Pix2d.Operations.Drawing;
 using Pix2d.Plugins.Ai.Selection;
+using Pix2d.Plugins.Drawing.UI;
+using Pix2d.Plugins.Drawing.Tools.PixelSelect;
 using Pix2d.Primitives.Drawing;
 using Pix2d.State;
 using SkiaNodes.Interactive;
@@ -16,35 +18,30 @@ namespace Pix2d.Plugins.Ai;
 
 [Pix2dTool(
     EditContextType = EditContextType.Sprite,
+    HasSettings = true,
+    SettingsViewType = typeof(SelectionToolSettingsView),
     DisplayName = "Object selection tool",
     HotKey = null,
     Group = "Pixel Select",
     IconData = AiPlugin.ToolIcon
 )]
-public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
+public class ExtractObjectTool : PixelSelectToolBase
 {
-    private readonly IDrawingService _drawingService;
-    private readonly IMessenger _messenger;
-    private readonly AppState _appState;
     private readonly IViewPortRefreshService _viewPortRefreshService;
-    private SelectionState SelectionState => _appState.SelectionState;
 
     private DrawingOperationWithFullState? _pixelSelectDrawingOperation;
     private AiPixelSelector? _aiPixelSelector;
 
-    private IDrawingLayer DrawingLayer => _drawingService.DrawingLayer;
+    private IDrawingLayer DrawingLayer => DrawingService.DrawingLayer;
 
-    public PixelSelectionMode SelectionMode
+    public ExtractObjectTool(
+        IDrawingService drawingService,
+        IMessenger messenger,
+        AppState appState,
+        IToolService toolService,
+        IViewPortRefreshService viewPortRefreshService)
+        : base(drawingService, messenger, appState, toolService)
     {
-        get => DrawingLayer.SelectionMode;
-        set => DrawingLayer.SelectionMode = value;
-    }
-
-    public ExtractObjectTool(IDrawingService drawingService, IMessenger messenger, AppState appState, IViewPortRefreshService viewPortRefreshService)
-    {
-        _drawingService = drawingService;
-        _messenger = messenger;
-        _appState = appState;
         _viewPortRefreshService = viewPortRefreshService;
         _pixelSelectDrawingOperation = null!;
         _aiPixelSelector = null!;
@@ -54,18 +51,16 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
     {
         _pixelSelectDrawingOperation = null;
         _aiPixelSelector = null;
+        SelectionMode = PixelSelectionMode.Rectangle;
 
-        DrawingLayer.SetDrawingLayerMode(BrushDrawingMode.Select);
         DrawingLayer.PixelsBeforeSelected += DrawingLayerOnPixelsBeforeSelected;
         DrawingLayer.SelectionStarted += DrawingLayer_SelectionStarted;
         DrawingLayer.SelectionRemoved += DrawingLayer_SelectionRemoved;
         DrawingLayer.PixelsSelected += DrawingLayer_PixelsSelected;
 
-        _appState.UiState.ShowClipboardBar = true;
-
         await base.Activate();
 
-        _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
+        Messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
     }
 
     private void DrawingLayer_PixelsSelected(object? sender, EventArgs e)
@@ -138,18 +133,15 @@ public class ExtractObjectTool : BaseTool, IDrawingTool, IPixelSelectionTool
 
     public override void Deactivate()
     {
-        base.Deactivate();
-
-        _appState.UiState.ShowClipboardBar = false;
-
         DrawingLayer.ClearCustomPixelSelector();
         DrawingLayer.PixelsBeforeSelected -= DrawingLayerOnPixelsBeforeSelected;
         DrawingLayer.PixelsSelected -= DrawingLayer_PixelsSelected;
         DrawingLayer.SelectionStarted -= DrawingLayer_SelectionStarted;
         DrawingLayer.SelectionRemoved -= DrawingLayer_SelectionRemoved;
 
-        _messenger.Unregister<OperationInvokedMessage>(this, OnOperationInvoked);
-        DrawingLayer.ApplySelection();
+        Messenger.Unregister<OperationInvokedMessage>(this, OnOperationInvoked);
+
+        base.Deactivate();
     }
 
 }
