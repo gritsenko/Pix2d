@@ -82,6 +82,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     private IPixelBrush? _brush;
     private SKSurface? _brushPreviewSurface;
     private readonly List<SKPointI> _strokePoints = new();
+    private readonly List<SKPointI> _pixelPerfectPreviewPoints = new();
 
     public bool HasSelectionChanges => _selection.HasSelectionChanges;
 
@@ -321,8 +322,16 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         if (IsPixelPerfectMode && _strokePoints.Count > 1)
         {
             var ppf = PixelPerfect(_strokePoints);
-            DrawStroke(ppf);
-            SwapWorkingBitmap();
+            if (UseSwapBitmap)
+            {
+                DrawStroke(ppf);
+                SwapWorkingBitmap();
+            }
+            else
+            {
+                _workingBitmap?.Clear();
+                DrawStroke(ppf);
+            }
         }
 
         if (State == DrawingLayerState.Drawing && StartPosI == EndPosI)
@@ -394,37 +403,128 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     private void DrawPixelPerfect(SKPoint pos)
     {
         var intpos = pos.ToSkPointI();
-        if (_strokePoints.Count > 0)
+        if (_strokePoints.Count > 0 && intpos == _strokePoints[^1])
+            return;
+
+        _strokePoints.Add(intpos);
+
+        if (!UseSwapBitmap)
         {
-            var lsp = _strokePoints.Last();
-            if (intpos != lsp)
-                _strokePoints.Add(intpos);
+            DrawPixelPerfectPreviewIncremental(intpos);
+            PublishDisplaySnapshot();
+            return;
         }
-        else
-            _strokePoints.Add(intpos);
 
         DrawStroke(PixelPerfect(_strokePoints));
         SwapWorkingBitmap();
+        // Pixel-perfect pencil also presents a live preview by swapping buffers on every move.
+        // Publish the same stable snapshot used by shape/transform previews so the compositor
+        // never races the next stroke update against the just-swapped bitmap.
+        PublishDisplaySnapshot();
     }
 
-    IEnumerable<SKPointI> PixelPerfect(List<SKPointI> path)
+    private void DrawPixelPerfectPreviewIncremental(SKPointI point)
     {
-        var cnt = path.Count();
+        if (_pixelPerfectPreviewPoints.Count == 0)
+        {
+            _pixelPerfectPreviewPoints.Add(point);
+            DrawPixelPerfectPreviewPoint(point);
+            return;
+        }
+
+        var previousRenderedPoint = _pixelPerfectPreviewPoints[^1];
+        var shouldSkipPreviousRenderedPoint = _strokePoints.Count >= 3
+            && ShouldSkipPixelPerfectPoint(_strokePoints[^3], _strokePoints[^2], point);
+
+        if (!shouldSkipPreviousRenderedPoint)
+        {
+            _pixelPerfectPreviewPoints.Add(point);
+            DrawPixelPerfectPreviewSegment(previousRenderedPoint, point);
+            return;
+        }
+
+        var anchorPoint = _pixelPerfectPreviewPoints.Count > 1 ? _pixelPerfectPreviewPoints[^2] : previousRenderedPoint;
+        ClearPixelPerfectPreviewTail(anchorPoint, previousRenderedPoint, point);
+        _pixelPerfectPreviewPoints[^1] = point;
+        DrawPixelPerfectPreviewSegment(anchorPoint, point);
+    }
+
+    private void DrawPixelPerfectPreviewSegment(SKPointI start, SKPointI end)
+    {
+        Algorithms.LineNotSwapped(start.X, start.Y, end.X, end.Y, (x, y) =>
+        {
+            DrawPixelPerfectPreviewPoint(new SKPointI(x, y));
+            return true;
+        });
+    }
+
+    private void DrawPixelPerfectPreviewPoint(SKPointI point)
+    {
+        if (!IsInBounds(point))
+            return;
+
+        var isDrawn = Brush.Draw(this, point, DrawingColor, 1, true);
+        if (isDrawn && (MirrorX || MirrorY))
+        {
+            var mirrorOffset = new SKPointI(MirrorX ? Brush.PixelOffset.X * 2 : 0, MirrorY ? Brush.PixelOffset.Y * 2 : 0);
+            Brush.Draw(this, GetMirroredPoint(point, mirrorOffset, Brush.Size), DrawingColor, 1, true);
+        }
+    }
+
+    private void ClearPixelPerfectPreviewTail(SKPointI anchor, SKPointI previousEnd, SKPointI newEnd)
+    {
+        if (_workingBitmap == null)
+            return;
+
+        var boundsPoints = new List<SKPointI> { anchor, previousEnd, newEnd };
+        if (MirrorX || MirrorY)
+        {
+            var mirrorOffset = new SKPointI(MirrorX ? Brush.PixelOffset.X * 2 : 0, MirrorY ? Brush.PixelOffset.Y * 2 : 0);
+            boundsPoints.Add(GetMirroredPoint(anchor, mirrorOffset, Brush.Size));
+            boundsPoints.Add(GetMirroredPoint(previousEnd, mirrorOffset, Brush.Size));
+            boundsPoints.Add(GetMirroredPoint(newEnd, mirrorOffset, Brush.Size));
+        }
+
+        var leftPadding = Math.Max(1, Brush.PixelOffset.X + 1);
+        var topPadding = Math.Max(1, Brush.PixelOffset.Y + 1);
+        var rightPadding = Math.Max(1, Brush.Size - Brush.PixelOffset.X + 1);
+        var bottomPadding = Math.Max(1, Brush.Size - Brush.PixelOffset.Y + 1);
+
+        var left = Math.Max(0, boundsPoints.Min(p => p.X) - leftPadding);
+        var top = Math.Max(0, boundsPoints.Min(p => p.Y) - topPadding);
+        var right = Math.Min(_workingBitmap.Width, boundsPoints.Max(p => p.X) + rightPadding);
+        var bottom = Math.Min(_workingBitmap.Height, boundsPoints.Max(p => p.Y) + bottomPadding);
+        if (left >= right || top >= bottom)
+            return;
+
+        using var canvas = new SKCanvas(_workingBitmap);
+        using var clear = new SKPaint { BlendMode = SKBlendMode.Clear };
+        canvas.DrawRect(new SKRect(left, top, right, bottom), clear);
+        canvas.Flush();
+    }
+
+    private static bool ShouldSkipPixelPerfectPoint(SKPointI previous, SKPointI point, SKPointI next)
+    {
+        return (previous.X == point.X || previous.Y == point.Y)
+               && (next.X == point.X || next.Y == point.Y)
+               && previous.X != next.X
+               && previous.Y != next.Y;
+    }
+
+    private List<SKPointI> PixelPerfect(List<SKPointI> path)
+    {
+        var cnt = path.Count;
         if (cnt <= 1)
         {
             return path;
         }
 
-        var ret = new List<SKPointI>();
+        var ret = new List<SKPointI>(cnt);
         var c = 0;
 
         while (c < cnt)
         {
-            if (c > 0 && c + 1 < cnt
-                      && (path[c - 1].X == path[c].X || path[c - 1].Y == path[c].Y)
-                      && (path[c + 1].X == path[c].X || path[c + 1].Y == path[c].Y)
-                      && path[c - 1].X != path[c + 1].X
-                      && path[c - 1].Y != path[c + 1].Y)
+            if (c > 0 && c + 1 < cnt && ShouldSkipPixelPerfectPoint(path[c - 1], path[c], path[c + 1]))
             {
                 c += 1;
             }
@@ -488,6 +588,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     public void BeginDrawing()
     {
         _strokePoints.Clear();
+        _pixelPerfectPreviewPoints.Clear();
 
         DrawingStarted?.Invoke(this, EventArgs.Empty);
 
@@ -499,7 +600,10 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
             if (_backgroundBitmap != null)
                 DrawingTarget.SetTargetBitmapSubstitute(() => _backgroundBitmap!);
         }
-        UseSwapBitmap = IsPixelPerfectMode;
+        // Pixel-perfect preview only needs double-buffer swapping when we must re-mask against the
+        // background on every draw (LockTransparentPixels). In the normal path we keep a live bitmap
+        // and publish immutable snapshots, which avoids O(n^2) full-stroke redraws during long pencil drags.
+        UseSwapBitmap = IsPixelPerfectMode && LockTransparentPixels;
 
         State = DrawingLayerState.Drawing;
     }
@@ -554,6 +658,8 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
 
         State = DrawingLayerState.Ready;
         ClearWorkingBitmap();
+        _strokePoints.Clear();
+        _pixelPerfectPreviewPoints.Clear();
         Opacity = 1;
         UseSwapBitmap = false;
 
