@@ -86,6 +86,12 @@ public interface IDrawingService
     void SelectAll();
 
     /// <summary>
+    /// Inverts the current pixel selection on the active drawing layer.
+    /// If no selection exists, selects the whole layer.
+    /// </summary>
+    void InvertSelection();
+
+    /// <summary>
     /// Splits the current ongoing drawing operation, effectively starting a new operation
     /// without finalizing the previous one immediately. Useful for undo/redo granularity.
     /// </summary>

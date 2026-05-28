@@ -15,4 +15,12 @@ public class PixelSelectionCommands : CommandsListBase
         ServiceProvider?.GetRequiredService<IViewPortRefreshService>().Refresh();
     }, "Select all", new CommandShortcut(VirtualKeys.A, KeyModifier.Ctrl), EditContextType.Sprite);
 
+    public Pix2dCommand InvertSelection => GetCommand(() =>
+    {
+        // Do not force-switch tools here: custom selection tools (including AI contour selection)
+        // drop the current marquee on deactivation, which turns invert-selection into SelectAll.
+        ServiceProvider?.GetRequiredService<IDrawingService>().InvertSelection();
+        ServiceProvider?.GetRequiredService<IViewPortRefreshService>().Refresh();
+    }, "Invert selection", new CommandShortcut(VirtualKeys.F2), EditContextType.Sprite);
+
 }

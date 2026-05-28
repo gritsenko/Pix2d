@@ -369,6 +369,42 @@ public class DrawingService : IDrawingService
             _drawingLayer.SelectAll();
     }
 
+    public void InvertSelection()
+    {
+        if (_drawingLayer is not DrawingLayerNode drawingLayerNode || CurrentDrawingTarget == null)
+            return;
+
+        if (!drawingLayerNode.HasSelection)
+        {
+            drawingLayerNode.SelectAll();
+            return;
+        }
+
+        if (drawingLayerNode.SelectionPhase == SelectionPhase.Transforming)
+            drawingLayerNode.SetSelectionTransformMode(false);
+
+        var beforeSelection = (SpriteSelectionNode)drawingLayerNode.GetSelectionLayer();
+        var beforeBackground = drawingLayerNode.GetSelectionBackground();
+        var toolKey = _appState.ToolsState.CurrentToolKey;
+
+        using var targetSnapshot = new SKBitmap(new SKImageInfo(
+            (int)CurrentDrawingTarget.GetSize().Width,
+            (int)CurrentDrawingTarget.GetSize().Height,
+            SKColorType.Rgba8888,
+            SKAlphaType.Premul));
+        CurrentDrawingTarget.CopyBitmapTo(targetSnapshot);
+
+        var afterSelection = InvertSelectionOperation.CreateInvertedSelectionState(CurrentDrawingTarget, beforeSelection, targetSnapshot);
+        var operation = new InvertSelectionOperation(
+            drawingLayerNode,
+            new SelectionStateSnapshot(beforeSelection, beforeBackground, ContourOnly: true),
+            afterSelection,
+            toolKey,
+            toolKey);
+
+        _operationService.InvokeAndPushOperations(operation);
+    }
+
     public void CancelCurrentOperation() => _operationFactory?.CancelCurrentOperation();
 
     public void CancelActiveDrawing() => _operationFactory?.CancelActiveDrawing();
