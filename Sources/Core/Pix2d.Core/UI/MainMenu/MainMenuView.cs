@@ -176,6 +176,11 @@ public partial class MainMenuView : ViewBase<MainMenuView.State>
                 .ContentViewType(typeof(InfoView))
                 .OnClicked(SelectMenuItem),
             new MainMenuItemView()
+                .Header(L("Settings"))
+                .Icon("\xE713")
+                .ContentViewType(typeof(AppSettingsView))
+                .OnClicked(SelectMenuItem),
+            new MainMenuItemView()
                 .Header(L("Commands"))
                 .Icon("\xE71D")
                 .ContentViewType(typeof(CommandsView))
