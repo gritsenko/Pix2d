@@ -59,6 +59,12 @@ public class AppState : StateBase
         set => Set(value);
     }
 
+    public bool IsAutoOpenTransformEditorAfterSelectionEnabled
+    {
+        get => Get(true);
+        set => Set(value);
+    }
+
 
     public LicenseType LicenseType
     {

@@ -6,6 +6,7 @@ using Pix2d.Messages;
 using Pix2d.Plugins.Drawing.Brushes;
 using Pix2d.Plugins.Drawing.Nodes;
 using Pix2d.Plugins.Drawing.Operations;
+using Pix2d.Plugins.Drawing.Tools.PixelSelect;
 using Pix2d.Primitives.Drawing;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -158,6 +159,14 @@ public class DrawingService : IDrawingService
 
         var op = new BeginSelectionOperation(dln, selectionLayer, backgroundBitmap, toolKey);
         _operationService.PushOperations(op);
+
+        if (!_appState.IsAutoOpenTransformEditorAfterSelectionEnabled)
+            return;
+
+        if (!_toolService.IsSelectionTool(toolKey) || toolKey == nameof(PixelTransformTool))
+            return;
+
+        _toolService.ActivateTool<PixelTransformTool>();
     }
 
     private void DrawingLayerOnModified(object? sender, EventArgs e)

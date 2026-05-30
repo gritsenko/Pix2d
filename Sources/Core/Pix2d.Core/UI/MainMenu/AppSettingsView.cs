@@ -129,7 +129,22 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
                         new ToggleSwitch()
                             .IsChecked(state, x => x.IsSingleFingerPanEnabled, BindingMode.TwoWay)
                             .IsEnabled(state, x => x.IsStylusModeEnabled)
+                            .Margin(0, 0, 0, 12),
+
+                        new TextBlock()
+                            .Text(L("Auto-open transform editor after selection"))
+                            .Margin(0, 8, 0, 8)
+                            .FontSize(20)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
+                        new ToggleSwitch()
+                            .IsChecked(state, x => x.IsAutoOpenTransformEditorAfterSelectionEnabled, BindingMode.TwoWay)
+                            .Margin(0, 0, 0, 6),
+                        new TextBlock()
+                            .Text(L("Automatically switches from selection to transform mode when the selection is finished."))
                             .Margin(0, 0, 0, 12)
+                            .TextWrapping(TextWrapping.Wrap)
+                            .FontSize(14)
                     )
             ));
 
@@ -164,6 +179,9 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
         [ObservableProperty]
         public partial bool IsSingleFingerPanEnabled { get; set; }
 
+        [ObservableProperty]
+        public partial bool IsAutoOpenTransformEditorAfterSelectionEnabled { get; set; }
+
         public State(
             AppState appState,
             ILocalizationService localizationService,
@@ -183,6 +201,7 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             _appState.WatchFor(x => x.TwoFingerDoubleTapTimeoutMs, OnTwoFingerTimeoutChangedExternally);
             _appState.WatchFor(x => x.IsStylusModeEnabled, OnStylusModeChangedExternally);
             _appState.WatchFor(x => x.IsSingleFingerPanEnabled, OnSingleFingerPanChangedExternally);
+            _appState.WatchFor(x => x.IsAutoOpenTransformEditorAfterSelectionEnabled, OnAutoOpenTransformEditorAfterSelectionChangedExternally);
 
             SyncFromAppState();
         }
@@ -260,6 +279,15 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             _settingsService.Set(nameof(AppState.IsSingleFingerPanEnabled), value);
         }
 
+        partial void OnIsAutoOpenTransformEditorAfterSelectionEnabledChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            _appState.IsAutoOpenTransformEditorAfterSelectionEnabled = value;
+            _settingsService.Set(nameof(AppState.IsAutoOpenTransformEditorAfterSelectionEnabled), value);
+        }
+
         public void ApplyScale()
         {
             _uiScaleService.SetUiScale(_appState.UiScale);
@@ -284,6 +312,7 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             TwoFingerDoubleTapTimeoutMs = _appState.TwoFingerDoubleTapTimeoutMs;
             IsStylusModeEnabled = _appState.IsStylusModeEnabled;
             IsSingleFingerPanEnabled = _appState.IsSingleFingerPanEnabled;
+            IsAutoOpenTransformEditorAfterSelectionEnabled = _appState.IsAutoOpenTransformEditorAfterSelectionEnabled;
 
             _isSyncing = false;
         }
@@ -316,6 +345,12 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
         {
             SyncFromAppState();
             _settingsService.Set(nameof(AppState.IsSingleFingerPanEnabled), _appState.IsSingleFingerPanEnabled);
+        }
+
+        private void OnAutoOpenTransformEditorAfterSelectionChangedExternally()
+        {
+            SyncFromAppState();
+            _settingsService.Set(nameof(AppState.IsAutoOpenTransformEditorAfterSelectionEnabled), _appState.IsAutoOpenTransformEditorAfterSelectionEnabled);
         }
     }
 
