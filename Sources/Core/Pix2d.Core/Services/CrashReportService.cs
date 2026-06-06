@@ -20,7 +20,14 @@ public class CrashReportService : ICrashReportService
     private readonly IServiceProvider _serviceProvider;
 
     private readonly object _lock = new();
-    private bool _alreadyCapturedFatal;
+    private DateTime _lastFatalCaptureUtc = DateTime.MinValue;
+    private bool _launchCompletedThisRun;
+
+    // A single crash routinely reaches more than one global handler within a few milliseconds
+    // (e.g. on Android AndroidEnvironment.UnhandledExceptionRaiser + AppDomain.UnhandledException),
+    // and we don't want two reports for it. A genuinely new crash — or a repeated debug-panel
+    // simulation while the app stays alive — happens seconds apart and is still captured.
+    private static readonly TimeSpan FatalDedupeWindow = TimeSpan.FromSeconds(2);
     private string? _lastCommandName;
 
     private readonly JsonSerializerOptions _jsonOptions = new()
@@ -64,6 +71,7 @@ public class CrashReportService : ICrashReportService
 
     public void MarkLaunchStarted()
     {
+        _launchCompletedThisRun = false;
         try
         {
             _settingsService.Set(nameof(AppSettings.LaunchInProgress), true);
@@ -76,6 +84,11 @@ public class CrashReportService : ICrashReportService
 
     public void MarkLaunchCompleted()
     {
+        // Idempotent within a run: this is called both from the startup pipeline and from the
+        // Android lifecycle (OnPause) as a safety net, and we don't want a settings write each time.
+        if (_launchCompletedThisRun)
+            return;
+        _launchCompletedThisRun = true;
         try
         {
             _settingsService.Set(nameof(AppSettings.LaunchInProgress), false);
@@ -134,8 +147,8 @@ public class CrashReportService : ICrashReportService
         {
             lock (_lock)
             {
-                if (_alreadyCapturedFatal) return summary;
-                _alreadyCapturedFatal = true;
+                if (summary.Timestamp - _lastFatalCaptureUtc < FatalDedupeWindow) return summary;
+                _lastFatalCaptureUtc = summary.Timestamp;
 
                 var folder = GetCrashFolder();
                 EnsureFolder(folder);
@@ -201,39 +214,104 @@ public class CrashReportService : ICrashReportService
         try
         {
             var hasReport = _settingsService.Get<bool>(nameof(AppSettings.HasPendingCrashReport));
-            var crashedSilently = _settingsService.Get<bool>(nameof(AppSettings.LaunchInProgress));
+            var launchInProgress = _settingsService.Get<bool>(nameof(AppSettings.LaunchInProgress));
 
+            // Ask the OS why the previous process died (Android API 30+). This is the only way to
+            // observe native crashes / ANRs / OS kills that bypass the managed exception handlers.
+            var exit = TryGetLastProcessExit();
+            var lastHandled = _settingsService.Get<long>(nameof(AppSettings.LastHandledProcessExitTimestamp));
+            var exitIsNew = exit != null && exit.TimestampMs > lastHandled;
+            if (exitIsNew)
+                TrySet(nameof(AppSettings.LastHandledProcessExitTimestamp), exit!.TimestampMs);
+
+            // 1) A full envelope was written by CaptureFatal on the previous run — richest report, wins.
             if (hasReport)
             {
                 PendingCrashReport = LoadLatestReport();
                 HasPendingCrashReport = PendingCrashReport != null;
+                return;
             }
-            else if (crashedSilently)
-            {
-                // No envelope on disk but the previous launch never reached "completed".
-                PendingCrashReport = BuildImplicitSummary();
-                HasPendingCrashReport = true;
 
-                try
-                {
-                    var folder = GetCrashFolder();
-                    EnsureFolder(folder);
-                    var fileName = $"{PendingCrashReport.Timestamp:yyyyMMdd_HHmmss}_silent.json";
-                    var fullPath = Path.Combine(folder, fileName);
-                    File.WriteAllText(fullPath, JsonSerializer.Serialize(PendingCrashReport, _jsonOptions));
-                    File.WriteAllText(Path.ChangeExtension(fullPath, ".txt"), PendingCrashReport.FormatForDisplay());
-                    _settingsService.Set(nameof(AppSettings.LastCrashReportId), fileName);
-                    _settingsService.Set(nameof(AppSettings.HasPendingCrashReport), true);
-                }
-                catch
-                {
-                }
+            // 2) The OS attributes the previous exit to a crash. Covers native crashes and managed
+            //    crashes that slipped past the handlers — both during launch and mid-session.
+            if (exitIsNew && exit!.LikelyCrash)
+            {
+                PromoteImplicit(BuildImplicitSummary(exit, ReadAndConsumeFatalLog()));
+                return;
             }
+
+            // 3) The previous launch started but never reported "completed".
+            if (launchInProgress)
+            {
+                // The OS says it was a non-crash exit (user closed it, background low-memory kill,
+                // etc.). Don't manufacture a phantom crash report.
+                if (exitIsNew && !exit!.LikelyCrash)
+                {
+                    ClearLaunchInProgress();
+                    return;
+                }
+
+                // No OS verdict (API < 30 or unavailable): fall back to the interrupted-launch
+                // heuristic, enriched with any pre-bootstrap Fatal.log we can recover.
+                PromoteImplicit(BuildImplicitSummary(null, ReadAndConsumeFatalLog()));
+                return;
+            }
+
+            // 4) Nothing flagged, but a stray Fatal.log from a pre-bootstrap crash may still exist.
+            var orphanFatal = ReadAndConsumeFatalLog();
+            if (!string.IsNullOrWhiteSpace(orphanFatal))
+                PromoteImplicit(BuildImplicitSummary(null, orphanFatal));
         }
         catch
         {
             HasPendingCrashReport = false;
             PendingCrashReport = null;
+        }
+    }
+
+    private void PromoteImplicit(CrashReportSummary summary)
+    {
+        PendingCrashReport = summary;
+        HasPendingCrashReport = true;
+
+        try
+        {
+            var folder = GetCrashFolder();
+            EnsureFolder(folder);
+            var fileName = $"{summary.Timestamp:yyyyMMdd_HHmmss}_silent.json";
+            var fullPath = Path.Combine(folder, fileName);
+            File.WriteAllText(fullPath, JsonSerializer.Serialize(summary, _jsonOptions));
+            File.WriteAllText(Path.ChangeExtension(fullPath, ".txt"), summary.FormatForDisplay());
+            _settingsService.Set(nameof(AppSettings.LastCrashReportId), fileName);
+            _settingsService.Set(nameof(AppSettings.HasPendingCrashReport), true);
+            _settingsService.Set(nameof(AppSettings.LaunchInProgress), false);
+            TrimOldReports(folder);
+        }
+        catch
+        {
+        }
+    }
+
+    private void ClearLaunchInProgress()
+    {
+        TrySet(nameof(AppSettings.LaunchInProgress), false);
+    }
+
+    private void TrySet<T>(string key, T value)
+    {
+        try { _settingsService.Set(key, value); }
+        catch { }
+    }
+
+    private ProcessExitDetails? TryGetLastProcessExit()
+    {
+        try
+        {
+            return (_platformStuffService as IProcessExitInfoProvider)?.GetLastProcessExitDetails();
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -259,25 +337,121 @@ public class CrashReportService : ICrashReportService
         return summary;
     }
 
-    private CrashReportSummary BuildImplicitSummary()
+    private CrashReportSummary BuildImplicitSummary(ProcessExitDetails? exit, string? fatalLog)
     {
+        var hasExitCrash = exit is { LikelyCrash: true };
+        var hasFatalLog = !string.IsNullOrWhiteSpace(fatalLog);
+
+        string source;
+        string exceptionType;
+        string message;
+        var stack = new StringBuilder();
+
+        if (hasExitCrash)
+        {
+            source = $"ProcessExit:{exit!.Reason}";
+            exceptionType = exit.Reason;
+            message = string.IsNullOrWhiteSpace(exit.Description)
+                ? "The previous process terminated abnormally (reported by the OS)."
+                : exit.Description;
+
+            if (!string.IsNullOrWhiteSpace(exit.TraceText))
+            {
+                stack.AppendLine("=== OS exit trace (native / ANR) ===");
+                stack.AppendLine(exit.TraceText);
+            }
+        }
+        else if (hasFatalLog)
+        {
+            source = "PreBootstrapFatalLog";
+            exceptionType = "CapturedBeforeServicesReady";
+            message = "A fatal error was captured before the crash services were ready.";
+        }
+        else
+        {
+            source = "PreviousLaunchInterrupted";
+            exceptionType = "UnknownInterruption";
+            message = "Previous launch did not finish cleanly.";
+        }
+
+        if (hasFatalLog)
+        {
+            if (stack.Length > 0)
+                stack.AppendLine();
+            stack.AppendLine("=== Fatal.log (pre-bootstrap handler) ===");
+            stack.AppendLine(fatalLog);
+        }
+
         return new CrashReportSummary
         {
             Id = Guid.NewGuid().ToString("N"),
             Timestamp = DateTime.UtcNow,
             AppVersion = SafeAppVersion(),
             Platform = SafePlatform(),
-            Source = "PreviousLaunchInterrupted",
+            Source = source,
             IsImplicit = true,
-            ExceptionType = "UnknownInterruption",
-            Message = "Previous launch did not finish cleanly.",
-            StackTrace = string.Empty,
-            ExceptionChain = string.Empty,
-            SessionOperationLog = string.Empty,
+            ExceptionType = exceptionType,
+            Message = message,
+            StackTrace = stack.ToString(),
+            ExceptionChain = exit?.Description ?? string.Empty,
+            SessionOperationLog = SafeSessionLog(),
             LogTail = ReadLogTail(),
             StartupDocument = SafeStartupDocument(),
-            LastCommandName = null,
+            LastCommandName = _lastCommandName,
         };
+    }
+
+    private const int FatalLogMaxChars = 16 * 1024;
+
+    /// <summary>
+    /// Reads (and then deletes) any plain-text Fatal.log left by the early/pre-bootstrap exception
+    /// handlers. These are written when a crash happens before <see cref="ICrashReportService"/> is
+    /// available, so they're the only record of those crashes — fold them into the report once.
+    /// </summary>
+    private static string? ReadAndConsumeFatalLog()
+    {
+        try
+        {
+            var candidates = new[]
+            {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Fatal.log"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Pix2dLogs", "Fatal.log"),
+            };
+
+            string? newest = null;
+            var newestTime = DateTime.MinValue;
+
+            foreach (var path in candidates)
+            {
+                try
+                {
+                    if (!File.Exists(path))
+                        continue;
+
+                    var time = File.GetLastWriteTimeUtc(path);
+                    var text = File.ReadAllText(path);
+                    if (text.Length > FatalLogMaxChars)
+                        text = text.Substring(text.Length - FatalLogMaxChars);
+
+                    if (time >= newestTime)
+                    {
+                        newestTime = time;
+                        newest = text;
+                    }
+
+                    File.Delete(path); // one-shot: consume so it isn't re-attached on every launch
+                }
+                catch
+                {
+                }
+            }
+
+            return newest;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string BuildExceptionChain(Exception ex)

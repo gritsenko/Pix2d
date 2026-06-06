@@ -92,8 +92,45 @@ public partial class InfoView : ViewBase<InfoView.State>
                             .Margin(new Thickness(0, 0, 0, 16))
                             .Command(state.CrashCommands.ShowCrashReport)
                             .Content(L("Show crash report"))
+#if DEBUG
+                        ,
+                        BuildDebugCrashPanel(state)
+#endif
                     )
             ));
+
+#if DEBUG
+    // Debug-only scaffolding to exercise the crash-report capture paths from the Info page.
+    private static Control BuildDebugCrashPanel(State state) =>
+        new Border()
+            .BorderBrush(Brushes.OrangeRed)
+            .BorderThickness(new Thickness(1))
+            .Padding(new Thickness(8))
+            .Margin(new Thickness(0, 0, 0, 16))
+            .Child(new StackPanel().Children(
+                new TextBlock()
+                    .Text("DEBUG · simulate crash")
+                    .Foreground(Brushes.OrangeRed)
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .Margin(new Thickness(0, 0, 0, 8)),
+                new StackPanel()
+                    .Orientation(Orientation.Horizontal)
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .Children(
+                        new Button().Classes("btn").Margin(new Thickness(4)).Height(32)
+                            .Content("UI thread").OnClick(_ => state.SimulateUiThreadCrash()),
+                        new Button().Classes("btn").Margin(new Thickness(4)).Height(32)
+                            .Content("Background").OnClick(_ => state.SimulateBackgroundCrash()),
+                        new Button().Classes("btn").Margin(new Thickness(4)).Height(32)
+                            .Content("Native").OnClick(_ => state.SimulateNativeCrash())),
+                new TextBlock()
+                    .Text("UI thread: shows report now · Background / Native: after relaunch")
+                    .FontSize(10)
+                    .Foreground(Brushes.OrangeRed)
+                    .TextWrapping(TextWrapping.Wrap)
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .Margin(new Thickness(0, 8, 0, 0))));
+#endif
 
     public sealed partial class State : ObservableObject
     {
@@ -141,6 +178,51 @@ public partial class InfoView : ViewBase<InfoView.State>
         {
             CurrentProjectTitle = _appState.CurrentProject?.Title ?? L("No project");
         }
+
+#if DEBUG
+        /// <summary>
+        /// Posts an unhandled exception onto the UI thread. It surfaces through
+        /// Dispatcher.UIThread.UnhandledException → ICrashReportService.CaptureFatal; that handler
+        /// marks it handled, so the app stays alive. A second, lower-priority post runs *after* that
+        /// capture has completed and immediately opens the captured report so the result is visible
+        /// without relaunching.
+        /// </summary>
+        public void SimulateUiThreadCrash()
+        {
+            var dispatcher = Avalonia.Threading.Dispatcher.UIThread;
+            dispatcher.Post(
+                () => throw new InvalidOperationException("Simulated UI-thread crash (Pix2d debug)"));
+            dispatcher.Post(
+                () => CrashCommands.ShowCrashReport.Execute(),
+                Avalonia.Threading.DispatcherPriority.Background);
+        }
+
+        /// <summary>
+        /// Throws on a non-UI thread → AppDomain.UnhandledException → CaptureFatal, then the process
+        /// goes down. Verifies the full crash → persist → next-launch report loop. Relaunch the app
+        /// afterwards to see the populated (non-empty) report.
+        /// </summary>
+        public void SimulateBackgroundCrash()
+        {
+            var thread = new System.Threading.Thread(
+                () => throw new InvalidOperationException("Simulated background-thread crash (Pix2d debug)"))
+            {
+                IsBackground = true,
+                Name = "Pix2dSimulatedCrash",
+            };
+            thread.Start();
+        }
+
+        /// <summary>
+        /// Dereferences a null native pointer (SIGSEGV / access violation). Managed exception
+        /// handlers cannot observe this — it verifies the OS process-exit-info path that powers the
+        /// crash report on Android (ApplicationExitInfo: ReasonCrashNative). Relaunch to inspect.
+        /// </summary>
+        public void SimulateNativeCrash()
+        {
+            System.Runtime.InteropServices.Marshal.ReadInt32(IntPtr.Zero);
+        }
+#endif
     }
 }
 

@@ -5,6 +5,7 @@ using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Abstract.Services;
+using Pix2d.Primitives.Crash;
 using SkiaNodes.Interactive;
 using System;
 using System.IO;
@@ -16,7 +17,7 @@ using File = Java.IO.File;
 
 namespace Pix2d.Droid.Services;
 
-public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportShareTarget
+public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportShareTarget, IProcessExitInfoProvider
 {
     //not using direct services injection to prevent circular dependencies
     private readonly IServiceProvider _serviceProvider;
@@ -203,5 +204,80 @@ public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportSh
     public Task OpenAppDataFolder()
     {
         throw new NotImplementedException();
+    }
+
+    // Max amount of OS-provided tombstone / ANR trace we keep — these can be large.
+    private const int ExitTraceMaxChars = 16 * 1024;
+
+    /// <summary>
+    /// Reads the most recent historical process-exit record from the OS. This is the only reliable
+    /// way on Android to learn that the previous process died from a native crash, an ANR or an OS
+    /// kill — none of which surface through the managed exception handlers. API 30+ only.
+    /// </summary>
+    public ProcessExitDetails? GetLastProcessExitDetails()
+    {
+        try
+        {
+            // ApplicationExitInfo / GetHistoricalProcessExitReasons require API 30. Using the
+            // OperatingSystem guard (not a raw SdkInt check) also satisfies the CA1416 analyzer.
+            if (!OperatingSystem.IsAndroidVersionAtLeast(30))
+                return null;
+
+            if (Application.Context.GetSystemService(Context.ActivityService) is not ActivityManager am)
+                return null;
+
+            // packageName=null → our own package; pid=0 → any; maxNum=1 → most recent only.
+            var infos = am.GetHistoricalProcessExitReasons(null, 0, 1);
+            if (infos == null || infos.Count == 0)
+                return null;
+
+            var info = infos[0];
+            // info.Reason is bound as a raw int; the named values live on the ApplicationExitInfoReason enum.
+            var reason = (ApplicationExitInfoReason)info.Reason;
+
+            // Signaled = the process was taken down by a signal (SIGSEGV/SIGABRT/SIGILL …). A native
+            // null-deref or a runtime-induced crash is frequently reported this way rather than as
+            // CrashNative, so it must count as a crash or the report is silently dropped.
+            var likelyCrash = reason is ApplicationExitInfoReason.Crash
+                or ApplicationExitInfoReason.CrashNative
+                or ApplicationExitInfoReason.Anr
+                or ApplicationExitInfoReason.Signaled;
+
+            string? traceText = null;
+            if (reason is ApplicationExitInfoReason.Anr
+                or ApplicationExitInfoReason.CrashNative
+                or ApplicationExitInfoReason.Signaled)
+            {
+                try
+                {
+                    using var trace = info.TraceInputStream;
+                    if (trace != null)
+                    {
+                        using var reader = new System.IO.StreamReader(trace);
+                        var raw = reader.ReadToEnd();
+                        traceText = raw.Length > ExitTraceMaxChars
+                            ? raw.Substring(raw.Length - ExitTraceMaxChars)
+                            : raw;
+                    }
+                }
+                catch
+                {
+                    // Trace stream is best-effort; the reason alone is still useful.
+                }
+            }
+
+            return new ProcessExitDetails
+            {
+                LikelyCrash = likelyCrash,
+                Reason = reason.ToString(),
+                Description = info.Description ?? string.Empty,
+                TimestampMs = info.Timestamp,
+                TraceText = traceText,
+            };
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

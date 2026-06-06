@@ -38,6 +38,11 @@ public partial class MainActivity : AvaloniaMainActivity
         Instance = this;
         AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
         TaskScheduler.UnobservedTaskException += TaskSchedulerOnUnobservedTaskException;
+        // Managed exceptions crossing the Java↔managed boundary on Android (e.g. on the UI thread
+        // during startup) are delivered HERE, not reliably through AppDomain.UnhandledException.
+        // Without this hook those crashes are invisible to the crash service and surface next launch
+        // as an empty "previous launch did not finish" report.
+        Android.Runtime.AndroidEnvironment.UnhandledExceptionRaiser += AndroidEnvironmentOnUnhandledExceptionRaiser;
         OnBackPressedDispatcher.AddCallback(this, new BackPress(this));
     }
 
@@ -118,6 +123,14 @@ public partial class MainActivity : AvaloniaMainActivity
         LogUnhandledException(newExc);
     }
 
+    private static void AndroidEnvironmentOnUnhandledExceptionRaiser(object? sender, Android.Runtime.RaiseThrowableEventArgs e)
+    {
+        var newExc = new Exception("AndroidEnvironment.UnhandledExceptionRaiser", e.Exception);
+        LogUnhandledException(newExc);
+        // Intentionally leave e.Handled = false: the exception is fatal and the app state may be
+        // corrupt. We only want the report captured before the process goes down — not to limp on.
+    }
+
     internal static void LogUnhandledException(Exception exception)
     {
         // Preferred path: route through ICrashReportService so the report ends up in the shared
@@ -155,6 +168,11 @@ public partial class MainActivity : AvaloniaMainActivity
 
     protected override void OnPause()
     {
+        // Reaching OnPause means the UI came up and the app is interactive, so the launch
+        // succeeded for crash-detection purposes. Clearing the in-progress marker here prevents
+        // a phantom "previous launch did not finish" report when Android later kills the process
+        // in the background. A genuine crash mid-session is still caught via process-exit info.
+        MarkLaunchCompletedSafely();
         SaveSessionSafely();
         base.OnPause();
     }
@@ -190,6 +208,22 @@ public partial class MainActivity : AvaloniaMainActivity
     // stay safely under that. The actual save runs synchronously on this
     // (UI / Activity main) thread; only the file-I/O commit is offloaded.
     private static readonly TimeSpan LifecycleSaveTimeout = TimeSpan.FromSeconds(4);
+
+    private static void MarkLaunchCompletedSafely()
+    {
+        try
+        {
+            if (EditorApp.Pix2dBootstrapper?.GetServiceProvider() is not { } sp)
+                return;
+
+            var crashService = sp.GetService(typeof(Pix2d.Abstract.Services.ICrashReportService))
+                as Pix2d.Abstract.Services.ICrashReportService;
+            crashService?.MarkLaunchCompleted();
+        }
+        catch
+        {
+        }
+    }
 
     internal static void SaveSessionSafely()
     {

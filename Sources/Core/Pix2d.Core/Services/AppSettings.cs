@@ -22,4 +22,6 @@ public class AppSettings
     public bool HasPendingCrashReport { get; set; }
     /// <summary>Filename of the most recent crash report under the crash reports folder.</summary>
     public string? LastCrashReportId { get; set; }
+    /// <summary>Epoch-ms timestamp of the last OS process-exit record we already turned into a report; used to avoid re-reporting the same exit on every launch.</summary>
+    public long LastHandledProcessExitTimestamp { get; set; }
 }
