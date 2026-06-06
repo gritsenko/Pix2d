@@ -1,5 +1,3 @@
-using Pix2d.UI;
-
 namespace Pix2d.Services;
 
 public class AvaloniaUiScaleService : IUiScaleService
@@ -16,12 +14,11 @@ public class AvaloniaUiScaleService : IUiScaleService
 
     public void SetUiScale(double scale)
     {
-        if (EditorApp.TopLevel is MainWindow wnd
-            && wnd.Content is HostView hostView)
-        {
-            hostView.SetUiScale(scale);
+        // Persist regardless of platform. Desktop hosts the view in a MainWindow,
+        // but Android/WASM attach the HostView directly without one — relying on
+        // MainWindow here meant the scale was never applied nor saved on those heads.
+        _settingsService.Set("UiScale", scale);
 
-            _settingsService.Set("UiScale", scale);
-        }
+        (Avalonia.Application.Current as EditorApp)?.HostView?.SetUiScale(scale);
     }
 }
