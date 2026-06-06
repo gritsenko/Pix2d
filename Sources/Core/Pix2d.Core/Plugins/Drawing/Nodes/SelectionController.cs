@@ -729,7 +729,16 @@ internal sealed class SelectionController
             _host.SwapWorkingBitmap();
 
         _selectionEditor.SetIsChanged();
-        ApplySelection(true);
+
+        // Stamp the fill onto the target ourselves instead of going through ApplySelection: a
+        // marquee selection is contour-only (`_pixelsLifted == false`), and ApplySelection skips
+        // ApplyWorkingBitmap in that case so that merely dismissing a marquee never erases its
+        // source pixels. FillSelection, however, *did* populate the working bitmap and must commit
+        // it — otherwise the fill is silently discarded by DeactivateSelectionEditor.
+        _host.ApplyWorkingBitmap();
+        _host.RaiseDrawingApplied(true);
+
+        DeactivateSelectionEditor();
     }
 
     private void OnSelectionStarted() => SelectionStarted?.Invoke(this, EventArgs.Empty);
