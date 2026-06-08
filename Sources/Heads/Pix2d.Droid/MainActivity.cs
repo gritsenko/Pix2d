@@ -225,6 +225,25 @@ public partial class MainActivity : AvaloniaMainActivity
         }
     }
 
+    // Called from the deliberate double-back exit just before the process is terminated. Persists a
+    // marker so the next launch doesn't mistake the self-kill (reported by the OS as SIGNALED) for a
+    // native crash and pop a phantom crash report.
+    internal static void MarkCleanExitSafely()
+    {
+        try
+        {
+            if (EditorApp.Pix2dBootstrapper?.GetServiceProvider() is not { } sp)
+                return;
+
+            var crashService = sp.GetService(typeof(Pix2d.Abstract.Services.ICrashReportService))
+                as Pix2d.Abstract.Services.ICrashReportService;
+            crashService?.MarkCleanExit();
+        }
+        catch
+        {
+        }
+    }
+
     internal static void SaveSessionSafely()
     {
         try

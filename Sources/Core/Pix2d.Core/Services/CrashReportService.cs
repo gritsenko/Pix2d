@@ -98,6 +98,21 @@ public class CrashReportService : ICrashReportService
         }
     }
 
+    public void MarkCleanExit()
+    {
+        // Persisted synchronously (SettingsService.Set writes through to disk) so the marker is
+        // guaranteed on disk before the caller terminates the process. Best-effort: a deliberate
+        // exit must never be blocked by a settings write failure.
+        try
+        {
+            _settingsService.Set(nameof(AppSettings.CleanExitRequested), true);
+            _settingsService.Set(nameof(AppSettings.LaunchInProgress), false);
+        }
+        catch
+        {
+        }
+    }
+
     public void RecordLastCommand(string commandName) => _lastCommandName = commandName;
 
     public CrashReportSummary? LoadLatestReport()
@@ -216,6 +231,14 @@ public class CrashReportService : ICrashReportService
             var hasReport = _settingsService.Get<bool>(nameof(AppSettings.HasPendingCrashReport));
             var launchInProgress = _settingsService.Get<bool>(nameof(AppSettings.LaunchInProgress));
 
+            // The previous run ended through a deliberate, user-initiated shutdown (e.g. the Android
+            // double-back exit self-kills the process, which the OS reports as SIGNALED/EXIT_SELF).
+            // Consume the one-shot marker immediately so it can never suppress a genuine crash on a
+            // later launch.
+            var cleanExit = _settingsService.Get<bool>(nameof(AppSettings.CleanExitRequested));
+            if (cleanExit)
+                TrySet(nameof(AppSettings.CleanExitRequested), false);
+
             // Ask the OS why the previous process died (Android API 30+). This is the only way to
             // observe native crashes / ANRs / OS kills that bypass the managed exception handlers.
             var exit = TryGetLastProcessExit();
@@ -225,10 +248,19 @@ public class CrashReportService : ICrashReportService
                 TrySet(nameof(AppSettings.LastHandledProcessExitTimestamp), exit!.TimestampMs);
 
             // 1) A full envelope was written by CaptureFatal on the previous run — richest report, wins.
+            //    A genuine fatal sets this flag, so it still surfaces even after a later clean exit.
             if (hasReport)
             {
                 PendingCrashReport = LoadLatestReport();
                 HasPendingCrashReport = PendingCrashReport != null;
+                return;
+            }
+
+            // The shutdown was deliberate: the OS-reported termination is expected, so don't
+            // manufacture a report from it or from the interrupted-launch heuristic.
+            if (cleanExit)
+            {
+                ClearLaunchInProgress();
                 return;
             }
 

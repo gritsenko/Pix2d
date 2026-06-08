@@ -14,6 +14,14 @@ public interface ICrashReportService
     void MarkLaunchStarted();
     void MarkLaunchCompleted();
 
+    /// <summary>
+    /// Records that the app is shutting down deliberately at the user's request (e.g. the Android
+    /// double-back exit, which self-kills the process). Without this marker the OS-reported
+    /// termination is indistinguishable from a signal-based native crash and the next launch shows a
+    /// phantom crash report. Must be called just before the process is terminated.
+    /// </summary>
+    void MarkCleanExit();
+
     /// <summary>Loads the most recently saved crash report, if any.</summary>
     CrashReportSummary? LoadLatestReport();
 

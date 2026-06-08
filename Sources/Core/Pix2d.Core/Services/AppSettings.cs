@@ -24,4 +24,6 @@ public class AppSettings
     public string? LastCrashReportId { get; set; }
     /// <summary>Epoch-ms timestamp of the last OS process-exit record we already turned into a report; used to avoid re-reporting the same exit on every launch.</summary>
     public long LastHandledProcessExitTimestamp { get; set; }
+    /// <summary>Set right before a deliberate, user-initiated shutdown (e.g. the Android double-back exit, which self-kills the process). The OS reports that termination as SIGNALED/EXIT_SELF, so the next launch reads this one-shot marker to avoid mistaking the clean exit for a crash.</summary>
+    public bool CleanExitRequested { get; set; }
 }
