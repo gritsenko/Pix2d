@@ -157,6 +157,10 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         LocalizationHelper.Initialize(serviceProvider.GetRequiredService<ILocalizationService>());
 
         _appState.UiState.ShowLayers = settingsService.Get<bool>(nameof(AppState.UiState.ShowLayers));
+        // Load the persisted UI scale eagerly so MainView.OnAfterInitialized applies the saved
+        // value at startup. Previously this happened lazily in AvaloniaUiScaleService's ctor, which
+        // is only constructed when the Settings view opens — so on restart the interface stayed 1x.
+        _appState.UiScale = settingsService.Get<double?>(nameof(AppState.UiScale)) ?? 1.0;
         _appState.MouseWheelBehavior =  (MouseWheelBehavior) settingsService.Get<int>(nameof(AppState.MouseWheelBehavior));
         _appState.IsTwoFingerDoubleTapUndoEnabled = settingsService.Get<bool?>(nameof(AppState.IsTwoFingerDoubleTapUndoEnabled)) ?? true;
         _appState.TwoFingerDoubleTapTimeoutMs = settingsService.Get<int?>(nameof(AppState.TwoFingerDoubleTapTimeoutMs)) ?? 500;
