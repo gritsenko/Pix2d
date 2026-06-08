@@ -13,8 +13,9 @@ public partial class InfoView : ViewBase<InfoView.State>
         IMessenger messenger,
         AppState appState,
         IPlatformStuffService platformStuffService,
-        ICommandService commandService)
-        : base(new State(messenger, appState, platformStuffService, commandService))
+        ICommandService commandService,
+        ICrashReportService crashReportService)
+        : base(new State(messenger, appState, platformStuffService, commandService, crashReportService))
     {
     }
 
@@ -134,8 +135,11 @@ public partial class InfoView : ViewBase<InfoView.State>
 
     public sealed partial class State : ObservableObject
     {
+        private const int UiCrashDialogRetryCount = 12;
+
         private readonly AppState _appState;
         private readonly IPlatformStuffService _platformStuffService;
+        private readonly ICrashReportService _crashReportService;
 
         [ObservableProperty]
         public partial string AppVersionText { get; set; } = string.Empty;
@@ -147,10 +151,12 @@ public partial class InfoView : ViewBase<InfoView.State>
             IMessenger messenger,
             AppState appState,
             IPlatformStuffService platformStuffService,
-            ICommandService commandService)
+            ICommandService commandService,
+            ICrashReportService crashReportService)
         {
             _appState = appState;
             _platformStuffService = platformStuffService;
+            _crashReportService = crashReportService;
 
             FileCommands = commandService.GetCommandList<FileCommands>()!;
             CrashCommands = commandService.GetCommandList<Pix2d.Command.CrashCommands>()!;
@@ -183,17 +189,33 @@ public partial class InfoView : ViewBase<InfoView.State>
         /// <summary>
         /// Posts an unhandled exception onto the UI thread. It surfaces through
         /// Dispatcher.UIThread.UnhandledException → ICrashReportService.CaptureFatal; that handler
-        /// marks it handled, so the app stays alive. A second, lower-priority post runs *after* that
-        /// capture has completed and immediately opens the captured report so the result is visible
-        /// without relaunching.
+        /// marks it handled, so the app stays alive. The follow-up dialog open is retried for a few
+        /// UI turns because Avalonia doesn't guarantee the next posted callback runs only after the
+        /// unhandled-exception pipeline has persisted the report.
         /// </summary>
         public void SimulateUiThreadCrash()
         {
             var dispatcher = Avalonia.Threading.Dispatcher.UIThread;
             dispatcher.Post(
                 () => throw new InvalidOperationException("Simulated UI-thread crash (Pix2d debug)"));
+
+            PostShowCrashReportWhenAvailable(dispatcher, UiCrashDialogRetryCount);
+        }
+
+        private void PostShowCrashReportWhenAvailable(Avalonia.Threading.Dispatcher dispatcher, int attemptsRemaining)
+        {
             dispatcher.Post(
-                () => CrashCommands.ShowCrashReport.Execute(),
+                () =>
+                {
+                    if (_crashReportService.PendingCrashReport != null || _crashReportService.LoadLatestReport() != null)
+                    {
+                        CrashCommands.ShowCrashReport.Execute();
+                        return;
+                    }
+
+                    if (attemptsRemaining > 0)
+                        PostShowCrashReportWhenAvailable(dispatcher, attemptsRemaining - 1);
+                },
                 Avalonia.Threading.DispatcherPriority.Background);
         }
 

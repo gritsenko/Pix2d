@@ -119,16 +119,24 @@ public class CrashReportService : ICrashReportService
     {
         try
         {
-            var id = _settingsService.Get<string>(nameof(AppSettings.LastCrashReportId));
-            if (string.IsNullOrWhiteSpace(id))
-                return null;
+            foreach (var path in EnumerateReportCandidates())
+            {
+                try
+                {
+                    var json = File.ReadAllText(path);
+                    var summary = JsonSerializer.Deserialize<CrashReportSummary>(json, _jsonOptions);
+                    if (summary == null)
+                        continue;
 
-            var path = Path.Combine(GetCrashFolder(), id);
-            if (!File.Exists(path))
-                return null;
+                    TrySyncLatestReportId(path);
+                    return summary;
+                }
+                catch
+                {
+                }
+            }
 
-            var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<CrashReportSummary>(json, _jsonOptions);
+            return null;
         }
         catch
         {
@@ -140,12 +148,12 @@ public class CrashReportService : ICrashReportService
     {
         try
         {
-            var id = _settingsService.Get<string>(nameof(AppSettings.LastCrashReportId));
-            if (string.IsNullOrWhiteSpace(id))
+            var path = EnumerateReportCandidates().FirstOrDefault();
+            if (path == null)
                 return null;
 
-            var path = Path.Combine(GetCrashFolder(), id);
-            return File.Exists(path) ? path : null;
+            TrySyncLatestReportId(path);
+            return path;
         }
         catch
         {
@@ -162,8 +170,16 @@ public class CrashReportService : ICrashReportService
         {
             lock (_lock)
             {
-                if (summary.Timestamp - _lastFatalCaptureUtc < FatalDedupeWindow) return summary;
+                if (summary.Timestamp - _lastFatalCaptureUtc < FatalDedupeWindow)
+                {
+                    PendingCrashReport ??= summary;
+                    HasPendingCrashReport = PendingCrashReport != null;
+                    return summary;
+                }
+
                 _lastFatalCaptureUtc = summary.Timestamp;
+                PendingCrashReport = summary;
+                HasPendingCrashReport = true;
 
                 var folder = GetCrashFolder();
                 EnsureFolder(folder);
@@ -543,6 +559,50 @@ public class CrashReportService : ICrashReportService
         catch
         {
             return string.Empty;
+        }
+    }
+
+    private IEnumerable<string> EnumerateReportCandidates()
+    {
+        var folder = GetCrashFolder();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var id = _settingsService.Get<string>(nameof(AppSettings.LastCrashReportId));
+        if (!string.IsNullOrWhiteSpace(id))
+        {
+            var preferredPath = Path.Combine(folder, id);
+            if (File.Exists(preferredPath) && seen.Add(preferredPath))
+                yield return preferredPath;
+        }
+
+        if (!Directory.Exists(folder))
+            yield break;
+
+        foreach (var file in new DirectoryInfo(folder)
+                     .GetFiles("*.json")
+                     .OrderByDescending(file => file.LastWriteTimeUtc))
+        {
+            if (seen.Add(file.FullName))
+                yield return file.FullName;
+        }
+    }
+
+    private void TrySyncLatestReportId(string fullPath)
+    {
+        try
+        {
+            var fileName = Path.GetFileName(fullPath);
+            if (string.IsNullOrWhiteSpace(fileName))
+                return;
+
+            var current = _settingsService.Get<string>(nameof(AppSettings.LastCrashReportId));
+            if (string.Equals(current, fileName, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _settingsService.Set(nameof(AppSettings.LastCrashReportId), fileName);
+        }
+        catch
+        {
         }
     }
 
