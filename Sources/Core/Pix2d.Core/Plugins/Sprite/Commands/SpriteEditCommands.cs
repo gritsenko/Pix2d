@@ -174,6 +174,14 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
     public Pix2dCommand AddLayer =>
         GetCommand(() => { SpriteEditor?.AddEmptyLayer(); }, "Add new layer", new CommandShortcut(VirtualKeys.N, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 
+    public Pix2dCommand AddArtboard =>
+        GetCommand(() =>
+        {
+            // A new artboard inherits the current sprite's size by default.
+            var size = AppState.CurrentProject.CurrentEditedNode?.Size ?? new SKSize(32, 32);
+            ServiceProvider.GetRequiredService<IEditService>().AddArtboard(size);
+        }, "Add new artboard", new CommandShortcut(VirtualKeys.N, KeyModifier.Ctrl | KeyModifier.Alt), EditContextType.Sprite);
+
     public Pix2dCommand DeleteLayer =>
         GetCommand(() => { SpriteEditor?.DeleteLayer(); }, "Delete current layer", new CommandShortcut(VirtualKeys.Delete, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 

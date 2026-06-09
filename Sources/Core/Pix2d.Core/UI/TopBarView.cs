@@ -56,6 +56,12 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
                                     .Content("\xe90f")
                                     .ToolTip_Tip(L(state.SpriteEditCommands.Clear.Tooltip)),
                                 new AppButton()
+                                    .Command(state.SpriteEditCommands.AddArtboard)
+                                    .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
+                                    .Label(L("Artboard"))
+                                    .Content("\xE710")
+                                    .ToolTip_Tip(L(state.SpriteEditCommands.AddArtboard.Tooltip)),
+                                new AppButton()
                                     .Name("export-button")
                                     .Label(L("Export"))
                                     .Command(state.ViewCommands.ShowExportDialogCommand)

@@ -53,29 +53,34 @@ public sealed class UiThreadSnapshotProvider : ISessionSnapshotProvider
 
     private static SceneSnapshot TakeOnUiThread(SKNode scene, DirtySet dirty, string? sourceProjectPath)
     {
-        var sprite = scene.Nodes.FirstOrDefault() as Pix2dSprite;
+        // A scene may contain several sprites (artboards). Collect across ALL of them, otherwise the session
+        // store would garbage-collect frames belonging to a non-first artboard and lose their content.
+        var sprites = scene.Nodes.OfType<Pix2dSprite>().ToList();
         var liveKeys = new List<string>();
         var dirtyFrames = new List<FrameSnapshot>();
 
-        if (sprite is not null)
-        {
-            var layers = sprite.Layers.ToList();
-            CollectLiveKeys(layers, liveKeys);
+        foreach (var sprite in sprites)
+            CollectLiveKeys(sprite.Layers.ToList(), liveKeys);
 
-            // On structural changes we re-snapshot every frame so the store can
-            // GC keys that no longer appear. With COW this is still cheap — no
-            // pixels are duplicated, just SKImage handles.
-            if (dirty.StructureChanged)
-                SnapshotAllFrames(layers, dirtyFrames);
-            else
-                SnapshotDirtyCells(layers, dirty.DirtyCells, dirtyFrames);
+        // DirtyCells carry only (layer, frame) and are NOT sprite-qualified, so they cannot be attributed
+        // when more than one artboard is present. COW makes a full re-snapshot cheap (only SKImage handles,
+        // no pixel copies), so snapshot every frame of every sprite whenever the structure changed or there
+        // is more than one artboard. The single-sprite incremental path is preserved unchanged.
+        if (dirty.StructureChanged || sprites.Count != 1)
+        {
+            foreach (var sprite in sprites)
+                SnapshotAllFrames(sprite.Layers.ToList(), dirtyFrames);
+        }
+        else
+        {
+            SnapshotDirtyCells(sprites[0].Layers.ToList(), dirty.DirtyCells, dirtyFrames);
         }
 
         string? sceneJson = null;
-        if (dirty.StructureChanged || sprite is null)
+        if (dirty.StructureChanged || sprites.Count == 0)
         {
             var initialImages = new Dictionary<string, SKBitmap>();
-            if (sprite is not null)
+            foreach (var sprite in sprites)
             {
                 foreach (var layer in sprite.Layers)
                 {
@@ -92,8 +97,8 @@ public sealed class UiThreadSnapshotProvider : ISessionSnapshotProvider
         }
 
         FrameSnapshot? thumb = null;
-        if (sprite is not null && dirty.StructureChanged)
-            thumb = TakeThumbnail(sprite);
+        if (sprites.Count > 0 && dirty.StructureChanged)
+            thumb = TakeThumbnail(sprites[0]);
 
         return new SceneSnapshot(
             sceneJson: sceneJson,

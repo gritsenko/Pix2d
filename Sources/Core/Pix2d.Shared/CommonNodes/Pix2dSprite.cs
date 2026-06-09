@@ -178,6 +178,20 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
         targetBitmap.CopyFrom(sprite.Bitmap);
     }
 
+    /// <summary>Accent border drawn around the active artboard so the user can tell which one is edited.</summary>
+    private static readonly SKColor ActiveArtboardHighlightColor = new(0x29, 0xB0, 0xF3);
+
+    protected override void OnDraw(SKCanvas canvas, ViewPort vp)
+    {
+        // Always render the base content (checkerboard / background). Additionally, when this sprite is the
+        // active edit target, draw a thin highlight border. RenderAdorners is false for previews/exports,
+        // so the border never leaks into thumbnails or exported images.
+        base.OnDraw(canvas, vp);
+
+        if (EditMode && vp.Settings.RenderAdorners)
+            DrawBoundingBox(canvas, vp, 2, ActiveArtboardHighlightColor);
+    }
+
     //public override void RenderRecursive(SKCanvas canvas, ViewPort vp)
     //{
     //    _adornerTransform = canvas.TotalMatrix;

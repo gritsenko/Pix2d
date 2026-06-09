@@ -1,10 +1,12 @@
 #nullable enable
 using System.Diagnostics;
 using Pix2d.Abstract.Edit;
+using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
 using Pix2d.InteractiveNodes;
 using Pix2d.Messages;
+using Pix2d.Operations;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Primitives.Edit;
 using SkiaNodes;
@@ -23,6 +25,7 @@ public class EditService : IEditService
     private readonly AppState _appState;
     private ProjectState ProjectState => _appState.CurrentProject;
     private readonly IMessenger _messenger;
+    private readonly IOperationService _operationService;
 
 
     private EditContextType CurrentEditContextType
@@ -47,13 +50,15 @@ public class EditService : IEditService
         ISelectionService selectionService,
         AppState appState,
         IMessenger messenger,
-        SpriteEditor spriteEditor)
+        SpriteEditor spriteEditor,
+        IOperationService operationService)
     {
         _viewPortService = viewPortService;
         _viewPortRefreshService = viewPortRefreshService;
         _selectionService = selectionService;
         _appState = appState;
         _messenger = messenger;
+        _operationService = operationService;
 
         _appState.CurrentProject.FrameEditorNode = new FrameEditorNode() { ReparentMode = NodeReparentMode.Overflow };
 
@@ -62,6 +67,8 @@ public class EditService : IEditService
 
         _messenger.Register<ProjectLoadedMessage>(this, OnProjectLoadedMessage);
         _messenger.Register<NodesSelectedMessage>(this, OnNodesSelected);
+        _messenger.Register<ActivateArtboardRequestedMessage>(this, m => ActivateArtboard(m.Sprite));
+        _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
     }
 
     private void OnNodesSelected(NodesSelectedMessage obj)
@@ -69,11 +76,34 @@ public class EditService : IEditService
         UpdateEditors();
     }
 
+    private void OnOperationInvoked(OperationInvokedMessage msg)
+    {
+        if (msg.OperationType != OperationEventType.Undo && msg.OperationType != OperationEventType.Redo)
+            return;
+
+        // If the active artboard was removed from the scene (e.g. undo of AddArtboard, or deleting a sprite),
+        // fall back to a surviving artboard so the editor / drawing target never dangle on a detached node.
+        var scene = _appState.CurrentProject.SceneNode;
+        if (scene == null)
+            return;
+
+        var current = _appState.CurrentProject.CurrentEditedNode;
+        if (current is Pix2dSprite && scene.Nodes.Contains(current))
+            return;
+
+        var survivor = scene.Nodes.OfType<Pix2dSprite>().FirstOrDefault();
+        if (survivor != null)
+            ActivateArtboard(survivor);
+    }
+
     private void OnProjectLoadedMessage(ProjectLoadedMessage message)
     {
         var scene = message.ActiveScene;
 
-        if (scene.Nodes.FirstOrDefault() is Pix2dSprite sprite)
+        // A scene may now contain several sprites (artboards). Activate the first one as the default
+        // edit target. OfType is robust to a non-sprite node being first in the collection.
+        var sprite = scene.Nodes.OfType<Pix2dSprite>().FirstOrDefault();
+        if (sprite != null)
         {
             RequestEdit([sprite]);
             _viewPortService.ShowAll();
@@ -121,6 +151,46 @@ public class EditService : IEditService
     public void HideNodeEditor()
     {
         FrameEditorNode.IsVisible = false;
+    }
+
+    public void ActivateArtboard(Pix2dSprite sprite)
+    {
+        if (sprite == null || ReferenceEquals(sprite, _appState.CurrentProject.CurrentEditedNode))
+            return;
+
+        // RequestEdit cycles CurrentNodeEditor (null -> SpriteEditor), which also makes the Layers/Timeline
+        // panels reload for the newly activated sprite, and re-points the drawing target via SetTargetNode.
+        RequestEdit([sprite]);
+        _viewPortRefreshService.Refresh();
+    }
+
+    public Pix2dSprite AddArtboard(SKSize size)
+    {
+        var scene = _appState.CurrentProject.SceneNode
+            ?? throw new InvalidOperationException("No active scene to add an artboard to.");
+
+        var siblings = scene.Nodes.OfType<Pix2dSprite>().ToArray();
+
+        var sprite = Pix2dSprite.CreateEmpty(size);
+        sprite.Name = $"Artboard {siblings.Length + 1}";
+
+        // Lay the new artboard to the right of the existing ones, tops aligned, with a small gap.
+        if (siblings.Length > 0)
+        {
+            const float gap = 16f;
+            var right = siblings.Max(s => s.GetBoundingBox().Right);
+            var top = siblings.Min(s => s.GetBoundingBox().Top);
+            sprite.Position = new SKPoint(right + gap, top);
+        }
+
+        // Mutate first, then push the operation for undo/redo (mirrors SpriteEditor.AddEmptyLayer).
+        scene.Nodes.Add(sprite);
+        _operationService.PushOperations(new CreateNodesOperation(new SKNode[] { sprite }));
+
+        ActivateArtboard(sprite);
+        _viewPortService.ShowAll();
+
+        return sprite;
     }
 
     public void RequestEdit(SKNode[] nodes)

@@ -25,7 +25,7 @@ internal class NewSceneFactory(Action<ImportData> importAction) : IImportTarget
         var factory = new NewSceneFactory(importData =>
         {
             scene = GetNewScene(importData.Size);
-            var sprite = (Pix2dSprite)scene.Nodes[0];
+            var sprite = scene.Nodes.OfType<Pix2dSprite>().First();
             var layersData = importData.Layers.ToImmutableList();
 
             for (var i = 0; i < layersData.Count; i++)

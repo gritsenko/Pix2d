@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Tools;
+using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using SkiaNodes;
 
@@ -72,20 +73,22 @@ public abstract class PixelBrushToolBase : BaseTool, IDrawingTool
     protected override void OnPointerMoved(object? sender, PointerActionEventArgs e)
     {
         DrawingService.DrawingLayer.ShowBrushPreview = !e.Pointer.IsTouch;
-
-        //CHECK IF WE STILL ON OLD SPRITE
-        if (_drawingLayerNode != null && !e.Pointer.IsPressed && !_drawingLayerNode.ContainsPoint(e.Pointer.WorldPosition))
-        {
-            var container = SelectionService.GetContainer(e.Pointer.WorldPosition);
-            if (container is IDrawingTarget dt)
-                DrawingService.SetDrawingTarget(dt);
-        }
     }
 
     protected override void OnPointerPressed(object? sender, PointerActionEventArgs e)
     {
+        // Click-to-activate artboard: a press outside the current drawing layer (i.e. on another sprite)
+        // makes that sprite the active edit target. The drawing layer lives on the active sprite, so this
+        // press never starts a stroke on the wrong artboard — the first click focuses, later strokes draw.
+        if (_drawingLayerNode != null
+            && !_drawingLayerNode.ContainsPoint(e.Pointer.WorldPosition)
+            && SelectionService.GetContainer(e.Pointer.WorldPosition) is Pix2dSprite sprite)
+        {
+            Messenger.Send(new ActivateArtboardRequestedMessage(sprite));
+        }
+
         if ((e.KeyModifiers & KeyModifier.Alt) == 0) return;
-        
+
         DrawingService.PickColorByPoint(e.Pointer.WorldPosition);
         e.Handled = true;
     }
