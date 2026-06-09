@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Pix2D is a cross-platform animated sprite / pixel art editor (Windows, Linux, macOS, Android, WebAssembly) built on Avalonia 12 and SkiaSharp. The solution lives entirely under [Sources/](Sources/) and is driven by the `.slnx` solution file [Sources/Pix2d.slnx](Sources/Pix2d.slnx).
 
-The current working branch `avalonia-12` is actively migrating from earlier Avalonia versions — assume Avalonia 12 APIs.
-
 ## Common Commands
 
 Target framework is **.NET 10** (see [Sources/Core/Pix2d.Core/Pix2d.Core.csproj](Sources/Core/Pix2d.Core/Pix2d.Core.csproj)); version is pinned in [Sources/Directory.Build.props](Sources/Directory.Build.props) as `Pix2dVersion`. Ignore the `.NET 7/8` references in `docs/developer_guide.md` and `CONTRIBUTING.md` — they are out of date.
