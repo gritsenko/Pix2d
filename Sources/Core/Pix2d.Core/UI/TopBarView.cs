@@ -58,7 +58,7 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
                                 new AppButton()
                                     .Command(state.SpriteEditCommands.AddArtboard)
                                     .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
-                                    .Label(L("Artboard"))
+                                    .Label(L("Sprite"))
                                     .Content("\xE710")
                                     .ToolTip_Tip(L(state.SpriteEditCommands.AddArtboard.Tooltip)),
                                 new AppButton()

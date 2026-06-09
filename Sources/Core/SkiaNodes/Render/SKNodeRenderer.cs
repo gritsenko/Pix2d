@@ -14,6 +14,20 @@ public class SKNodeRenderer
         _render(node, rc);
     }
 
+    /// <summary>
+    /// Renders <paramref name="node"/> honoring the canvas's CURRENT transform as the base, unlike
+    /// <see cref="Render"/> which resets the matrix to the viewport (world) transform. Use this from inside
+    /// a parent's <c>OnDraw</c> to manually paint a child that the normal recursion skips — e.g. a
+    /// <c>Layer</c> drawing only its active frame. Resetting the matrix there would drop every ancestor
+    /// transform (scene → sprite → layer), so the child would always paint at world origin instead of at
+    /// its owner's position — correct only while that owner sits at (0,0), which breaks for off-origin
+    /// artboards.
+    /// </summary>
+    public static void RenderInCurrentTransform(SKNode node, in RenderContext rc)
+    {
+        _render(node, rc);
+    }
+
     private static void _render(SKNode node, in RenderContext rc)
     {
         rc.Canvas.Save();

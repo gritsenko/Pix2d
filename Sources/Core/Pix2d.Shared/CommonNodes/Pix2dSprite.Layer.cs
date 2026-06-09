@@ -128,13 +128,16 @@ public partial class Pix2dSprite
                 if (prevIndex < 0)
                     prevIndex = FrameCount - 1;
                 if (GetSpriteByFrame(prevIndex) is SKNode prevFrame)
-                    SKNodeRenderer.Render(prevFrame, new RenderContext(canvas, vp, 0.3f));
+                    SKNodeRenderer.RenderInCurrentTransform(prevFrame, new RenderContext(canvas, vp, 0.3f));
             }
 
             if (HiddenFrames.Contains(CurrentFrameIndex)
                 || GetActiveFrameSprite() is not SKNode node)
                 return;
-            SKNodeRenderer.Render(node, new RenderContext(canvas, vp));
+            // Render the active frame preserving the ancestor transform (scene → sprite → layer). Using the
+            // matrix-resetting SKNodeRenderer.Render here would paint the frame at world origin and only look
+            // correct while the sprite sits at (0,0) — off-origin artboards would draw onto the first one.
+            SKNodeRenderer.RenderInCurrentTransform(node, new RenderContext(canvas, vp));
         }
 
         protected override void OnChildrenAdded(IEnumerable<SKNode> newNodes)
