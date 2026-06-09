@@ -133,6 +133,14 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 
     public Pix2dCommand Cancel => GetCommand(() =>
     {
+        // Esc while placing an artboard as an object cancels that gesture (restore position/size, no operation).
+        var artboardObjectEdit = ServiceProvider.GetRequiredService<Pix2d.Services.ArtboardObjectEditService>();
+        if (artboardObjectEdit.IsActive)
+        {
+            artboardObjectEdit.Cancel();
+            return;
+        }
+
         if (IsTransformToolActive())
         {
             DrawingService.CancelCurrentOperation();

@@ -537,7 +537,7 @@ public class SkiaCanvas : Control
         Input.EraserMode = props.IsRightButtonPressed;
 
         Input.SetPointerPressed(ToSKPoint(position), ToModifiers(e.KeyModifiers),
-            e.Pointer.Type == PointerType.Touch);
+            e.Pointer.Type == PointerType.Touch, e.ClickCount);
         InvalidateVisual();
     }
 
