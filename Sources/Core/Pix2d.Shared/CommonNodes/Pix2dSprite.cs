@@ -305,7 +305,11 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
 
         if (Math.Abs(scale - 1f) > 0.1)
         {
-            vp.ShowArea(GetBoundingBox());
+            // Layers paint their frames in the sprite's LOCAL space (SKNodeRenderer.Render keeps only the
+            // node's local transform). Fitting the viewport to the GLOBAL bounding box would shift the
+            // preview by the artboard's scene offset, so off-origin artboards render displaced. Use local
+            // bounds so the preview area matches what actually gets drawn.
+            vp.ShowArea(LocalBounds);
         }
 
         RenderFramePreview(frameIndex, ref targetBitmap, vp, useBackgroundColor);

@@ -282,11 +282,13 @@ public partial class Pix2dSprite
             var vp = new ViewPort((int)(targetBitmap.Width), (int)(targetBitmap.Height));
             vp.Settings.RenderAdorners = false;
 
-            var bbox = GetBoundingBox();
-            bbox.Left = 1;
-            bbox.Top = 1;
-            bbox.Right -= 1;
-            bbox.Bottom -= 1;
+            // SKNodeRenderer.Render applies only the node's LOCAL transform (ancestors are skipped), so the
+            // frame is always painted in its own local space (0,0..Size) regardless of where the owning
+            // artboard sits in the scene. Fitting the viewport to the layer's GLOBAL bounding box would shift
+            // the preview by the artboard's scene offset — making thumbnails of off-origin artboards render
+            // displaced. Use the node's local bounds instead so the preview matches what gets drawn.
+            var bbox = node.LocalBounds;
+            bbox.Inflate(-1, -1);
 
             vp.ShowArea(bbox);
 
