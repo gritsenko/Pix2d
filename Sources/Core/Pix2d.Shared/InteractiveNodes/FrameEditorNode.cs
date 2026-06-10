@@ -352,7 +352,9 @@ public class FrameEditorNode : SKNode
 
     public bool GetAspectLock()
     {
-        return _selection?.LockAspect ?? false || (AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked == true);
+        // Without the parentheses around `??` the snapper (Shift / "Lock axis" toggle) was unreachable
+        // whenever a selection existed, because `??` binds looser than `||`.
+        return (_selection?.LockAspect ?? false) || AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked == true;
     }
     public bool GetAxisLock()
     {
