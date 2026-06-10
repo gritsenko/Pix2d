@@ -2,6 +2,7 @@
 using Pix2d.Abstract;
 using Pix2d.Abstract.Commands;
 using Pix2d.Abstract.Import;
+using Pix2d.Abstract.Import.Flow;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.Primitives;
@@ -85,16 +86,17 @@ public class EditCommands : CommandsListBase
             {
                 var importService = ServiceProvider.GetRequiredService<IImportService>();
                 var fileService = ServiceProvider.GetRequiredService<IFileService>();
+                var importFlowService = ServiceProvider.GetRequiredService<IImportFlowService>();
 
-                var extensions = importService.SupportedExtensions;
-                var files = await fileService.OpenFileWithDialogAsync(extensions.ToArray(), true, "import");
+                // Allow picking a .pix2d so its sprites can be imported into the current scene.
+                var extensions = importService.SupportedExtensions.Append(".pix2d").Distinct().ToArray();
+                var files = (await fileService.OpenFileWithDialogAsync(extensions, true, "import")).ToList();
+                if (files.Count == 0)
+                    return;
 
-                if (AppState.CurrentProject.CurrentNodeEditor is not IImportTarget importTarget)
-                {
-                    throw new ArgumentException("Import target is required");
-                }
+                var result = await importFlowService.RunImportFlowAsync(
+                    new ImportRequest(files, DropWorldPosition: null, FromDrag: false));
 
-                var result = await importService.ImportAsync(files, importTarget);
                 if (!result.Success)
                 {
                     var dialogService = ServiceProvider.GetRequiredService<IDialogService>();

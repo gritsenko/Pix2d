@@ -820,6 +820,18 @@ public class SkiaCanvas : Control
         (float)((ViewPort?.ScaleFactor ?? 1f) * p.Y)
     );
 
+    /// <summary>
+    /// Converts a point in this control's coordinates (e.g. a drop position) to world coordinates,
+    /// using the same scaling the pointer pipeline applies. Returns null before the viewport exists.
+    /// </summary>
+    public SKPoint? GetWorldPosition(Point positionInControl)
+    {
+        if (ViewPort == null)
+            return null;
+
+        return ViewPort.ViewportToWorld(ToSKPoint(positionInControl));
+    }
+
     private static SKMatrix ToSKMatrix(Matrix m)
     {
         var sm = new SKMatrix

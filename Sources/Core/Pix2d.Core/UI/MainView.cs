@@ -1,9 +1,12 @@
+using System.Linq;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media.Transformation;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
+using SkiaSharp;
 using Pix2d.UI.Animation;
 using Pix2d.UI.BrushSettings;
 using Pix2d.UI.Export;
@@ -24,10 +27,9 @@ public partial class MainView : ViewBase<MainViewModel>
         AppState appState,
         IDialogService dialogService,
         IMessenger messenger,
-        IProjectService projectService,
-        IImportService importService,
-        ICommandService commandService)
-        : base(new MainViewModel(appState, dialogService, messenger, projectService, importService, commandService))
+        ICommandService commandService,
+        IImportFlowService importFlowService)
+        : base(new MainViewModel(appState, dialogService, messenger, commandService, importFlowService))
     {
     }
 
@@ -369,7 +371,14 @@ public partial class MainView : ViewBase<MainViewModel>
         if (droppedFiles == null)
             return;
 
-        await ViewModel!.HandleDropAsync(droppedFiles);
+        // Convert the drop point to world coordinates via the canvas (same path the pointer pipeline
+        // uses). Used to decide whether a still image lands in the current sprite or in a new one.
+        SKPoint? dropWorldPosition = null;
+        var canvas = this.GetVisualDescendants().OfType<SkiaCanvas>().FirstOrDefault();
+        if (canvas != null)
+            dropWorldPosition = canvas.GetWorldPosition(e.GetPosition(canvas));
+
+        await ViewModel!.HandleDropAsync(droppedFiles, dropWorldPosition);
     }
 
     private void RepositionFloatingPanels()

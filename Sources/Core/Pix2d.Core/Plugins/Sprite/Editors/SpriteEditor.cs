@@ -670,7 +670,9 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
             {
                 var layerFrameInfo = layerPropertiesInfo.Frames[frameIndex];
                 var bitmap = layerFrameInfo.BitmapProviderFunc?.Invoke() ?? new SKBitmap();
-                layer.InsertFrameFromBitmap(frameIndex, bitmap);
+                // Normalize to the sprite size: InsertFrameFromBitmap throws when sizes differ
+                // (e.g. importing images of mixed size as layers).
+                layer.InsertFrameFromBitmap(frameIndex, SpriteImportApplier.NormalizeBitmap(bitmap, data.Size));
             }
         }
     }

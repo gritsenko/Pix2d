@@ -103,6 +103,8 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         services.AddSingleton<IProjectService, ProjectService>(); // Depends on: AppState, IImportService, IMessenger
         services.AddSingleton<ISessionProjectLoader, ProjectService>(); // Same as above
 
+        services.AddSingleton<IImportFlowService, Services.Import.ImportFlowService>(); // Depends on: AppState, IImportService, IEditService, IProjectService, IDialogService
+
         services.AddSingleton<IToolService, ToolService>(sp => new ToolService(sp.GetRequiredService<IMessenger>(),
             sp.GetRequiredService<AppState>(), t => ActivatorUtilities
                 .CreateInstance(sp, t))); // Depends on: IMessenger, AppState, Func<Type, ITool>

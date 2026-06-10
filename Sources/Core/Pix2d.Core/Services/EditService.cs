@@ -1,6 +1,7 @@
 #nullable enable
 using System.Diagnostics;
 using Pix2d.Abstract.Edit;
+using Pix2d.Abstract.Import;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
@@ -164,6 +165,8 @@ public class EditService : IEditService
         _viewPortRefreshService.Refresh();
     }
 
+    private const float ArtboardGap = 16f;
+
     public Pix2dSprite AddArtboard(SKSize size)
     {
         var scene = _appState.CurrentProject.SceneNode
@@ -175,13 +178,7 @@ public class EditService : IEditService
         sprite.Name = $"Artboard {siblings.Length + 1}";
 
         // Lay the new artboard to the right of the existing ones, tops aligned, with a small gap.
-        if (siblings.Length > 0)
-        {
-            const float gap = 16f;
-            var right = siblings.Max(s => s.GetBoundingBox().Right);
-            var top = siblings.Min(s => s.GetBoundingBox().Top);
-            sprite.Position = new SKPoint(right + gap, top);
-        }
+        sprite.Position = ComputeNextArtboardOrigin(siblings);
 
         // Mutate first, then push the operation for undo/redo (mirrors SpriteEditor.AddEmptyLayer).
         scene.Nodes.Add(sprite);
@@ -191,6 +188,92 @@ public class EditService : IEditService
         _viewPortService.ShowAll();
 
         return sprite;
+    }
+
+    /// <summary>
+    /// Origin for the next artboard: to the right of all existing artboards, tops aligned, with a gap.
+    /// Returns <see cref="SKPoint.Empty"/> when there are no existing artboards.
+    /// </summary>
+    private static SKPoint ComputeNextArtboardOrigin(IReadOnlyList<Pix2dSprite> siblings)
+    {
+        if (siblings.Count == 0)
+            return SKPoint.Empty;
+
+        var right = siblings.Max(s => s.GetBoundingBox().Right);
+        var top = siblings.Min(s => s.GetBoundingBox().Top);
+        return new SKPoint(right + ArtboardGap, top);
+    }
+
+    public IReadOnlyList<Pix2dSprite> AddArtboardsFromImportData(IReadOnlyList<(string Name, ImportData Data)> imports)
+    {
+        var scene = _appState.CurrentProject.SceneNode
+            ?? throw new InvalidOperationException("No active scene to add artboards to.");
+
+        if (imports.Count == 0)
+            return [];
+
+        var siblings = scene.Nodes.OfType<Pix2dSprite>().ToArray();
+        var origin = ComputeNextArtboardOrigin(siblings);
+
+        var created = new List<Pix2dSprite>();
+        var x = origin.X;
+        foreach (var (name, data) in imports)
+        {
+            var sprite = Pix2dSprite.CreateEmpty(new SKSize(data.Size.Width, data.Size.Height));
+            SpriteImportApplier.Apply(sprite, data);
+
+            if (!string.IsNullOrWhiteSpace(name))
+                sprite.Name = name;
+
+            sprite.Position = new SKPoint(x, origin.Y);
+            scene.Nodes.Add(sprite);
+            created.Add(sprite);
+
+            // Tile subsequent sprites to the right of this one.
+            x += sprite.GetBoundingBox().Width + ArtboardGap;
+        }
+
+        // One grouped operation so the whole batch is a single undo step (mirrors AddArtboard).
+        _operationService.PushOperations(new CreateNodesOperation(created));
+
+        ActivateArtboard(created[0]);
+        _viewPortService.ShowAll();
+
+        return created;
+    }
+
+    public IReadOnlyList<Pix2dSprite> InsertSpritesFromScene(SKNode loadedScene)
+    {
+        var scene = _appState.CurrentProject.SceneNode
+            ?? throw new InvalidOperationException("No active scene to insert sprites into.");
+
+        var sprites = loadedScene.Nodes.OfType<Pix2dSprite>().ToArray();
+        if (sprites.Length == 0)
+            return [];
+
+        var siblings = scene.Nodes.OfType<Pix2dSprite>().ToArray();
+        var origin = ComputeNextArtboardOrigin(siblings);
+
+        // Translate the whole imported group by one delta so its left/top edge starts at the computed
+        // origin, preserving the relative layout the sprites had in the source project.
+        var importedLeft = sprites.Min(s => s.GetBoundingBox().Left);
+        var importedTop = sprites.Min(s => s.GetBoundingBox().Top);
+        var dx = origin.X - importedLeft;
+        var dy = origin.Y - importedTop;
+
+        foreach (var sprite in sprites)
+        {
+            sprite.RemoveFromParent();
+            sprite.Position = new SKPoint(sprite.Position.X + dx, sprite.Position.Y + dy);
+            scene.Nodes.Add(sprite);
+        }
+
+        _operationService.PushOperations(new CreateNodesOperation(sprites));
+
+        ActivateArtboard(sprites[0]);
+        _viewPortService.ShowAll();
+
+        return sprites;
     }
 
     public void RequestEdit(SKNode[] nodes)
