@@ -15,7 +15,7 @@ public class BlurPanel : ViewBase
         AvaloniaProperty.Register<BlurPanel, IBrush>(nameof(BackgroundBrush), StaticResources.Brushes.PanelsBackgroundBrush);
 
     public static readonly StyledProperty<IBrush> BorderBrushProperty =
-        AvaloniaProperty.Register<BlurPanel, IBrush>(nameof(BorderBrush), StaticResources.Brushes.PanelsBorderBrush);
+        AvaloniaProperty.Register<BlurPanel, IBrush>(nameof(BorderBrush), StaticResources.Brushes.PanelStrokeBrush);
 
     public static readonly DirectProperty<BlurPanel, Control> ContentProperty
         = AvaloniaProperty.RegisterDirect<BlurPanel, Control>(nameof(Content), o => o.Content, (o, v) => o.Content = v);
@@ -54,6 +54,7 @@ public class BlurPanel : ViewBase
             .Background(this, x => x.BackgroundBrush, BindingMode.OneWay)
             .CornerRadius(StaticResources.Measures.PanelCornerRadius)
             .BorderBrush(this, x => x.BorderBrush, BindingMode.OneWay)
+            .BorderThickness(1)
             .Child(this, x => x.Content, BindingMode.OneWay);
 
     public override void Render(DrawingContext context)

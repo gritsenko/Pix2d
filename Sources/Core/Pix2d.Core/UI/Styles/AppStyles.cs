@@ -11,6 +11,9 @@ public partial class AppStyles : Avalonia.Styling.Styles
     public AppStyles()
     {
         AddRange([
+                // Figma "Caption 9": 9px. The design data marks captions Bold Extended, but
+                // Figma rasterizes that ≈ our regular weight, so Bold here would look heavier
+                // than the mockup (see DesignAssets/figma_vs_app/ink_compare.png).
                 new Style<Button>()
                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
                     .FontSize(9)
@@ -34,6 +37,7 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .Width(44)
                     .Height(44),
 
+                // Figma "Body 14": Zed Mono Extended 14px.
                 new Style<Button>(s => s.Class("btn"))
                     .CornerRadius(10)
                     .FontSize(14)
@@ -41,7 +45,7 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .Height(36),
 
                 new Style<ToggleButton>()
-                    .FontSize(8)
+                    .FontSize(9)
                     .Margin(6)
                     .Width(44)
                     .Height(44)
@@ -57,8 +61,48 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .Height(44),
 
 
-                new Style<TextBlock>(s => s.Is<AppButton>().Class("app-button").Descendant().OfType<TextBlock>())
-                    .FontFamily(StaticResources.Fonts.DefaultTextFontFamily),
+                // Text classes mirroring the Figma type scale; captions and Body 11 sit on the
+                // 60% tier. All weights stay regular: Figma's "Bold Extended" rasterizes like
+                // our regular face, so real Bold would overshoot the mockup.
+                new Style<TextBlock>(s => s.OfType<TextBlock>().Class("caption"))
+                    .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
+                    .FontSize(9)
+                    .FontWeight(FontWeight.Normal)
+                    .LineHeight(10)
+                    .Foreground(StaticResources.Brushes.SecondaryForegroundBrush),
+
+                new Style<TextBlock>(s => s.OfType<TextBlock>().Class("body11"))
+                    .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
+                    .FontSize(11)
+                    .FontWeight(FontWeight.Normal)
+                    .LineHeight(16)
+                    .Foreground(StaticResources.Brushes.SecondaryForegroundBrush),
+
+                new Style<TextBlock>(s => s.OfType<TextBlock>().Class("body14"))
+                    .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
+                    .FontSize(14)
+                    .FontWeight(FontWeight.Normal)
+                    .LineHeight(20)
+                    .Foreground(StaticResources.Brushes.ForegroundBrush),
+
+                new Style<TextBlock>(s => s.OfType<TextBlock>().Class("body16"))
+                    .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
+                    .FontSize(16)
+                    .FontWeight(FontWeight.Normal)
+                    .LineHeight(24)
+                    .Foreground(StaticResources.Brushes.ForegroundBrush),
+
+                // An active toggle brightens its caption to the 90% tier.
+                new Style<TextBlock>(s => s.OfType<ToggleButton>().Class(":checked").Descendant().OfType<TextBlock>().Class("caption"))
+                    .Foreground(StaticResources.Brushes.ForegroundBrush),
+
+                // AppButton / AppToggleButton glyph icons sit on the Figma icon tier: 70% white
+                // when idle, full white once the toggle is checked (matches the toolbar icons).
+                new Style<ContentControl>(s => s.OfType<ContentControl>().Name(AppButton.IconControlName))
+                    .Foreground(StaticResources.Brushes.IconForegroundBrush),
+
+                new Style<ContentControl>(s => s.OfType<ToggleButton>().Class(":checked").Descendant().OfType<ContentControl>().Name(AppButton.IconControlName))
+                    .Foreground(Colors.White.ToBrush().ToImmutable()),
 
 
                 new Style<Border>(s => s.Class("Panel"))

@@ -40,6 +40,7 @@ public class AppToggleButton : AppButton
 
                             new TextBlock().Row(1)
                                 .Name(LabelControlName)
+                                .Classes("caption")
                                 .Text(this, x => x.Label, BindingMode.OneWay)
                                 .HorizontalAlignment(HorizontalAlignment.Center)
                         )

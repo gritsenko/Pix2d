@@ -23,16 +23,17 @@ public partial class ProjectTabsView(
 {
     protected override StyleGroup BuildStyles() =>
     [
+        // Figma "Body 14" tab text tiers: 30% inactive, 60% hover, 90% selected.
         new Style<ListBoxItem>()
             .CornerRadius(6)
             .Padding(10, 2, 4, 3)
             .MinHeight(26)
             .BorderThickness(1)
             .BorderBrush(Brushes.Transparent)
-            .Foreground(Colors.White.WithAlpha(0.55f).ToBrush()),
+            .Foreground(StaticResources.Brushes.MutedForegroundBrush),
 
         new Style<ListBoxItem>(s => s.OfType<ListBoxItem>().Class(":pointerover"))
-            .Foreground(Colors.White.WithAlpha(0.85f).ToBrush()),
+            .Foreground(StaticResources.Brushes.SecondaryForegroundBrush),
         // The Simple theme paints selection/hover on the template's ContentPresenter directly,
         // so plain Background setters on the item are ignored for those states.
         new Style<ContentPresenter>(s =>
@@ -40,7 +41,7 @@ public partial class ProjectTabsView(
             .Background(Colors.White.WithAlpha(0.08f).ToBrush()),
 
         new Style<ListBoxItem>(s => s.OfType<ListBoxItem>().Class(":selected"))
-            .Foreground(Brushes.White)
+            .Foreground(StaticResources.Brushes.ForegroundBrush)
             .BorderBrush(StaticResources.Brushes.SelectedToolBorderBrush),
         new Style<ContentPresenter>(s =>
                 s.OfType<ListBoxItem>().Class(":selected").Template().OfType<ContentPresenter>())
@@ -73,7 +74,7 @@ public partial class ProjectTabsView(
                                         .Children(
                                             new TextBlock()
                                                 .VerticalAlignment(VerticalAlignment.Center)
-                                                .FontSize(12)
+                                                .FontSize(14)
                                                 .Text(itemVm, vm => vm.DisplayTitle),
                                             new Button()
                                                 .Margin(6, 0, 0, 0)
@@ -107,8 +108,9 @@ public partial class ProjectTabsView(
         [ObservableProperty]
         public partial string DisplayTitle { get; set; } = "";
 
+        // Uppercase per the design (Figma textCase: UPPER); Avalonia has no text-transform.
         public void Refresh() =>
-            DisplayTitle = (Project.Title ?? "New project") + (Project.HasUnsavedChanges ? " •" : "");
+            DisplayTitle = (Project.Title ?? "New project").ToUpperInvariant() + (Project.HasUnsavedChanges ? " •" : "");
     }
 
     public sealed partial class State : ObservableObject

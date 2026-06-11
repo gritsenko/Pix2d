@@ -15,12 +15,17 @@ public partial class InfoPanelView(AppState appState, IMessenger messenger, ISel
 {
     protected override StyleGroup? BuildStyles() =>
     [
+        // Figma "Body 11": Zed Mono Extended 11px/16px line, 60% white.
         new Style<TextBlock>()
             .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
+            .FontSize(11)
+            .LineHeight(16)
+            .Foreground(StaticResources.Brushes.SecondaryForegroundBrush)
             .VerticalAlignment(VerticalAlignment.Center),
 
+        // 0.5 on top of the 60% foreground ≈ the design's 30% muted tier.
         new Style<TextBlock>(s=>s.Class("info-label"))
-            .Opacity(0.3)
+            .Opacity(0.5)
     ];
 
     protected override object Build(State state) =>

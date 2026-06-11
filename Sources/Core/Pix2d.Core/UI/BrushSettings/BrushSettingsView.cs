@@ -27,10 +27,9 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
                     .Margin(8, 0)
                     .Children(
                         new TextBlock()
+                            .Classes("body11")
                             .Padding(4, 12, 0, 4)
-                            .FontSize(12)
-                            .Foreground(Colors.White.ToBrush())
-                            .Text(L("Presets")),
+                            .Text(L("Presets").ToUpperInvariant()),
 
                         new ListBox()
                             .Background(Avalonia.Media.Brushes.Transparent)
@@ -70,7 +69,9 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
 
                         new ToggleSwitch()
                             .IsChecked(state, x => x.IsPixelPerfectDrawingModeEnabled, BindingMode.TwoWay)
-                            .Content(L("Pixel perfect mode"))
+                            .FontSize(9)
+                            .Foreground(StaticResources.Brushes.SecondaryForegroundBrush)
+                            .Content(L("Pixel perfect mode").ToUpperInvariant())
                             .Row(5)
                     ));
 

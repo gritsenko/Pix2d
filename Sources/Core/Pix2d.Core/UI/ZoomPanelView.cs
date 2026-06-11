@@ -66,8 +66,9 @@ public partial class ZoomPanelView(IViewPortService viewPortService, IMessenger 
 
         return new Grid()
             .Styles(
+                // Figma "Body 16": Zed Mono Extended 16px.
                 new Style<Button>()
-                    .FontSize(12)
+                    .FontSize(16)
                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
             )
             .Height(56)

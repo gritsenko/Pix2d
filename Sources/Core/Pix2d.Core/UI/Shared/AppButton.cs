@@ -11,11 +11,13 @@ public class AppButton : ViewBase
 
     public static readonly DirectProperty<AppButton, string> LabelProperty
         = AvaloniaProperty.RegisterDirect<AppButton, string>(nameof(Label), o => o.Label, (o, v) => o.Label = v);
-    private string _label = "Label";
+    private string _label = "LABEL";
     public string Label
     {
         get => _label;
-        set => SetAndRaise(LabelProperty, ref _label, value);
+        // The design renders all captions uppercase (Figma textCase: UPPER); Avalonia has no
+        // text-transform, so normalize here.
+        set => SetAndRaise(LabelProperty, ref _label, value?.ToUpperInvariant()!);
     }
 
 
@@ -94,6 +96,7 @@ public class AppButton : ViewBase
 
                                 new TextBlock().Row(1)
                                     .Name(LabelControlName)
+                                    .Classes("caption")
                                     .Text(this, x => x.Label, BindingMode.OneWay)
                                     .HorizontalAlignment(HorizontalAlignment.Center)
                             )

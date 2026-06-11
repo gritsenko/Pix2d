@@ -23,7 +23,7 @@ public partial class ToolGroupContainerView : ViewBase<ToolGroupContainerView.St
             .Margin(6),
 
         new Style<Button>(s => s.Class("toolbar-button"))
-            .Foreground(StaticResources.Brushes.ForegroundBrush)
+            .Foreground(StaticResources.Brushes.IconForegroundBrush)
             .Background(Brushes.Transparent)
             .Padding(new Thickness(0)),
 
@@ -31,7 +31,7 @@ public partial class ToolGroupContainerView : ViewBase<ToolGroupContainerView.St
             .Orientation(Orientation.Vertical),
 
         new Style<Shape>(s => s.Class("toolbar-button").Descendant().Is<Shape>())
-            .Fill(StaticResources.Brushes.ForegroundBrush.ToImmutable()),
+            .Fill(StaticResources.Brushes.IconForegroundBrush.ToImmutable()),
 
         new Style<Shape>(s => s.Class("selected").Descendant().Is<Shape>())
             .Fill(Brushes.White.ToImmutable()),
@@ -42,12 +42,13 @@ public partial class ToolGroupContainerView : ViewBase<ToolGroupContainerView.St
             .BorderBrush(StaticResources.Brushes.SelectedToolBorderBrush)
             .Background(StaticResources.Brushes.SelectedToolBrush),
 
+        // No explicit Foreground here: glyph icons inherit it from the toolbar-button
+        // (idle 70% white) and the .selected button override (full white when active).
         new Style<TextBlock>(x => x.Class("ToolIcon"))
             .Height(26)
             .Width(26)
             .HorizontalAlignment(HorizontalAlignment.Center)
             .VerticalAlignment(VerticalAlignment.Center)
-            .Foreground(StaticResources.Brushes.ForegroundBrush)
             .TextAlignment(TextAlignment.Center)
             .FontSize(22),
 
