@@ -13,7 +13,7 @@ public partial class AppStyles : Avalonia.Styling.Styles
         AddRange([
                 new Style<Button>()
                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
-                    .FontSize(8)
+                    .FontSize(9)
                     .BorderThickness(new Thickness(0, 0)),
 
                 new Style<Button>(s => s.OfType<Button>().Not(x => x.Class(":pointerover")).Not(x => x.Class(":pressed")))

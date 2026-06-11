@@ -1,3 +1,4 @@
+using Avalonia.Controls.Presenters;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Messages;
@@ -7,8 +8,9 @@ using Pix2d.UI.Styles;
 namespace Pix2d.UI;
 
 /// <summary>
-/// Desktop-only strip of open-project tabs (MainView UiGrid Row 0). Each tab shows the project
-/// title plus a dirty marker and a close button; the trailing "+" opens a new blank project tab.
+/// Desktop-only strip of open-project tabs. Occupies its own top row of MainView's RootGrid, so
+/// the canvas starts below it instead of being overlapped. Each tab shows the project title plus
+/// a dirty marker and a close button; the trailing "+" opens a new blank project tab.
 /// </summary>
 public partial class ProjectTabsView(
     AppState appState,
@@ -25,54 +27,78 @@ public partial class ProjectTabsView(
             .CornerRadius(6)
             .Padding(10, 2, 4, 3)
             .MinHeight(26)
+            .BorderThickness(1)
+            .BorderBrush(Brushes.Transparent)
+            .Foreground(Colors.White.WithAlpha(0.55f).ToBrush()),
+
+        new Style<ListBoxItem>(s => s.OfType<ListBoxItem>().Class(":pointerover"))
+            .Foreground(Colors.White.WithAlpha(0.85f).ToBrush()),
+        // The Simple theme paints selection/hover on the template's ContentPresenter directly,
+        // so plain Background setters on the item are ignored for those states.
+        new Style<ContentPresenter>(s =>
+                s.OfType<ListBoxItem>().Class(":pointerover").Template().OfType<ContentPresenter>())
+            .Background(Colors.White.WithAlpha(0.08f).ToBrush()),
+
+        new Style<ListBoxItem>(s => s.OfType<ListBoxItem>().Class(":selected"))
+            .Foreground(Brushes.White)
+            .BorderBrush(StaticResources.Brushes.SelectedToolBorderBrush),
+        new Style<ContentPresenter>(s =>
+                s.OfType<ListBoxItem>().Class(":selected").Template().OfType<ContentPresenter>())
+            .Background(StaticResources.Brushes.SelectedItemBrush)
     ];
 
     protected override object Build(State state) =>
-        new StackPanel()
-            .Orientation(Orientation.Horizontal)
+        new Border()
             .IsVisible(state.ShowTabs)
-            .Margin(12, 8, 12, 0)
-            .Children(
-                new ListBox()
-                    .Background(Brushes.Transparent)
-                    .BorderThickness(0)
-                    .Padding(0)
-                    .ItemsPanel(new StackPanel().Orientation(Orientation.Horizontal).Spacing(4))
-                    .ItemsSource(state.Tabs)
-                    .SelectedIndex(state, x => x.SelectedIndex, BindingMode.TwoWay)
-                    .ItemTemplate(new FuncDataTemplate<TabItemViewModel>((itemVm, _) =>
-                        itemVm == null
-                            ? new TextBlock().Text("")
-                            : new StackPanel()
-                                .Orientation(Orientation.Horizontal)
-                                .Children(
-                                    new TextBlock()
-                                        .VerticalAlignment(VerticalAlignment.Center)
-                                        .FontSize(12)
-                                        .Text(itemVm, vm => vm.DisplayTitle),
-                                    new Button()
-                                        .Margin(6, 0, 0, 0)
-                                        .Padding(4, 0, 4, 1)
-                                        .Background(Brushes.Transparent)
-                                        .BorderThickness(0)
-                                        .FontSize(11)
-                                        .VerticalAlignment(VerticalAlignment.Center)
-                                        .Content("✕")
-                                        .ToolTip_Tip(L("Close tab"))
-                                        .OnClick(_ => state.CloseTab(itemVm))
-                                ))),
-                new Button()
-                    .Margin(6, 0, 0, 0)
-                    .Padding(8, 0, 8, 2)
-                    .CornerRadius(6)
-                    .Background(Brushes.Transparent)
-                    .BorderThickness(0)
-                    .FontSize(16)
-                    .VerticalAlignment(VerticalAlignment.Center)
-                    .Content("+")
-                    .ToolTip_Tip(L("New tab"))
-                    .OnClick(_ => state.NewTab())
-            );
+            .Background(StaticResources.Brushes.PanelsBackgroundBrush)
+            .BorderBrush(StaticResources.Brushes.PanelsBorderBrush)
+            .BorderThickness(0, 0, 0, 1)
+            .Padding(12, 6)
+            .Child(
+                new StackPanel()
+                    .Orientation(Orientation.Horizontal)
+                    .Children(
+                        new ListBox()
+                            .Background(Brushes.Transparent)
+                            .BorderThickness(0)
+                            .Padding(0)
+                            .ItemsPanel(new StackPanel().Orientation(Orientation.Horizontal).Spacing(4))
+                            .ItemsSource(state.Tabs)
+                            .SelectedIndex(state, x => x.SelectedIndex, BindingMode.TwoWay)
+                            .ItemTemplate(new FuncDataTemplate<TabItemViewModel>((itemVm, _) =>
+                                itemVm == null
+                                    ? new TextBlock().Text("")
+                                    : new StackPanel()
+                                        .Orientation(Orientation.Horizontal)
+                                        .Children(
+                                            new TextBlock()
+                                                .VerticalAlignment(VerticalAlignment.Center)
+                                                .FontSize(12)
+                                                .Text(itemVm, vm => vm.DisplayTitle),
+                                            new Button()
+                                                .Margin(6, 0, 0, 0)
+                                                .Padding(4, 0, 4, 1)
+                                                .Background(Brushes.Transparent)
+                                                .BorderThickness(0)
+                                                .FontSize(11)
+                                                .VerticalAlignment(VerticalAlignment.Center)
+                                                .Content("✕")
+                                                .ToolTip_Tip(L("Close tab"))
+                                                .OnClick(_ => state.CloseTab(itemVm))
+                                        ))),
+                        new Button()
+                            .Margin(6, 0, 0, 0)
+                            .Padding(8, 0, 8, 2)
+                            .CornerRadius(6)
+                            .Background(Brushes.Transparent)
+                            .BorderThickness(0)
+                            .FontSize(16)
+                            .Foreground(StaticResources.Brushes.ForegroundBrush)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .Content("+")
+                            .ToolTip_Tip(L("New tab"))
+                            .OnClick(_ => state.NewTab())
+                    ));
 
     public sealed partial class TabItemViewModel(ProjectState project) : ObservableObject
     {

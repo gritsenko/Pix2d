@@ -312,7 +312,13 @@ public class SkiaCanvas : Control
         pivotTransform.TransX *= ViewPort.ScaleFactor;
         pivotTransform.TransY *= ViewPort.ScaleFactor;
 
-        if (OperatingSystem.IsAndroid() && controlOriginInTopLevel.HasValue)
+        // On some platforms the custom draw op receives CurrentTransform without the control's
+        // translation inside the TopLevel: on Android the safe-area inset is missing on the first
+        // frames, and on Windows the compositor hands us an identity transform always. Without a
+        // correction the scene renders at the window origin, which became visible once the project
+        // tabs row pushed the canvas down. Fall back to the cached control origin (kept fresh via
+        // ArrangeCore/LayoutUpdated/SafeAreaChanged) whenever the supplied translation is zero.
+        if (controlOriginInTopLevel.HasValue)
         {
             var fallbackTransX = (float)(controlOriginInTopLevel.Value.X * ViewPort.ScaleFactor);
             var fallbackTransY = (float)(controlOriginInTopLevel.Value.Y * ViewPort.ScaleFactor);
