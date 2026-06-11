@@ -14,6 +14,7 @@ public class PlatformStuffService : IPlatformStuffService
 {
     private readonly IServiceProvider _serviceProvider;
     public PlatformType CurrentPlatform => PlatformType.CrossPlatformDesktop;
+    public bool SupportsMultipleProjects => true;
     public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;
 
     public PlatformStuffService(AppState state, IServiceProvider serviceProvider)

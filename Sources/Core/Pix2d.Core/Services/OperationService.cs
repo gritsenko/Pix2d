@@ -13,11 +13,29 @@ public class OperationService : IOperationService
     public AppState AppState { get; }
     public const int MaxSteps = 100;
 
-    private readonly LimitedSizeStack<IEditOperation> _redoOperations = new(MaxSteps);
+    /// <summary>
+    /// Undo/redo stacks of one open project. Each project (tab) owns a History; switching
+    /// tabs switches the active instance via <see cref="SetActiveHistory"/>.
+    /// </summary>
+    private sealed class History
+    {
+        public readonly LimitedSizeStack<IEditOperation> RedoOperations = new(MaxSteps);
+        public readonly LimitedSizeStack<IEditOperation> UndoOperations = new(MaxSteps) { OnRemoveItem = OnRemoveItemFromHistory };
+        public IEditOperation? CurrentOperation;
+    }
 
-    private readonly LimitedSizeStack<IEditOperation> _undoOperations = new(MaxSteps) { OnRemoveItem = OnRemoveItemFromHistory };
+    private readonly Dictionary<Guid, History> _histories = new();
+    private Guid _activeProjectId;
+    private History _active;
 
-    private IEditOperation? _currentOperation;
+    private LimitedSizeStack<IEditOperation> _redoOperations => _active.RedoOperations;
+    private LimitedSizeStack<IEditOperation> _undoOperations => _active.UndoOperations;
+
+    private IEditOperation? _currentOperation
+    {
+        get => _active.CurrentOperation;
+        set => _active.CurrentOperation = value;
+    }
 
     public bool CanUndo => _undoOperations.Any();
     public int UndoOperationsCount => _undoOperations.Count;
@@ -36,7 +54,49 @@ public class OperationService : IOperationService
         AppState = appState;
         _diskCache = diskCache;
         _toolServiceProvider = toolServiceProvider;
+
+        _activeProjectId = appState.CurrentProject.Id;
+        _active = new History();
+        _histories[_activeProjectId] = _active;
+
         Messenger.Default.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
+    }
+
+    public void SetActiveHistory(Guid projectId)
+    {
+        if (projectId == _activeProjectId)
+            return;
+
+        if (!_histories.TryGetValue(projectId, out var history))
+        {
+            history = new History();
+            _histories[projectId] = history;
+        }
+
+        _activeProjectId = projectId;
+        _active = history;
+    }
+
+    public void RemoveHistory(Guid projectId)
+    {
+        if (!_histories.Remove(projectId, out var history))
+            return;
+
+        foreach (var operation in history.UndoOperations)
+            if (operation is IDisposable d) d.Dispose();
+        foreach (var operation in history.RedoOperations)
+            if (operation is IDisposable d) d.Dispose();
+
+        history.UndoOperations.Clear();
+        history.RedoOperations.Clear();
+        history.CurrentOperation = null;
+
+        // If the active history was removed (shouldn't happen in the normal close flow,
+        // which activates a neighbor first), fall back to a fresh one for safety.
+        if (projectId == _activeProjectId)
+            _active = _histories[_activeProjectId] = new History();
+
+        GC.Collect();
     }
 
     private void UpdateCacheStates()
@@ -242,7 +302,13 @@ public class OperationService : IOperationService
     {
         _undoOperations.Clear();
         _redoOperations.Clear();
-        _diskCache.ClearAll();
+        _currentOperation = null;
+
+        // Evicted payload files are keyed by GUID, so other projects' entries never collide —
+        // but they DO live in the same session folder. Wipe the folder only when this is the
+        // sole history, otherwise we'd destroy evicted operations of the other open tabs.
+        if (_histories.Count <= 1)
+            _diskCache.ClearAll();
 
         GC.Collect();
     }

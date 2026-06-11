@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Pix2d.State;
 
 namespace Pix2d.Abstract.State;
 
@@ -30,4 +31,47 @@ public static class StateExtensions
         state.RemoveWatcher(propName, onStatePropertyChanged);
     }
 
+    /// <summary>
+    /// Watches a property of the CURRENT project, re-binding automatically when
+    /// <see cref="AppState.CurrentProject"/> is replaced (project tab switch). A plain
+    /// CurrentProject.WatchFor(...) binds to the ProjectState instance captured at subscription
+    /// time and silently goes stale after a switch. The callback is also invoked right after a
+    /// re-bind so subscribers resync to the new project's values.
+    /// </summary>
+    public static void WatchForCurrentProject<TValue>(this AppState appState,
+        Expression<Func<ProjectState, TValue>> propertyGetter, Action onStatePropertyChanged)
+    {
+        RebindOnProjectSwitch(appState, p => p, propertyGetter, onStatePropertyChanged);
+    }
+
+    /// <summary>
+    /// Same as <see cref="WatchForCurrentProject{TValue}"/> but for the per-project
+    /// <see cref="ProjectState.ViewPortState"/> sub-state.
+    /// </summary>
+    public static void WatchForCurrentProjectViewPort<TValue>(this AppState appState,
+        Expression<Func<ViewPortState, TValue>> propertyGetter, Action onStatePropertyChanged)
+    {
+        RebindOnProjectSwitch(appState, p => p.ViewPortState, propertyGetter, onStatePropertyChanged);
+    }
+
+    private static void RebindOnProjectSwitch<TState, TValue>(AppState appState,
+        Func<ProjectState, TState> subStateGetter,
+        Expression<Func<TState, TValue>> propertyGetter,
+        Action onStatePropertyChanged) where TState : StateBase
+    {
+        var watched = subStateGetter(appState.CurrentProject);
+        watched.WatchFor(propertyGetter, onStatePropertyChanged);
+
+        appState.WatchFor(x => x.CurrentProject, () =>
+        {
+            var fresh = subStateGetter(appState.CurrentProject);
+            if (ReferenceEquals(fresh, watched))
+                return;
+
+            watched.Unwatch(propertyGetter, onStatePropertyChanged);
+            watched = fresh;
+            watched.WatchFor(propertyGetter, onStatePropertyChanged);
+            onStatePropertyChanged();
+        });
+    }
 }

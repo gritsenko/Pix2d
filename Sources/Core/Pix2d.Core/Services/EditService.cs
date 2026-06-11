@@ -41,7 +41,11 @@ public class EditService : IEditService
         set => ProjectState.CurrentNodeEditor = value;
     }
 
-    private SKNode FrameEditorNode => _appState.CurrentProject.FrameEditorNode!;
+    // Created lazily per project: each tab owns its FrameEditorNode so adorners never
+    // leak across scenes when switching projects.
+    private SKNode FrameEditorNode =>
+        _appState.CurrentProject.FrameEditorNode ??=
+            new FrameEditorNode { ReparentMode = NodeReparentMode.Overflow };
 
     private SpriteEditor SpriteEditor => _spriteEditor ?? throw new InvalidOperationException("SpriteEditor is not initialized");
 
@@ -60,8 +64,6 @@ public class EditService : IEditService
         _appState = appState;
         _messenger = messenger;
         _operationService = operationService;
-
-        _appState.CurrentProject.FrameEditorNode = new FrameEditorNode() { ReparentMode = NodeReparentMode.Overflow };
 
         _spriteEditor = spriteEditor;
 

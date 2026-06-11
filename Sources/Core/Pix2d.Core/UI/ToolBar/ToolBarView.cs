@@ -162,7 +162,7 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
 
             SyncFromAppState();
 
-            _appState.CurrentProject.WatchFor(x => x.CurrentContextType, OnEditContextChanged);
+            _appState.WatchForCurrentProject(x => x.CurrentContextType, OnEditContextChanged);
             _appState.SpriteEditorState.WatchFor(x => x.CurrentColor, SyncFromAppState);
             _appState.SpriteEditorState.WatchFor(x => x.CurrentBrushSettings, SyncFromAppState);
         }

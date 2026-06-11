@@ -146,15 +146,19 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
             _appState.SpriteEditorState.WatchFor(x => x.ShowOnionSkin, SyncFromSpriteEditorState);
             _appState.SpriteEditorState.WatchFor(x => x.FrameRate, SyncFromSpriteEditorState);
 
-            messenger.Register<ProjectLoadedMessage>(this, _ =>
-            {
-                if (_appState.CurrentProject.CurrentEditedNode is Pix2dSprite sprite)
-                {
-                    _appState.SpriteEditorState.ShowOnionSkin = sprite.OnionSkinSettings.IsEnabled;
-                }
+            messenger.Register<ProjectLoadedMessage>(this, _ => SyncFromCurrentProject());
+            // Tab switches change the edited sprite without a fresh load.
+            messenger.Register<ProjectActivatedMessage>(this, _ => SyncFromCurrentProject());
+        }
 
-                SyncFromSpriteEditorState();
-            });
+        private void SyncFromCurrentProject()
+        {
+            if (_appState.CurrentProject.CurrentEditedNode is Pix2dSprite sprite)
+            {
+                _appState.SpriteEditorState.ShowOnionSkin = sprite.OnionSkinSettings.IsEnabled;
+            }
+
+            SyncFromSpriteEditorState();
         }
 
         public ISpriteAnimationCommands SpriteAnimationCommands { get; }

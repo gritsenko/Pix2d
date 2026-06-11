@@ -12,6 +12,12 @@ namespace Pix2d.State;
 
 public class ProjectState : StateBase
 {
+    /// <summary>
+    /// Stable identity of an open project for the lifetime of the process. Keys the per-project
+    /// undo history and any per-project caches; not persisted into .pix2d.
+    /// </summary>
+    public Guid Id { get; } = Guid.NewGuid();
+
     public string? Title => string.IsNullOrWhiteSpace(FileName) ? "New project" : FileName.Replace(".pix2d", "");
     public string? FileName => File?.Title;
     public bool HasUnsavedChanges { get; set; }

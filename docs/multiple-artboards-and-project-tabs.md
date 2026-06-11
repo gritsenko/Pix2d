@@ -4,8 +4,9 @@ Status board for a two-part feature:
 
 - **Part A — multiple sprites (artboards) on one scene** — ✅ implemented (commit on branch
   `feature/multiple-artboards-and-project-tabs`). Needs interactive QA.
-- **Part B — multiple open projects with a desktop tab bar** — ⏳ not started. Full plan below so it can be
-  continued on another machine.
+- **Part B — multiple open projects with a desktop tab bar** — ✅ implemented (all phases B0–B9, see
+  "Part B — implementation notes" below). Desktop + Browser heads build clean; smoke-tested: app boots,
+  session recovery works, the tab strip renders with dirty marker / close / "+" buttons. Needs interactive QA.
 
 Locked product decisions (agreed with the owner):
 - Artboards first, then project tabs (mostly independent).
@@ -80,7 +81,123 @@ packaging project fails to build locally — missing DesktopBridge tooling in th
 
 ---
 
-## Part B — TODO (multiple-project tabs, desktop only)
+## Part B — implementation notes (DONE)
+
+Implemented across these files (deviations from the original plan called out inline):
+
+- **B0** — [ViewPortState.cs](../Sources/Core/Pix2d.Shared/State/ViewPortState.cs): `Zoom` (0 = never framed
+  → fallback `ShowAll()`) and `Pan`. [ProjectState.cs](../Sources/Core/Pix2d.Shared/State/ProjectState.cs):
+  `Guid Id` (keys the per-project undo history). [IPlatformStuffService.cs](../Sources/Core/Pix2d.Shared/Abstract/Services/IPlatformStuffService.cs):
+  `SupportsMultipleProjects` as a **default interface member returning false**, overridden to `true` only in
+  the desktop [PlatformStuffService.cs](../Sources/Core/Pix2d.Core/Services/PlatformStuffService.cs) — Android/Browser
+  services untouched.
+- **B1** — [AppState.cs](../Sources/Core/Pix2d.Shared/State/AppState.cs): observable `ActiveProjectIndex`;
+  `LoadedProjects` stays a plain `List`. New messages: `ProjectActivatedMessage(ProjectState)`,
+  `ProjectsListChangedMessage`.
+- **B2** — [ProjectActivationService.cs](../Sources/Core/Pix2d.Core/Services/Project/ProjectActivationService.cs)
+  (`IProjectActivationService` in Shared). Two entry points: `ActivateProject(target)` for switching between
+  loaded tabs (full sequence: save outgoing Pan/Zoom → stop editor / cancel drawing → drain + MarkAllDirty
+  the autosave tracker → `SetActiveHistory` → set `CurrentProject` → `SetScene` → `RequestEdit` on the
+  target's remembered `CurrentEditedNode` (falls back to first sprite) → restore Pan/Zoom or `ShowAll` →
+  `ProjectActivatedMessage` + refresh), and `BeginNewProjectActivation(newProject)` — the deactivation half
+  only, used by ProjectService before running the regular fresh-load path for a brand-new tab.
+  SpriteEditor / IDrawingService / IProjectChangeTracker are resolved lazily via IServiceProvider.
+- **B3** — [OperationService.cs](../Sources/Core/Pix2d.Core/Services/OperationService.cs): stacks +
+  `_currentOperation` moved into a per-project `History`, `Dictionary<Guid, History>`,
+  `SetActiveHistory(Guid)` / `RemoveHistory(Guid)` on `IOperationService`. **Deviation:** the disk cache did
+  NOT need per-project namespacing — `CachedPayload` keys are GUID-based (`payload_<guid>`), so entries never
+  collide; `Clear()` only skips `ClearAll()` when other histories exist.
+- **B4** — [StateExtensions.cs](../Sources/Core/Pix2d.Shared/Abstract/State/StateExtensions.cs):
+  `WatchForCurrentProject(...)` / `WatchForCurrentProjectViewPort(...)` re-bind on `CurrentProject` change and
+  invoke the callback after a re-bind. Applied at all 11 stale sites (ToolBarView, ArtworkPreviewView,
+  TimeLineView, AdditionalTopBarView, LayersView, BackgroundSelectorView, ViewPortRefreshService ×2,
+  ToolService, SnappingService ×2). Also: TopBarView updates the undo counter and AnimationControlsView
+  re-syncs onion-skin on `ProjectActivatedMessage`.
+- **B5** — [EditService.cs](../Sources/Core/Pix2d.Core/Services/EditService.cs): `FrameEditorNode` created
+  lazily per project (`??=` in the accessor), ctor init removed.
+- **B6** — [ProjectService.cs](../Sources/Core/Pix2d.Core/Services/Project/ProjectService.cs): `OpenFilesAsync`
+  and `CreateNewProjectAsync` branch on `SupportsMultipleProjects && CurrentProject.SceneNode != null` (the
+  startup placeholder has no scene and keeps the replace path, so the first load never leaves a phantom empty
+  tab). Opening a file already open in a tab just activates that tab. `EnsureCurrentProjectIsListed()` runs on
+  every `ProjectLoadedMessage` — this is how the recovery path (which sends the message directly from
+  AutoSaveService) gets its tab. Window title re-applied on `ProjectActivatedMessage`.
+  [FileCommands.cs](../Sources/Core/Pix2d.Shared/Commands/FileCommands.cs): `NewTab` (Ctrl+T), `CloseTab`
+  (Ctrl+W), both no-op unless `SupportsMultipleProjects`.
+- **B7** — [ProjectTabsView.cs](../Sources/Core/Pix2d.Core/UI/ProjectTabsView.cs) in `UiGrid` Row 0 of
+  [MainView.cs](../Sources/Core/Pix2d.Core/UI/MainView.cs). ListBox + `BulkAddObservableCollection` +
+  `SelectedIndex` TwoWay + `_isSyncing`; tab = title + `•` dirty marker + ✕ button; trailing "+" button.
+  Rebuild on `ProjectsListChangedMessage`, selection sync on `ProjectActivatedMessage`, dirty/title refresh on
+  `ProjectLoadedMessage`/`ProjectSavedMessage`/`OperationInvokedMessage`. Hidden (and no subscriptions) when
+  `!SupportsMultipleProjects`.
+- **B8** — `CloseProjectAsync(ProjectState)` on `IProjectService`: dirty → activate + reuse
+  `AskSaveCurrentProject`; remove from list; closing the active tab activates the right/last neighbor;
+  closing the last tab creates a fresh blank 64×64 project; `RemoveHistory(p.Id)` + `SceneNode.Unload()` only
+  AFTER the replacement scene is current.
+- **B9 (superseded)** — the original "active tab only" autosave was replaced by full multi-tab session
+  persistence, see the next section.
+
+### Multi-tab autosave & workspace restore (v2, DONE)
+
+Every open tab is persisted and the whole tab set is restored on launch. Verified end-to-end: a 2-tab
+workspace round-trips through close → relaunch ("recovered workspace with 2 tab(s)" in the log, both
+projects force-committed on close, active index preserved).
+
+- [ProjectChangeTracker.cs](../Sources/Core/Pix2d.Core/Services/AutoSave/ProjectChangeTracker.cs) — dirty
+  cells are bucketed **per project** (`Dictionary<Guid, Bucket>`, attributed to the active project at
+  operation time). A tab switch no longer discards pending changes — the outgoing tab's bucket stays parked
+  until the next tick. `IProjectChangeTracker` gained `Drain(Guid)`, `Reapply(Guid, DirtySet)`,
+  `MarkAllDirty(Guid)`, `GetDirtyProjectIds()`, `Forget(Guid)`.
+- [AutoSaveService.cs](../Sources/Core/Pix2d.Core/Services/AutoSave/AutoSaveService.cs) — one
+  `IncrementalSessionStore` (work folder) **per open project**, keyed by `ProjectState.Id`
+  (`ConcurrentDictionary`); folder name = project id for new tabs, the claimed folder's original id for
+  restored ones. The tick drains every project's bucket and commits each into its own store; a project that
+  has a scene but no store yet is marked all-dirty so it gets fully committed within one tick of appearing
+  (covers freshly opened tabs with zero edits). `ForceSaveSync`/`ForceSaveAsync` flush ALL tabs (commit task
+  owns snapshot disposal, so a timed-out wait can never dispose images under an in-flight commit).
+- `workspace.json` at the sessions root ([WorkspaceManifest.cs](../Sources/Core/Pix2d.Shared/Project/AutoSave/WorkspaceManifest.cs))
+  — ordered tab list (`sid` = session folder, `src` = backing file path) + active index. Rewritten atomically
+  after every successful commit batch and on `ProjectActivatedMessage`/`ProjectsListChangedMessage`.
+  Desktop-gated (`SupportsMultipleProjects`); mobile/browser keep the legacy single-session behavior.
+- Recovery (`TryRecoverAsync`) tries `TryRecoverWorkspaceAsync` first: claims each listed folder (skipping
+  ones locked by another live instance), rebuilds each scene, restores `ProjectState.File` from `src` (via
+  `NetFileSource`, when the file still exists), marks all restored tabs `HasUnsavedChanges`, adds them to
+  `LoadedProjects`, then activates the recorded active tab through `BeginNewProjectActivation` + the regular
+  `ProjectLoadedMessage` pipeline. Falls back to the legacy most-recent-orphan recovery when there is no
+  usable workspace file (migration path).
+- Closing a tab calls `IAutoSaveService.DiscardProjectSessionAsync(projectId)` (new interface member): forgets
+  the tracker bucket and deletes the session folder, so a deliberately closed tab is not resurrected.
+- [Pix2dBootstrapperDI.cs](../Sources/Core/Pix2d.Core/Pix2dBootstrapperDI.cs) `TryLoadStartupDocument`: on
+  desktop, opening the app via a document (double-click in Explorer) now restores the workspace FIRST and
+  opens the document on top as its own tab — this path previously skipped session load (and the autosave
+  loop!) entirely. Mobile keeps the old direct-open behavior.
+
+Known quirks:
+- Restored tabs are always marked dirty (`•`) — the session content may be ahead of the backing file, so the
+  save prompt on close errs on the safe side (same as the legacy single-session recovery).
+- Two app instances share one `workspace.json` — last writer wins; locked session folders are never stolen,
+  so no data is lost, but only one instance's tab set is restored next launch.
+- Per-tab viewport zoom/pan is kept in memory across switches but not persisted across restarts (restored
+  tabs are framed with `ShowAll`).
+- Session folders of crashed runs that are not referenced by `workspace.json` are never garbage-collected
+  (pre-existing behavior).
+
+### Part B interactive QA checklist
+1. "+" button / Ctrl+T → new "New project" tab appears and becomes active; Ctrl+W closes it.
+2. Open 2–3 projects (menu Open / drag-drop / MRU) → each opens in its own tab; switching is instant; each
+   keeps its own scene, zoom/pan, active artboard, layers/timeline content.
+3. Edit in A, switch to B, Undo → rolls back B only; switch back to A → its history intact; undo counter in
+   the top bar matches the active tab.
+4. Dirty tab shows `•`; closing a dirty tab prompts to save; closing the last tab leaves a fresh blank project.
+5. Open the same file twice → second open just activates the existing tab.
+6. Open 2–3 tabs, edit in several, kill the process → relaunch restores ALL tabs with their content, the
+   previously active tab is active again.
+7. Close a tab, exit, relaunch → the closed tab does NOT come back.
+8. Double-click a .pix2d file in Explorer → previous tabs are restored AND the file opens as a new active tab.
+9. Browser/Android heads: no tab strip, single-project replace behavior unchanged.
+
+---
+
+## Part B — original plan (kept for reference)
 
 Incremental, each phase independently testable. File-level steps.
 

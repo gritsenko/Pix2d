@@ -25,5 +25,14 @@ public interface IOperationService
     void Redo();
     void Clear();
 
+    /// <summary>
+    /// Switches the active undo/redo history to the one keyed by <paramref name="projectId"/>,
+    /// creating an empty history on first use. Each open project (tab) owns its own history.
+    /// </summary>
+    void SetActiveHistory(Guid projectId);
 
+    /// <summary>
+    /// Drops the history of a closed project, disposing its operations.
+    /// </summary>
+    void RemoveHistory(Guid projectId);
 }

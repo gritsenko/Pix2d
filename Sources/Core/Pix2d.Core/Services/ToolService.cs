@@ -20,7 +20,7 @@ public class ToolService : IToolService
         _activatorFactoryFunc = activatorFactoryFunc;
         messenger.Register<ProjectLoadedMessage>(this, _ => ActivateDefaultTool());
         _appState.WatchFor(x => x.CurrentProject, ActivateDefaultTool);
-        _appState.CurrentProject.WatchFor(x => x.CurrentContextType, ActivateDefaultTool);
+        _appState.WatchForCurrentProject(x => x.CurrentContextType, ActivateDefaultTool);
         _appState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, OnAnimationStateChanged);
     }
 

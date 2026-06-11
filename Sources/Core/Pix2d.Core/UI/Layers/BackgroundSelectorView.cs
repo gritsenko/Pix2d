@@ -63,7 +63,7 @@ public partial class BackgroundSelectorView(AppState appState, IViewPortRefreshS
             _viewPortRefreshService = viewPortRefreshService;
 
             SyncFromSprite();
-            _appState.CurrentProject.WatchFor(x => x.CurrentEditedNode, SyncFromSprite);
+            _appState.WatchForCurrentProject(x => x.CurrentEditedNode, SyncFromSprite);
         }
 
         partial void OnBackgroundColorChanged(SKColor value)

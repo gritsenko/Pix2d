@@ -133,6 +133,10 @@ public partial class MainView : ViewBase<MainViewModel>
                         .Cols("Auto, *, Auto")
                         .Rows("Auto, Auto, *, Auto, Auto")
                         .Children([
+                            // Desktop-only project tab strip; Row 0 is reserved for it (gated by
+                            // IPlatformStuffService.SupportsMultipleProjects inside the view).
+                            ViewFactory.Create<ProjectTabsView>().Row(0).ColSpan(3),
+
                             ViewFactory.Create<TopBarView>().Ref(out _topBarView).Row(1).ColSpan(3)
                                 .Margin(0, 0, 0, 1),
 

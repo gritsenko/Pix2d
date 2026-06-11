@@ -7,19 +7,29 @@ using Pix2d.State;
 namespace Pix2d.Services.AutoSave;
 
 /// <summary>
-/// Maintains a per-(layer, frame) dirty set fed by <see cref="OperationInvokedMessage"/>.
+/// Maintains a per-(layer, frame) dirty set fed by <see cref="OperationInvokedMessage"/>,
+/// bucketed per open project (tab). Marks are attributed to the project that is active
+/// when the operation lands, so a tab switch never discards pending changes — each
+/// bucket is drained and committed into its own session store by AutoSaveService.
 ///
 /// Threading: <see cref="OperationService"/> publishes the message synchronously on
-/// the UI thread, and <see cref="AutoSaveService"/> calls <see cref="Drain"/> from
+/// the UI thread, and <see cref="AutoSaveService"/> calls the drain methods from
 /// the UI thread too. No locks needed.
 /// </summary>
 public sealed class ProjectChangeTracker : IProjectChangeTracker, IDisposable
 {
+    private sealed class Bucket
+    {
+        public HashSet<(int Layer, int Frame)> DirtyCells = [];
+        public bool StructureChanged;
+
+        public bool IsEmpty => !StructureChanged && DirtyCells.Count == 0;
+    }
+
     private readonly IMessenger _messenger;
     private readonly AppState _appState;
 
-    private HashSet<(int Layer, int Frame)> _dirtyCells = [];
-    private bool _structureChanged;
+    private readonly Dictionary<Guid, Bucket> _buckets = new();
 
     public ProjectChangeTracker(IMessenger messenger, AppState appState)
     {
@@ -28,39 +38,60 @@ public sealed class ProjectChangeTracker : IProjectChangeTracker, IDisposable
         _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
     }
 
-    public bool HasPendingChanges => _structureChanged || _dirtyCells.Count > 0
+    private Bucket GetBucket(Guid projectId)
+    {
+        if (!_buckets.TryGetValue(projectId, out var bucket))
+            _buckets[projectId] = bucket = new Bucket();
+        return bucket;
+    }
+
+    private Bucket CurrentBucket => GetBucket(_appState.CurrentProject.Id);
+
+    public bool HasPendingChanges => _buckets.Values.Any(b => !b.IsEmpty)
                                      || _appState.CurrentProject.HasUnsavedChanges;
 
     public void MarkLayerFrameDirty(int layerIndex, int frameIndex)
     {
         if (layerIndex < 0 || frameIndex < 0) return;
-        _dirtyCells.Add((layerIndex, frameIndex));
+        CurrentBucket.DirtyCells.Add((layerIndex, frameIndex));
     }
 
-    public void MarkStructureDirty() => _structureChanged = true;
+    public void MarkStructureDirty() => CurrentBucket.StructureChanged = true;
 
-    public void MarkAllDirty() => _structureChanged = true;
+    public void MarkAllDirty() => CurrentBucket.StructureChanged = true;
 
-    public DirtySet Drain()
+    public void MarkAllDirty(Guid projectId) => GetBucket(projectId).StructureChanged = true;
+
+    public DirtySet Drain() => Drain(_appState.CurrentProject.Id);
+
+    public DirtySet Drain(Guid projectId)
     {
-        if (!_structureChanged && _dirtyCells.Count == 0)
+        if (!_buckets.TryGetValue(projectId, out var bucket) || bucket.IsEmpty)
             return DirtySet.Empty;
 
         var snapshot = new DirtySet
         {
-            StructureChanged = _structureChanged,
-            DirtyCells = _dirtyCells,
+            StructureChanged = bucket.StructureChanged,
+            DirtyCells = bucket.DirtyCells,
         };
-        _dirtyCells = [];
-        _structureChanged = false;
+        bucket.DirtyCells = [];
+        bucket.StructureChanged = false;
         return snapshot;
     }
 
-    public void Reapply(DirtySet pending)
+    public IReadOnlyList<Guid> GetDirtyProjectIds() =>
+        _buckets.Where(kv => !kv.Value.IsEmpty).Select(kv => kv.Key).ToList();
+
+    public void Reapply(DirtySet pending) => Reapply(_appState.CurrentProject.Id, pending);
+
+    public void Reapply(Guid projectId, DirtySet pending)
     {
-        if (pending.StructureChanged) _structureChanged = true;
-        foreach (var c in pending.DirtyCells) _dirtyCells.Add(c);
+        var bucket = GetBucket(projectId);
+        if (pending.StructureChanged) bucket.StructureChanged = true;
+        foreach (var c in pending.DirtyCells) bucket.DirtyCells.Add(c);
     }
+
+    public void Forget(Guid projectId) => _buckets.Remove(projectId);
 
     private void OnOperationInvoked(OperationInvokedMessage msg)
     {

@@ -143,6 +143,8 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
 
             messenger.Register<OperationInvokedMessage>(this, _ => UpdateUndoSteps());
             messenger.Register<ProjectLoadedMessage>(this, _ => UpdateUndoSteps());
+            // Tab switches swap the whole undo history (per-project stacks).
+            messenger.Register<ProjectActivatedMessage>(this, _ => UpdateUndoSteps());
             _appState.UiState.WatchFor(x => x.ShowExtraTools, SyncFromAppState);
         }
 
