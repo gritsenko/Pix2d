@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using Pix2d.Abstract.Import;
 using Pix2d.CommonNodes;
@@ -20,6 +21,15 @@ public interface IEditService
     /// No-op if it is already active. Used to switch between several artboards on one scene.
     /// </summary>
     void ActivateArtboard(Pix2dSprite sprite);
+
+    /// <summary>
+    /// Pure query (no side effects): returns the artboard whose bounds contain <paramref name="worldPos"/>
+    /// and which is NOT the currently edited one, or <c>null</c>. Always <c>null</c> for single-artboard
+    /// scenes. Used by the touch-input layer to decide whether a one-finger press should defer to a
+    /// "tap activates / drag pans" gesture instead of panning straight away. Distinct from the click-to-
+    /// activate resolver, which sends an activation message as a side effect.
+    /// </summary>
+    Pix2dSprite? GetInactiveArtboardAt(SKPoint worldPos);
 
     /// <summary>
     /// Creates a new empty sprite (artboard) of the given size, places it next to the existing

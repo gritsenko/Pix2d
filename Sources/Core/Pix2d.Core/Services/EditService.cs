@@ -167,6 +167,24 @@ public class EditService : IEditService
         _viewPortRefreshService.Refresh();
     }
 
+    public Pix2dSprite? GetInactiveArtboardAt(SKPoint worldPos)
+    {
+        var project = _appState.CurrentProject;
+        var scene = project?.SceneNode;
+        if (scene == null)
+            return null;
+
+        var sprites = scene.Nodes.OfType<Pix2dSprite>().ToArray();
+        if (sprites.Length <= 1)
+            return null;
+
+        var hit = sprites.FirstOrDefault(s => s.GetBoundingBox().Contains(worldPos));
+        if (hit == null || ReferenceEquals(hit, project!.CurrentEditedNode))
+            return null;
+
+        return hit;
+    }
+
     private const float ArtboardGap = 16f;
 
     public Pix2dSprite AddArtboard(SKSize size)

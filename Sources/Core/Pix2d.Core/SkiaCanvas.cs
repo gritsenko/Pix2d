@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using Avalonia.Controls.Platform;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -9,6 +10,7 @@ using Avalonia.Skia;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Services;
 using Pix2d.UI.Resources;
 using SkiaNodes;
@@ -48,12 +50,20 @@ public class SkiaCanvas : Control
     private bool _isTouchDrawingSuppressed = false;
     private readonly HashSet<int> _activeTouchPointers = [];
     private long _touchSuppressionUntilMs;
+
+    // Single-finger-pan mode only: when a one-finger press lands on a different (inactive) artboard we
+    // can't yet tell whether the user means to activate it (tap) or scroll the canvas (drag). We defer
+    // the decision — pan once movement passes the threshold, otherwise treat the release as a tap and
+    // route it into the normal pipeline so the click-to-activate resolver switches the active sprite.
+    private bool _isPendingTouchPanDecision;
+    private const double TouchPanActivationThresholdPx = 8;
     // TODO: 3-finger gesture doesn't work reliably on Android/Windows - need alternative approach
     //private readonly MultiFingerGestureRecognizer _redoGesture = new() { FingersCount = 3, TapCount = 2, RoutedEventToRaise = RedoGestureEvent };
     private double _oldScale;
     private SKPoint _oldVpPos;
     private readonly IViewPortService _viewPortService = null!;
     private readonly AppState _appState;
+    private IEditService? _editService;
 
     public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
@@ -425,6 +435,20 @@ public class SkiaCanvas : Control
             return;
         }
 
+        if (_isPendingTouchPanDecision)
+        {
+            // Released without crossing the drag threshold → a tap on a different artboard. Replay it as a
+            // press+release into the normal pipeline so the click-to-activate resolver switches the active
+            // sprite (exactly what a stylus/mouse tap would do). No pan was started.
+            _isPendingTouchPanDecision = false;
+            _isPointerPressed = false;
+            var modifiers = ToModifiers(e.KeyModifiers);
+            Input.SetPointerPressed(ToSKPoint(_initialPos), modifiers, true, 1);
+            Input.SetPointerReleased(ToSKPoint(e.GetPosition(this)), modifiers, true);
+            InvalidateVisual();
+            return;
+        }
+
         if (shouldIgnoreSingleTouch)
         {
             _isPointerPressed = false;
@@ -458,6 +482,17 @@ public class SkiaCanvas : Control
     {
         if (e.Pointer.Type != PointerType.Touch)
             return;
+
+        if (_isPendingTouchPanDecision)
+        {
+            // The single-finger gesture was taken over (e.g. a second finger / pinch) before we resolved
+            // tap-vs-pan. Drop it without activating anything or replaying it into the pipeline.
+            _isPendingTouchPanDecision = false;
+            _isPointerPressed = false;
+            _activeTouchPointers.Remove(e.Pointer.Id);
+            TryEndTouchSuppression();
+            return;
+        }
 
         var shouldFinalizeTouchInput = _isPointerPressed
                                        && !_isPinching
@@ -516,6 +551,28 @@ public class SkiaCanvas : Control
         var props = e.GetCurrentPoint(this).Properties;
         var isTouchPan = ShouldUseTouchPan(pointerType);
 
+        // Single-finger-pan ("scroll with one finger") must yield to direct manipulation: scroll only when
+        // the finger is on empty space or the active raster. If it lands on an interactive overlay
+        // (transform/resize/rotate handles, artboard labels, object-edit handles) route the touch into the
+        // normal pipeline so manipulation works as in the other input modes. If it lands on a different
+        // artboard, defer the choice — a tap activates it, a drag pans (resolved in Moved/Released).
+        if (isTouchPan)
+        {
+            var pressWorldPos = GetWorldPosition(_initialPos);
+            if (pressWorldPos.HasValue)
+            {
+                if (IsOverInteractiveOverlay(pressWorldPos.Value))
+                {
+                    isTouchPan = false; // hand the press to the scene's interactive nodes
+                }
+                else if (EditService.GetInactiveArtboardAt(pressWorldPos.Value) != null)
+                {
+                    BeginPendingTouchPanDecision();
+                    return;
+                }
+            }
+        }
+
         if (shouldIgnoreSingleTouch)
         {
             _isPointerPressed = false;
@@ -559,7 +616,26 @@ public class SkiaCanvas : Control
         var props = e.GetCurrentPoint(this).Properties;
         var pos = e.GetPosition(this);
 
-        if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed || ShouldUseTouchPan(pointerType))
+        if (_isPendingTouchPanDecision)
+        {
+            var dx = pos.X - _initialPos.X;
+            var dy = pos.Y - _initialPos.Y;
+            if (Math.Sqrt(dx * dx + dy * dy) < TouchPanActivationThresholdPx)
+                return; // not enough movement yet — still potentially a tap-to-activate
+
+            // Movement crossed the threshold → this is a pan. Re-anchor to the current position so the
+            // canvas doesn't jump by the threshold distance, then fall through to the pan path below.
+            _isPendingTouchPanDecision = false;
+            Input.PanMode = true;
+            _initialPos = pos;
+            if (ViewPort != null)
+                _initialPan = ViewPort.Pan;
+        }
+
+        // Don't hijack into pan while an interactive overlay (transform/resize/rotate handle) has captured
+        // the touch — single-finger-pan must yield to the manipulation the press already landed on.
+        var shouldEnterTouchPan = ShouldUseTouchPan(pointerType) && Input.CapturedPointerBy == null;
+        if ((!AllowTouchDraw && pointerType == PointerType.Touch) || props.IsMiddleButtonPressed || shouldEnterTouchPan)
         {
             Input.PanMode = true;
         }
@@ -707,6 +783,7 @@ public class SkiaCanvas : Control
         return _isPinching
                || _isUndoGestureTracking
                || _isTouchDrawingSuppressed
+               || _isPendingTouchPanDecision
                || _activeTouchPointers.Count > 0
                || _undoGesture.IsTapSequenceInProgress;
     }
@@ -724,6 +801,7 @@ public class SkiaCanvas : Control
         _activeTouchPointers.Clear();
         _touchSuppressionUntilMs = 0;
         _isTouchDrawingSuppressed = false;
+        _isPendingTouchPanDecision = false;
         _isUndoGestureTracking = false;
         _isPointerPressed = false;
         _isPinching = false;
@@ -806,6 +884,8 @@ public class SkiaCanvas : Control
     {
         _isTouchDrawingSuppressed = true;
         _isPointerPressed = false;
+        // A second finger / undo gesture supersedes a pending single-finger tap-vs-pan decision.
+        _isPendingTouchPanDecision = false;
         _serviceProvider.GetRequiredService<IDrawingService>().CancelActiveDrawing();
         Input.CapturedPointerBy = null;
         InvalidateVisual();
@@ -818,6 +898,28 @@ public class SkiaCanvas : Control
 
         if (_activeTouchPointers.Count == 0 && !_isPinching && !IsSuppressionCooldownActive())
             _isTouchDrawingSuppressed = false;
+    }
+
+    private IEditService EditService => _editService ??= _serviceProvider.GetRequiredService<IEditService>();
+
+    /// <summary>
+    /// True when an interactive scene overlay (transform/resize/rotate handles, artboard name labels,
+    /// object-edit handles/backdrop) sits under the given world position. Two interactive nodes report
+    /// <c>ContainsPoint == true</c> everywhere and are NOT manipulation affordances — the always-present
+    /// drawing layer (raster surface) and the scene <see cref="RootNode"/> — so both are excluded. What
+    /// remains are the manipulation overlays a single-finger touch must be allowed to operate even while
+    /// single-finger-pan is on.
+    /// </summary>
+    private static bool IsOverInteractiveOverlay(SKPoint worldPos)
+        => Input.GetInteractives(worldPos).Any(n => n is not IDrawingLayer and not RootNode);
+
+    private void BeginPendingTouchPanDecision()
+    {
+        _isPendingTouchPanDecision = true;
+        _isPointerPressed = true;
+        if (ViewPort != null)
+            _initialPan = ViewPort.Pan;
+        // _initialPos was already set to the press position by the caller.
     }
 
 
