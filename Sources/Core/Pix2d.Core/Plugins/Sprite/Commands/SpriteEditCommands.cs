@@ -133,11 +133,11 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 
     public Pix2dCommand Cancel => GetCommand(() =>
     {
-        // Esc while placing an artboard as an object cancels that gesture (restore position/size, no operation).
+        // Esc inside object-edit mode cancels the active Resize/Crop sub-mode, or exits the whole session.
         var artboardObjectEdit = ServiceProvider.GetRequiredService<Pix2d.Services.ArtboardObjectEditService>();
         if (artboardObjectEdit.IsActive)
         {
-            artboardObjectEdit.Cancel();
+            artboardObjectEdit.OnEscape();
             return;
         }
 

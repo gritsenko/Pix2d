@@ -166,6 +166,11 @@ public partial class MainView : ViewBase<MainViewModel>
                                         .HorizontalAlignment(HorizontalAlignment.Center)
                                         .VerticalAlignment(VerticalAlignment.Top),
 
+                                    // Contextual toolbar for "edit sprite as object" mode; self-hides when inactive.
+                                    ViewFactory.Create<SpriteActionsView>()
+                                        .HorizontalAlignment(HorizontalAlignment.Center)
+                                        .VerticalAlignment(VerticalAlignment.Top),
+
                                     ViewFactory.Create<TopToolUiContainer>().Row(1)
                                         .HorizontalAlignment(HorizontalAlignment.Center)
                                         .VerticalAlignment(VerticalAlignment.Top)

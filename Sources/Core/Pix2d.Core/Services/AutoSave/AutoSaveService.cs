@@ -79,6 +79,10 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
         // on the UI thread; the manifest data is captured there and written on a worker.
         _messenger.Register<ProjectActivatedMessage>(this, _ => RequestWorkspaceManifestUpdate());
         _messenger.Register<ProjectsListChangedMessage>(this, _ => RequestWorkspaceManifestUpdate());
+
+        // A save clears the active tab's dirty flag; persist that to workspace.json immediately so a
+        // crash before the next commit tick doesn't resurrect the just-saved tab as dirty.
+        _messenger.Register<ProjectSavedMessage>(this, _ => RequestWorkspaceManifestUpdate());
     }
 
     public Task StartAsync()
@@ -288,9 +292,12 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
                 var project = new ProjectState
                 {
                     SceneNode = scene,
-                    // The session content may be ahead of the backing file — keep the tab
-                    // marked dirty so closing it prompts to save (same as legacy recovery).
-                    HasUnsavedChanges = true,
+                    // Restore the dirty state the tab had when the workspace was last persisted:
+                    // a tab that was saved (clean) on shutdown comes back clean; one that was ahead
+                    // of its backing file comes back dirty so closing it still prompts to save.
+                    // Old manifests (pre-"dirty" field) default this to true, preserving the legacy
+                    // "everything recovered is dirty" behaviour.
+                    HasUnsavedChanges = tab.HasUnsavedChanges,
                 };
 
                 if (!string.IsNullOrWhiteSpace(tab.SourceProjectPath) && File.Exists(tab.SourceProjectPath))
@@ -549,6 +556,7 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
             {
                 SessionId = store.SessionId,
                 SourceProjectPath = project.File?.Path,
+                HasUnsavedChanges = project.HasUnsavedChanges,
             });
         }
 

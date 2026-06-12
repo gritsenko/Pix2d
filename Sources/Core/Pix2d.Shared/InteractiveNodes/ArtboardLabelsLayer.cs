@@ -29,12 +29,15 @@ public class ArtboardLabelsLayer : SKNode, IViewPortBindable
     private static readonly SKColor InactiveText = new(0xE0, 0xE0, 0xE0);
 
     private readonly Func<IEnumerable<Pix2dSprite>> _spritesProvider;
+    private readonly Action<Pix2dSprite> _activateRequested;
     private readonly Action<Pix2dSprite> _editRequested;
     private ViewPort? _vp;
 
-    public ArtboardLabelsLayer(Func<IEnumerable<Pix2dSprite>> spritesProvider, Action<Pix2dSprite> editRequested)
+    public ArtboardLabelsLayer(Func<IEnumerable<Pix2dSprite>> spritesProvider,
+        Action<Pix2dSprite> activateRequested, Action<Pix2dSprite> editRequested)
     {
         _spritesProvider = spritesProvider;
+        _activateRequested = activateRequested;
         _editRequested = editRequested;
         IsInteractive = true;
         Name = "Artboard labels";
@@ -53,10 +56,12 @@ public class ArtboardLabelsLayer : SKNode, IViewPortBindable
             return;
 
         // Consume any press inside a label so it never starts a stray brush stroke in the empty space
-        // above the artboard; only a double-click enters object-edit mode.
+        // above the artboard. A single click makes the artboard active; a double-click enters object-edit mode.
         eventArgs.Handled = true;
         if (clickCount == 2)
             _editRequested(sprite);
+        else
+            _activateRequested(sprite);
     }
 
     private bool TryGetSpriteAt(SKPoint worldPos, out Pix2dSprite? sprite)
@@ -111,12 +116,13 @@ public class ArtboardLabelsLayer : SKNode, IViewPortBindable
     private static string GetName(Pix2dSprite sprite)
         => string.IsNullOrWhiteSpace(sprite.Name) ? "Artboard" : sprite.Name;
 
-    private IEnumerable<(Pix2dSprite Sprite, SKRect Rect)> EnumerateLabels(ViewPort vp)
+    /// <summary>
+    /// World-space rectangle of a single artboard's name label, at the same fixed on-screen size used for
+    /// drawing. Exposed so the object-edit overlay can place its move handle exactly over the label
+    /// (drag-by-label) without duplicating the layout maths.
+    /// </summary>
+    public static SKRect GetLabelRect(ViewPort vp, Pix2dSprite sprite)
     {
-        var sprites = _spritesProvider();
-        if (sprites == null)
-            yield break;
-
         var fontSize = vp.PixelsToWorld(LabelFontPx);
         var gap = vp.PixelsToWorld(LabelGapPx);
         var padX = vp.PixelsToWorld(LabelPadXPx);
@@ -125,17 +131,22 @@ public class ArtboardLabelsLayer : SKNode, IViewPortBindable
         using var font = new SKFont { Size = fontSize };
         var lineHeight = font.Metrics.Descent - font.Metrics.Ascent;
 
+        var bb = sprite.GetBoundingBox();
+        var textWidth = font.MeasureText(GetName(sprite));
+
+        var height = lineHeight + padY * 2;
+        var bottom = bb.Top - gap;
+        var top = bottom - height;
+        return new SKRect(bb.Left, top, bb.Left + textWidth + padX * 2, bottom);
+    }
+
+    private IEnumerable<(Pix2dSprite Sprite, SKRect Rect)> EnumerateLabels(ViewPort vp)
+    {
+        var sprites = _spritesProvider();
+        if (sprites == null)
+            yield break;
+
         foreach (var sprite in sprites)
-        {
-            var bb = sprite.GetBoundingBox();
-            var textWidth = font.MeasureText(GetName(sprite));
-
-            var height = lineHeight + padY * 2;
-            var bottom = bb.Top - gap;
-            var top = bottom - height;
-            var rect = new SKRect(bb.Left, top, bb.Left + textWidth + padX * 2, bottom);
-
-            yield return (sprite, rect);
-        }
+            yield return (sprite, GetLabelRect(vp, sprite));
     }
 }

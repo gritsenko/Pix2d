@@ -81,6 +81,55 @@ packaging project fails to build locally — missing DesktopBridge tooling in th
 
 ---
 
+## Part A — "edit sprite as object" mode + SpriteActionsView (DONE)
+
+Single-clicking an artboard's name label makes that artboard the active one (`IEditService.ActivateArtboard`,
+same as clicking the artboard body). Double-clicking the label enters **object-edit mode** for that sprite. The mode is a small
+state machine owned by [ArtboardObjectEditService.cs](../Sources/Core/Pix2d.Core/Services/ArtboardObjectEditService.cs)
+with three sub-modes ([ArtboardObjectEditMode.cs](../Sources/Core/Pix2d.Shared/Primitives/ArtboardObjectEditMode.cs)):
+
+- **Move** (default after selection) — the artboard is dragged **only by its name label** (no body drag);
+  the interior is covered by an invisible blocker so a click there can't start a stray brush stroke. A press
+  on the empty space outside the artboard ends the session (same as the toolbar's **Done** button). Each
+  finished label drag commits one undoable `MoveOperation`.
+- **Resize** — frame handles scale the pixel content (nearest-neighbour) to the new size on **Apply**
+  ([ResizeArtboardScaleOperation.cs](../Sources/Core/Pix2d.Core/Plugins/Sprite/Operations/ResizeArtboardScaleOperation.cs),
+  uses `Pix2dSprite.ResizeImage` — the *scaling* path, despite the name).
+- **Crop** — frame handles change the canvas without scaling (trim / extend), committed on **Apply** via the
+  existing `ResizeArtboardOperation` (`Pix2dSprite.Crop`).
+
+Resize/Crop only preview the working frame rect; the sprite pixels are untouched until Apply, so one Ctrl+Z
+reverts the whole gesture. **Cancel** (or Esc) discards the preview and returns to Move; **Esc** from Move
+exits the session. Resize/Crop ignore clicks outside the frame — they are confirmed only from the toolbar.
+
+UI / wiring:
+- [SpriteActionsView.cs](../Sources/Core/Pix2d.Core/UI/SpriteActionsView.cs) — contextual toolbar floating
+  top-center of the canvas, placed in `MainView`'s overlay grid next to `ActionsBarView`. Self-hides when the
+  session is inactive. Move mode shows **Resize / Crop / Set name / Done**; Resize&Crop show the mode title +
+  **Apply / Cancel**. **Set name** opens `IDialogService.ShowInputDialogAsync` and renames the artboard
+  (label updates live; not undoable in v1).
+- View ↔ service is driven by [ArtboardObjectEditStateChangedMessage.cs](../Sources/Core/Pix2d.Shared/Messages/ArtboardObjectEditStateChangedMessage.cs)
+  (raised on begin / mode switch / end).
+- [ArtboardObjectEditorNode.cs](../Sources/Core/Pix2d.Shared/InteractiveNodes/ArtboardObjectEditorNode.cs) —
+  mode-aware overlay: a label-drag thumb positioned over the name label via the new
+  `ArtboardLabelsLayer.GetLabelRect(vp, sprite)` helper (Move only), a body blocker (all modes), and the
+  corner/edge handles + size badge (Resize/Crop only).
+- `ArtboardObjectEditService` now also depends on `IDialogService` (DI comment updated at
+  `Pix2dBootstrapperDI.cs`). Esc routing lives in `SpriteEditCommands.Cancel` → `service.OnEscape()`.
+
+**Interactive QA still needed (object-edit):**
+1. Single-click a label → that artboard becomes active (highlight border + Layers/Timeline follow), no toolbar.
+   Double-click a label → toolbar appears (Resize / Crop / Set name / Done); the artboard highlights.
+2. Move mode: drag the **label** moves the artboard; dragging the body does nothing; clicking outside (or
+   Done) exits; the move is a single undo step.
+3. Resize: drag a corner, Apply → content scales to the new size, anchored at the opposite corner; Undo
+   reverts in one step. Cancel/Esc discards.
+4. Crop: drag handles, Apply → canvas trims/extends with no scaling; kept content stays anchored. Undo reverts.
+5. Set name → dialog renames the artboard; the label updates.
+6. Esc from Resize/Crop returns to Move; Esc from Move exits.
+
+---
+
 ## Part B — implementation notes (DONE)
 
 Implemented across these files (deviations from the original plan called out inline):
@@ -155,15 +204,18 @@ projects force-committed on close, active index preserved).
   (covers freshly opened tabs with zero edits). `ForceSaveSync`/`ForceSaveAsync` flush ALL tabs (commit task
   owns snapshot disposal, so a timed-out wait can never dispose images under an in-flight commit).
 - `workspace.json` at the sessions root ([WorkspaceManifest.cs](../Sources/Core/Pix2d.Shared/Project/AutoSave/WorkspaceManifest.cs))
-  — ordered tab list (`sid` = session folder, `src` = backing file path) + active index. Rewritten atomically
-  after every successful commit batch and on `ProjectActivatedMessage`/`ProjectsListChangedMessage`.
-  Desktop-gated (`SupportsMultipleProjects`); mobile/browser keep the legacy single-session behavior.
+  — ordered tab list (`sid` = session folder, `src` = backing file path, `dirty` = per-tab unsaved-changes
+  flag) + active index. Rewritten atomically after every successful commit batch and on
+  `ProjectActivatedMessage`/`ProjectsListChangedMessage`/`ProjectSavedMessage` (the last so a Ctrl+S clears the
+  persisted dirty flag immediately). Desktop-gated (`SupportsMultipleProjects`); mobile/browser keep the legacy
+  single-session behavior.
 - Recovery (`TryRecoverAsync`) tries `TryRecoverWorkspaceAsync` first: claims each listed folder (skipping
   ones locked by another live instance), rebuilds each scene, restores `ProjectState.File` from `src` (via
-  `NetFileSource`, when the file still exists), marks all restored tabs `HasUnsavedChanges`, adds them to
-  `LoadedProjects`, then activates the recorded active tab through `BeginNewProjectActivation` + the regular
-  `ProjectLoadedMessage` pipeline. Falls back to the legacy most-recent-orphan recovery when there is no
-  usable workspace file (migration path).
+  `NetFileSource`, when the file still exists), restores each tab's `HasUnsavedChanges` from the persisted
+  `dirty` flag (so a tab that was clean on shutdown comes back clean; old manifests without the field default
+  to dirty, preserving legacy behaviour), adds them to `LoadedProjects`, then activates the recorded active tab
+  through `BeginNewProjectActivation` + the regular `ProjectLoadedMessage` pipeline. Falls back to the legacy
+  most-recent-orphan recovery when there is no usable workspace file (migration path).
 - Closing a tab calls `IAutoSaveService.DiscardProjectSessionAsync(projectId)` (new interface member): forgets
   the tracker bucket and deletes the session folder, so a deliberately closed tab is not resurrected.
 - [Pix2dBootstrapperDI.cs](../Sources/Core/Pix2d.Core/Pix2dBootstrapperDI.cs) `TryLoadStartupDocument`: on

@@ -29,4 +29,13 @@ public sealed class WorkspaceTab
 
     /// <summary>Original on-disk project path, when the tab was backed by a file.</summary>
     [JsonProperty("src")] public string? SourceProjectPath { get; set; }
+
+    /// <summary>
+    /// Whether the tab had unsaved changes (session content ahead of its backing file)
+    /// at the moment the manifest was written. Restored verbatim so a tab that was clean
+    /// on shutdown does not come back marked dirty. Defaults to <c>true</c> for
+    /// backwards-compatibility with manifests written before this field existed (the old
+    /// behaviour was to mark every recovered tab dirty).
+    /// </summary>
+    [JsonProperty("dirty")] public bool HasUnsavedChanges { get; set; } = true;
 }

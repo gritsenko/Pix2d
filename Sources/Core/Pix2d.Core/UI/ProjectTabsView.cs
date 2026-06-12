@@ -171,8 +171,17 @@ public partial class ProjectTabsView(
 
         private void SyncSelection()
         {
+            // Recovery sends ProjectLoadedMessage BEFORE ProjectsListChangedMessage, so the first
+            // SyncSelection runs while Tabs is still empty (Rebuild only repopulates on the latter).
+            // Setting an out-of-range index on the ListBox coerces it to -1 and — via the TwoWay
+            // binding — writes -1 back here, leaving the active tab unhighlighted. Skip until the
+            // tab list mirrors the project set; Rebuild() always calls us again once it has.
+            var index = _appState.LoadedProjects.IndexOf(_appState.CurrentProject);
+            if (index < 0 || index >= Tabs.Count)
+                return;
+
             _isSyncing = true;
-            SelectedIndex = _appState.LoadedProjects.IndexOf(_appState.CurrentProject);
+            SelectedIndex = index;
             _isSyncing = false;
         }
 
