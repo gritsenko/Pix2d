@@ -78,7 +78,14 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
         // Tab switches / opens / closes change what workspace.json must describe. Handlers run
         // on the UI thread; the manifest data is captured there and written on a worker.
         _messenger.Register<ProjectActivatedMessage>(this, _ => RequestWorkspaceManifestUpdate());
-        _messenger.Register<ProjectsListChangedMessage>(this, _ => RequestWorkspaceManifestUpdate());
+        _messenger.Register<ProjectsListChangedMessage>(this, _ =>
+        {
+            RequestWorkspaceManifestUpdate();
+            // A freshly opened/created tab has no session store yet, so it is absent from
+            // workspace.json (and has no data on disk) until the first periodic tick — a crash in
+            // that window would lose it. Commit storeless tabs right away.
+            RequestEagerPersistOfNewTabs();
+        });
 
         // A save clears the active tab's dirty flag; persist that to workspace.json immediately so a
         // crash before the next commit tick doesn't resurrect the just-saved tab as dirty.
@@ -585,6 +592,33 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
         }
 
         _ = Task.Run(() => WriteWorkspaceManifestAsync(manifest));
+    }
+
+    /// <summary>
+    /// Runs on the UI thread (messenger handler). Kicks a regular tick when any open project has a
+    /// scene but no session store yet, so a just-opened tab is persisted (its data + a workspace.json
+    /// entry) immediately rather than only on the next periodic tick. The tick itself marks storeless
+    /// projects all-dirty, commits them (creating their store) and rewrites the manifest. Fire-and-forget
+    /// with a bounded lock wait so it still runs if a periodic tick is in flight; the next periodic tick
+    /// is the fallback if it does not.
+    /// </summary>
+    private void RequestEagerPersistOfNewTabs()
+    {
+        if (!_platformStuff.SupportsMultipleProjects) return;
+
+        var hasStorelessTab = false;
+        foreach (var project in _appState.LoadedProjects)
+        {
+            if (project.SceneNode is not null && !_stores.ContainsKey(project.Id))
+            {
+                hasStorelessTab = true;
+                break;
+            }
+        }
+
+        if (!hasStorelessTab) return;
+
+        _ = TickOnceAsync(forceFullSnapshot: false, timeout: TimeSpan.FromSeconds(2));
     }
 
     private async Task WriteWorkspaceManifestAsync(WorkspaceManifest manifest)

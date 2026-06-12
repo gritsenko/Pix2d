@@ -145,4 +145,10 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
         _initialPayload?.RestoreFromDisk(cache, b => b);
         _finalPayload?.RestoreFromDisk(cache, b => b);
     }
+
+    public void ClearDiskCache(IOperationDiskCacheService cache)
+    {
+        _initialPayload?.ClearDiskCache(cache);
+        _finalPayload?.ClearDiskCache(cache);
+    }
 }
