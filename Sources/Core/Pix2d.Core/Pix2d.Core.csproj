@@ -57,10 +57,10 @@
 		<AvaloniaResource Include="Assets\ColorThumb.png" />
 		<AvaloniaResource Include="Assets\essentials.png" />
 		<AvaloniaResource Include="Assets\Fonts\v3\pix2d-icons-v3.ttf" />
+		<!-- Only the regular face is embedded on purpose: with several files of the same
+		     family in the collection, Avalonia's embedded-font matching serves the bold face
+		     even for FontWeight.Normal requests (and the redesign uses regular only). -->
 		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extended.ttf" />
-		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extendedbold.ttf" />
-		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extendedbolditalic.ttf" />
-		<AvaloniaResource Include="Assets\Fonts\v31\zed-mono-extendeditalic.ttf" />
 		<AvaloniaResource Include="Assets\MenuButton.png" />
 		<AvaloniaResource Include="Assets\PRO.png" />
 		<AvaloniaResource Include="Assets\proIcon.png" />

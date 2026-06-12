@@ -133,6 +133,14 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 
     public Pix2dCommand Cancel => GetCommand(() =>
     {
+        // Esc inside object-edit mode cancels the active Resize/Crop sub-mode, or exits the whole session.
+        var artboardObjectEdit = ServiceProvider.GetRequiredService<Pix2d.Services.ArtboardObjectEditService>();
+        if (artboardObjectEdit.IsActive)
+        {
+            artboardObjectEdit.OnEscape();
+            return;
+        }
+
         if (IsTransformToolActive())
         {
             DrawingService.CancelCurrentOperation();
@@ -173,6 +181,14 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 
     public Pix2dCommand AddLayer =>
         GetCommand(() => { SpriteEditor?.AddEmptyLayer(); }, "Add new layer", new CommandShortcut(VirtualKeys.N, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
+
+    public Pix2dCommand AddArtboard =>
+        GetCommand(() =>
+        {
+            // A new artboard inherits the current sprite's size by default.
+            var size = AppState.CurrentProject.CurrentEditedNode?.Size ?? new SKSize(32, 32);
+            ServiceProvider.GetRequiredService<IEditService>().AddArtboard(size);
+        }, "Add new sprite", new CommandShortcut(VirtualKeys.N, KeyModifier.Ctrl | KeyModifier.Alt), EditContextType.Sprite);
 
     public Pix2dCommand DeleteLayer =>
         GetCommand(() => { SpriteEditor?.DeleteLayer(); }, "Delete current layer", new CommandShortcut(VirtualKeys.Delete, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);

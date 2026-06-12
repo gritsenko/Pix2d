@@ -11,7 +11,8 @@ namespace Pix2d.Plugins.Sprite;
 
 //prevent from being trimmed by AOT compiler
 [method: DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(SpritePlugin))]
-public class SpritePlugin(ICommandService commandService, IDrawingService drawingService)
+public class SpritePlugin(ICommandService commandService, IDrawingService drawingService,
+    Pix2d.Services.ArtboardObjectEditService artboardObjectEditService)
     : IPix2dPlugin
 {
 
@@ -22,6 +23,10 @@ public class SpritePlugin(ICommandService commandService, IDrawingService drawin
     {
         commandService.RegisterCommandList(EditCommands);
         commandService.RegisterCommandList(AnimationCommands);
+
+        // Force-construct the artboard overlay / object-edit service so its message subscriptions are live
+        // before the first project loads, and attach the always-on name labels to the current scene.
+        artboardObjectEditService.Initialize();
     }
 
       internal (IEnumerable<SKNode> Nodes, SKColor BackgroundColor) GetDataForCutOrCopy(AppState appState)

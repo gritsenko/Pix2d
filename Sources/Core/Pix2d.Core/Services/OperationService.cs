@@ -13,11 +13,56 @@ public class OperationService : IOperationService
     public AppState AppState { get; }
     public const int MaxSteps = 100;
 
-    private readonly LimitedSizeStack<IEditOperation> _redoOperations = new(MaxSteps);
+    /// <summary>
+    /// Undo/redo stacks of one open project. Each project (tab) owns a History; switching
+    /// tabs switches the active instance via <see cref="SetActiveHistory"/>.
+    /// </summary>
+    private sealed class History
+    {
+        public readonly LimitedSizeStack<IEditOperation> RedoOperations = new(MaxSteps);
+        public readonly LimitedSizeStack<IEditOperation> UndoOperations = new(MaxSteps);
+        public IEditOperation? CurrentOperation;
+    }
 
-    private readonly LimitedSizeStack<IEditOperation> _undoOperations = new(MaxSteps) { OnRemoveItem = OnRemoveItemFromHistory };
+    /// <summary>
+    /// Creates a project history with both stacks wired to drop an operation's disk-cached payload
+    /// when it falls off the bottom (overflow eviction). The deletion is per-operation because the
+    /// cache folder is shared across open tabs — see <see cref="Clear"/>.
+    /// </summary>
+    private History CreateHistory()
+    {
+        var history = new History();
+        history.UndoOperations.OnRemoveItem = DiscardOperation;
+        history.RedoOperations.OnRemoveItem = DiscardOperation;
+        return history;
+    }
 
-    private IEditOperation? _currentOperation;
+    /// <summary>
+    /// Drops an operation that is leaving the history for good: deletes its evicted disk payload
+    /// (if any) and disposes it. Per-operation deletion is what keeps the temp operation cache from
+    /// growing without bound now that <see cref="Clear"/> no longer wipes the whole shared folder
+    /// while more than one project (tab) is open.
+    /// </summary>
+    private void DiscardOperation(IEditOperation? operation)
+    {
+        if (operation is ICacheableOperation cacheable)
+            cacheable.ClearDiskCache(_diskCache);
+        if (operation is IDisposable disposable)
+            disposable.Dispose();
+    }
+
+    private readonly Dictionary<Guid, History> _histories = new();
+    private Guid _activeProjectId;
+    private History _active;
+
+    private LimitedSizeStack<IEditOperation> _redoOperations => _active.RedoOperations;
+    private LimitedSizeStack<IEditOperation> _undoOperations => _active.UndoOperations;
+
+    private IEditOperation? _currentOperation
+    {
+        get => _active.CurrentOperation;
+        set => _active.CurrentOperation = value;
+    }
 
     public bool CanUndo => _undoOperations.Any();
     public int UndoOperationsCount => _undoOperations.Count;
@@ -36,7 +81,50 @@ public class OperationService : IOperationService
         AppState = appState;
         _diskCache = diskCache;
         _toolServiceProvider = toolServiceProvider;
+
+        _activeProjectId = appState.CurrentProject.Id;
+        _active = CreateHistory();
+        _histories[_activeProjectId] = _active;
+
         Messenger.Default.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
+    }
+
+    public void SetActiveHistory(Guid projectId)
+    {
+        if (projectId == _activeProjectId)
+            return;
+
+        if (!_histories.TryGetValue(projectId, out var history))
+        {
+            history = CreateHistory();
+            _histories[projectId] = history;
+        }
+
+        _activeProjectId = projectId;
+        _active = history;
+    }
+
+    public void RemoveHistory(Guid projectId)
+    {
+        if (!_histories.Remove(projectId, out var history))
+            return;
+
+        foreach (var operation in history.UndoOperations)
+            DiscardOperation(operation);
+        foreach (var operation in history.RedoOperations)
+            DiscardOperation(operation);
+        DiscardOperation(history.CurrentOperation);
+
+        history.UndoOperations.Clear();
+        history.RedoOperations.Clear();
+        history.CurrentOperation = null;
+
+        // If the active history was removed (shouldn't happen in the normal close flow,
+        // which activates a neighbor first), fall back to a fresh one for safety.
+        if (projectId == _activeProjectId)
+            _active = _histories[_activeProjectId] = CreateHistory();
+
+        GC.Collect();
     }
 
     private void UpdateCacheStates()
@@ -105,22 +193,8 @@ public class OperationService : IOperationService
     private void ClearRedoOperations()
     {
         foreach (var operation in _redoOperations)
-        {
-            if (operation is ICacheableOperation cacheable)
-            {
-                // we could also explicitely clear the individual file, but it'll be garbage collected / cleared on exit right now, or we can add ClearDiskCache to ICacheableOperation
-                // but let's stick to full clear on close.
-            }
-            if (operation is IDisposable disposable) disposable.Dispose();
-        }
+            DiscardOperation(operation);
         _redoOperations.Clear();
-    }
-
-    //dispose items before remove from history
-    private static void OnRemoveItemFromHistory(IEditOperation? operation)
-    {
-        if (operation is IDisposable dop)
-            dop.Dispose();
     }
 
     //todo: optimize in 2020
@@ -240,10 +314,28 @@ public class OperationService : IOperationService
 
     public void Clear()
     {
-        _undoOperations.Clear();
-        _redoOperations.Clear();
-        _diskCache.ClearAll();
+        // Evicted payload files are keyed by GUID, so other projects' entries never collide —
+        // but they DO live in the same session folder.
+        if (_histories.Count <= 1)
+        {
+            // Sole history: one folder-wide wipe is cheaper than per-operation deletes.
+            _undoOperations.Clear();
+            _redoOperations.Clear();
+            _diskCache.ClearAll();
+        }
+        else
+        {
+            // Other open tabs still own evicted payloads in the same folder, so delete only this
+            // project's files (ClearAll would destroy theirs), then drop the in-memory entries.
+            foreach (var operation in _undoOperations)
+                DiscardOperation(operation);
+            foreach (var operation in _redoOperations)
+                DiscardOperation(operation);
+            _undoOperations.Clear();
+            _redoOperations.Clear();
+        }
 
+        _currentOperation = null;
         GC.Collect();
     }
 

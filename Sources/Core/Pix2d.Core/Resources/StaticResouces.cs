@@ -9,9 +9,17 @@ public static class StaticResources
 {
     public static class Colors
     {
-        public static Color ForegroundColor { get; } = "#ffffff".ToColor().WithAlpha(0.7f);
+        // Text tiers from the Figma redesign: 90% primary, 60% secondary, 30% muted.
+        public static Color ForegroundColor { get; } = "#ffffff".ToColor().WithAlpha(0.9f);
+        public static Color SecondaryForegroundColor { get; } = "#ffffff".ToColor().WithAlpha(0.6f);
+        public static Color MutedForegroundColor { get; } = "#ffffff".ToColor().WithAlpha(0.3f);
+        // Toolbar/button glyphs sit on their own tier in the Figma redesign: idle icons are
+        // white @ 70% (Vector fo=0.7), brightening to full white only when the tool/toggle is active.
+        public static Color IconForegroundColor { get; } = "#ffffff".ToColor().WithAlpha(0.7f);
         public static Color SceneBackgroundColor { get; set; } = "#1C1C1E".ToColor();
         public static Color PanelsBorderColor { get; } = "#2C2C2E".ToColor();
+        // Figma redesign: blur-panel "Base" frames have a 1px white @ 7% outline.
+        public static Color PanelStrokeColor { get; } = "#FFFFFF".ToColor().WithAlpha(0.07f);
         public static Color PanelsBackgroundColor { get; } = "#060608".ToColor().WithAlpha(0.95f);
         public static Color MainBackgroundColor { get; } = "#2d2d2f".ToColor();
         public static Color MainMenuBackgroundColor { get; } = "#1C1C1E".ToColor();
@@ -46,8 +54,12 @@ public static class StaticResources
 
 
         public static Brush ForegroundBrush { get; } = Colors.ForegroundColor.ToBrush();
+        public static Brush SecondaryForegroundBrush { get; } = Colors.SecondaryForegroundColor.ToBrush();
+        public static Brush MutedForegroundBrush { get; } = Colors.MutedForegroundColor.ToBrush();
+        public static Brush IconForegroundBrush { get; } = Colors.IconForegroundColor.ToBrush();
         public static Brush PanelsBackgroundBrush { get; } = Colors.PanelsBackgroundColor.ToBrush();
         public static Brush PanelsBorderBrush { get; } = Colors.PanelsBorderColor.ToBrush();
+        public static Brush PanelStrokeBrush { get; } = Colors.PanelStrokeColor.ToBrush();
         public static Brush MainBackgroundBrush { get; } = Colors.MainBackgroundColor.ToBrush();
         public static IImmutableBrush MainMenuBackgroundBrush { get; } = Colors.MainMenuBackgroundColor.ToBrush().ToImmutable();
         public static Brush SelectedItemBrush { get; } = Colors.SelectedItemColor.ToBrush();

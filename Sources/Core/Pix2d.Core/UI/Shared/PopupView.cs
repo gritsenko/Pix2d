@@ -81,12 +81,14 @@ public class PopupView(AppState appState, IMessenger messenger) : ViewBase
     public static readonly DirectProperty<PopupView, string> HeaderProperty
         = AvaloniaProperty.RegisterDirect<PopupView, string>(nameof(Header), o => o.Header, (o, v) => o.Header = v);
 
-    private string _header = "Header";
+    private string _header = "HEADER";
 
     public string Header
     {
         get => _header;
-        set => SetAndRaise(HeaderProperty, ref _header, value);
+        // The design renders all captions uppercase (Figma textCase: UPPER); Avalonia has no
+        // text-transform, so normalize here.
+        set => SetAndRaise(HeaderProperty, ref _header, value?.ToUpperInvariant()!);
     }
 
     /// <summary>
@@ -167,10 +169,9 @@ public class PopupView(AppState appState, IMessenger messenger) : ViewBase
                             .IsVisible(this, x => x.ShowHeader, BindingMode.OneWay)
                             .Children(
                                 new TextBlock() { IsHitTestVisible = false }
+                                    .Classes("body11")
                                     .Margin(8, 0, 0, 0)
                                     .VerticalAlignment(VerticalAlignment.Center)
-                                    .FontSize(16)
-                                    .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
                                     .Text(this, x => x.Header, BindingMode.OneWay),
                                 new ToggleButton().Col(1) // pin button
                                     .Classes("small-button")

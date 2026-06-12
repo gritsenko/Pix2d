@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Pix2d.Abstract.Import;
 using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.CommonNodes;
@@ -25,26 +24,8 @@ internal class NewSceneFactory(Action<ImportData> importAction) : IImportTarget
         var factory = new NewSceneFactory(importData =>
         {
             scene = GetNewScene(importData.Size);
-            var sprite = (Pix2dSprite)scene.Nodes[0];
-            var layersData = importData.Layers.ToImmutableList();
-
-            for (var i = 0; i < layersData.Count; i++)
-            {
-                var layerPropertiesInfo = layersData[i];
-                var layer = i == 0 
-                    ? sprite.Layers.First() //we always have first layer
-                    : sprite.AddLayer();
-
-                if (importData.ReplaceFrames)
-                    layer.DeleteFrame(0);
-
-                for (var frameIndex = 0; frameIndex < layerPropertiesInfo.Frames.Count; frameIndex++)
-                {
-                    var bitmap = layerPropertiesInfo.Frames[frameIndex].BitmapProviderFunc?.Invoke();
-                    if (bitmap != null)
-                        layer.InsertFrameFromBitmap(frameIndex, bitmap);
-                }
-            }
+            var sprite = scene.Nodes.OfType<Pix2dSprite>().First();
+            SpriteImportApplier.Apply(sprite, importData);
         });
 
         await importService.ImportAsync(files, factory);

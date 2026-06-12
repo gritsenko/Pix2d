@@ -39,8 +39,14 @@ public interface IAutoSaveService
     void ForceSaveSync(TimeSpan timeout);
 
     /// <summary>
-    /// Tries to recover the most recent orphaned session left over from a previous crash.
-    /// Returns true on success.
+    /// Tries to recover the previous run's workspace (all open tabs, multi-project platforms)
+    /// or, failing that, the most recent orphaned session. Returns true on success.
     /// </summary>
     Task<bool> TryRecoverAsync();
+
+    /// <summary>
+    /// Drops the per-project session store of a deliberately closed tab (deletes its
+    /// work folder) so the tab is not restored on the next launch.
+    /// </summary>
+    Task DiscardProjectSessionAsync(Guid projectId);
 }

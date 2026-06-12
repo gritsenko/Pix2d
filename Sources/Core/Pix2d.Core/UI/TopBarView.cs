@@ -56,6 +56,12 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
                                     .Content("\xe90f")
                                     .ToolTip_Tip(L(state.SpriteEditCommands.Clear.Tooltip)),
                                 new AppButton()
+                                    .Command(state.SpriteEditCommands.AddArtboard)
+                                    .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
+                                    .Label(L("Sprite"))
+                                    .Content("\xE710")
+                                    .ToolTip_Tip(L(state.SpriteEditCommands.AddArtboard.Tooltip)),
+                                new AppButton()
                                     .Name("export-button")
                                     .Label(L("Export"))
                                     .Command(state.ViewCommands.ShowExportDialogCommand)
@@ -137,6 +143,8 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
 
             messenger.Register<OperationInvokedMessage>(this, _ => UpdateUndoSteps());
             messenger.Register<ProjectLoadedMessage>(this, _ => UpdateUndoSteps());
+            // Tab switches swap the whole undo history (per-project stacks).
+            messenger.Register<ProjectActivatedMessage>(this, _ => UpdateUndoSteps());
             _appState.UiState.WatchFor(x => x.ShowExtraTools, SyncFromAppState);
         }
 

@@ -26,8 +26,10 @@ public class SnappingService : ISnappingService
         AppState = appState;
 
         Messenger.Register<ProjectLoadedMessage>(this, OnProjectLoaded);
-        AppState.CurrentProject.ViewPortState.WatchFor(x => x.ShowGrid, UpdateContainersGrids);
-        AppState.CurrentProject.ViewPortState.WatchFor(x => x.GridSpacing, UpdateContainersGrids);
+        // Re-binding watchers: a project switch (tab) re-applies the new project's grid without
+        // zeroing it — only a fresh load (ProjectLoadedMessage) resets ShowGrid.
+        AppState.WatchForCurrentProjectViewPort(x => x.ShowGrid, UpdateContainersGrids);
+        AppState.WatchForCurrentProjectViewPort(x => x.GridSpacing, UpdateContainersGrids);
     }
 
     private void OnProjectLoaded(ProjectLoadedMessage obj)

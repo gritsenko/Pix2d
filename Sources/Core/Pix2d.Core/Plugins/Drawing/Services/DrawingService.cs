@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Tools;
+using Pix2d.CommonNodes;
 using Pix2d.Messages;
 using Pix2d.Plugins.Drawing.Brushes;
 using Pix2d.Plugins.Drawing.Nodes;
@@ -65,6 +66,7 @@ public class DrawingService : IDrawingService
         {
             AspectSnapper = snappingService,
             ActiveToolKeyProvider = () => _appState.ToolsState.CurrentToolKey,
+            ArtboardActivationResolver = TryActivateArtboardUnderPointer,
         });
 
         messenger.Register<ProjectCloseMessage>(this, OnProjectClose);
@@ -218,6 +220,32 @@ public class DrawingService : IDrawingService
     {
         var sprite = _appState.CurrentProject?.CurrentEditedNode as IDrawingTarget;
         return sprite;
+    }
+
+    /// <summary>
+    /// Click-to-activate gate for multi-artboard scenes (wired into <see cref="DrawingLayerNode.ArtboardActivationResolver"/>).
+    /// When a pointer press lands on an artboard other than the one currently edited, switch the active
+    /// sprite to it and report the press as consumed so no stroke starts on the outgoing target. A press
+    /// on the active artboard — or on empty space, so off-canvas strokes still work — draws normally.
+    /// Single-artboard scenes never switch.
+    /// </summary>
+    private bool TryActivateArtboardUnderPointer(SKPoint worldPos)
+    {
+        var project = _appState.CurrentProject;
+        var scene = project?.SceneNode;
+        if (scene == null)
+            return false;
+
+        var sprites = scene.Nodes.OfType<Pix2dSprite>().ToArray();
+        if (sprites.Length <= 1)
+            return false;
+
+        var spriteUnderPointer = sprites.FirstOrDefault(s => s.GetBoundingBox().Contains(worldPos));
+        if (spriteUnderPointer == null || ReferenceEquals(spriteUnderPointer, project!.CurrentEditedNode))
+            return false;
+
+        _messenger.Send(new ActivateArtboardRequestedMessage(spriteUnderPointer));
+        return true;
     }
 
     public void SetDrawingMode(bool active)

@@ -21,7 +21,9 @@ public class FrameEditorNode : SKNode
     public event EventHandler? SelectionEditCanceled;
 
     private readonly MoveThumbNode _moveThumb;
-    private readonly ResizeThumbSingleNode[] _sizeThumb = new ResizeThumbSingleNode[4];
+    // 0-3: corner thumbs (resize two dimensions). 4-7: edge thumbs (resize a single dimension).
+    private readonly ResizeThumbSingleNode[] _sizeThumb = new ResizeThumbSingleNode[8];
+    private readonly FrameInfoBadgeNode _infoBadge;
     private NodesSelection? _selection;
     private SKPoint _initialPos;
     private SKSize _initialSize;
@@ -100,34 +102,29 @@ public class FrameEditorNode : SKNode
         _sizeThumb[1] = new RightBottomResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
         _sizeThumb[2] = new RightTopResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
         _sizeThumb[3] = new LeftBottomResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
+        _sizeThumb[4] = new TopResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
+        _sizeThumb[5] = new BottomResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
+        _sizeThumb[6] = new LeftResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
+        _sizeThumb[7] = new RightResizeThumbSingleNode() { SnapToPixels = true, AspectLockProviderFunc = GetAspectLock };
 
         _rotateThumb = new RotateThumbNode() { SnapToPixels = false, AngleLockProviderFunc = GetAngleLock };
 
         _highlightNode = new LineHighlightNode() { IsVisible = false };
+
+        _infoBadge = new FrameInfoBadgeNode { InfoProvider = GetFrameInfo };
 
         _moveThumb.DragStarted += MoveThumb_DragStarted;
         _moveThumb.DragDelta += Thumb_DragDelta;
         _moveThumb.DragComplete += ThumbOnDragComplete;
         _moveThumb.PointerReleased += ThumbOnPointerReleased;
 
-        _sizeThumb[0].DragDelta += Thumb_DragDelta;
-        _sizeThumb[1].DragDelta += Thumb_DragDelta;
-        _sizeThumb[2].DragDelta += Thumb_DragDelta;
-        _sizeThumb[3].DragDelta += Thumb_DragDelta;
-
-        _sizeThumb[0].DragStarted += SizeThumb_DragStarted;
-        _sizeThumb[1].DragStarted += SizeThumb_DragStarted;
-        _sizeThumb[2].DragStarted += SizeThumb_DragStarted;
-        _sizeThumb[3].DragStarted += SizeThumb_DragStarted;
-
-        _sizeThumb[0].DragComplete += ThumbOnDragComplete;
-        _sizeThumb[1].DragComplete += ThumbOnDragComplete;
-        _sizeThumb[2].DragComplete += ThumbOnDragComplete;
-        _sizeThumb[3].DragComplete += ThumbOnDragComplete;
-        _sizeThumb[0].PointerReleased += ThumbOnPointerReleased;
-        _sizeThumb[1].PointerReleased += ThumbOnPointerReleased;
-        _sizeThumb[2].PointerReleased += ThumbOnPointerReleased;
-        _sizeThumb[3].PointerReleased += ThumbOnPointerReleased;
+        foreach (var sizeThumb in _sizeThumb)
+        {
+            sizeThumb.DragStarted += SizeThumb_DragStarted;
+            sizeThumb.DragDelta += Thumb_DragDelta;
+            sizeThumb.DragComplete += ThumbOnDragComplete;
+            sizeThumb.PointerReleased += ThumbOnPointerReleased;
+        }
 
         _rotateThumb.DragStarted += RotateThumb_DragStarted;
         _rotateThumb.DragDelta += Thumb_DragDelta;
@@ -136,11 +133,10 @@ public class FrameEditorNode : SKNode
 
         Nodes.Add(_highlightNode);
         Nodes.Add(_moveThumb);
-        Nodes.Add(_sizeThumb[0]);
-        Nodes.Add(_sizeThumb[1]);
-        Nodes.Add(_sizeThumb[2]);
-        Nodes.Add(_sizeThumb[3]);
+        foreach (var sizeThumb in _sizeThumb)
+            Nodes.Add(sizeThumb);
         Nodes.Add(_rotateThumb);
+        Nodes.Add(_infoBadge);
 
         UpdateThumbs();
     }
@@ -298,6 +294,29 @@ public class FrameEditorNode : SKNode
 
         _moveThumb.ContourOnly = _contourOnly;
         _moveThumb.IsInteractive = true;
+
+        // The info badge floats under the frame for every edit mode — it just reads position/size/rotation.
+        _infoBadge.IsVisible = this.IsVisible;
+    }
+
+    /// <summary>
+    /// Live values for the floating <see cref="FrameInfoBadgeNode"/>. The frame node lives in scene/world
+    /// space (parentless, built from the selection's world bounds), so its bounding box and transformed
+    /// origin are already in the same coordinates the badge paints under. Returns null when there is nothing
+    /// to show so the badge stays hidden.
+    /// </summary>
+    private FrameInfoBadgeNode.FrameInfo? GetFrameInfo()
+    {
+        var frame = _selection?.Frame;
+        if (frame == null || !this.IsVisible)
+            return null;
+
+        var transform = frame.GetGlobalTransform();
+        return new FrameInfoBadgeNode.FrameInfo(
+            frame.GetBoundingBox(),
+            transform.MapPoint(SKPoint.Empty),
+            frame.Size,
+            frame.Rotation);
     }
 
     private void ResetIsChanged()
@@ -333,7 +352,9 @@ public class FrameEditorNode : SKNode
 
     public bool GetAspectLock()
     {
-        return _selection?.LockAspect ?? false || (AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked == true);
+        // Without the parentheses around `??` the snapper (Shift / "Lock axis" toggle) was unreachable
+        // whenever a selection existed, because `??` binds looser than `||`.
+        return (_selection?.LockAspect ?? false) || AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked == true;
     }
     public bool GetAxisLock()
     {

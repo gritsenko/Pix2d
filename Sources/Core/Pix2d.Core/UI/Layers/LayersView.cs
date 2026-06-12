@@ -83,7 +83,7 @@ public partial class LayersView : ViewBase<LayersView.State>
             _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
             _messenger.Register<SelectedFrameChangedMessage>(this, OnAnimationFrameChanged);
 
-            _appState.CurrentProject.WatchFor(x => x.CurrentNodeEditor, () => OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor));
+            _appState.WatchForCurrentProject(x => x.CurrentNodeEditor, () => OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor));
 
             Layers.CollectionChanged += LayersCollectionChanged;
             OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor);

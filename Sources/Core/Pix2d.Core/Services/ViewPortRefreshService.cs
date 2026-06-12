@@ -21,8 +21,8 @@ public class ViewPortRefreshService : IViewPortRefreshService
         _messenger.Register<ProjectLoadedMessage>(this, m => Refresh());
         _messenger.Register<OperationInvokedMessage>(this, m => Refresh());
 
-        _appState.CurrentProject.ViewPortState.WatchFor(x => x.ShowGrid, Refresh);
-        _appState.CurrentProject.ViewPortState.WatchFor(x => x.GridSpacing, Refresh);
+        _appState.WatchForCurrentProjectViewPort(x => x.ShowGrid, Refresh);
+        _appState.WatchForCurrentProjectViewPort(x => x.GridSpacing, Refresh);
     }
 
 

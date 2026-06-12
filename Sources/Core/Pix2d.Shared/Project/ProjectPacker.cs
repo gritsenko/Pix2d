@@ -31,25 +31,26 @@ public class ProjectPacker
             await using (var entryStream = zip.CreateEntry(key, CompressionLevel.NoCompression).Open())
                 bitmap.Encode(entryStream, SKEncodedImageFormat.Png, 100);
         
-        if (scene.Nodes.FirstOrDefault() is Pix2dSprite sprite)
+        // Composite thumbnail: render every artboard at its scene position into one preview, so a project
+        // with several artboards is recognisable in the file browser / recent list (not just the first one).
+        var sprites = scene.Nodes.OfType<Pix2dSprite>().ToList();
+        if (sprites.Count > 0)
         {
-            var preview = GetPreview(sprite);
+            using var preview = GetCompositePreview(sprites);
             await using var previewStream = zip.CreateEntry("__project_thumbnail.jpg", CompressionLevel.NoCompression).Open();
             preview.Encode(previewStream, SKEncodedImageFormat.Jpeg, 75);
         }
     }
 
-    private static SKBitmap GetPreview(Pix2dSprite sprite)
+    private static SKBitmap GetCompositePreview(IReadOnlyList<Pix2dSprite> sprites)
     {
-        var size = sprite.Size;
         const float previewSize = 128;
-        var scale = size.GetAspect() > 1 ? previewSize / size.Width : previewSize / size.Height;
-        var bitmapSize = new SKSize(size.Width * scale, size.Height * scale);
-        var bitmap = new SKBitmap((int)bitmapSize.Width, (int)bitmapSize.Height, Pix2DAppSettings.ColorType,
-            SKAlphaType.Premul);
-        sprite.RenderFramePreview(sprite.CurrentFrameIndex, ref bitmap, scale);
-
-        return bitmap;
+        var bounds = sprites.GetBounds();
+        var longest = Math.Max(bounds.Width, bounds.Height);
+        var scale = longest > 0 ? previewSize / longest : 1f;
+        // RenderToBitmap frames the union of all sprite bounds with RenderAdorners off, so the active-artboard
+        // highlight border and grid never leak into the saved thumbnail.
+        return sprites.RenderToBitmap(SKColor.Empty, scale);
     }
 
     public static async Task WriteProjectAsync(IWriteDestinationFolder folder, SKNode scene)

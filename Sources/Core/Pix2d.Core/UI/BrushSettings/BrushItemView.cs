@@ -17,7 +17,7 @@ public partial class BrushItemView() : ViewBase<BrushItemView.State>(new State()
                 new TextBlock()
                     .IsVisible(state, x => x.ShowSizeText)
                     .Row(1)
-                    .FontSize(10)
+                    .FontSize(9)
                     .Text(state, x => x.SizeText)
                     .VerticalAlignment(VerticalAlignment.Bottom)
                     .HorizontalAlignment(HorizontalAlignment.Center)
@@ -53,7 +53,7 @@ public partial class BrushItemView() : ViewBase<BrushItemView.State>(new State()
 
         public void SetPreset(Primitives.Drawing.BrushSettings preset)
         {
-            SizeText = $"{preset.Scale}px";
+            SizeText = $"{preset.Scale}PX";
             PreviewBrush = preset.Brush?.GetPreviewBitmap(preset.Scale)?.ToBrush()?.Stretch(Stretch.None)
                 ?? StaticResources.Brushes.CheckerTilesBrush;
         }

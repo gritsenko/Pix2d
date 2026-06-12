@@ -23,18 +23,32 @@ public class ProjectService : IProjectService, ISessionProjectLoader
     private IMessenger Messenger { get; }
     public IFileService FileService { get; }
     private IDialogService DialogService { get; }
+    private IProjectActivationService ProjectActivationService { get; }
+    private IOperationService OperationService { get; }
+    private IPlatformStuffService PlatformStuffService { get; }
+    private IAutoSaveService AutoSaveService { get; }
 
-    public ProjectService(AppState appState, 
+    private bool SupportsMultipleProjects => PlatformStuffService.SupportsMultipleProjects;
+
+    public ProjectService(AppState appState,
         IImportService importService,
         IMessenger messenger,
         IFileService fileService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IProjectActivationService projectActivationService,
+        IOperationService operationService,
+        IPlatformStuffService platformStuffService,
+        IAutoSaveService autoSaveService)
     {
         Messenger = messenger;
         FileService = fileService;
         DialogService = dialogService;
         AppState = appState;
         ImportService = importService;
+        ProjectActivationService = projectActivationService;
+        OperationService = operationService;
+        PlatformStuffService = platformStuffService;
+        AutoSaveService = autoSaveService;
 
         Messenger.Register<OperationInvokedMessage>(this, msg =>
         {
@@ -47,6 +61,29 @@ public class ProjectService : IProjectService, ISessionProjectLoader
                 return;
             HasUnsavedChanges = true;
         });
+
+        // Some fresh-load paths bypass this service entirely (autosave crash recovery sends
+        // ProjectLoadedMessage directly), so the tab list is reconciled from the message: the
+        // current project must always be a LoadedProjects entry for the tab bar to show it.
+        Messenger.Register<ProjectLoadedMessage>(this, _ => EnsureCurrentProjectIsListed());
+
+        // A tab switch changes which project the window title describes.
+        Messenger.Register<ProjectActivatedMessage>(this, _ => UpdateProjectNameInWindowTitle());
+    }
+
+    private void EnsureCurrentProjectIsListed()
+    {
+        var current = AppState.CurrentProject;
+        var index = AppState.LoadedProjects.IndexOf(current);
+        if (index >= 0)
+        {
+            AppState.ActiveProjectIndex = index;
+            return;
+        }
+
+        AppState.LoadedProjects.Add(current);
+        AppState.ActiveProjectIndex = AppState.LoadedProjects.Count - 1;
+        Messenger.Send(ProjectsListChangedMessage.Default);
     }
 
     public async Task<ProjectsCollection> GetRecentProjectsListAsync()
@@ -217,6 +254,15 @@ public class ProjectService : IProjectService, ISessionProjectLoader
         if (!fileContentSources.Any())
             return;
 
+        // Desktop: open into a NEW tab, keeping the current project. The startup placeholder
+        // (no scene yet) still goes through the regular replace path below so the first real
+        // project doesn't leave an empty phantom tab behind.
+        if (SupportsMultipleProjects && AppState.CurrentProject.SceneNode != null)
+        {
+            await OpenFilesInNewTabAsync(fileContentSources);
+            return;
+        }
+
         if (HasUnsavedChanges && !await AskSaveCurrentProject())
             return;
 
@@ -259,6 +305,124 @@ public class ProjectService : IProjectService, ISessionProjectLoader
         OnProjectLoaded(scene);
     }
 
+    private async Task OpenFilesInNewTabAsync(IFileContentSource[] fileContentSources)
+    {
+        // Already open in another tab — just switch to it instead of loading a copy.
+        var requestedPath = fileContentSources[0].Path;
+        var existing = AppState.LoadedProjects.FirstOrDefault(p =>
+            !string.IsNullOrEmpty(p.File?.Path) &&
+            string.Equals(p.File!.Path, requestedPath, StringComparison.OrdinalIgnoreCase));
+        if (existing != null)
+        {
+            ProjectActivationService.ActivateProject(existing);
+            return;
+        }
+
+        using var uiBlocker = new UiBlocker("Loading project...");
+        SKNode scene;
+        try
+        {
+            scene = await NewSceneFactory.GetNewSceneFromFiles(fileContentSources, ImportService);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+            try { DialogService.Alert($"Failed to load project: {ex.Message}", "Load project error"); } catch { }
+            return;
+        }
+
+        var file = fileContentSources.First();
+        var project = new ProjectState();
+        var hasUnsavedChanges = false;
+
+        if (!OperatingSystem.IsBrowser())
+        {
+            var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
+            if (AppState.Settings.UseInternalFolder && !file.Path.StartsWith(folder.Path))
+            {
+                var projectName = Path.GetFileNameWithoutExtension(file.Path);
+                file = GetUniqueProjectFile(folder, projectName);
+                hasUnsavedChanges = true;
+            }
+
+            FileService.AddToMru(file);
+        }
+
+        project.File = file;
+        project.HasUnsavedChanges = hasUnsavedChanges;
+
+        AddProjectTabAndLoadScene(project, scene);
+    }
+
+    /// <summary>
+    /// Registers <paramref name="project"/> as a new tab, makes it current and runs the regular
+    /// fresh-load pipeline for its scene (history clear, sprite activation, ShowAll, grid reset).
+    /// </summary>
+    private void AddProjectTabAndLoadScene(ProjectState project, SKNode scene)
+    {
+        AppState.LoadedProjects.Add(project);
+        ProjectActivationService.BeginNewProjectActivation(project);
+
+        OnProjectLoaded(scene);
+
+        Messenger.Send(ProjectsListChangedMessage.Default);
+        Messenger.Send(new ProjectActivatedMessage(project));
+    }
+
+    public async Task CloseProjectAsync(ProjectState project)
+    {
+        OpLog();
+
+        if (project == null || !AppState.LoadedProjects.Contains(project))
+            return;
+
+        if (project.HasUnsavedChanges)
+        {
+            // Bring the project on screen so the user sees what the save prompt is about.
+            ProjectActivationService.ActivateProject(project);
+            if (!await AskSaveCurrentProject())
+                return;
+        }
+
+        var index = AppState.LoadedProjects.IndexOf(project);
+        if (index < 0)
+            return;
+
+        AppState.LoadedProjects.RemoveAt(index);
+
+        if (AppState.LoadedProjects.Count == 0)
+        {
+            // Last tab closed: always keep an editable scene (mirrors the startup fallback).
+            AddProjectTabAndLoadScene(new ProjectState(), NewSceneFactory.GetNewScene(new SKSize(64, 64)));
+        }
+        else
+        {
+            if (ReferenceEquals(AppState.CurrentProject, project))
+            {
+                var neighbor = AppState.LoadedProjects[Math.Min(index, AppState.LoadedProjects.Count - 1)];
+                ProjectActivationService.ActivateProject(neighbor);
+            }
+            else
+            {
+                // Removing a tab to the left of the active one shifts indices.
+                AppState.ActiveProjectIndex = AppState.LoadedProjects.IndexOf(AppState.CurrentProject);
+            }
+
+            Messenger.Send(ProjectsListChangedMessage.Default);
+        }
+
+        // Free the closed project only after the replacement scene is current: SetScene never
+        // disposes the outgoing scene, so a tab close is the one place that unloads it.
+        OperationService.RemoveHistory(project.Id);
+        project.SceneNode?.Unload();
+        project.SceneNode = null;
+        project.FrameEditorNode = null;
+
+        // Drop the tab's autosave session folder so a deliberately closed tab is not
+        // resurrected on the next launch. Fire-and-forget: file I/O must not block the UI.
+        _ = AutoSaveService.DiscardProjectSessionAsync(project.Id);
+    }
+
     private void OnProjectLoaded(SKNode scene)
     {
         Logger.Trace("Project loaded");
@@ -289,6 +453,15 @@ public class ProjectService : IProjectService, ISessionProjectLoader
     public async Task CreateNewProjectAsync(SKSize newProjectSize)
     {
         OpLog(newProjectSize.Width + "x" + newProjectSize.Height);
+
+        // Desktop: a new project opens in its own tab; the current one stays loaded, so no
+        // save prompt is needed. Startup placeholder (no scene) still uses the replace path.
+        if (SupportsMultipleProjects && AppState.CurrentProject.SceneNode != null)
+        {
+            AddProjectTabAndLoadScene(new ProjectState(), NewSceneFactory.GetNewScene(newProjectSize));
+            return;
+        }
+
         if (HasUnsavedChanges && !await AskSaveCurrentProject())
             return;
 

@@ -117,6 +117,11 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
         });
     }
 
+    public void ClearDiskCache(IOperationDiskCacheService cache)
+    {
+        _changesPayload.ClearDiskCache(cache);
+    }
+
     public void RestoreFromDisk(IOperationDiskCacheService cache)
     {
         _changesPayload.RestoreFromDisk(cache, bytes =>

@@ -30,6 +30,24 @@ public class FileCommands : CommandsListBase
         await ServiceProvider.GetRequiredService<IProjectService>().OpenFilesAsync();
     }, "Open...", new CommandShortcut(VirtualKeys.O, KeyModifier.Ctrl), EditContextType.All);
 
+    public Pix2dCommand NewTab => GetCommand(async () =>
+    {
+        if (!ServiceProvider.GetRequiredService<IPlatformStuffService>().SupportsMultipleProjects)
+            return;
+
+        HideMainMenu();
+        await ServiceProvider.GetRequiredService<IProjectService>().CreateNewProjectAsync(new SkiaSharp.SKSize(64, 64));
+    }, "New tab", new CommandShortcut(VirtualKeys.T, KeyModifier.Ctrl), EditContextType.All);
+
+    public Pix2dCommand CloseTab => GetCommand(async () =>
+    {
+        if (!ServiceProvider.GetRequiredService<IPlatformStuffService>().SupportsMultipleProjects)
+            return;
+
+        HideMainMenu();
+        await ServiceProvider.GetRequiredService<IProjectService>().CloseProjectAsync(AppState.CurrentProject);
+    }, "Close tab", new CommandShortcut(VirtualKeys.W, KeyModifier.Ctrl), EditContextType.All);
+
     public Pix2dCommand Save => GetCommand(async () =>
     {
         HideMainMenu();

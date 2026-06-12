@@ -1,10 +1,13 @@
+using System.Linq;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Pix2d.Abstract.Import;
+using Pix2d.Abstract.Import.Flow;
+using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Command;
 using Pix2d.Common.FileSystem;
 using Pix2d.Messages;
 using Pix2d.UI.Styles;
+using SkiaSharp;
 
 namespace Pix2d.UI;
 public sealed partial class MainViewModel : ObservableObject
@@ -12,8 +15,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly AppState _appState;
     private readonly IDialogService _dialogService;
     private readonly IMessenger _messenger;
-    private readonly IProjectService _projectService;
-    private readonly IImportService _importService;
+    private readonly IImportFlowService _importFlowService;
     private bool _isSyncing;
 
     [ObservableProperty]
@@ -59,15 +61,13 @@ public sealed partial class MainViewModel : ObservableObject
         AppState appState,
         IDialogService dialogService,
         IMessenger messenger,
-        IProjectService projectService,
-        IImportService importService,
-        ICommandService commandService)
+        ICommandService commandService,
+        IImportFlowService importFlowService)
     {
         _appState = appState;
         _dialogService = dialogService;
         _messenger = messenger;
-        _projectService = projectService;
-        _importService = importService;
+        _importFlowService = importFlowService;
 
         ViewCommands = commandService.GetCommandList<ViewCommands>()!;
 
@@ -98,24 +98,18 @@ public sealed partial class MainViewModel : ObservableObject
             _appState.UiState.VisualState = visualState;
     }
 
-    public async Task HandleDropAsync(IReadOnlyList<IStorageItem> droppedFiles)
+    public async Task HandleDropAsync(IReadOnlyList<IStorageItem> droppedFiles, SKPoint? dropWorldPosition)
     {
-        foreach (var storageFile in droppedFiles.OfType<IStorageFile>())
-        {
-            var path = System.Net.WebUtility.UrlDecode(storageFile.Path.AbsolutePath);
-            var fileSource = new NetFileSource(path);
+        // Collect the whole drop into one batch so animation grouping works across multiple files.
+        var files = droppedFiles
+            .OfType<IStorageFile>()
+            .Select(f => (IFileContentSource)new NetFileSource(System.Net.WebUtility.UrlDecode(f.Path.AbsolutePath)))
+            .ToList();
 
-            if (path.EndsWith(".pxm") || path.EndsWith(".pix2d"))
-            {
-                await _projectService.OpenFilesAsync([fileSource]);
-                return;
-            }
+        if (files.Count == 0)
+            return;
 
-            if (_appState.CurrentProject.CurrentNodeEditor is not IImportTarget importTarget)
-                throw new ArgumentException("Import target is required");
-
-            await _importService.ImportAsync([fileSource], importTarget);
-        }
+        await _importFlowService.RunImportFlowAsync(new ImportRequest(files, dropWorldPosition, FromDrag: true));
     }
 
     partial void OnShowColorEditorChanged(bool value)

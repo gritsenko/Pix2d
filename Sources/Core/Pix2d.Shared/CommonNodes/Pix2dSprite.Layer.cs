@@ -128,13 +128,16 @@ public partial class Pix2dSprite
                 if (prevIndex < 0)
                     prevIndex = FrameCount - 1;
                 if (GetSpriteByFrame(prevIndex) is SKNode prevFrame)
-                    SKNodeRenderer.Render(prevFrame, new RenderContext(canvas, vp, 0.3f));
+                    SKNodeRenderer.RenderInCurrentTransform(prevFrame, new RenderContext(canvas, vp, 0.3f));
             }
 
             if (HiddenFrames.Contains(CurrentFrameIndex)
                 || GetActiveFrameSprite() is not SKNode node)
                 return;
-            SKNodeRenderer.Render(node, new RenderContext(canvas, vp));
+            // Render the active frame preserving the ancestor transform (scene → sprite → layer). Using the
+            // matrix-resetting SKNodeRenderer.Render here would paint the frame at world origin and only look
+            // correct while the sprite sits at (0,0) — off-origin artboards would draw onto the first one.
+            SKNodeRenderer.RenderInCurrentTransform(node, new RenderContext(canvas, vp));
         }
 
         protected override void OnChildrenAdded(IEnumerable<SKNode> newNodes)
@@ -279,11 +282,13 @@ public partial class Pix2dSprite
             var vp = new ViewPort((int)(targetBitmap.Width), (int)(targetBitmap.Height));
             vp.Settings.RenderAdorners = false;
 
-            var bbox = GetBoundingBox();
-            bbox.Left = 1;
-            bbox.Top = 1;
-            bbox.Right -= 1;
-            bbox.Bottom -= 1;
+            // SKNodeRenderer.Render applies only the node's LOCAL transform (ancestors are skipped), so the
+            // frame is always painted in its own local space (0,0..Size) regardless of where the owning
+            // artboard sits in the scene. Fitting the viewport to the layer's GLOBAL bounding box would shift
+            // the preview by the artboard's scene offset — making thumbnails of off-origin artboards render
+            // displaced. Use the node's local bounds instead so the preview matches what gets drawn.
+            var bbox = node.LocalBounds;
+            bbox.Inflate(-1, -1);
 
             vp.ShowArea(bbox);
 

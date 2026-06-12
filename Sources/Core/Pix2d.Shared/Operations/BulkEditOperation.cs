@@ -94,4 +94,12 @@ public class BulkEditOperation : EditOperationBase, ISpriteEditorOperation, ICac
             op.RestoreFromDisk(cache);
         }
     }
+
+    public void ClearDiskCache(IOperationDiskCacheService cache)
+    {
+        foreach (var op in _operations.OfType<ICacheableOperation>())
+        {
+            op.ClearDiskCache(cache);
+        }
+    }
 }

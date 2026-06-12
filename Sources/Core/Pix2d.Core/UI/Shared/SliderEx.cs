@@ -35,11 +35,13 @@ public class SliderEx : ViewBase
 
     public static readonly DirectProperty<SliderEx, string> LabelProperty
         = AvaloniaProperty.RegisterDirect<SliderEx, string>(nameof(Label), o => o.Label, (o, v) => o.Label = v);
-    private string _label = "Label";
+    private string _label = "LABEL";
     public string Label
     {
         get => _label;
-        set => SetAndRaise(LabelProperty, ref _label, value);
+        // The design renders all captions uppercase (Figma textCase: UPPER); Avalonia has no
+        // text-transform, so normalize here.
+        set => SetAndRaise(LabelProperty, ref _label, value?.ToUpperInvariant()!);
     }
 
     public static readonly DirectProperty<SliderEx, string> UnitsProperty
@@ -48,7 +50,7 @@ public class SliderEx : ViewBase
     public string Units
     {
         get => _units;
-        set => SetAndRaise(UnitsProperty, ref _units, value);
+        set => SetAndRaise(UnitsProperty, ref _units, value?.ToUpperInvariant()!);
     }
 
     public static readonly DirectProperty<SliderEx, double> MinimumProperty
@@ -151,6 +153,7 @@ public class SliderEx : ViewBase
             .Children(
                 new TextBlock()
                     .Ref(out _twoLineLabelTextBlock)
+                    .Classes("caption")
                     .Text(Label)
                     .VerticalAlignment(VerticalAlignment.Center),
                 CreateNumericUpDown(out _twoLineNumericUpDown, OnNumericValueChanged)
@@ -158,6 +161,7 @@ public class SliderEx : ViewBase
                     .HorizontalAlignment(HorizontalAlignment.Right),
                 new TextBlock()
                     .Ref(out _twoLineUnitsTextBlock)
+                    .Classes("caption")
                     .Text(Units)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .Margin(4)
@@ -175,6 +179,7 @@ public class SliderEx : ViewBase
             .Children(
                 new TextBlock()
                     .Ref(out _oneLineLabelTextBlock)
+                    .Classes("caption")
                     .Text(Label)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .Margin(0, 0, 12, 0),
@@ -186,6 +191,7 @@ public class SliderEx : ViewBase
                     .Margin(12, 0, 0, 0),
                 new TextBlock()
                     .Ref(out _oneLineUnitsTextBlock)
+                    .Classes("caption")
                     .Text(Units)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .Margin(4, 0, 0, 0)
@@ -234,6 +240,7 @@ public class SliderEx : ViewBase
                     .Children(
                         new TextBlock()
                             .Ref(out _popupLabelTextBlock)
+                            .Classes("caption")
                             .Text(Label)
                             .IsVisible(!string.IsNullOrWhiteSpace(Label)),
                         new StackPanel()
@@ -244,6 +251,7 @@ public class SliderEx : ViewBase
                                 CreateNumericUpDown(out _popupNumericUpDown, OnNumericValueChanged),
                                 new TextBlock()
                                     .Ref(out _popupUnitsTextBlock)
+                                    .Classes("caption")
                                     .Text(Units)
                                     .VerticalAlignment(VerticalAlignment.Center)
                             ),

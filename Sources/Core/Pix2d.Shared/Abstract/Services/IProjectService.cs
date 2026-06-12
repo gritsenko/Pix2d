@@ -1,5 +1,6 @@
 ﻿using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Project;
+using Pix2d.State;
 using SkiaSharp;
 
 namespace Pix2d.Abstract.Services;
@@ -46,4 +47,11 @@ public interface IProjectService
     /// Rename current open project (useful when you don't have direct access to device's filesystem
     /// </summary>
     Task RenameCurrentProjectAsync();
+
+    /// <summary>
+    /// Closes an open project (tab): prompts to save when dirty, activates a neighbor tab and
+    /// unloads the project's scene. Closing the last tab creates a fresh blank project so the
+    /// editor always has a scene. Multi-project (desktop) flow only.
+    /// </summary>
+    Task CloseProjectAsync(ProjectState project);
 }

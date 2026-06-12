@@ -102,7 +102,7 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
 
             _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
             _messenger.Register<SelectedFrameChangedMessage>(this, OnSelectedFrameChanged);
-            _appState.CurrentProject.WatchFor(x => x.CurrentNodeEditor, () => OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor));
+            _appState.WatchForCurrentProject(x => x.CurrentNodeEditor, () => OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor));
 
             Frames.CollectionChanged += FramesCollectionChanged;
             OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor);

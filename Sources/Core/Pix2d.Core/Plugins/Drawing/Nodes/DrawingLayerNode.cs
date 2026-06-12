@@ -171,6 +171,16 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     /// </summary>
     public Func<string?>? ActiveToolKeyProvider { get; set; }
 
+    /// <summary>
+    /// Click-to-activate gate for multi-artboard scenes. Invoked on a pointer press (before any
+    /// <see cref="CapturePointer"/> / <see cref="BeginDrawing"/>) with the world position; returns
+    /// <c>true</c> when the press landed on a different artboard — which the resolver activates — so the
+    /// current gesture is swallowed and no stroke is started on the outgoing sprite. Set by
+    /// <c>DrawingService</c>. The check lives here rather than in the brush tool because this node
+    /// receives the press first in the input dispatch and would otherwise begin drawing immediately.
+    /// </summary>
+    public Func<SKPoint, bool>? ArtboardActivationResolver { get; set; }
+
     public AxisLockMode AxisLockMode
     {
         get => _pointerInputRouter.AxisLockMode;
@@ -280,6 +290,12 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         PreviewPosition = eventArgs.Pointer.GetPosition(this).ToSkPointI();
 
         if (_pointerInputRouter.ShouldIgnorePointerPressed(eventArgs))
+            return;
+
+        // Click-to-activate artboard: a press on a different sprite switches the active edit target and
+        // swallows this gesture, so the outgoing artboard never receives a stray stroke. Runs before the
+        // capture/BeginDrawing below — this is the earliest point in the press dispatch we control.
+        if (ArtboardActivationResolver?.Invoke(eventArgs.Pointer.WorldPosition) == true)
             return;
 
         base.OnPointerPressed(eventArgs, clickCount);

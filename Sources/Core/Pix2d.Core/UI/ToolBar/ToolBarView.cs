@@ -30,12 +30,12 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
             .Margin(6)
             .Width(44)
             .Height(44)
-            .Foreground(StaticResources.Brushes.ForegroundBrush)
+            .Foreground(StaticResources.Brushes.IconForegroundBrush)
             .Background(Brushes.Transparent) //to intrecept poiner events
             .Padding(new Thickness(0)),
 
         new Style<Shape>(s => s.Class("toolbar-button").Descendant().Is<Shape>())
-            .Fill(StaticResources.Brushes.ForegroundBrush.ToImmutable()),
+            .Fill(StaticResources.Brushes.IconForegroundBrush.ToImmutable()),
 
         new Style<Shape>(s => s.Class("selected").Descendant().Is<Shape>())
             .Fill(Brushes.White.ToImmutable()),
@@ -162,7 +162,7 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
 
             SyncFromAppState();
 
-            _appState.CurrentProject.WatchFor(x => x.CurrentContextType, OnEditContextChanged);
+            _appState.WatchForCurrentProject(x => x.CurrentContextType, OnEditContextChanged);
             _appState.SpriteEditorState.WatchFor(x => x.CurrentColor, SyncFromAppState);
             _appState.SpriteEditorState.WatchFor(x => x.CurrentBrushSettings, SyncFromAppState);
         }

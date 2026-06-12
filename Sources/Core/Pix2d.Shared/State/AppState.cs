@@ -76,7 +76,18 @@ public class AppState : StateBase
     public Pix2DAppSettings Settings { get; set; } = new();
     public UiState UiState { get; set; } = new();
 
+    /// <summary>
+    /// All projects opened in this session (desktop tabs). Invariant: when non-empty,
+    /// <see cref="CurrentProject"/> == LoadedProjects[<see cref="ActiveProjectIndex"/>].
+    /// Deliberately a plain List — list changes are signalled with ProjectsListChangedMessage.
+    /// </summary>
     public List<ProjectState> LoadedProjects { get; set; } = [];
+
+    public int ActiveProjectIndex
+    {
+        get => Get(0);
+        set => Set(value);
+    }
 
     public virtual ProjectState CurrentProject
     {

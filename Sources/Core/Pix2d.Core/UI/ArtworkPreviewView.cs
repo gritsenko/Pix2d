@@ -69,7 +69,7 @@ public partial class ArtworkPreviewView(AppState appState, IMessenger messenger)
             messenger.Register<OperationInvokedMessage>(this, _ => UpdatePreview());
 
             _appState.UiState.WatchFor(x => x.ShowPreviewPanel, UpdatePreview);
-            _appState.CurrentProject.WatchFor(x => x.CurrentNodeEditor, InvalidateEditor);
+            _appState.WatchForCurrentProject(x => x.CurrentNodeEditor, InvalidateEditor);
 
             AvailableScales.Clear();
             for (var i = 5; i >= 2; i--) AvailableScales.Add(new ScaleItem(1f / i));

@@ -77,7 +77,7 @@ public partial class AdditionalTopBarView(AppState appState, ISettingsService se
 
             SyncFromAppState();
 
-            _appState.CurrentProject.WatchFor(x => x.CurrentContextType, SyncFromAppState);
+            _appState.WatchForCurrentProject(x => x.CurrentContextType, SyncFromAppState);
             _appState.UiState.WatchFor(x => x.ShowPreviewPanel, SyncFromAppState);
             _appState.UiState.WatchFor(x => x.ShowTimeline, SyncFromAppState);
             _appState.UiState.WatchFor(x => x.ShowLayers, SyncFromAppState);

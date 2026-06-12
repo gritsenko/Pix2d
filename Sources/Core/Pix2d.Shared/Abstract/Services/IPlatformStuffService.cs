@@ -11,9 +11,15 @@ namespace Pix2d.Abstract.Services;
 public interface IPlatformStuffService
 {
     /// <summary>
-    /// Current platform 
+    /// Current platform
     /// </summary>
     PlatformType CurrentPlatform { get; }
+
+    /// <summary>
+    /// Whether this platform supports several projects opened at once (tab bar on desktop).
+    /// Single gating point for the multi-project UI and the open/new-into-a-tab flow.
+    /// </summary>
+    bool SupportsMultipleProjects => false;
 
     /// <summary>
     /// Detect if any text input is selected in application

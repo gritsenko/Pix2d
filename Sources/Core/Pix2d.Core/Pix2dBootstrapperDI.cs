@@ -85,7 +85,8 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         services.AddSingleton<ISelectionService, SelectionService>(); // Depends on: ISceneService, ISnappingService, IMessenger, AppState
 
         services.AddSingleton<SpriteEditor>(); //Depends on: IDrawingService, IViewPortRefreshService, IMessenger, AppState, IOperationService
-        services.AddSingleton<IEditService, EditService>(); // Depends on: IViewPortRefreshService, IViewPortService, ISelectionService, AppState, IMessenger, SpriteEditor
+        services.AddSingleton<IEditService, EditService>(); // Depends on: IViewPortRefreshService, IViewPortService, ISelectionService, AppState, IMessenger, SpriteEditor, IOperationService
+        services.AddSingleton<ArtboardObjectEditService>(); // Depends on: AppState, IMessenger, IOperationService, IViewPortRefreshService, IEditService, IDrawingService, IDialogService. Eagerly resolved in SpritePlugin.
 
         services.AddSingleton<IExportService, ExportService>(); // Depends on: AppState, IMessenger, IPlatformStuffService
 
@@ -95,12 +96,15 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         // MainActivity.SaveSessionSafely, FileCommands.Exit) keep working unchanged.
         services.AddSingleton<IProjectChangeTracker, ProjectChangeTracker>(); // Depends on: IMessenger, AppState
         services.AddSingleton<ISessionSnapshotProvider, UiThreadSnapshotProvider>();
-        services.AddSingleton<AutoSaveService>(); // Depends on: AppState, IPlatformStuffService, IMessenger, IProjectChangeTracker, ISessionSnapshotProvider
+        services.AddSingleton<AutoSaveService>(); // Depends on: AppState, IPlatformStuffService, IMessenger, IProjectChangeTracker, ISessionSnapshotProvider, IProjectActivationService
         services.AddSingleton<IAutoSaveService>(sp => sp.GetRequiredService<AutoSaveService>());
         services.AddSingleton<ISessionService>(sp => sp.GetRequiredService<AutoSaveService>());
 
-        services.AddSingleton<IProjectService, ProjectService>(); // Depends on: AppState, IImportService, IMessenger
+        services.AddSingleton<IProjectActivationService, ProjectActivationService>(); // Depends on: AppState, IMessenger, IOperationService, IViewPortService, IViewPortRefreshService, IEditService, IServiceProvider (lazy: SpriteEditor, IDrawingService, IProjectChangeTracker)
+        services.AddSingleton<IProjectService, ProjectService>(); // Depends on: AppState, IImportService, IMessenger, IFileService, IDialogService, IProjectActivationService, IPlatformStuffService, IOperationService, IAutoSaveService
         services.AddSingleton<ISessionProjectLoader, ProjectService>(); // Same as above
+
+        services.AddSingleton<IImportFlowService, Services.Import.ImportFlowService>(); // Depends on: AppState, IImportService, IEditService, IProjectService, IDialogService
 
         services.AddSingleton<IToolService, ToolService>(sp => new ToolService(sp.GetRequiredService<IMessenger>(),
             sp.GetRequiredService<AppState>(), t => ActivatorUtilities
@@ -213,6 +217,22 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
             //try to load from application startup parameters
             if (StartupDocument != null)
             {
+                // Desktop (tabs): restore the previous workspace first, then open the requested
+                // document on top of it as its own tab — the same way tabbed editors treat
+                // "open file from Explorer". Also starts the autosave loop, which this path
+                // previously skipped entirely. Recovery failures must not block the open.
+                if (sp.GetRequiredService<IPlatformStuffService>().SupportsMultipleProjects)
+                {
+                    try
+                    {
+                        await sp.GetRequiredService<ISessionService>().TryLoadSessionAsync();
+                    }
+                    catch (Exception sessionEx)
+                    {
+                        Logger.LogException(sessionEx);
+                    }
+                }
+
                 var projectService = sp.GetRequiredService<IProjectService>();
                 try
                 {

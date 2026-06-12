@@ -72,20 +72,15 @@ public abstract class PixelBrushToolBase : BaseTool, IDrawingTool
     protected override void OnPointerMoved(object? sender, PointerActionEventArgs e)
     {
         DrawingService.DrawingLayer.ShowBrushPreview = !e.Pointer.IsTouch;
-
-        //CHECK IF WE STILL ON OLD SPRITE
-        if (_drawingLayerNode != null && !e.Pointer.IsPressed && !_drawingLayerNode.ContainsPoint(e.Pointer.WorldPosition))
-        {
-            var container = SelectionService.GetContainer(e.Pointer.WorldPosition);
-            if (container is IDrawingTarget dt)
-                DrawingService.SetDrawingTarget(dt);
-        }
     }
 
     protected override void OnPointerPressed(object? sender, PointerActionEventArgs e)
     {
+        // Click-to-activate-artboard is handled in DrawingLayerNode.OnPointerPressed (via
+        // DrawingService.ArtboardActivationResolver): that node receives the press before this tool and
+        // must decide whether to switch sprites or draw, so the gate cannot live here.
         if ((e.KeyModifiers & KeyModifier.Alt) == 0) return;
-        
+
         DrawingService.PickColorByPoint(e.Pointer.WorldPosition);
         e.Handled = true;
     }

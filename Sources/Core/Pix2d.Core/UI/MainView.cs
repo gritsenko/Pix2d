@@ -1,9 +1,12 @@
+using System.Linq;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media.Transformation;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
+using SkiaSharp;
 using Pix2d.UI.Animation;
 using Pix2d.UI.BrushSettings;
 using Pix2d.UI.Export;
@@ -24,10 +27,9 @@ public partial class MainView : ViewBase<MainViewModel>
         AppState appState,
         IDialogService dialogService,
         IMessenger messenger,
-        IProjectService projectService,
-        IImportService importService,
-        ICommandService commandService)
-        : base(new MainViewModel(appState, dialogService, messenger, projectService, importService, commandService))
+        ICommandService commandService,
+        IImportFlowService importFlowService)
+        : base(new MainViewModel(appState, dialogService, messenger, commandService, importFlowService))
     {
     }
 
@@ -43,7 +45,7 @@ public partial class MainView : ViewBase<MainViewModel>
         new Style<ToolBarView>()
             .Margin(StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, 48)
             .Col(0)
-            .Row(2)
+            .Row(1)
             .RowSpan(2),
 
         new Style<LayersView>()
@@ -52,21 +54,21 @@ public partial class MainView : ViewBase<MainViewModel>
             .RowSpan(1),
 
         new Style<AdditionalTopBarView>()
-            .Row(3)
+            .Row(2)
             .Margin(0, 0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin),
 
         new Style<ZoomPanelView>()
-            .Col(0).ColSpan(3).Row(3)
+            .Col(0).ColSpan(3).Row(2)
             .Margin(StaticResources.Measures.PanelMargin)
             .HorizontalAlignment(HorizontalAlignment.Center),
 
         new Style<Canvas>(s => s.Name("PopupContainer"))
             .Col(1)
             .ColSpan(2)
-            .Row(2)
+            .Row(1)
             .RowSpan(2),
 
-        new Style<ToolGroupContainerView>().Col(1).Row(2)
+        new Style<ToolGroupContainerView>().Col(1).Row(1)
             .HorizontalAlignment(HorizontalAlignment.Left)
             .VerticalAlignment(VerticalAlignment.Center)
             .Margin(8, 0, 120, 0),
@@ -81,7 +83,7 @@ public partial class MainView : ViewBase<MainViewModel>
             new Style<ToolBarView>()
                 .Margin(StaticResources.Measures.PanelMargin)
                 .Col(0)
-                .Row(3)
+                .Row(2)
                 .RowSpan(1)
                 .ColSpan(4),
 
@@ -104,7 +106,7 @@ public partial class MainView : ViewBase<MainViewModel>
             new Style<ToolGroupContainerView>()
                 .Col(0)
                 .ColSpan(3)
-                .Row(3)
+                .Row(2)
                 .HorizontalAlignment(HorizontalAlignment.Center)
                 .VerticalAlignment(VerticalAlignment.Top)
                 .Margin(StaticResources.Measures.PanelMargin, 0, StaticResources.Measures.PanelMargin, 0)
@@ -112,9 +114,14 @@ public partial class MainView : ViewBase<MainViewModel>
     ];
 
     protected override object Build(MainViewModel vm) =>
-        new Grid().Name("RootGrid").Children(
+        new Grid().Name("RootGrid").Rows("Auto, *").Children(
+            // Desktop-only project tab strip; it sits in its own row above the canvas so it never
+            // overlaps it (gated by IPlatformStuffService.SupportsMultipleProjects inside the view).
+            ViewFactory.Create<ProjectTabsView>().Row(0),
+
             new Border()
                 .Name("Pix2dCanvasContainer")
+                .Row(1)
                 .OnPointerPressed(e =>
                 {
                     if (e.Source is StyledElement element)
@@ -124,14 +131,15 @@ public partial class MainView : ViewBase<MainViewModel>
             new LayoutTransformControl()
                 .Ref(out _layoutTransformControl)
                 .Name("LayoutTransformControl")
+                .Row(1)
                 .Child(
                     new Grid()
                         .Name("UiGrid")
                         .Ref(out _rootGrid)
                         .Cols("Auto, *, Auto")
-                        .Rows("Auto, Auto, *, Auto, Auto")
+                        .Rows("Auto, *, Auto, Auto")
                         .Children([
-                            ViewFactory.Create<TopBarView>().Ref(out _topBarView).Row(1).ColSpan(3)
+                            ViewFactory.Create<TopBarView>().Ref(out _topBarView).Row(0).ColSpan(3)
                                 .Margin(0, 0, 0, 1),
 
                             ViewFactory.Create<ToolBarView>()
@@ -143,18 +151,23 @@ public partial class MainView : ViewBase<MainViewModel>
                             //ViewFactory.Create<RatePromptView>().Col(0).ColSpan(3).Row(2)
                             //    .IsVisible(state, x => x.ShowRatePrompt),
 
-                            ViewFactory.Create<InfoPanelView>().Col(0).Row(3).ColSpan(2)
+                            ViewFactory.Create<InfoPanelView>().Col(0).Row(2).ColSpan(2)
                                 .Margin(StaticResources.Measures.PanelMargin)
                                 .HorizontalAlignment(HorizontalAlignment.Left)
                                 .VerticalAlignment(VerticalAlignment.Bottom),
 
                             ViewFactory.Create<ZoomPanelView>(),
 
-                            new Grid().Col(0).ColSpan(3).Row(2).Rows("auto,auto")
+                            new Grid().Col(0).ColSpan(3).Row(1).Rows("auto,auto")
                                 .Margin(StaticResources.Measures.PanelMargin)
                                 .Children(
                                     ViewFactory.Create<ActionsBarView>()
                                         .IsVisible(vm, x => x.ShowExtraTools)
+                                        .HorizontalAlignment(HorizontalAlignment.Center)
+                                        .VerticalAlignment(VerticalAlignment.Top),
+
+                                    // Contextual toolbar for "edit sprite as object" mode; self-hides when inactive.
+                                    ViewFactory.Create<SpriteActionsView>()
                                         .HorizontalAlignment(HorizontalAlignment.Center)
                                         .VerticalAlignment(VerticalAlignment.Top),
 
@@ -174,11 +187,11 @@ public partial class MainView : ViewBase<MainViewModel>
                                     }
                                 })
                                 .Ref(out _timeLineView)
-                                .Col(0).Row(4).Name("timeLine")
+                                .Col(0).Row(3).Name("timeLine")
                                 .ColSpan(3)
                                 .VerticalAlignment(VerticalAlignment.Bottom),
 
-                            ViewFactory.Create<LayersView>().Col(2).Row(2)
+                            ViewFactory.Create<LayersView>().Col(2).Row(1)
                                 .IsVisible(vm, x => x.ShowLayers)
                                 .HorizontalAlignment(HorizontalAlignment.Right),
 
@@ -246,18 +259,18 @@ public partial class MainView : ViewBase<MainViewModel>
                                 .MinWidth(40)
                                 .MinHeight(40),
 
-                            ViewFactory.Create<ExportView>().ColSpan(3).RowSpan(5)
+                            ViewFactory.Create<ExportView>().ColSpan(3).RowSpan(4)
                                 .IsVisible(vm, x => x.ShowExportDialog),
 
                             new Border().Name("MainMenuContainer")
                                 .Col(0).ColSpan(3)
-                                .Row(0).RowSpan(5)
+                                .Row(0).RowSpan(4)
                                 .IsVisible(vm, x => x.ShowMenu)
                                 .Child(ViewFactory.Create<MainMenuView>()),
 
                             new Border().Name("LoadingOverlay")
                                 .Col(0).ColSpan(3)
-                                .Row(0).RowSpan(4)
+                                .Row(0).RowSpan(3)
                                 .IsVisible(vm, x => x.IsBusy)
                                 .Background(StaticResources.Brushes.ModalOverlayBrush)
                                 .Child(
@@ -269,7 +282,7 @@ public partial class MainView : ViewBase<MainViewModel>
                         ])
                 ),
 
-            ViewFactory.Create<DialogContainer>()
+            ViewFactory.Create<DialogContainer>().RowSpan(2)
         );
 
     private Canvas _panelsContainer = null!;
@@ -369,7 +382,14 @@ public partial class MainView : ViewBase<MainViewModel>
         if (droppedFiles == null)
             return;
 
-        await ViewModel!.HandleDropAsync(droppedFiles);
+        // Convert the drop point to world coordinates via the canvas (same path the pointer pipeline
+        // uses). Used to decide whether a still image lands in the current sprite or in a new one.
+        SKPoint? dropWorldPosition = null;
+        var canvas = this.GetVisualDescendants().OfType<SkiaCanvas>().FirstOrDefault();
+        if (canvas != null)
+            dropWorldPosition = canvas.GetWorldPosition(e.GetPosition(canvas));
+
+        await ViewModel!.HandleDropAsync(droppedFiles, dropWorldPosition);
     }
 
     private void RepositionFloatingPanels()

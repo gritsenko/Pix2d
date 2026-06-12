@@ -312,7 +312,13 @@ public class SkiaCanvas : Control
         pivotTransform.TransX *= ViewPort.ScaleFactor;
         pivotTransform.TransY *= ViewPort.ScaleFactor;
 
-        if (OperatingSystem.IsAndroid() && controlOriginInTopLevel.HasValue)
+        // On some platforms the custom draw op receives CurrentTransform without the control's
+        // translation inside the TopLevel: on Android the safe-area inset is missing on the first
+        // frames, and on Windows the compositor hands us an identity transform always. Without a
+        // correction the scene renders at the window origin, which became visible once the project
+        // tabs row pushed the canvas down. Fall back to the cached control origin (kept fresh via
+        // ArrangeCore/LayoutUpdated/SafeAreaChanged) whenever the supplied translation is zero.
+        if (controlOriginInTopLevel.HasValue)
         {
             var fallbackTransX = (float)(controlOriginInTopLevel.Value.X * ViewPort.ScaleFactor);
             var fallbackTransY = (float)(controlOriginInTopLevel.Value.Y * ViewPort.ScaleFactor);
@@ -537,7 +543,7 @@ public class SkiaCanvas : Control
         Input.EraserMode = props.IsRightButtonPressed;
 
         Input.SetPointerPressed(ToSKPoint(position), ToModifiers(e.KeyModifiers),
-            e.Pointer.Type == PointerType.Touch);
+            e.Pointer.Type == PointerType.Touch, e.ClickCount);
         InvalidateVisual();
     }
 
@@ -819,6 +825,18 @@ public class SkiaCanvas : Control
         (float)((ViewPort?.ScaleFactor ?? 1f) * p.X),
         (float)((ViewPort?.ScaleFactor ?? 1f) * p.Y)
     );
+
+    /// <summary>
+    /// Converts a point in this control's coordinates (e.g. a drop position) to world coordinates,
+    /// using the same scaling the pointer pipeline applies. Returns null before the viewport exists.
+    /// </summary>
+    public SKPoint? GetWorldPosition(Point positionInControl)
+    {
+        if (ViewPort == null)
+            return null;
+
+        return ViewPort.ViewportToWorld(ToSKPoint(positionInControl));
+    }
 
     private static SKMatrix ToSKMatrix(Matrix m)
     {
