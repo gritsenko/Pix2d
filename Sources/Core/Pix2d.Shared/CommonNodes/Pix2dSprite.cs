@@ -145,6 +145,9 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
             canvas.Flush();
         }
         bitmap.NotifyPixelsChanged();
+        // We wrote into the frame sprite's bitmap behind its back — drop its zoomed-out mip cache so the
+        // next minified frame rebuilds from the new pixels instead of showing the pre-stroke snapshot.
+        sprite!.InvalidateRenderCache();
     }
 
     public void ModifyBitmap(Action<SKBitmap> processAction)
@@ -161,6 +164,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
 
         processAction?.Invoke(bitmap);
         bitmap.NotifyPixelsChanged();
+        sprite!.InvalidateRenderCache();
     }
 
     public SKSize GetSize()

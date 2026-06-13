@@ -13,6 +13,30 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     protected SKRect _nodeRect;
     private Func<SKBitmap>? _substitute;
 
+    /// <summary>
+    /// Cached immutable snapshot used only for the minified (zoomed-out) draw path — built from whichever
+    /// bitmap is currently drawn (the node's own <see cref="_bitmap"/> or the live-drawing substitute
+    /// snapshot, tracked in <see cref="_mipSource"/>). Built, used and disposed exclusively on the compositor
+    /// render thread — the only pass that runs with <c>RenderAdorners == true</c>; the UI thread merely flags
+    /// it stale via <see cref="_renderCacheDirty"/>, so there is no cross-thread <see cref="SKImage"/> dispose
+    /// race.
+    /// </summary>
+    private SKImage? _mipImage;
+    private SKBitmap? _mipSource;
+    private volatile bool _renderCacheDirty;
+
+    /// <summary>
+    /// On-screen zoom (<see cref="ViewPort.DpiEffectiveZoom"/>) at or below which bitmap nodes stop sampling
+    /// the full-resolution bitmap with nearest-point <c>DrawBitmap</c> and instead draw from a cached
+    /// mipmapped image with trilinear sampling. At heavy minification nearest sampling reads scattered source
+    /// texels (cache-thrashing, memory-bandwidth bound) and aliases; mipmaps give coherent reads and a clean
+    /// downscale. Above the threshold pixel-art crispness near 1:1 is preserved. Set to 0 to disable the mip
+    /// path entirely.
+    /// </summary>
+    public static float MinificationMipmapZoomThreshold { get; set; } = 0.5f;
+
+    private static readonly SKSamplingOptions MipmapSampling = new(SKFilterMode.Linear, SKMipmapMode.Linear);
+
     public SKBitmap? Bitmap
     {
         get => _bitmap;
@@ -21,6 +45,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
             if (_bitmap != value)
             {
                 _bitmap = value;
+                _renderCacheDirty = true;
 
                 UpdateSize(value);
                 OnBitmapChanged(_bitmap);
@@ -82,6 +107,10 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     public void SetTargetBitmapSubstitute(Func<SKBitmap>? substitute)
     {
         _substitute = substitute;
+        // The substitute snapshot (and the bitmap it returns) is reused/refilled in place across strokes, so
+        // reference equality alone can't tell its content changed — force a mip rebuild whenever it is set or
+        // cleared (stroke start / commit).
+        _renderCacheDirty = true;
     }
 
     public bool IsTargetBitmapVisible()
@@ -106,6 +135,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
             canvas.Flush();
         }
         bitmap.NotifyPixelsChanged();
+        _renderCacheDirty = true;
     }
 
     public void ModifyBitmap(Action<SKBitmap> processAction)
@@ -151,17 +181,66 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     protected override void OnDraw(SKCanvas canvas, ViewPort vp)
     {
         var bitmap = _substitute == null ? Bitmap : _substitute();
-        if (bitmap != null)
+        if (bitmap == null)
+            return;
+
+        // Minified (zoomed-out) draw: when several source texels fall on one screen pixel, replace
+        // nearest-point sampling of the full-res bitmap with a cached mipmapped image + trilinear sampling.
+        // This applies to the live-drawing substitute too — it is the STABLE pre-stroke layer snapshot, not
+        // the moving stroke (that lives on DrawingLayerNode's overlay) — so the active layer no longer "pops"
+        // from smooth to aliased the instant a stroke starts; every layer stays uniformly downscaled while
+        // drawing. Gated on RenderAdorners so the cache is only ever touched from the interactive compositor
+        // pass (single thread); previews/exports run with RenderAdorners == false and keep crisp nearest.
+        if (vp.Settings.RenderAdorners
+            && MinificationMipmapZoomThreshold > 0
+            && vp.DpiEffectiveZoom <= MinificationMipmapZoomThreshold
+            && bitmap.Width > 1 && bitmap.Height > 1)
         {
-            if (Math.Abs(Size.Width - bitmap.Width) < 0.1 && Math.Abs(Size.Height - bitmap.Height) < 0.1)
+            var image = GetOrCreateMipImage(bitmap);
+            if (image != null)
             {
-                canvas.DrawBitmap(bitmap, 0, 0);
-            }
-            else
-            {
-                canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect);
+                // The whole image maps to _nodeRect (0,0..Size); the viewport matrix applies the minification.
+                canvas.DrawImage(image, _nodeRect, MipmapSampling);
+                return;
             }
         }
+
+        if (Math.Abs(Size.Width - bitmap.Width) < 0.1 && Math.Abs(Size.Height - bitmap.Height) < 0.1)
+        {
+            canvas.DrawBitmap(bitmap, 0, 0);
+        }
+        else
+        {
+            canvas.DrawBitmap(bitmap, _bitmapRect, _nodeRect);
+        }
+    }
+
+    /// <summary>
+    /// Returns the cached mipmapped snapshot of <paramref name="bitmap"/>, rebuilding it if the content was
+    /// flagged stale. Runs only on the compositor render thread (see <see cref="_mipImage"/>).
+    /// <see cref="SKImage.FromBitmap"/> is copy-on-write here (shares the pixel ref), so building it is
+    /// allocation-free in the steady state; the mip chain is generated lazily by Skia on first draw and
+    /// reused across frames while the cache stays valid.
+    /// </summary>
+    private SKImage? GetOrCreateMipImage(SKBitmap bitmap)
+    {
+        // Rebuild when flagged stale, or when the source bitmap instance changed — e.g. switching between the
+        // node's own bitmap and the live-drawing substitute snapshot at stroke start/commit.
+        if (_renderCacheDirty || !ReferenceEquals(_mipSource, bitmap))
+        {
+            _mipImage?.Dispose();
+            _mipImage = null;
+            _renderCacheDirty = false;
+        }
+
+        if (_mipImage == null || _mipImage.Handle == IntPtr.Zero)
+        {
+            _mipImage?.Dispose();
+            _mipImage = SKImage.FromBitmap(bitmap);
+            _mipSource = bitmap;
+        }
+
+        return _mipImage;
     }
 
     public void ReplaceBitmap(SKBitmap bitmap, bool resetSize = false)
@@ -173,9 +252,18 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
 
     public virtual void InvalidateBitmap()
     {
+        _renderCacheDirty = true;
         _bitmap?.NotifyPixelsChanged();
         OnNodeInvalidated();
     }
+
+    /// <summary>
+    /// Flags the cached mip image (used by the zoomed-out draw path) stale so the next minified frame
+    /// rebuilds it. Cheap and thread-safe — only flips a flag; the dispose/rebuild happens on the render
+    /// thread. Call this from code that writes pixels straight into <see cref="Bitmap"/> without going
+    /// through this node's own mutators (e.g. the live-drawing commit in <see cref="Pix2dSprite"/>).
+    /// </summary>
+    public void InvalidateRenderCache() => _renderCacheDirty = true;
 
     public void MergeFrom(BitmapNode sprite, float opacity = 1)
     {
@@ -226,6 +314,9 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     {
         _bitmap?.Dispose();
         _bitmap = null;
+        _mipImage?.Dispose();
+        _mipImage = null;
+        _mipSource = null;
         base.OnUnload();
     }
 
@@ -233,5 +324,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     {
         _substitute = from._substitute;
         from._substitute = null;
+        _renderCacheDirty = true;
+        from._renderCacheDirty = true;
     }
 }
