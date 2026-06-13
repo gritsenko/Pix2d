@@ -54,6 +54,13 @@ public class SKInput
     public bool IsInitialized => RootNodeProvider != null && ViewPortProvider != null;
     public bool EraserMode { get; set; }
 
+    /// <summary>
+    /// Normalized pressure [0..1] for the next pointer snapshot. Set by the host control from the
+    /// platform pointer (real value for a stylus pen, <c>1</c> for mouse/touch) before each
+    /// Set* call, mirroring how <see cref="EraserMode"/> is fed in.
+    /// </summary>
+    public float Pressure { get; set; } = 1f;
+
     private void OnPanModeChanged(bool value)
     {
         foreach (var interactive in GetInteractives(Pointer.WorldPosition))
@@ -70,7 +77,7 @@ public class SKInput
         if (!IsInitialized)
             return;
 
-        Pointer = new SKInputPointer(pos, GetViewport()!, true, EraserMode, isTouch);
+        Pointer = new SKInputPointer(pos, GetViewport()!, true, EraserMode, isTouch, Pressure);
         var args = new PointerActionEventArgs(PointerActionType.Pressed, Pointer, modifiers);
 
         HandlePointerEventByInteractives((interactive) =>
@@ -103,7 +110,7 @@ public class SKInput
         if (!IsInitialized)
             return;
 
-        Pointer = new SKInputPointer(pos, GetViewport()!, false, EraserMode, isTouch);
+        Pointer = new SKInputPointer(pos, GetViewport()!, false, EraserMode, isTouch, Pressure);
         var args = new PointerActionEventArgs(PointerActionType.Released, Pointer, modifiers);
 
         HandlePointerEventByInteractives((interactive) =>
@@ -117,7 +124,7 @@ public class SKInput
         if (!IsInitialized)
             return;
 
-        Pointer = new SKInputPointer(pos, GetViewport()!, isPointerPressed, EraserMode, isTouch);
+        Pointer = new SKInputPointer(pos, GetViewport()!, isPointerPressed, EraserMode, isTouch, Pressure);
         var worldPos = Pointer.WorldPosition;
 
         var args = new PointerActionEventArgs(PointerActionType.Moved, Pointer, modifiers);

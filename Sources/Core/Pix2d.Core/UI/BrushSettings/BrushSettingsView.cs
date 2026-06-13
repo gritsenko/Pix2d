@@ -48,18 +48,30 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
                                             .ShowSizeText(true)
                                     ),
 
-                        new SliderEx()
-                            .Label(L("Size"))
-                            .Units("px")
-                            .Minimum(1)
-                            .Value(state, x => x.BrushScale, BindingMode.TwoWay)
-                            .Row(2),
+                        new Grid()
+                            .Cols("*,Auto")
+                            .Row(2)
+                            .Children(
+                                new SliderEx()
+                                    .Label(L("Size"))
+                                    .Units("px")
+                                    .Minimum(1)
+                                    .Value(state, x => x.BrushScale, BindingMode.TwoWay),
+                                BuildPressureToggle()
+                                    .Col(1)
+                                    .IsChecked(state, x => x.IsSizePressureEnabled, BindingMode.TwoWay)),
 
-                        new SliderEx()
-                            .Label(L("Opacity"))
-                            .Units("%")
-                            .Value(state, x => x.BrushOpacity, BindingMode.TwoWay)
-                            .Row(3),
+                        new Grid()
+                            .Cols("*,Auto")
+                            .Row(3)
+                            .Children(
+                                new SliderEx()
+                                    .Label(L("Opacity"))
+                                    .Units("%")
+                                    .Value(state, x => x.BrushOpacity, BindingMode.TwoWay),
+                                BuildPressureToggle()
+                                    .Col(1)
+                                    .IsChecked(state, x => x.IsOpacityPressureEnabled, BindingMode.TwoWay)),
 
                         new SliderEx()
                             .Label(L("Spacing"))
@@ -74,6 +86,24 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
                             .Content(L("Pixel perfect mode").ToUpperInvariant())
                             .Row(5)
                     ));
+
+    // Compact toggle placed next to the Size / Opacity sliders. When on, stylus pen pressure scales that
+    // property while drawing. The pen glyph (Segoe MDL2) reads as "responds to the stylus".
+    private static ToggleButton BuildPressureToggle() =>
+        new ToggleButton()
+            .ToolTip_Tip(L("Pressure sensitivity"))
+            .VerticalAlignment(VerticalAlignment.Center)
+            .Margin(8, 0, 0, 0)
+            .Padding(0)
+            .Width(36)
+            .Height(36)
+            .Content(
+                new TextBlock()
+                    .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                    .FontSize(16)
+                    .Text("")
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .VerticalAlignment(VerticalAlignment.Center));
 
     public sealed partial class State : ObservableObject
     {
@@ -97,6 +127,12 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
 
         [ObservableProperty]
         public partial bool IsPixelPerfectDrawingModeEnabled { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsSizePressureEnabled { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsOpacityPressureEnabled { get; set; }
 
         public State(AppState appState)
         {
@@ -153,6 +189,22 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
             _drawingState.IsPixelPerfectDrawingModeEnabled = value;
         }
 
+        partial void OnIsSizePressureEnabledChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            UpdateBrush(brush => brush.PressureAffectsSize = value);
+        }
+
+        partial void OnIsOpacityPressureEnabledChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            UpdateBrush(brush => brush.PressureAffectsOpacity = value);
+        }
+
         private void SyncFromDrawingState()
         {
             _isSyncing = true;
@@ -162,6 +214,8 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
             BrushScale = _drawingState.CurrentBrushSettings.Scale;
             BrushOpacity = _drawingState.CurrentBrushSettings.Opacity * 100d;
             BrushSpacing = _drawingState.CurrentBrushSettings.Spacing;
+            IsSizePressureEnabled = _drawingState.CurrentBrushSettings.PressureAffectsSize;
+            IsOpacityPressureEnabled = _drawingState.CurrentBrushSettings.PressureAffectsOpacity;
             IsPixelPerfectDrawingModeEnabled = _drawingState.IsPixelPerfectDrawingModeEnabled;
 
             _isSyncing = false;

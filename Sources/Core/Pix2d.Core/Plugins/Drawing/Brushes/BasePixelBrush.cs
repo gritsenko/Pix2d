@@ -21,6 +21,18 @@ public abstract class BasePixelBrush : IPixelBrush
     public int Size => (int) _scale;
     public float Opacity => _opacity;
 
+    public bool PressureAffectsSize { get; set; }
+    public bool PressureAffectsOpacity { get; set; }
+
+    /// <summary>
+    /// Live stylus pressure for the current stamp. The freehand stroke path sets this per pointer event;
+    /// every other path leaves it at the default <c>1</c>, so the pressure factors below collapse to 1.
+    /// </summary>
+    public double CurrentPressure { get; set; } = 1;
+
+    private double SizePressureFactor => PressureAffectsSize ? CurrentPressure : 1.0;
+    private double OpacityPressureFactor => PressureAffectsOpacity ? CurrentPressure : 1.0;
+
     public SKPointI CenterPoint { get; set; }
     public SKPointI BottomRightPoint { get; set; }
 
@@ -112,23 +124,33 @@ public abstract class BasePixelBrush : IPixelBrush
 
     protected virtual void EraseCore(IDrawingLayer layer, SKPointI pos, double pressure)
     {
-        var bm = GetBrushBitmap(SKColors.White, _scale);
+        var sizeFactor = SizePressureFactor;
+        var bm = GetBrushBitmap(SKColors.White, EffectiveScale(_scale, sizeFactor));
         if (bm == null)
             return;
-        var destRect = GetRect(pos - CenterPoint, new SKSize(bm.Width, bm.Height));
-        layer.DrawWithBitmap(bm, destRect, SKBlendMode.DstOut, (float)(_opacity * pressure));
+        var destRect = GetRect(pos - StampOffset(bm, sizeFactor), new SKSize(bm.Width, bm.Height));
+        layer.DrawWithBitmap(bm, destRect, SKBlendMode.DstOut, (float)(_opacity * pressure * OpacityPressureFactor));
     }
 
     protected virtual void DrawCore(IDrawingLayer layer, SKPointI pos, SKColor color, double pressure)
     {
-        var bm = GetBrushBitmap(color, (float) (_scale * pressure));
+        var sizeFactor = SizePressureFactor;
+        var bm = GetBrushBitmap(color, EffectiveScale((float)(_scale * pressure), sizeFactor));
         if (bm == null)
             return;
-        var destRect = GetRect(pos - CenterPoint, new SKSize(bm.Width, bm.Height));
+        var destRect = GetRect(pos - StampOffset(bm, sizeFactor), new SKSize(bm.Width, bm.Height));
         var composMode = SKBlendMode.SrcOver;
 
-        layer.DrawWithBitmap(bm, destRect, composMode, _opacity);
+        layer.DrawWithBitmap(bm, destRect, composMode, (float)(_opacity * OpacityPressureFactor));
     }
+
+    // Pressure-scaled stamp size, never below 1px (a 0-sized brush bitmap would crash the SKBitmap ctor).
+    private static float EffectiveScale(float scale, double sizeFactor) => Math.Max(1f, (float)(scale * sizeFactor));
+
+    // When pressure changes the size, recenter on the actual (smaller/larger) bitmap; otherwise keep the
+    // brush's precomputed CenterPoint so non-pressure strokes and shapes are pixel-identical to before.
+    private SKPointI StampOffset(SKBitmap bm, double sizeFactor)
+        => sizeFactor == 1.0 ? CenterPoint : new SKPointI(bm.Width / 2, bm.Height / 2);
 
     private SKRect GetRect(SKPointI pos, SKSize size)
     {

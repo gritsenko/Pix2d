@@ -219,6 +219,14 @@ public class SkiaCanvas : Control
     private static bool IsEraserInput(PointerPointProperties props)
         => props.IsRightButtonPressed || props.IsEraser || props.IsInverted;
 
+    /// <summary>
+    /// Normalized pressure [0..1] for <see cref="SKInput.Pressure"/>. Only a stylus pen carries real
+    /// pressure; mouse and touch report <c>1</c> so pressure-driven brushes behave as before for them.
+    /// (Avalonia reports 0.5 for pressure-less devices, which would otherwise halve every stroke.)
+    /// </summary>
+    private static float GetPressure(PointerPointProperties props, PointerType pointerType)
+        => pointerType == PointerType.Pen ? Math.Clamp(props.Pressure, 0f, 1f) : 1f;
+
     protected override void ArrangeCore(Rect finalRect)
     {
         base.ArrangeCore(finalRect);
@@ -608,6 +616,7 @@ public class SkiaCanvas : Control
         }
 
         Input.EraserMode = IsEraserInput(props);
+        Input.Pressure = GetPressure(props, pointerType);
 
         Input.SetPointerPressed(ToSKPoint(position), ToModifiers(e.KeyModifiers),
             e.Pointer.Type == PointerType.Touch, e.ClickCount);
@@ -665,6 +674,7 @@ public class SkiaCanvas : Control
         // flag must be current before the pointer snapshot is built below. For mouse/touch this matches
         // the press path (right button, otherwise false).
         Input.EraserMode = IsEraserInput(props);
+        Input.Pressure = GetPressure(props, pointerType);
 
         var isPointerPressed = pointerType == PointerType.Touch ? _isPointerPressed : props.IsLeftButtonPressed;
         Input.SetPointerMoved(ToSKPoint(pos), isPointerPressed, ToModifiers(e.KeyModifiers),

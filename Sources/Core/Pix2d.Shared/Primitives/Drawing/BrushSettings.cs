@@ -9,6 +9,12 @@ public class BrushSettings
     public float Opacity { get; set; }
     public float Spacing { get; set; } = 1;
 
+    /// <summary>When enabled, stylus pen pressure scales the brush size while drawing.</summary>
+    public bool PressureAffectsSize { get; set; }
+
+    /// <summary>When enabled, stylus pen pressure scales the brush opacity while drawing.</summary>
+    public bool PressureAffectsOpacity { get; set; }
+
     public BrushSettings Clone()
     {
             return new BrushSettings()
@@ -17,18 +23,25 @@ public class BrushSettings
                 Scale = this.Scale,
                 Opacity = this.Opacity,
                 Spacing = this.Spacing,
+                PressureAffectsSize = this.PressureAffectsSize,
+                PressureAffectsOpacity = this.PressureAffectsOpacity,
             };
         }
 
     public async void InitBrush()
     {
             if (Brush != null)
+            {
+                Brush.PressureAffectsSize = PressureAffectsSize;
+                Brush.PressureAffectsOpacity = PressureAffectsOpacity;
                 await Brush.InitBrush(Scale, Opacity, Spacing);
+            }
         }
 
     protected bool Equals(BrushSettings other)
     {
-            return Equals(Brush, other.Brush) && Scale.Equals(other.Scale) && Opacity.Equals(other.Opacity) && Spacing.Equals(other.Spacing);
+            return Equals(Brush, other.Brush) && Scale.Equals(other.Scale) && Opacity.Equals(other.Opacity) && Spacing.Equals(other.Spacing)
+                   && PressureAffectsSize == other.PressureAffectsSize && PressureAffectsOpacity == other.PressureAffectsOpacity;
         }
 
     public override bool Equals(object? obj)
@@ -47,6 +60,8 @@ public class BrushSettings
                 hashCode = (hashCode * 397) ^ Scale.GetHashCode();
                 hashCode = (hashCode * 397) ^ Opacity.GetHashCode();
                 hashCode = (hashCode * 397) ^ Spacing.GetHashCode();
+                hashCode = (hashCode * 397) ^ PressureAffectsSize.GetHashCode();
+                hashCode = (hashCode * 397) ^ PressureAffectsOpacity.GetHashCode();
                 return hashCode;
             }
         }

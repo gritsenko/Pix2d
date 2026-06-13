@@ -82,6 +82,10 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     private SKColor _drawingColor;
     private IPixelBrush? _brush;
     private SKSurface? _brushPreviewSurface;
+
+    // Live stylus pressure [0..1] for the current pointer event, captured on press/move and fed to the
+    // brush on each freehand stamp. Defaults to 1 (full pressure) for mouse/touch and between strokes.
+    private double _currentPressure = 1;
     private readonly List<SKPointI> _strokePoints = new();
     private readonly List<SKPointI> _pixelPerfectPreviewPoints = new();
 
@@ -285,6 +289,8 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     {
         if (!IsInitialized) return;
 
+        _currentPressure = eventArgs.Pointer.Pressure;
+
         // On touch screens move event might not capture last position, so we need to update it here
         // to prevent bugs with axis locked drawing.
         PreviewPosition = eventArgs.Pointer.GetPosition(this).ToSkPointI();
@@ -338,6 +344,8 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     {
         if (!IsInitialized) return;
 
+        _currentPressure = eventArgs.Pointer.Pressure;
+
         var prevPointerPosition = PreviewPosition;
         var currPointerPosition = eventArgs.Pointer.GetPosition(this).ToSkPointI();
 
@@ -358,6 +366,11 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
 
     private void FinishReleasedDrawing()
     {
+        // A tap (press+release with no move) commits its single point here; keep its pressure consistent
+        // with the freehand path above.
+        if (_brush != null)
+            _brush.CurrentPressure = _currentPressure;
+
         if (IsPixelPerfectMode && _strokePoints.Count > 1)
         {
             if (UseSwapBitmap)
@@ -424,6 +437,10 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
 
     private void DrawStroke(SKPoint pos)
     {
+        // Feed the live stylus pressure into the brush for this freehand stamp. Shapes never reach this
+        // path and BeginDrawing resets it to 1, so non-freehand drawing keeps full pressure.
+        if (_brush != null)
+            _brush.CurrentPressure = _currentPressure;
 
         if (_drawingMode == BrushDrawingMode.Draw)
         {
@@ -650,6 +667,11 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         _strokePoints.Clear();
         _pixelPerfectPreviewPoints.Clear();
         ClearPixelPerfectPreviewTail();
+
+        // Reset pressure to full at the start of every operation. The freehand path re-applies the live
+        // value per stamp; shapes (and any non-freehand path) keep full pressure because they never do.
+        if (_brush != null)
+            _brush.CurrentPressure = 1;
 
         DrawingStarted?.Invoke(this, EventArgs.Empty);
 
