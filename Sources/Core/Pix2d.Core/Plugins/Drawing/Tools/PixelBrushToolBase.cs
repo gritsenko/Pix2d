@@ -72,6 +72,16 @@ public abstract class PixelBrushToolBase : BaseTool, IDrawingTool
     protected override void OnPointerMoved(object? sender, PointerActionEventArgs e)
     {
         DrawingService.DrawingLayer.ShowBrushPreview = !e.Pointer.IsTouch;
+
+        // Mirror a stylus eraser tip into the drawing mode while hovering, so the brush preview shows the
+        // erase (gray) outline before the stroke begins — same mapping as the press handler. Reading the
+        // DrawingMode *property* lets tools that pin their mode (EraserTool, shape tools) stay authoritative.
+        var desiredMode = e.Pointer.IsEraser ? BrushDrawingMode.Erase : BrushDrawingMode.Draw;
+        if (_drawingMode != desiredMode)
+        {
+            _drawingMode = desiredMode;
+            DrawingService.DrawingLayer.SetDrawingLayerMode(DrawingMode);
+        }
     }
 
     protected override void OnPointerPressed(object? sender, PointerActionEventArgs e)

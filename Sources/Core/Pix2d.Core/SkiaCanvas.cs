@@ -209,6 +209,16 @@ public class SkiaCanvas : Control
     private static KeyModifier ToModifiers(KeyModifiers keyModifiers) => (KeyModifier)keyModifiers;
     private static VirtualKeys ToVirtualKeys(Key key) => (VirtualKeys)KeyInterop.VirtualKeyFromKey(key);
 
+    /// <summary>
+    /// True when the input should erase: the right mouse button (the classic erase shortcut) or a stylus
+    /// used with its eraser end. Windows/Android report the flipped pen via <see cref="PointerPointProperties.IsEraser"/>
+    /// and/or <see cref="PointerPointProperties.IsInverted"/> — different digitizers populate one or the other,
+    /// so we accept either. Drives <see cref="SKInput.EraserMode"/>, which a brush/pencil tool reads to switch
+    /// to <see cref="Pix2d.Primitives.Drawing.BrushDrawingMode.Erase"/> for the stroke (and the hover preview).
+    /// </summary>
+    private static bool IsEraserInput(PointerPointProperties props)
+        => props.IsRightButtonPressed || props.IsEraser || props.IsInverted;
+
     protected override void ArrangeCore(Rect finalRect)
     {
         base.ArrangeCore(finalRect);
@@ -597,7 +607,7 @@ public class SkiaCanvas : Control
             return;
         }
 
-        Input.EraserMode = props.IsRightButtonPressed;
+        Input.EraserMode = IsEraserInput(props);
 
         Input.SetPointerPressed(ToSKPoint(position), ToModifiers(e.KeyModifiers),
             e.Pointer.Type == PointerType.Touch, e.ClickCount);
@@ -650,6 +660,11 @@ public class SkiaCanvas : Control
             InvalidateVisual();
             return;
         }
+
+        // Keep the eraser flag live for a stylus: the eraser end both hovers (preview) and draws, so the
+        // flag must be current before the pointer snapshot is built below. For mouse/touch this matches
+        // the press path (right button, otherwise false).
+        Input.EraserMode = IsEraserInput(props);
 
         var isPointerPressed = pointerType == PointerType.Touch ? _isPointerPressed : props.IsLeftButtonPressed;
         Input.SetPointerMoved(ToSKPoint(pos), isPointerPressed, ToModifiers(e.KeyModifiers),
