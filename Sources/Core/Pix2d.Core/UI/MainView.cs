@@ -46,7 +46,10 @@ public partial class MainView : ViewBase<MainViewModel>
             .Margin(StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, 48)
             .Col(0)
             .Row(1)
-            .RowSpan(2),
+            .RowSpan(2)
+            // Alignment as a base style (not local in Build) so Narrow can stretch it full width.
+            .HorizontalAlignment(HorizontalAlignment.Left)
+            .VerticalAlignment(VerticalAlignment.Center),
 
         new Style<LayersView>()
             .Margin(0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin)
@@ -81,11 +84,14 @@ public partial class MainView : ViewBase<MainViewModel>
                 .RowSpan(2),
 
             new Style<ToolBarView>()
-                .Margin(StaticResources.Measures.PanelMargin)
+                .Margin(0)
                 .Col(0)
                 .Row(2)
                 .RowSpan(1)
-                .ColSpan(4),
+                .ColSpan(4)
+                // Full window width, anchored to the bottom edge.
+                .HorizontalAlignment(HorizontalAlignment.Stretch)
+                .VerticalAlignment(VerticalAlignment.Bottom),
 
             new Style<InfoPanelView>()
                 .IsVisible(false),
@@ -142,9 +148,7 @@ public partial class MainView : ViewBase<MainViewModel>
                             ViewFactory.Create<TopBarView>().Ref(out _topBarView).Row(0).ColSpan(3)
                                 .Margin(0, 0, 0, 1),
 
-                            ViewFactory.Create<ToolBarView>()
-                                .HorizontalAlignment(HorizontalAlignment.Left)
-                                .VerticalAlignment(VerticalAlignment.Center),
+                            ViewFactory.Create<ToolBarView>(),
 
                             ViewFactory.Create<AdditionalTopBarView>().Col(2),
 

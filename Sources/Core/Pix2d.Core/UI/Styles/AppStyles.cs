@@ -138,6 +138,14 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .CornerRadius(10)
                     .Background(StaticResources.Brushes.BrushButtonBrush)
                     .BorderThickness(0),
+
+                // Compact (Narrow) overrides — declared after the base button styles above so they
+                // win by order within this same style host. Halves the corner radius on app buttons
+                // and toggle buttons everywhere in narrow mode (top bar, additional bar, action bar).
+                new Style<Button>(_ => VisualStates.Narrow().OfType<Button>().Class("app-button"))
+                    .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
+                new Style<ToggleButton>(_ => VisualStates.Narrow().OfType<ToggleButton>())
+                    .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
             ]
         );
 

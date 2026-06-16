@@ -18,7 +18,23 @@ public partial class AdditionalTopBarView(AppState appState, ISettingsService se
         new StyleGroup(_ => VisualStates.Narrow())
         {
             new Style<AppToggleButton>(s=>s.OfType<AppToggleButton>().Name("preview-button"))
-                .IsVisible(false)
+                .IsVisible(false),
+
+            // Icon-only: hide the caption (its "Auto" row collapses to 0).
+            new Style<TextBlock>(s => s.OfType<TextBlock>().Name(AppButton.LabelControlName))
+                .IsVisible(false),
+
+            // Square, compact buttons matching the top bar. Outer control + inner ToggleButton.
+            new Style<AppButton>(s => s.Is<AppButton>())
+                .Width(StaticResources.Measures.CompactAppButtonSize)
+                .Height(StaticResources.Measures.CompactAppButtonSize)
+                .Margin(StaticResources.Measures.CompactButtonMargin),
+
+            new Style<ToggleButton>(s => s.OfType<ToggleButton>())
+                .Width(StaticResources.Measures.CompactAppButtonSize)
+                .Height(StaticResources.Measures.CompactAppButtonSize)
+                .Margin(0)
+                .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
         }
     ];
 

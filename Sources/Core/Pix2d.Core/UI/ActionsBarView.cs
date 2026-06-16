@@ -29,6 +29,15 @@ public partial class ActionsBarView(AppState appState, ICommandService commandSe
                 VisualStates.Narrow().OfType<ActionsBarView>().Descendant().Is<AppButton>().Descendant()
                     .OfType<TextBlock>())
             .FontSize(9),
+
+        new StyleGroup(_ => VisualStates.Narrow())
+        {
+            // Tighten the action toolbar: no gap between buttons + smaller corner radius.
+            new Style<AppButton>(s => s.Is<AppButton>())
+                .Margin(0),
+            new Style<Button>(s => s.OfType<Button>().Class("app-button"))
+                .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
+        }
     ];
 
     protected override object Build(State state) =>

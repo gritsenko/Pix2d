@@ -427,6 +427,12 @@ public static class StaticResources
         public static double PanelMargin = 12;
         public static double SmallButtonCornerRadius = 10;
         public static double SmallButtonSize = 36;
+
+        // Compact (Narrow / mobile) layout: square icon-only buttons and tighter spacing.
+        public static double CompactAppButtonSize = 36;  // square icon-only top-bar / additional-bar buttons
+        public static double CompactToolButtonSize = 40; // drawing tools — keep a touch-friendly target
+        public static double CompactButtonMargin = 3;
+        public static double CompactButtonCornerRadius = 6; // ~half of the 12px app-button radius
     }
 
     public static Bitmap UltimateImage { get; set; } =

@@ -17,13 +17,18 @@ public class BlurPanel : ViewBase
     public static readonly StyledProperty<IBrush> BorderBrushProperty =
         AvaloniaProperty.Register<BlurPanel, IBrush>(nameof(BorderBrush), StaticResources.Brushes.PanelStrokeBrush);
 
+    // Exposed so responsive styles can flatten the corners (e.g. flush top/bottom bars in
+    // compact/Narrow mode). Defaults to the rounded panel look so existing callers are unchanged.
+    public static readonly StyledProperty<CornerRadius> CornerRadiusProperty =
+        AvaloniaProperty.Register<BlurPanel, CornerRadius>(nameof(CornerRadius), new CornerRadius(StaticResources.Measures.PanelCornerRadius));
+
     public static readonly DirectProperty<BlurPanel, Control> ContentProperty
         = AvaloniaProperty.RegisterDirect<BlurPanel, Control>(nameof(Content), o => o.Content, (o, v) => o.Content = v);
     private Control _content = null!;
 
     static BlurPanel()
     {
-        AffectsRender<BlurPanel>(BackgroundBrushProperty, BorderBrushProperty);
+        AffectsRender<BlurPanel>(BackgroundBrushProperty, BorderBrushProperty, CornerRadiusProperty);
     }
 
     public bool DisableBlur
@@ -43,6 +48,12 @@ public class BlurPanel : ViewBase
         set => SetValue(BorderBrushProperty, value);
     }
 
+    public CornerRadius CornerRadius
+    {
+        get => GetValue(CornerRadiusProperty);
+        set => SetValue(CornerRadiusProperty, value);
+    }
+
     public Control Content
     {
         get => _content;
@@ -52,7 +63,7 @@ public class BlurPanel : ViewBase
     protected override object Build() =>
         new Border().Name("BlurPanelBorder")
             .Background(this, x => x.BackgroundBrush, BindingMode.OneWay)
-            .CornerRadius(StaticResources.Measures.PanelCornerRadius)
+            .CornerRadius(this, x => x.CornerRadius, BindingMode.OneWay)
             .BorderBrush(this, x => x.BorderBrush, BindingMode.OneWay)
             .BorderThickness(1)
             .Child(this, x => x.Content, BindingMode.OneWay);

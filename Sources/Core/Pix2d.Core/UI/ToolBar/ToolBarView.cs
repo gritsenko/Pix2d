@@ -57,14 +57,33 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
         new Style<StackPanel>(s => s.OfType<StackPanel>().Class("brush-panel"))
             .Width(56),
 
+        // Base margin for the color/brush panel as a style (not local) so Narrow can change it.
+        new Style<BlurPanel>(s => s.OfType<BlurPanel>().Name("color-brush-panel"))
+            .Margin(0, 0, 0, 12),
+
         new StyleGroup(_ => VisualStates.Narrow())
         {
             new Style<ScrollViewer>(s => s.OfType<ToolBarView>().Descendant().OfType<ScrollViewer>())
                 .VerticalScrollBarVisibility(ScrollBarVisibility.Disabled)
                 .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden),
 
+            // Tools bar: flat corners + full width, flush to the bottom edge.
+            new Style<BlurPanel>(s => s.OfType<BlurPanel>().Name("tools-bar-panel"))
+                .Setter(BlurPanel.CornerRadiusProperty, new CornerRadius(0))
+                .HorizontalAlignment(HorizontalAlignment.Stretch),
+
+            // Color/brush panel keeps a small rounding and a bottom gap above the flush tools bar.
+            new Style<BlurPanel>(s => s.OfType<BlurPanel>().Name("color-brush-panel"))
+                .Setter(BlurPanel.CornerRadiusProperty, new CornerRadius(8))
+                .Margin(8, 0, 0, 16),
+
             new Style<Button>(s => s.Class("toolbar-button"))
-                .Padding(new Thickness(0)).VerticalAlignment(VerticalAlignment.Top),
+                .Padding(new Thickness(0))
+                .VerticalAlignment(VerticalAlignment.Top)
+                .Width(StaticResources.Measures.CompactToolButtonSize)
+                .Height(StaticResources.Measures.CompactToolButtonSize)
+                .Margin(StaticResources.Measures.CompactButtonMargin)
+                .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
 
             new Style<Button>(s => s.OfType<Button>().Class("color-button"))
                 .Width(32).Height(32).Margin(8, 12, 8, 6).VerticalAlignment(VerticalAlignment.Top),
@@ -84,8 +103,7 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
             .Rows("Auto, *")
             .Children(
 
-                new BlurPanel().Row(0)
-                    .Margin(0, 0, 0, 12)
+                new BlurPanel().Row(0).Name("color-brush-panel")
                     .HorizontalAlignment(HorizontalAlignment.Left)
                     .Content(
                         new StackPanel()
@@ -120,7 +138,7 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
                         )
                     ),
 
-                new BlurPanel().Row(1)
+                new BlurPanel().Row(1).Name("tools-bar-panel")
                     .Content(
                         new ScrollViewer()
                             .VerticalScrollBarVisibility(ScrollBarVisibility.Hidden)

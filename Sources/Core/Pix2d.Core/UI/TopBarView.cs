@@ -17,18 +17,56 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
         new Style<BlurPanel>(s => s.OfType<BlurPanel>().Name("central-panel"))
             .ColSpan(3),
 
+        // Outer padding as a base style (NOT a local value on the grid) so the Narrow group below
+        // can zero it — a Style cannot override a value set locally inside Build().
+        new Style<Grid>(s => s.OfType<Grid>().Name("top-bar-root"))
+            .Margin(12, 12, 12, 0),
+
         new StyleGroup(_ => VisualStates.Narrow())
         {
             new Style<BlurPanel>(s => s.OfType<BlurPanel>().Name("central-panel"))
                 .Col(1)
                 .ColSpan(1),
+
+            // Flush to the top edge + one shared background so the three panels read as a single
+            // solid bar: give the root grid the panel background, then make the inner panels
+            // transparent and borderless.
+            new Style<Grid>(s => s.OfType<Grid>().Name("top-bar-root"))
+                .Margin(0)
+                .Background(StaticResources.Brushes.PanelsBackgroundBrush),
+
+            new Style<BlurPanel>()
+                .Setter(BlurPanel.BackgroundBrushProperty, Brushes.Transparent)
+                .Setter(BlurPanel.BorderBrushProperty, Brushes.Transparent),
+
+            // Icon-only: hide the caption (its row is "Auto", so it collapses to 0 height).
+            new Style<TextBlock>(s => s.OfType<TextBlock>().Name(AppButton.LabelControlName))
+                .IsVisible(false),
+
+            // Square, compact buttons with smaller corners. Each AppButton is the outer control
+            // plus an inner Button("app-button")/ToggleButton, so size both layers.
+            new Style<AppButton>(s => s.Is<AppButton>())
+                .Width(StaticResources.Measures.CompactAppButtonSize)
+                .Height(StaticResources.Measures.CompactAppButtonSize)
+                .Margin(StaticResources.Measures.CompactButtonMargin),
+
+            new Style<Button>(s => s.OfType<Button>().Class("app-button"))
+                .Width(StaticResources.Measures.CompactAppButtonSize)
+                .Height(StaticResources.Measures.CompactAppButtonSize)
+                .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
+
+            new Style<ToggleButton>(s => s.OfType<ToggleButton>())
+                .Width(StaticResources.Measures.CompactAppButtonSize)
+                .Height(StaticResources.Measures.CompactAppButtonSize)
+                .Margin(0)
+                .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
         }
     ];
 
     protected override object Build(State state) =>
         new Grid()
+            .Name("top-bar-root")
             .Cols("Auto,*,Auto")
-            .Margin(12, 12, 12, 0)
             .Children(
                 //MENU BUTTON
                 new BlurPanel().Col(0)
@@ -90,8 +128,6 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
                                         new Grid()
                                             .HorizontalAlignment(HorizontalAlignment.Stretch)
                                             .VerticalAlignment(VerticalAlignment.Stretch)
-                                            .Width(50)
-                                            .Height(30)
                                             .Children(
                                                 new TextBlock()
                                                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
