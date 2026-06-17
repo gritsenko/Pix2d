@@ -3,16 +3,15 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Brushes;
 
-public class SprayBrush : BasePixelBrush
+/// <summary>
+/// Soft round marker / pen. Same streamlined, evenly-spaced stroke as the airbrush, but painted in
+/// <see cref="BrushStrokeStyle.Marker"/> mode: the whole stroke is laid down once at the brush opacity, so a
+/// single pass reads as one flat, even tone (overlap inside the stroke does not darken). The nib is mostly
+/// solid with a thin soft edge so it stays crisp rather than feathery like the airbrush.
+/// </summary>
+public class MarkerBrush : BasePixelBrush
 {
-    public SprayBrush()
-    {
-        Spacing = 0.1f;
-    }
-
-    // Gradient round brush = airbrush: streamlined, evenly-spaced dabs that build up on overlap, so repeated
-    // passes darken an area and the edges stay soft and feathered (spray feel), instead of a flat even tone.
-    public override BrushStrokeStyle StrokeStyle => BrushStrokeStyle.Airbrush;
+    public override BrushStrokeStyle StrokeStyle => BrushStrokeStyle.Marker;
 
     public override SKBitmap GetPreviewBitmap(float scale)
     {
@@ -29,19 +28,13 @@ public class SprayBrush : BasePixelBrush
         var size = Math.Max(1, (int)scale);
         _brushBitmap = new SKBitmap(size, size, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
 
-        // Center the gradient on the *current* stamp size. The base CenterPoint is computed for the brush's
-        // configured size and goes stale when pressure shrinks the stamp — using it here placed the gradient
-        // outside the smaller bitmap, so light-pressure spray stamps rendered empty (zero thickness until the
-        // stamp grew back large enough to contain the stale center).
+        // Center on the *current* stamp size so pressure-shrunk stamps stay centered (same reasoning as SprayBrush).
         var center = new SKPoint(size / 2f, size / 2f);
         var radius = Math.Max(0.5f, size / 2f);
 
-        // Feathered airbrush profile: full at the very center, fading out toward the rim with no solid core.
-        // Summing many of these low-opacity dabs along the stroke gives a smooth spray gradient (a hard core
-        // would stack into visible blobs). The mid stop biases density toward the center so the spray has a
-        // denser middle and a soft halo, like a real airbrush cone.
-        var colors = new[] { color, color.WithAlpha((byte)(color.Alpha * 0.5f)), color.WithAlpha(0) };
-        var colorPos = new[] { 0f, 0.5f, 1f };
+        // Mostly-solid nib with a thin (~20%) anti-aliased edge — a firm marker/pen tip, not a feathered spray.
+        var colors = new[] { color, color, color.WithAlpha(0) };
+        var colorPos = new[] { 0f, 0.8f, 1f };
         using (var paint = new SKPaint { IsStroke = false })
         using (var canvas = new SKCanvas(_brushBitmap))
         {
@@ -63,6 +56,7 @@ public class SprayBrush : BasePixelBrush
     {
         return base.Draw(layer, pos, color, 1, ignoreSpacing);
     }
+
     public override bool Erase(IDrawingLayer layer, SKPointI pos, double pressure, bool ignoreSpacing)
     {
         return base.Erase(layer, pos, 1, ignoreSpacing);

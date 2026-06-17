@@ -36,7 +36,8 @@ public class DrawingService : IDrawingService
         new SquareSolidBrush(),
         new CircleSolidBrush(),
         //new PencilBrush(),
-        new SprayBrush()
+        new SprayBrush(),
+        new MarkerBrush()
     ];
 
     public IDrawingLayer DrawingLayer
@@ -275,7 +276,8 @@ public class DrawingService : IDrawingService
             new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 6, Opacity = 1f },
             new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 8, Opacity = 1f },
             new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 10, Opacity = 1f },
-            new() { Brush = GetBrush<SprayBrush>(), Scale = 16, Opacity = 0.1f }
+            new() { Brush = GetBrush<SprayBrush>(), Scale = 16, Opacity = 0.1f },
+            new() { Brush = GetBrush<MarkerBrush>(), Scale = 16, Opacity = 0.5f }
         };
 
         SpriteEditorState.BrushPresets = bps;

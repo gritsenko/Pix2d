@@ -213,6 +213,14 @@ internal sealed class StrokeRenderer
         return new SKPointI(xx, yy);
     }
 
+    /// <summary>
+    /// Stamps the brush once at a layer-space point with spacing already decided by the caller (used by the
+    /// smooth soft-brush stroke, which spaces dabs at even sub-pixel intervals itself). Honors mirror just
+    /// like the normal stroke path.
+    /// </summary>
+    public void StampPoint(IPixelBrush brush, SKPointI layerPoint, SKColor color, int scale = 1)
+        => DrawPoint(brush, layerPoint, color, scale, ignoreSpacing: true);
+
     private void DrawPoint(IPixelBrush brush, SKPointI p, SKColor color, int scale, bool ignoreSpacing = false)
     {
         var isDrawn = brush.Draw(_host, p, color, scale, ignoreSpacing);

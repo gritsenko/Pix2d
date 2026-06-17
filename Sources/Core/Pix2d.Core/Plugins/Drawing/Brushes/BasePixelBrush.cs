@@ -29,6 +29,13 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
     public int Size => (int) _scale;
     public float Opacity => _opacity;
 
+    /// <inheritdoc />
+    /// <remarks>Pixel by default — hard brushes keep the legacy per-dab path. Soft brushes override.</remarks>
+    public virtual BrushStrokeStyle StrokeStyle => BrushStrokeStyle.Pixel;
+
+    /// <summary>Marker = even-opacity stroke buffer; Airbrush/Pixel = per-dab build-up.</summary>
+    protected bool UsesEvenOpacity => StrokeStyle == BrushStrokeStyle.Marker;
+
     public bool PressureAffectsSize { get; set; }
     public bool PressureAffectsOpacity { get; set; }
 
@@ -188,9 +195,19 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
         if (bm == null)
             return;
         var destRect = GetRect(pos - StampOffset(bm, sizeFactor), new SKSize(bm.Width, bm.Height));
-        var composMode = SKBlendMode.SrcOver;
 
-        layer.DrawWithBitmap(bm, destRect, composMode, (float)(_opacity * OpacityPressureFactor));
+        if (UsesEvenOpacity)
+        {
+            // Marker: lay the dabs into the stroke buffer at FULL strength so their opaque cores saturate the
+            // spine to a uniform alpha (no per-dab build-up), then let the drawing layer composite the whole
+            // stroke once at _opacity. Pressure still tapers the ends via the per-dab alpha here; the brush
+            // opacity is applied later, at the single buffer→layer composite.
+            layer.DrawWithBitmap(bm, destRect, SKBlendMode.SrcOver, (float)OpacityPressureFactor);
+            return;
+        }
+
+        // Pixel / Airbrush: deposit at the per-dab opacity so overlapping dabs build up density.
+        layer.DrawWithBitmap(bm, destRect, SKBlendMode.SrcOver, (float)(_opacity * OpacityPressureFactor));
     }
 
     // Pressure-scaled stamp size, never below 1px (a 0-sized brush bitmap would crash the SKBitmap ctor).
@@ -242,6 +259,20 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
         var lastStampPos = SKPointI.Empty;
         var hasStamped = false;
 
+        // Marker brushes paint as an even-opacity stroke: accumulate the whole sample stroke at full strength
+        // into a separate layer (union), then lay it down once at _opacity — mirrors the live canvas stamping
+        // so the preview reads identically. Pixel/airbrush brushes stamp straight onto the canvas as before
+        // (airbrush builds up just like the live stroke).
+        SKBitmap? strokeLayer = null;
+        SKCanvas? strokeCanvas = null;
+        if (UsesEvenOpacity)
+        {
+            strokeLayer = new SKBitmap(width, height, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
+            strokeLayer.Clear();
+            strokeCanvas = new SKCanvas(strokeLayer);
+        }
+        var stampCanvas = strokeCanvas ?? canvas;
+
         // Sample densely; the brush's own spacing (AbsoluteSpacing) thins the stamps exactly like a live stroke.
         var steps = Math.Max(2, (int)(x1 - x0));
         for (var i = 0; i <= steps; i++)
@@ -259,7 +290,19 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
 
             lastStampPos = pos;
             hasStamped = true;
-            StampPreview(canvas, pos, color);
+            StampPreview(stampCanvas, pos, color);
+        }
+
+        if (strokeLayer != null)
+        {
+            strokeCanvas!.Flush();
+            using var paint = new SKPaint
+            {
+                Color = SKColor.Empty.WithAlpha((byte)Math.Clamp(_opacity * 255.0, 0, 255))
+            };
+            canvas.DrawBitmap(strokeLayer, 0, 0, paint);
+            strokeCanvas.Dispose();
+            strokeLayer.Dispose();
         }
 
         canvas.Flush();
@@ -278,7 +321,11 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
             return;
 
         var destRect = GetRect(pos - StampOffset(bm, sizeFactor), new SKSize(bm.Width, bm.Height));
-        var alpha = (byte)Math.Clamp(_opacity * OpacityPressureFactor * 255.0, 0, 255);
+
+        // Match DrawCore: marker lays dabs at full strength (bar pressure) into a stroke layer that the
+        // caller composites once at _opacity; pixel/airbrush deposit at the per-dab opacity directly.
+        var opacity = UsesEvenOpacity ? OpacityPressureFactor : _opacity * OpacityPressureFactor;
+        var alpha = (byte)Math.Clamp(opacity * 255.0, 0, 255);
         using var paint = new SKPaint
         {
             Color = SKColor.Empty.WithAlpha(alpha),

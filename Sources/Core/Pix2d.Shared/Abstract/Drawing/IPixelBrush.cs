@@ -2,6 +2,28 @@
 
 namespace Pix2d.Abstract.Drawing;
 
+/// <summary>
+/// How the drawing layer rasterizes a brush's freehand stroke.
+/// </summary>
+public enum BrushStrokeStyle
+{
+    /// <summary>Hard pixel-art brush: integer Bresenham + per-dab opacity, no smoothing. Legacy behavior.</summary>
+    Pixel,
+
+    /// <summary>
+    /// Soft airbrush/spray: streamlined path with even sub-pixel dab spacing, dabs deposited at the per-dab
+    /// opacity so overlapping passes <b>build up</b> density (going over an area again darkens it).
+    /// </summary>
+    Airbrush,
+
+    /// <summary>
+    /// Soft marker/pen: same streamlined, evenly-spaced path as <see cref="Airbrush"/>, but the dabs are
+    /// unioned into a stroke buffer at full strength and the whole stroke is laid down <b>once</b> at the
+    /// brush opacity — so a single stroke stays a flat, even tone no matter how the dabs overlap.
+    /// </summary>
+    Marker,
+}
+
 public interface IPixelBrush
 {
     SKPointI PixelOffset { get; }
@@ -11,6 +33,14 @@ public interface IPixelBrush
 
     int Size { get; }
     float Opacity { get; }
+
+    /// <summary>
+    /// How the drawing layer rasterizes this brush's freehand stroke. Hard pixel brushes use
+    /// <see cref="BrushStrokeStyle.Pixel"/> (pixel-for-pixel identical to legacy); soft brushes opt into
+    /// <see cref="BrushStrokeStyle.Airbrush"/> (build-up spray) or <see cref="BrushStrokeStyle.Marker"/>
+    /// (even-opacity pen).
+    /// </summary>
+    BrushStrokeStyle StrokeStyle { get; }
 
     /// <summary>When true, the live stylus <see cref="CurrentPressure"/> scales the stamp size.</summary>
     bool PressureAffectsSize { get; set; }

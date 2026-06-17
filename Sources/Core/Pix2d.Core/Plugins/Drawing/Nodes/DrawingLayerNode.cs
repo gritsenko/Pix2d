@@ -89,6 +89,22 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     private readonly List<SKPointI> _strokePoints = new();
     private readonly List<SKPointI> _pixelPerfectPreviewPoints = new();
 
+    // Even-opacity ("Opacity vs Flow") + smoothing for soft brushes (IPixelBrush.StrokeStyle). When the
+    // current stroke is smooth, dabs are unioned into the working bitmap at full strength and the whole
+    // bitmap is composited once at _strokeBufferOpacity (the brush opacity); when null the working bitmap is
+    // composited opaque, i.e. legacy per-dab-opacity stamping (hard pixel brushes) — pixel-for-pixel identical.
+    private float? _strokeBufferOpacity;
+    private bool _useSmoothStroke;
+    private SKPoint _smoothPos;            // streamlined cursor position, layer space
+    private SKPoint _lastSmoothStampPos;   // last placed dab center, layer space
+    private float _smoothSpacingLeftover;  // partial gap carried between pointer events
+    private bool _smoothStrokeStarted;
+
+    // Single-pole low-pass on the cursor path: each pointer event the working position eases this fraction
+    // toward the raw cursor. 1 = no smoothing; lower = smoother but laggier. Tuned light so it removes hand
+    // jitter without feeling disconnected in a pixel editor.
+    private const float SmoothStrokeFollow = 0.6f;
+
     public bool HasSelectionChanges => _selection.HasSelectionChanges;
 
     public bool IsPixelPerfectMode { get; set; }
@@ -371,6 +387,9 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         if (_brush != null)
             _brush.CurrentPressure = _currentPressure;
 
+        // Smooth strokes lag the cursor; lay the tail down to the release point before finishing.
+        FlushSmoothStroke();
+
         if (IsPixelPerfectMode && _strokePoints.Count > 1)
         {
             if (UseSwapBitmap)
@@ -446,6 +465,8 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         {
             if (IsPixelPerfectMode)
                 DrawPixelPerfect(pos);
+            else if (_useSmoothStroke)
+                DrawSmoothStroke(pos);
             else
                 DrawStroke(LastPointerPosition, pos, Brush, DrawingColor, 1);
         }
@@ -454,6 +475,84 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
             EraseStroke(LastPointerPosition, pos, Brush, 1);
 
         LastPointerPosition = pos;
+    }
+
+    // --- Smooth soft-brush freehand stroke (IPixelBrush.StrokeStyle Airbrush/Marker) ------------------
+    // Streamlines the raw cursor path and lays dabs at even arc-length spacing in layer space, bypassing the
+    // brush's integer Bresenham + integer-distance spacing. Together with the even-opacity stroke buffer
+    // (_strokeBufferOpacity) this produces a smooth, uniform Photoshop/Sketchbook-style stroke instead of
+    // the beaded line you get from compositing many low-opacity dabs directly.
+    private void DrawSmoothStroke(SKPoint worldPos)
+    {
+        if (!GetGlobalTransform().TryInvert(out var inverted))
+            return;
+
+        var target = inverted.MapPoint(worldPos);
+
+        if (!_smoothStrokeStarted)
+        {
+            _smoothPos = target;
+            _lastSmoothStampPos = target;
+            _smoothSpacingLeftover = 0f;
+            _smoothStrokeStarted = true;
+            StampSmooth(target); // anchor dab so a tap / very short stroke still leaves a mark
+            return;
+        }
+
+        _smoothPos = new SKPoint(
+            _smoothPos.X + (target.X - _smoothPos.X) * SmoothStrokeFollow,
+            _smoothPos.Y + (target.Y - _smoothPos.Y) * SmoothStrokeFollow);
+        EmitSmoothStamps(_lastSmoothStampPos, _smoothPos);
+    }
+
+    // Lays dabs every `spacing` units along from→to, carrying the partial gap across calls so spacing stays
+    // continuous over the whole stroke regardless of how the pointer events were chunked.
+    private void EmitSmoothStamps(SKPoint from, SKPoint to)
+    {
+        var dx = to.X - from.X;
+        var dy = to.Y - from.Y;
+        var dist = MathF.Sqrt(dx * dx + dy * dy);
+        if (dist < 1e-3f)
+            return;
+
+        var spacing = MathF.Max(1f, ((BasePixelBrush)Brush).AbsoluteSpacing);
+        var dirX = dx / dist;
+        var dirY = dy / dist;
+
+        var d = spacing - _smoothSpacingLeftover; // distance into this segment for the first dab
+        var lastPlaced = d - spacing;             // tracks last dab offset even when none is placed this call
+        while (d <= dist)
+        {
+            StampSmooth(new SKPoint(from.X + dirX * d, from.Y + dirY * d));
+            lastPlaced = d;
+            d += spacing;
+        }
+
+        _smoothSpacingLeftover = dist - lastPlaced; // partial gap carried into the next segment
+        _lastSmoothStampPos = to;
+    }
+
+    private void StampSmooth(SKPoint layerPos)
+    {
+        var p = new SKPointI((int)MathF.Round(layerPos.X), (int)MathF.Round(layerPos.Y));
+        _strokeRenderer.StampPoint(Brush, p, DrawingColor, 1);
+    }
+
+    // Reaches the release point: streamline lags behind the cursor, so on lift we lay the remaining dabs
+    // straight to the last raw position and anchor the very end.
+    private void FlushSmoothStroke()
+    {
+        if (!_useSmoothStroke || !_smoothStrokeStarted)
+            return;
+
+        if (GetGlobalTransform().TryInvert(out var inverted))
+        {
+            var end = inverted.MapPoint(EndPos);
+            EmitSmoothStamps(_lastSmoothStampPos, end);
+            StampSmooth(end);
+        }
+
+        _smoothStrokeStarted = false;
     }
 
     private void DrawPixelPerfect(SKPoint pos)
@@ -688,6 +787,19 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         // and publish immutable snapshots, which avoids O(n^2) full-stroke redraws during long pencil drags.
         UseSwapBitmap = IsPixelPerfectMode && LockTransparentPixels;
 
+        // Soft brushes (Airbrush/Marker) draw as a streamlined, evenly-spaced stroke; pixel brushes keep the
+        // legacy per-dab path. Pixel-perfect is its own pipeline, so it always opts out. Only Marker also uses
+        // the even-opacity stroke buffer; Airbrush builds up per dab (composited opaque, like the legacy path).
+        var style = _brush?.StrokeStyle ?? BrushStrokeStyle.Pixel;
+        _useSmoothStroke = style != BrushStrokeStyle.Pixel
+                           && _drawingMode == BrushDrawingMode.Draw
+                           && !IsPixelPerfectMode;
+        _strokeBufferOpacity = _useSmoothStroke && style == BrushStrokeStyle.Marker
+            ? Math.Clamp(_brush!.Opacity, 0f, 1f)
+            : null;
+        _smoothStrokeStarted = false;
+        _smoothSpacingLeftover = 0f;
+
         State = DrawingLayerState.Drawing;
     }
 
@@ -710,8 +822,15 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         {
             drawingTargetCanvas.Clear();
             drawingTargetCanvas.DrawBitmap(_backgroundBitmap, 0, 0);
+            // For smooth soft-brush strokes the working bitmap is the full-strength stroke union; lay it down
+            // once at the brush opacity. Otherwise alpha is 255 (the per-dab opacity is already baked in) — so
+            // the legacy path stays pixel-for-pixel identical.
+            var strokeAlpha = (byte)Math.Clamp((_strokeBufferOpacity ?? 1f) * 255f, 0, 255);
             var paint = new SKPaint()
-            { BlendMode = LockTransparentPixels && State == DrawingLayerState.Drawing ? SKBlendMode.SrcATop : SKBlendMode.SrcOver };
+            {
+                Color = SKColor.Empty.WithAlpha(strokeAlpha),
+                BlendMode = LockTransparentPixels && State == DrawingLayerState.Drawing ? SKBlendMode.SrcATop : SKBlendMode.SrcOver
+            };
             drawingTargetCanvas.DrawBitmap(_workingBitmap, 0, 0, paint);
         });
     }
@@ -746,6 +865,12 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         ClearPixelPerfectPreviewTail();
         Opacity = 1;
         UseSwapBitmap = false;
+
+        // Reset smooth-stroke state so the next (possibly hard-brush) operation composites opaque again.
+        // ApplyWorkingBitmap above has already consumed _strokeBufferOpacity for this stroke.
+        _strokeBufferOpacity = null;
+        _useSmoothStroke = false;
+        _smoothStrokeStarted = false;
 
         OnDrawingApplied(!cancel);
     }
@@ -807,7 +932,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
                 using var tmpCanvas = new SKCanvas(tmpBitmap);
                 tmpCanvas.DrawBitmap(_workingBitmap, 0, 0, new SKPaint() { BlendMode = SKBlendMode.SrcIn });
                 tmpCanvas.Flush();
-                canvas.DrawBitmap(tmpBitmap, 0, 0);
+                DrawStrokeBuffer(canvas, tmpBitmap);
             }
         }
         else
@@ -820,8 +945,8 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
             {
                 if (_workingBitmapDisplaySnapshot != null)
                     canvas.DrawImage(_workingBitmapDisplaySnapshot, 0, 0);
-                else
-                    canvas.DrawBitmap(_workingBitmap, 0, 0);
+                else if (_workingBitmap != null)
+                    DrawStrokeBuffer(canvas, _workingBitmap);
 
                 if (State == DrawingLayerState.Drawing && IsPixelPerfectMode && !UseSwapBitmap)
                 {
@@ -831,6 +956,25 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
                         canvas.DrawBitmap(_swapBitmap, 0, 0);
                 }
             }
+        }
+    }
+
+    // Composites the live stroke onto the screen. For smooth soft-brush strokes the working bitmap holds the
+    // stroke unioned at full strength, so it's laid down once at the brush opacity (_strokeBufferOpacity);
+    // otherwise it's drawn opaque (the per-dab opacity is already baked into the bitmap).
+    private void DrawStrokeBuffer(SKCanvas canvas, SKBitmap bitmap)
+    {
+        if (_strokeBufferOpacity is { } opacity)
+        {
+            using var paint = new SKPaint
+            {
+                Color = SKColor.Empty.WithAlpha((byte)Math.Clamp(opacity * 255f, 0, 255))
+            };
+            canvas.DrawBitmap(bitmap, 0, 0, paint);
+        }
+        else
+        {
+            canvas.DrawBitmap(bitmap, 0, 0);
         }
     }
 
