@@ -219,7 +219,7 @@ public partial class MainView : ViewBase<MainViewModel>
                                         .Header(L("Brush"))
                                         .IsOpen(vm, x => x.ShowBrushSettings, BindingMode.TwoWay)
                                         .CloseButtonCommand(vm.ViewCommands.ToggleBrushSettingsCommand)
-                                        .Width(258)
+                                        .Width(280)
                                         .UseCenteredPositionOnNarrowScreen(true)
                                         .ShowPinButton(true)
                                         .Content(ViewFactory.Create<BrushSettingsView>()),

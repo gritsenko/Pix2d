@@ -71,6 +71,8 @@ UI is **Avalonia + [Avalonia.Markup.Declarative](https://github.com/AvaloniaUI/A
 
 Hot-reload of views is enabled for `DEBUG` desktop builds (`MetadataUpdateHandler(typeof(HotReloadManager))` in `Program.cs`).
 
+For any styling / layout (верстка) work — the declarative view + `State` pattern, `StaticResources` (colors/brushes/fonts/measures/icons), style classes, icons, `L(...)` localization, common widgets (`PopupView`/`SliderEx`/`SKImageView`), and SkiaSharp↔Avalonia bitmap interop — invoke the **`pix2d-ui`** skill ([.claude/skills/pix2d-ui/SKILL.md](.claude/skills/pix2d-ui/SKILL.md)) rather than re-deriving the conventions each time.
+
 ### Plugins & tools
 
 - **Sprite plugin** ([Sources/Core/Pix2d.Core/Plugins/Sprite/](Sources/Core/Pix2d.Core/Plugins/Sprite/)) is the core editor experience; `SpriteEditor` is a singleton consumed by `IEditService`. `SpritePlugin.Initialize()` also force-constructs `ArtboardObjectEditService` so its message subscriptions are live before the first project loads.

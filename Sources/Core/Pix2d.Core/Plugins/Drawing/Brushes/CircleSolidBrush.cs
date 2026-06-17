@@ -25,8 +25,19 @@ public class CircleSolidBrush : BasePixelBrush
 
     private SKBitmap CreateBrushBitmap(int size, SKColor color)
     {
+        size = Math.Max(1, size);
         var wbm = new SKBitmap(size, size, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
         wbm.Clear();
+
+        if (size == 1)
+        {
+            // A 1px circle has integer radius size/2 == 0, so DrawCircle renders nothing. Size-pressure
+            // can shrink any circle brush down to this; fill the single pixel so the lightest touch still
+            // leaves a dot instead of a gap. Larger sizes keep their exact pixel-art circle shape below.
+            wbm.Erase(color);
+            return wbm;
+        }
+
         using (var canvas = new SKCanvas(wbm))
         {
             var r = size / 2;

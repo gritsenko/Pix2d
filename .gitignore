@@ -265,3 +265,8 @@ __pycache__/
 Sources/PlatformHeads/Desktop/.DS_Store
 Sources/.DS_Store
 **/.DS_Store
+
+# Temporary C# debugger/watch artifacts
+Sources/Core/Pix2d.Infrastructure/undefined
+Sources/Core/Pix2d.Shared/undefined
+Sources/Core/SkiaNodes/undefined

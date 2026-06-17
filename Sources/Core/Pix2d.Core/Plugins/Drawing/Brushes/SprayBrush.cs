@@ -22,16 +22,24 @@ public class SprayBrush : BasePixelBrush
         var bm = base.GetBrushBitmap(color, scale);
         if (bm != null) return _brushBitmap;
 
-        _brushBitmap = new SKBitmap((int)scale, (int)scale);
-           
+        var size = Math.Max(1, (int)scale);
+        _brushBitmap = new SKBitmap(size, size, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
+
+        // Center the gradient on the *current* stamp size. The base CenterPoint is computed for the brush's
+        // configured size and goes stale when pressure shrinks the stamp — using it here placed the gradient
+        // outside the smaller bitmap, so light-pressure spray stamps rendered empty (zero thickness until the
+        // stamp grew back large enough to contain the stale center).
+        var center = new SKPoint(size / 2f, size / 2f);
+        var radius = Math.Max(0.5f, size / 2f);
+
         var colors = new[] {color, color.WithAlpha(0)};
         var colorPos = new float[] {0.5f, 1};
         using (var paint = new SKPaint { IsStroke = false })
         using (var canvas = new SKCanvas(_brushBitmap))
         {
-            paint.Shader = SKShader.CreateRadialGradient(CenterPoint, scale / 2f, colors, colorPos, SKShaderTileMode.Clamp);
+            paint.Shader = SKShader.CreateRadialGradient(center, radius, colors, colorPos, SKShaderTileMode.Clamp);
             canvas.Clear();
-            canvas.DrawCircle(CenterPoint, scale / 2 - 0.5f, paint);
+            canvas.DrawCircle(center, radius, paint);
         }
 
         return _brushBitmap;

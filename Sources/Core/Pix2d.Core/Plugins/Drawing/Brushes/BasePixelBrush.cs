@@ -4,7 +4,15 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Brushes;
 
-public abstract class BasePixelBrush : IPixelBrush
+/// <summary>Backdrop the brush stroke preview is rendered over; cycled by the preview's corner button.</summary>
+public enum BrushPreviewBackground
+{
+    DarkChecker,
+    White,
+    LightChecker,
+}
+
+public abstract class BasePixelBrush : IPixelBrush, IDisposable
 {
     protected SKBitmap? Preview;
     protected float _opacity = 1f;
@@ -30,8 +38,43 @@ public abstract class BasePixelBrush : IPixelBrush
     /// </summary>
     public double CurrentPressure { get; set; } = 1;
 
-    private double SizePressureFactor => PressureAffectsSize ? CurrentPressure : 1.0;
-    private double OpacityPressureFactor => PressureAffectsOpacity ? CurrentPressure : 1.0;
+    // --- Pressure response shaping -------------------------------------------------------------
+    // Raw stylus pressure is a linear [0..1] value, but mapping it straight onto size/opacity makes
+    // the light end collapse to nothing (1px at ~0% alpha). These knobs remap it into a usable curve:
+    //   1. subtract a small dead zone (drops sensor noise right at first contact),
+    //   2. renormalize to [0..1] and raise to a gamma (the non-linear "feel"),
+    //   3. lift the result into [min..1] so the lightest real contact is always visible.
+    // At full press (p == 1, and for mouse/touch which report 1) every curve returns exactly 1.0, so
+    // non-pressure drawing and shapes stay pixel-identical to before.
+
+    /// <summary>Pressure below this is treated as the lightest contact (sensor dead zone). Keep small.</summary>
+    public double PressureThreshold { get; set; } = 0.0;
+
+    /// <summary>Smallest fraction of the brush size the lightest touch produces. 0 = taper to 1px.</summary>
+    public double MinSizePressure { get; set; } = 0.25;
+
+    /// <summary>Smallest fraction of opacity the lightest touch produces. The fix for "light touch is invisible".</summary>
+    public double MinOpacityPressure { get; set; } = 0.35;
+
+    /// <summary>Size curve exponent. 1 = linear; &gt;1 gives finer control over thin strokes; &lt;1 ramps up fast.</summary>
+    public double SizePressureGamma { get; set; } = 1.0;
+
+    /// <summary>Opacity curve exponent. 1 = linear; &lt;1 makes light strokes read sooner; &gt;1 darkens only on press.</summary>
+    public double OpacityPressureGamma { get; set; } = 1.0;
+
+    private double SizePressureFactor =>
+        PressureAffectsSize ? ShapePressure(CurrentPressure, MinSizePressure, SizePressureGamma) : 1.0;
+
+    private double OpacityPressureFactor =>
+        PressureAffectsOpacity ? ShapePressure(CurrentPressure, MinOpacityPressure, OpacityPressureGamma) : 1.0;
+
+    private double ShapePressure(double raw, double min, double gamma)
+    {
+        // Drop the dead zone, then renormalize what's left to [0..1].
+        var t = Math.Clamp((raw - PressureThreshold) / (1.0 - PressureThreshold), 0.0, 1.0);
+        // Non-linear feel, then lift into [min..1] so the lightest contact never fully disappears.
+        return min + (1.0 - min) * Math.Pow(t, gamma);
+    }
 
     public SKPointI CenterPoint { get; set; }
     public SKPointI BottomRightPoint { get; set; }
@@ -69,6 +112,12 @@ public abstract class BasePixelBrush : IPixelBrush
 
         _cacheColor = color;
         _cacheSize = scale;
+
+        // Release the previously cached stamp before the concrete override allocates a new one — otherwise
+        // every size/color change orphans a native SKBitmap (amplified by the stroke preview, which sweeps
+        // pressure across its whole range and thus changes the requested size on almost every stamp).
+        _brushBitmap?.Dispose();
+        _brushBitmap = null;
 
         return null;
     }
@@ -155,5 +204,136 @@ public abstract class BasePixelBrush : IPixelBrush
     private SKRect GetRect(SKPointI pos, SKSize size)
     {
         return new SKRect(pos.X, pos.Y, pos.X + size.Width, pos.Y + size.Height);
+    }
+
+    /// <summary>
+    /// Renders a representative sample stroke into a fresh bitmap for the brush-settings panel. The stroke
+    /// is laid out at 100% scale (1 brush pixel = 1 bitmap pixel) along a sine "swoosh" and stamped with a
+    /// thin→thick→thin pressure profile, reusing the exact live-stamp math (<see cref="DrawCore"/>). The
+    /// <see cref="PressureAffectsSize"/> / <see cref="PressureAffectsOpacity"/> toggles gate whether that
+    /// pressure varies the width / opacity, so the preview reacts to them just like a real stylus stroke.
+    /// <para>Mutates <see cref="CurrentPressure"/> and the stamp cache, so call it on a throwaway brush
+    /// instance — never the brush the canvas is currently drawing with.</para>
+    /// </summary>
+    public SKBitmap RenderStrokePreview(int width, int height, SKColor color, BrushPreviewBackground background)
+    {
+        width = Math.Max(1, width);
+        height = Math.Max(1, height);
+
+        var bitmap = new SKBitmap(width, height, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
+        bitmap.Clear();
+
+        using var canvas = new SKCanvas(bitmap);
+
+        // Backdrop so opacity / spray fade reads correctly behind the stroke. Drawn in Skia (not an Avalonia
+        // ImageBrush) so the checker tiles stay square and evenly spaced for any box aspect ratio.
+        DrawPreviewBackground(canvas, width, height, background);
+
+        // Keep the widest (full-pressure) stamp inside the box and shrink the wave amplitude for large
+        // brushes so the stroke stays centered instead of clipping against the top/bottom edges.
+        var radius = Math.Max(1f, _scale * 0.5f);
+        var marginX = radius + 2f;
+        var centerY = height * 0.5f;
+        var amplitude = Math.Max(0f, Math.Min(height * 0.3f, (height - _scale) * 0.5f - 2f));
+
+        var x0 = marginX;
+        var x1 = Math.Max(marginX + 1f, width - marginX);
+
+        var lastStampPos = SKPointI.Empty;
+        var hasStamped = false;
+
+        // Sample densely; the brush's own spacing (AbsoluteSpacing) thins the stamps exactly like a live stroke.
+        var steps = Math.Max(2, (int)(x1 - x0));
+        for (var i = 0; i <= steps; i++)
+        {
+            var t = i / (float)steps;
+            var x = x0 + (x1 - x0) * t;
+            var y = centerY + amplitude * (float)Math.Sin(t * Math.PI * 2);
+
+            // Classic thin→thick→thin profile; the 0.15 floor keeps the tapered ends faintly visible.
+            CurrentPressure = 0.15 + 0.85 * Math.Sin(t * Math.PI);
+
+            var pos = new SKPointI((int)Math.Round(x), (int)Math.Round(y));
+            if (hasStamped && pos.DistanceTo(lastStampPos) < AbsoluteSpacing)
+                continue;
+
+            lastStampPos = pos;
+            hasStamped = true;
+            StampPreview(canvas, pos, color);
+        }
+
+        canvas.Flush();
+        CurrentPressure = 1;
+        return bitmap;
+    }
+
+    // Mirror of DrawCore's stamp step, compositing onto an offscreen preview canvas instead of a drawing layer.
+    private void StampPreview(SKCanvas canvas, SKPointI pos, SKColor color)
+    {
+        var sizeFactor = SizePressureFactor;
+        // Round to whole pixels: concrete brushes rasterize at integer sizes anyway, and this lets the
+        // size-keyed stamp cache hit across equal pressure steps instead of re-rasterizing every stamp.
+        var bm = GetBrushBitmap(color, MathF.Round(EffectiveScale(_scale, sizeFactor)));
+        if (bm == null)
+            return;
+
+        var destRect = GetRect(pos - StampOffset(bm, sizeFactor), new SKSize(bm.Width, bm.Height));
+        var alpha = (byte)Math.Clamp(_opacity * OpacityPressureFactor * 255.0, 0, 255);
+        using var paint = new SKPaint
+        {
+            Color = SKColor.Empty.WithAlpha(alpha),
+            BlendMode = SKBlendMode.SrcOver,
+        };
+        canvas.DrawBitmap(bm, destRect, paint);
+    }
+
+    // 2x2 transparency-checker tiles. Dark sits on the popup's dark surface; light matches the canvas checker.
+    private static readonly SKBitmap PreviewCheckerDark = new(2, 2, Pix2DAppSettings.ColorType, SKAlphaType.Premul)
+    {
+        Pixels =
+        [
+            new SKColor(0xff3C3C3C), new SKColor(0xff2E2E2E),
+            new SKColor(0xff2E2E2E), new SKColor(0xff3C3C3C),
+        ]
+    };
+
+    private static readonly SKBitmap PreviewCheckerLight = new(2, 2, Pix2DAppSettings.ColorType, SKAlphaType.Premul)
+    {
+        Pixels =
+        [
+            new SKColor(0xffffffff), new SKColor(0xffd2d2d2),
+            new SKColor(0xffd2d2d2), new SKColor(0xffffffff),
+        ]
+    };
+
+    private static void DrawPreviewBackground(SKCanvas canvas, int width, int height, BrushPreviewBackground background)
+    {
+        var rect = new SKRect(0, 0, width, height);
+
+        if (background == BrushPreviewBackground.White)
+        {
+            using var fill = new SKPaint { Color = SKColors.White };
+            canvas.DrawRect(rect, fill);
+            return;
+        }
+
+        var pattern = background == BrushPreviewBackground.LightChecker ? PreviewCheckerLight : PreviewCheckerDark;
+        // Scale the 2x2 pattern so each cell is 8px square (16px period), same technique as the canvas checker.
+        using var paint = new SKPaint
+        {
+            Shader = SKShader.CreateBitmap(pattern, SKShaderTileMode.Repeat, SKShaderTileMode.Repeat,
+                SKMatrix.CreateScale(8f, 8f))
+        };
+        canvas.DrawRect(rect, paint);
+    }
+
+    public void Dispose()
+    {
+        _brushBitmap?.Dispose();
+        _brushBitmap = null;
+        Preview?.Dispose();
+        Preview = null;
+        _surface?.Dispose();
+        _surface = null;
     }
 }
