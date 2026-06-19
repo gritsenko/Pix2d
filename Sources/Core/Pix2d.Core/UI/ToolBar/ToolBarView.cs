@@ -67,9 +67,10 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
                 .VerticalScrollBarVisibility(ScrollBarVisibility.Disabled)
                 .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden),
 
-            // Tools bar: flat corners + full width, flush to the bottom edge.
+            // Tools bar: flat corners + full width, flush to the bottom edge. No border on sides/bottom.
             new Style<BlurPanel>(s => s.OfType<BlurPanel>().Name("tools-bar-panel"))
                 .Setter(BlurPanel.CornerRadiusProperty, new CornerRadius(0))
+                .Setter(BlurPanel.BorderThicknessProperty, new Thickness(0, 1, 0, 0))
                 .HorizontalAlignment(HorizontalAlignment.Stretch),
 
             // Color/brush panel keeps a small rounding and a bottom gap above the flush tools bar.

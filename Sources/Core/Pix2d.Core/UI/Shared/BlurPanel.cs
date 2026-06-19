@@ -22,13 +22,16 @@ public class BlurPanel : ViewBase
     public static readonly StyledProperty<CornerRadius> CornerRadiusProperty =
         AvaloniaProperty.Register<BlurPanel, CornerRadius>(nameof(CornerRadius), new CornerRadius(StaticResources.Measures.PanelCornerRadius));
 
+    public static readonly StyledProperty<Thickness> BorderThicknessProperty =
+        AvaloniaProperty.Register<BlurPanel, Thickness>(nameof(BorderThickness), new Thickness(1));
+
     public static readonly DirectProperty<BlurPanel, Control> ContentProperty
         = AvaloniaProperty.RegisterDirect<BlurPanel, Control>(nameof(Content), o => o.Content, (o, v) => o.Content = v);
     private Control _content = null!;
 
     static BlurPanel()
     {
-        AffectsRender<BlurPanel>(BackgroundBrushProperty, BorderBrushProperty, CornerRadiusProperty);
+        AffectsRender<BlurPanel>(BackgroundBrushProperty, BorderBrushProperty, CornerRadiusProperty, BorderThicknessProperty);
     }
 
     public bool DisableBlur
@@ -54,6 +57,12 @@ public class BlurPanel : ViewBase
         set => SetValue(CornerRadiusProperty, value);
     }
 
+    public Thickness BorderThickness
+    {
+        get => GetValue(BorderThicknessProperty);
+        set => SetValue(BorderThicknessProperty, value);
+    }
+
     public Control Content
     {
         get => _content;
@@ -65,7 +74,7 @@ public class BlurPanel : ViewBase
             .Background(this, x => x.BackgroundBrush, BindingMode.OneWay)
             .CornerRadius(this, x => x.CornerRadius, BindingMode.OneWay)
             .BorderBrush(this, x => x.BorderBrush, BindingMode.OneWay)
-            .BorderThickness(1)
+            .BorderThickness(this, x => x.BorderThickness, BindingMode.OneWay)
             .Child(this, x => x.Content, BindingMode.OneWay);
 
     public override void Render(DrawingContext context)
@@ -80,7 +89,8 @@ public class BlurPanel : ViewBase
                 Bounds,
                 (float)StaticResources.Measures.PanelCornerRadius,
                 GetBrushColor(BackgroundBrush, StaticResources.Colors.PanelsBackgroundColor),
-                GetBrushColor(BorderBrush, StaticResources.Colors.PanelsBorderColor)));
+                GetBrushColor(BorderBrush, StaticResources.Colors.PanelsBorderColor),
+                BorderThickness));
         }
     }
 
@@ -94,12 +104,13 @@ public class BlurPanel : ViewBase
 
 }
 
-public class BlurBehindRenderOperation(Rect bounds, float cornerRadius, SKColor backgroundColor, SKColor borderColor) : ICustomDrawOperation
+public class BlurBehindRenderOperation(Rect bounds, float cornerRadius, SKColor backgroundColor, SKColor borderColor, Thickness borderThickness) : ICustomDrawOperation
 {
     private readonly Rect _bounds = bounds;
     private readonly float _cornerRadius = cornerRadius;
     private readonly SKColor _backgroundColor = backgroundColor.WithAlpha(127);
     private readonly SKColor _borderColor = borderColor;
+    private readonly Thickness _borderThickness = borderThickness;
 
     private static readonly SKImageFilter BlurFilter = SKImageFilter.CreateBlur(30, 30, SKShaderTileMode.Clamp);
 
@@ -156,7 +167,22 @@ public class BlurBehindRenderOperation(Rect bounds, float cornerRadius, SKColor 
             StrokeWidth = 1f,
             IsAntialias = true
         };
-        canvas.DrawRoundRect(rect, _cornerRadius, _cornerRadius, borderPaint);
+
+        if (_cornerRadius > 0)
+        {
+            canvas.DrawRoundRect(rect, _cornerRadius, _cornerRadius, borderPaint);
+        }
+        else
+        {
+            if (_borderThickness.Top > 0)
+                canvas.DrawLine(0, 0.5f, w, 0.5f, borderPaint);
+            if (_borderThickness.Bottom > 0)
+                canvas.DrawLine(0, h - 0.5f, w, h - 0.5f, borderPaint);
+            if (_borderThickness.Left > 0)
+                canvas.DrawLine(0.5f, 0, 0.5f, h, borderPaint);
+            if (_borderThickness.Right > 0)
+                canvas.DrawLine(w - 0.5f, 0, w - 0.5f, h, borderPaint);
+        }
     }
 
     public Rect Bounds => _bounds.Inflate(4);
@@ -166,6 +192,7 @@ public class BlurBehindRenderOperation(Rect bounds, float cornerRadius, SKColor 
                && op._bounds == _bounds
                && op._cornerRadius.Equals(_cornerRadius)
                && op._backgroundColor == _backgroundColor
-               && op._borderColor == _borderColor;
+               && op._borderColor == _borderColor
+               && op._borderThickness == _borderThickness;
     }
 }
