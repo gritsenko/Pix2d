@@ -27,6 +27,12 @@ public class DesktopPix2dBootstrapperDI : Pix2dBootstrapperDI // Inherits: Pix2d
 
         services.AddSingleton<IPlatformStuffService, PlatformStuffService>(); // Depends on: AppState
         services.AddSingleton<IClipboardService, DesktopClipboardService>(); // Depends on: IDrawingService, IViewPortService, IDialogService, AppState
+
+#if WINDOWS
+        // Replaces the no-op IPenHapticsService registered by the base bootstrapper. Win11-only API is
+        // guarded inside the service, so this is harmless on older Windows (feature just stays off).
+        services.AddSingleton<IPenHapticsService, Platform.WindowsPenHapticsService>();
+#endif
     }
     
     protected override void LoadPlugins()

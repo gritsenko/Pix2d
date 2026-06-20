@@ -120,6 +120,11 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         // UI scaling service
         services.AddSingleton<IUiScaleService, AvaloniaUiScaleService>();
 
+        // Pen haptics (Surface Slim Pen 2 etc.). Default is a no-op; the desktop head registers a
+        // WinRT-backed implementation on Windows after this call, and last-registration-wins for
+        // GetService<IPenHapticsService>() means the Windows one is used there.
+        services.AddSingleton<IPenHapticsService, NullPenHapticsService>();
+
         LoadPlugins();
     }
 
