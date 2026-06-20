@@ -59,6 +59,16 @@ public class AppState : StateBase
         set => Set(value);
     }
 
+    /// <summary>
+    /// Whether to play tactile "pen on paper" feedback while drawing on a haptic-capable stylus
+    /// (e.g. Surface Slim Pen 2 on Windows 11). On by default; no effect on other devices/platforms.
+    /// </summary>
+    public bool IsPenHapticsEnabled
+    {
+        get => Get(true);
+        set => Set(value);
+    }
+
     public bool IsAutoOpenTransformEditorAfterSelectionEnabled
     {
         get => Get(true);

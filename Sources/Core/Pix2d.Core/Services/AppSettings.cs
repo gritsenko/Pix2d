@@ -12,6 +12,7 @@ public class AppSettings
     public int TwoFingerDoubleTapTimeoutMs { get; set; } = 200;
     public bool IsStylusModeEnabled { get; set; }
     public bool IsSingleFingerPanEnabled { get; set; }
+    public bool IsPenHapticsEnabled { get; set; } = true;
 
     // Crash reporting
     /// <summary>Tri-state consent for anonymous crash telemetry: 0=unset, 1=allowed, 2=denied.</summary>

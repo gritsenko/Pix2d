@@ -655,6 +655,9 @@ public class SkiaCanvas : Control
     /// </summary>
     private PenHapticTool GetHapticTool()
     {
+        if (!_appState.IsPenHapticsEnabled)
+            return PenHapticTool.None;
+
         var toolKey = _appState.ToolsState.CurrentToolKey;
         if (Input.EraserMode || toolKey == nameof(EraserTool))
             return PenHapticTool.Eraser;

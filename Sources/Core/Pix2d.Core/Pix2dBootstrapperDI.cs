@@ -175,6 +175,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         _appState.TwoFingerDoubleTapTimeoutMs = settingsService.Get<int?>(nameof(AppState.TwoFingerDoubleTapTimeoutMs)) ?? 500;
         _appState.IsStylusModeEnabled = settingsService.Get<bool?>(nameof(AppState.IsStylusModeEnabled)) ?? false;
         _appState.IsSingleFingerPanEnabled = settingsService.Get<bool?>(nameof(AppState.IsSingleFingerPanEnabled)) ?? false;
+        _appState.IsPenHapticsEnabled = settingsService.Get<bool?>(nameof(AppState.IsPenHapticsEnabled)) ?? true;
         _appState.IsAutoOpenTransformEditorAfterSelectionEnabled = settingsService.Get<bool?>(nameof(AppState.IsAutoOpenTransformEditorAfterSelectionEnabled)) ?? true;
 
         var commandService = serviceProvider.GetRequiredService<ICommandService>();
