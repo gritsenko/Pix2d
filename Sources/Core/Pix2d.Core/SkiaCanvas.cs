@@ -12,6 +12,7 @@ using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Services;
+using Pix2d.Plugins.Drawing.Tools;
 using Pix2d.UI.Resources;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -64,6 +65,7 @@ public class SkiaCanvas : Control
     private readonly IViewPortService _viewPortService = null!;
     private readonly AppState _appState;
     private IEditService? _editService;
+    private readonly IPenHapticsService? _penHaptics;
 
     public bool AllowTouchDraw { get; set; } = true;
     private static SKInput Input => SKInput.Current;
@@ -109,6 +111,8 @@ public class SkiaCanvas : Control
         DetachedFromVisualTree += SkiaCanvas_DetachedFromVisualTree;
 
         _viewPortService = serviceProvider.GetRequiredService<IViewPortService>();
+        // Optional: the no-op default is registered in Core, the real one in the desktop head on Windows.
+        _penHaptics = serviceProvider.GetService<IPenHapticsService>();
 
     }
 
@@ -121,6 +125,10 @@ public class SkiaCanvas : Control
             if (topLevel.InsetsManager is { } insetsManager)
                 insetsManager.SafeAreaChanged += OnSafeAreaChanged;
         }
+
+        // Bind pen haptics to the native window so a haptic-capable stylus can be resolved (Windows only;
+        // a no-op everywhere else). Cheap to re-call — the service ignores a handle it's already bound to.
+        _penHaptics?.Attach(topLevel?.TryGetPlatformHandle()?.Handle ?? 0);
 
         LayoutUpdated += OnLayoutUpdated;
 
@@ -135,6 +143,8 @@ public class SkiaCanvas : Control
 
     private void SkiaCanvas_DetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
+        _penHaptics?.Detach();
+
         LayoutUpdated -= OnLayoutUpdated;
 
         var topLevel = TopLevel.GetTopLevel(this);
@@ -433,6 +443,11 @@ public class SkiaCanvas : Control
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         var pointerType = e.Pointer.Type;
+
+        // Stop pen haptics on any release (idempotent — no-op when no stroke is active). Done up front so
+        // the various early returns below for touch/pan can't leave the inking waveform running.
+        _penHaptics?.EndStroke();
+
         var shouldFinalizeTouchInput = pointerType == PointerType.Touch
                                        && _isPointerPressed
                                        && !_isPinching
@@ -498,6 +513,10 @@ public class SkiaCanvas : Control
 
     private void OnPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
+        // Losing capture mid-stroke (e.g. pen) must also stop the inking waveform. The touch-only logic
+        // below early-returns for a pen, so do this before that gate.
+        _penHaptics?.EndStroke();
+
         if (e.Pointer.Type != PointerType.Touch)
             return;
 
@@ -620,7 +639,29 @@ public class SkiaCanvas : Control
 
         Input.SetPointerPressed(ToSKPoint(position), ToModifiers(e.KeyModifiers),
             e.Pointer.Type == PointerType.Touch, e.ClickCount);
+
+        // A pen tip went down to draw — start the continuous "pen on paper" haptic for the active tool
+        // (no-op unless this is a haptic-capable stylus on Windows 11).
+        if (pointerType == PointerType.Pen)
+            _penHaptics?.BeginStroke(GetHapticTool());
+
         InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Maps the active drawing context to a haptic inking waveform. Only the freehand pixel tools get
+    /// continuous feedback; <see cref="SKInput.EraserMode"/> covers both the Eraser tool and a flipped
+    /// pen used over the Brush tool. Everything else returns <see cref="PenHapticTool.None"/> (silent).
+    /// </summary>
+    private PenHapticTool GetHapticTool()
+    {
+        if (!_appState.IsPenHapticsEnabled)
+            return PenHapticTool.None;
+
+        var toolKey = _appState.ToolsState.CurrentToolKey;
+        if (Input.EraserMode || toolKey == nameof(EraserTool))
+            return PenHapticTool.Eraser;
+        return toolKey == nameof(BrushTool) ? PenHapticTool.Pen : PenHapticTool.None;
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)

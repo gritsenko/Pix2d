@@ -144,6 +144,21 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
                             .Text(L("Automatically switches from selection to transform mode when the selection is finished."))
                             .Margin(0, 0, 0, 12)
                             .TextWrapping(TextWrapping.Wrap)
+                            .FontSize(14),
+
+                        new TextBlock()
+                            .Text(L("Pen haptic feedback"))
+                            .Margin(0, 8, 0, 8)
+                            .FontSize(20)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
+                        new ToggleSwitch()
+                            .IsChecked(state, x => x.IsPenHapticsEnabled, BindingMode.TwoWay)
+                            .Margin(0, 0, 0, 6),
+                        new TextBlock()
+                            .Text(L("Tactile \"pen on paper\" vibration while drawing. Requires a haptic pen such as the Surface Slim Pen 2 on Windows 11."))
+                            .Margin(0, 0, 0, 12)
+                            .TextWrapping(TextWrapping.Wrap)
                             .FontSize(14)
                     )
             ));
@@ -182,6 +197,9 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
         [ObservableProperty]
         public partial bool IsAutoOpenTransformEditorAfterSelectionEnabled { get; set; }
 
+        [ObservableProperty]
+        public partial bool IsPenHapticsEnabled { get; set; }
+
         public State(
             AppState appState,
             ILocalizationService localizationService,
@@ -202,6 +220,7 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             _appState.WatchFor(x => x.IsStylusModeEnabled, OnStylusModeChangedExternally);
             _appState.WatchFor(x => x.IsSingleFingerPanEnabled, OnSingleFingerPanChangedExternally);
             _appState.WatchFor(x => x.IsAutoOpenTransformEditorAfterSelectionEnabled, OnAutoOpenTransformEditorAfterSelectionChangedExternally);
+            _appState.WatchFor(x => x.IsPenHapticsEnabled, OnPenHapticsChangedExternally);
 
             SyncFromAppState();
         }
@@ -288,6 +307,15 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             _settingsService.Set(nameof(AppState.IsAutoOpenTransformEditorAfterSelectionEnabled), value);
         }
 
+        partial void OnIsPenHapticsEnabledChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            _appState.IsPenHapticsEnabled = value;
+            _settingsService.Set(nameof(AppState.IsPenHapticsEnabled), value);
+        }
+
         public void ApplyScale()
         {
             _uiScaleService.SetUiScale(_appState.UiScale);
@@ -313,6 +341,7 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             IsStylusModeEnabled = _appState.IsStylusModeEnabled;
             IsSingleFingerPanEnabled = _appState.IsSingleFingerPanEnabled;
             IsAutoOpenTransformEditorAfterSelectionEnabled = _appState.IsAutoOpenTransformEditorAfterSelectionEnabled;
+            IsPenHapticsEnabled = _appState.IsPenHapticsEnabled;
 
             _isSyncing = false;
         }
@@ -351,6 +380,12 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
         {
             SyncFromAppState();
             _settingsService.Set(nameof(AppState.IsAutoOpenTransformEditorAfterSelectionEnabled), _appState.IsAutoOpenTransformEditorAfterSelectionEnabled);
+        }
+
+        private void OnPenHapticsChangedExternally()
+        {
+            SyncFromAppState();
+            _settingsService.Set(nameof(AppState.IsPenHapticsEnabled), _appState.IsPenHapticsEnabled);
         }
     }
 

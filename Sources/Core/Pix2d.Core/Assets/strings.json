@@ -280,6 +280,8 @@
       "Stylus mode": "Stylus mode",
       "Blocks accidental single-finger canvas edits while keeping pen input active.": "Blocks accidental single-finger canvas edits while keeping pen input active.",
       "Pan with single finger": "Pan with single finger",
+      "Pen haptic feedback": "Pen haptic feedback",
+      "Tactile \"pen on paper\" vibration while drawing. Requires a haptic pen such as the Surface Slim Pen 2 on Windows 11.": "Tactile \"pen on paper\" vibration while drawing. Requires a haptic pen such as the Surface Slim Pen 2 on Windows 11.",
       "Scroll": "Scroll",
       "Zoom": "Zoom",
       "Add new layer": "Add new layer",

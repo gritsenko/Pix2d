@@ -1,7 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-       <TargetFramework>net10.0</TargetFramework>
+		<!-- On Windows we need a windows TFM (>= 10.0.22000) to compile against the WinRT pen-haptics API
+		     (PenDevice.SimpleHapticsController). Other OSes stay on plain net10.0. The TFM version is only
+		     a build-time API ceiling — SupportedOSPlatformVersion (below) keeps the real minimum OS where
+		     it was. Single TFM per OS, so existing `dotnet publish` (no -f) keeps working. -->
+		<TargetFramework Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">net10.0-windows10.0.22000.0</TargetFramework>
+		<TargetFramework Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' != 'true'">net10.0</TargetFramework>
 		<ApplicationIcon>app.ico</ApplicationIcon>
 		<StartupObject />
 		<AssemblyName>Pix2d</AssemblyName>
@@ -29,6 +34,10 @@
 	<PropertyGroup Condition="'$(IsWindows)'=='true'">
 		<DefineConstants>Windows</DefineConstants>
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
+		<!-- Keep the real minimum OS where it was (matches the WAP's TargetPlatformMinVersion). The pen
+		     haptics code is gated at runtime with OperatingSystem.IsWindowsVersionAtLeast(10,0,22000), so
+		     it stays dormant below Win11 and the app still launches on Win10. -->
+		<SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(IsOSX)'=='true'">
 		<DefineConstants>OSX</DefineConstants>
