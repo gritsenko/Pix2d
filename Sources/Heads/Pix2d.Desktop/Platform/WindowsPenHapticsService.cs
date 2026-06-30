@@ -97,12 +97,14 @@ public sealed class WindowsPenHapticsService : IPenHapticsService
         if (controller == null)
             return;
 
-        var waveform = PickWaveform(controller, tool);
-        if (waveform == null)
-            return;
-
         try
         {
+            // PickWaveform enumerates controller.SupportedFeedback — a WinRT call that can throw if the
+            // pen is invalidated between acquisition and here, so keep it inside the guard with SendHapticFeedback.
+            var waveform = PickWaveform(controller, tool);
+            if (waveform == null)
+                return;
+
             controller.SendHapticFeedback(waveform);
             _inkingActive = true;
         }

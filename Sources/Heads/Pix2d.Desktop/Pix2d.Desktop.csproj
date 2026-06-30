@@ -5,7 +5,7 @@
 		     (PenDevice.SimpleHapticsController). Other OSes stay on plain net10.0. The TFM version is only
 		     a build-time API ceiling — SupportedOSPlatformVersion (below) keeps the real minimum OS where
 		     it was. Single TFM per OS, so existing `dotnet publish` (no -f) keeps working. -->
-		<TargetFramework Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">net10.0-windows10.0.22621.0</TargetFramework>
+		<TargetFramework Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">net10.0-windows10.0.22000.0</TargetFramework>
 		<TargetFramework Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' != 'true'">net10.0</TargetFramework>
 		<ApplicationIcon>app.ico</ApplicationIcon>
 		<StartupObject />
