@@ -1,5 +1,8 @@
 using Avalonia;
 using Avalonia.Markup.Declarative;
+#if DEBUG
+using Declarative.Avalonia.AgentTools;
+#endif
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using Pix2d.Desktop.Services;
@@ -66,6 +69,14 @@ class Program
                 .UsePlatformDetect()
                 .UseViewInitializationStrategy(ViewInitializationStrategy.Immediate)
                 .LogToTrace();
+
+#if DEBUG
+        // In-process MCP inspector (Declarative.Avalonia.AgentTools) — loopback streamable-HTTP
+        // server on http://127.0.0.1:5599 exposing get_visual_tree / list_components / screenshot_*
+        // / get_errors, plus the opt-in `invoke` remote-control tool. Debug-only; must never ship
+        // in Release (the package reference is Debug-gated in the .csproj).
+        builder = builder.UseAgentInspector(o => o.EnableInteraction = true);
+#endif
 
         // Проверяем, запущено ли приложение на Windows и архитектуре ARM64
         /*if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&

@@ -75,6 +75,8 @@ public partial class InputDialogView() : ViewBase<InputDialogView.State>(new Sta
                             .Classes("btn")
                             .Content("Ok")
                             .Background(StaticResources.Brushes.AccentBrush)
+                            // Accent fill needs crisp, fully-opaque white text — the theme default reads as dull grey.
+                            .Foreground(Avalonia.Media.Brushes.White)
                             .OnClick(_ =>
                             {
                                 Confirm();

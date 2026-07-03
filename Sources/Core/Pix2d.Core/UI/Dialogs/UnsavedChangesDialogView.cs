@@ -35,6 +35,8 @@ public class UnsavedChangesDialogView : ViewBase, IDialogView<UnsavedChangesDial
                             .Classes("btn")
                             .Content("Save")
                             .Background(StaticResources.Brushes.AccentBrush)
+                            // Accent fill needs crisp, fully-opaque white text — the theme default reads as dull grey.
+                            .Foreground(Avalonia.Media.Brushes.White)
                             .OnClick(_ =>
                             {
                                 DialogResult = UnsavedChangesDialogResult.Yes;

@@ -39,6 +39,8 @@ public partial class AlertDialog() : ViewBase<AlertDialog.State>(new State()), I
                             .Classes("btn")
                             .Content("OK")
                             .Background(StaticResources.Brushes.AccentBrush)
+                            // Accent fill needs crisp, fully-opaque white text — the theme default reads as dull grey.
+                            .Foreground(Avalonia.Media.Brushes.White)
                             .OnClick(_ => OnDialogClosed?.Invoke(true))
 
                     ) //stack panel children

@@ -104,6 +104,8 @@ public class CrashReportDialogView : ViewBase, IDialogView<bool>
                             .Width(140)
                             .Content("Send report")
                             .Background(StaticResources.Brushes.AccentBrush)
+                            // Accent fill needs crisp, fully-opaque white text — the theme default reads as dull grey.
+                            .Foreground(Avalonia.Media.Brushes.White)
                             .OnClick(_ =>
                             {
                                 ApplyConsentFromToggle(consentToggle, showConsent);

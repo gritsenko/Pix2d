@@ -68,6 +68,8 @@ public class YesNoDialogView : ViewBase, IDialogView<bool>
                             .Classes("btn")
                             .Content(this, x => x.OkLabel, BindingMode.OneWay)
                             .Background(StaticResources.Brushes.AccentBrush)
+                            // Accent fill needs crisp, fully-opaque white text — the theme default reads as dull grey.
+                            .Foreground(Avalonia.Media.Brushes.White)
                             .OnClick(_ =>
                             {
                                 DialogResult = true;
