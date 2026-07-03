@@ -34,7 +34,9 @@ public partial class AdditionalTopBarView(AppState appState, ISettingsService se
                 .Width(StaticResources.Measures.CompactAppButtonSize)
                 .Height(StaticResources.Measures.CompactAppButtonSize)
                 .Margin(0)
-                .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
+                // 12px (matching wide mode) so the checked highlight nests concentrically inside the
+                // 16px panel — the flat 6px compact radius read as mismatched against the rounded panel.
+                .CornerRadius(12),
         }
     ];
 

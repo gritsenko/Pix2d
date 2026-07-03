@@ -25,7 +25,17 @@ public partial class ZoomPanelView(IViewPortService viewPortService, IMessenger 
         new StyleGroup(_ => VisualStates.Narrow())
         {
             new Style<BlurPanel>(s => s.Name("ZoomButtonsPanel"))
-                .IsVisible(false)
+                .IsVisible(false),
+
+            // Narrow: the zoom % button matches the additional-bar toggle buttons — compact 36px size,
+            // tighter margin, and the same 12px rounding that nests inside the 16px panel (not the flat
+            // 6px app-button radius). Width auto + stretch so it fills the pill (MinWidth 80).
+            new Style<Button>(s => s.OfType<ZoomPanelView>().Descendant().OfType<Button>().Class("app-button"))
+                .Width(double.NaN)
+                .HorizontalAlignment(HorizontalAlignment.Stretch)
+                .Height(StaticResources.Measures.CompactAppButtonSize)
+                .Margin(StaticResources.Measures.CompactButtonMargin)
+                .CornerRadius(12)
         }
     ];
 
@@ -71,7 +81,8 @@ public partial class ZoomPanelView(IViewPortService viewPortService, IMessenger 
                     .FontSize(16)
                     .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
             )
-            .Height(56)
+            // Height is content-driven so the panel is exactly as tall as its button row: ~56px in wide
+            // mode (44px app-button) and ~44px in narrow (36px compact button), matching the additional bar.
             .Cols("*,Auto")
             .Children(
 

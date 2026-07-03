@@ -99,10 +99,11 @@ public partial class MainView : ViewBase<MainViewModel>
             new Style<ZoomPanelView>()
                 .Col(0).ColSpan(1)
                 .VerticalAlignment(VerticalAlignment.Bottom)
-                .Margin(StaticResources.Measures.PanelMargin * 2 + 56, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12),
+                // Bottom edge on the shared line just above the flush tools bar; left cleared past the color/brush panel.
+                .Margin(StaticResources.Measures.PanelMargin * 2 + 56, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, NarrowBottomBarOffset),
 
             new Style<AdditionalTopBarView>()
-                .Margin(0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 12),
+                .Margin(0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, NarrowBottomBarOffset),
 
             new Style<Canvas>(s => s.Name("PopupContainer"))
                 .Col(0)
@@ -288,6 +289,15 @@ public partial class MainView : ViewBase<MainViewModel>
 
             ViewFactory.Create<DialogContainer>().RowSpan(2)
         );
+
+    // Narrow-mode: the floating bottom panels (zoom, additional bar, color/brush) share one bottom line
+    // that clears the full-width flush tools bar — its compact tool buttons plus their margins — with a
+    // panel-margin gap above it. Keeping this derived (not a magic "56") keeps the row aligned if the
+    // compact button metrics change.
+    private static readonly double NarrowBottomBarOffset =
+        StaticResources.Measures.CompactToolButtonSize
+        + StaticResources.Measures.CompactButtonMargin * 2
+        + StaticResources.Measures.PanelMargin;
 
     private Canvas _panelsContainer = null!;
     private Grid _rootGrid = null!;

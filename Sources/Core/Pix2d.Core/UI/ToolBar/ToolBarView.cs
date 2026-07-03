@@ -73,10 +73,11 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
                 .Setter(BlurPanel.BorderThicknessProperty, new Thickness(0, 1, 0, 0))
                 .HorizontalAlignment(HorizontalAlignment.Stretch),
 
-            // Color/brush panel keeps a small rounding and a bottom gap above the flush tools bar.
+            // Color/brush panel: full 16px panel rounding (matches the zoom / additional-bar panels) and a
+            // PanelMargin gap above the flush tools bar so its bottom sits on the shared bottom line.
             new Style<BlurPanel>(s => s.OfType<BlurPanel>().Name("color-brush-panel"))
-                .Setter(BlurPanel.CornerRadiusProperty, new CornerRadius(8))
-                .Margin(8, 0, 0, 16),
+                .Setter(BlurPanel.CornerRadiusProperty, new CornerRadius(StaticResources.Measures.PanelCornerRadius))
+                .Margin(8, 0, 0, StaticResources.Measures.PanelMargin),
 
             new Style<Button>(s => s.Class("toolbar-button"))
                 .Padding(new Thickness(0))
@@ -88,6 +89,14 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
 
             new Style<Button>(s => s.OfType<Button>().Class("color-button"))
                 .Width(32).Height(32).Margin(8, 12, 8, 6).VerticalAlignment(VerticalAlignment.Top),
+
+            // Brush preview button: declared after the compact toolbar-button style so it wins the
+            // margin and corner radius. Bottom (12) matches the color button's top (12) so the panel's
+            // inner padding is symmetric — the compact toolbar-button margin (3) left only a couple of
+            // pixels below. Corner radius stays 12 (same as wide mode) instead of the compact 6.
+            new Style<Button>(s => s.OfType<Button>().Class("brush-button"))
+                .Margin(8, 6, 8, 12).VerticalAlignment(VerticalAlignment.Top)
+                .CornerRadius(12),
 
             new Style<StackPanel>(s => s.OfType<StackPanel>().Name("tools-panel"))
                 .Orientation(Orientation.Horizontal),

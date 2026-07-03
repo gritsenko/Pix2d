@@ -22,6 +22,13 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
         new Style<Grid>(s => s.OfType<Grid>().Name("top-bar-root"))
             .Margin(12, 12, 12, 0),
 
+        // Undo step-count badge sits top-right of the icon. The content grid must span the button so
+        // the Right/Top-aligned number reaches the corner instead of collapsing onto the centered icon.
+        // Sized via a style (not a local value) so the Narrow group can shrink it to the compact button.
+        new Style<Grid>(s => s.OfType<Grid>().Name("undo-content"))
+            .Width(44)
+            .Height(30),
+
         new StyleGroup(_ => VisualStates.Narrow())
         {
             new Style<BlurPanel>(s => s.OfType<BlurPanel>().Name("central-panel"))
@@ -60,6 +67,11 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
                 .Height(StaticResources.Measures.CompactAppButtonSize)
                 .Margin(0)
                 .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
+
+            // Shrink the undo badge grid to the compact button so it doesn't overflow onto the redo button.
+            new Style<Grid>(s => s.OfType<Grid>().Name("undo-content"))
+                .Width(StaticResources.Measures.CompactAppButtonSize)
+                .Height(24),
         }
     ];
 
@@ -126,6 +138,7 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
                                     .ToolTip_Tip(L(state.EditCommands.Undo.Tooltip))
                                     .Content(
                                         new Grid()
+                                            .Name("undo-content")
                                             .HorizontalAlignment(HorizontalAlignment.Stretch)
                                             .VerticalAlignment(VerticalAlignment.Stretch)
                                             .Children(
