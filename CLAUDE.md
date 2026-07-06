@@ -6,6 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Pix2D is a cross-platform animated sprite / pixel art editor (Windows, Linux, macOS, Android, WebAssembly) built on Avalonia 12 and SkiaSharp. The solution lives entirely under [Sources/](Sources/) and is driven by the `.slnx` solution file [Sources/Pix2d.slnx](Sources/Pix2d.slnx).
 
+## Roadmap — consult it, then keep it current
+
+The long-term plan lives in [docs/ROADMAP.md](docs/ROADMAP.md). It is written for **both humans and AI agents** and organized into time-ordered **Horizons** and thematic **Tracks**, with priorities `P0` (drop everything) → `P3` (opportunistic). Treat it as the canonical source of *what to build next and why* — the same way `AppState` is canonical for runtime state.
+
+**Before starting any non-trivial task**, read `ROADMAP.md` and locate the matching item. Use it to place the work in context: respect the item's priority, honor its acceptance-criteria hints and reference links, and avoid duplicating or contradicting planned work. If the task has no roadmap entry, that's a signal to confirm scope with the user (or add an entry) rather than guessing direction.
+
+**After completing work that changes the project's state**, update `ROADMAP.md` in the same change so it never falls behind the code:
+- Tick the checkbox of any finished item (`- [ ]` → `- [x]`); for partial progress, leave it unchecked and note what remains.
+- Add newly shipped features and newly discovered work as items under the correct Horizon or Track, matching the existing format (context + acceptance hint + reference links).
+- Rewrite or remove items that no longer reflect reality — **the roadmap must never disagree with the code** (same rule as the rest of this file: when docs and code disagree, the code is right).
+- Keep the header current: bump `Last updated` and, on a release, `Baseline version` (version is pinned in [Sources/Directory.Build.props](Sources/Directory.Build.props) as `Pix2dVersion`).
+- Keep the **Suggested release train** table in sync when items move between versions.
+
+This reciprocity is itself a roadmap goal (Track E.3: *"Keep `CLAUDE.md` and `.claude/skills/pix2d-ui` current — the repo itself must stay agent-friendly"*).
+
 ## Common Commands
 
 Target framework is **.NET 10** (see [Sources/Core/Pix2d.Core/Pix2d.Core.csproj](Sources/Core/Pix2d.Core/Pix2d.Core.csproj)); version is pinned in [Sources/Directory.Build.props](Sources/Directory.Build.props) as `Pix2dVersion`. Ignore the `.NET 7/8` references in `docs/developer_guide.md` and `CONTRIBUTING.md` — they are out of date.
