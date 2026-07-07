@@ -53,6 +53,10 @@ public class CrashReportService : ICrashReportService
     public bool HasPendingCrashReport { get; private set; }
     public CrashReportSummary? PendingCrashReport { get; private set; }
 
+    // Assume clean until detection proves otherwise, so a failure in DetectPendingFromPreviousLaunch
+    // never manufactures a spurious "recovered after a crash" banner.
+    public bool PreviousShutdownWasClean { get; private set; } = true;
+
     public event Action<TelemetryConsent>? TelemetryConsentChanged;
 
     // Pre-3.9 stored consent under a crash-only key; read it once and fold it into the unified key so
@@ -276,6 +280,7 @@ public class CrashReportService : ICrashReportService
             // Consume the one-shot marker immediately so it can never suppress a genuine crash on a
             // later launch.
             var cleanExit = _settingsService.Get<bool>(nameof(AppSettings.CleanExitRequested));
+            PreviousShutdownWasClean = cleanExit;
             if (cleanExit)
                 TrySet(nameof(AppSettings.CleanExitRequested), false);
 

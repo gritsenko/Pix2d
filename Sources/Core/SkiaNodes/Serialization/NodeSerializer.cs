@@ -46,6 +46,17 @@ public class NodeSerializer : IDisposable
         };
         settings.Error = (sender, args) =>
         {
+            // An unknown $type (newer build / third-party tool / removed node) should degrade
+            // gracefully: skip that node and keep loading the rest of the scene, rather than
+            // failing the whole file. Every other error still propagates as before.
+            if (IsUnknownNodeType(args.ErrorContext.Error))
+            {
+                NodeTypeRegistry.Warn(
+                    $"[NodeSerializer] Skipping unknown node at '{args.ErrorContext.Path}': {args.ErrorContext.Error.Message}");
+                args.ErrorContext.Handled = true;
+                return;
+            }
+
             Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine(args.CurrentObject?.ToString() ?? "null");
             Console.WriteLine(args.ErrorContext.Path);
@@ -56,6 +67,14 @@ public class NodeSerializer : IDisposable
             Console.ForegroundColor = ConsoleColor.Gray;
         };
         return settings;
+    }
+
+    private static bool IsUnknownNodeType(Exception? ex)
+    {
+        for (var e = ex; e != null; e = e.InnerException)
+            if (e is UnknownNodeTypeException)
+                return true;
+        return false;
     }
 
     public void Dispose()

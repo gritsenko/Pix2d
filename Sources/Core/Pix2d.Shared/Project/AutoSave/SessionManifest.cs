@@ -16,6 +16,14 @@ public sealed class SessionManifest
 {
     [JsonProperty("v")] public int FormatVersion { get; set; } = 1;
 
+    /// <summary>
+    /// Version of the serialized scene tree (<see cref="P:Pix2d.Project.ProjectFormat.CurrentVersion"/>),
+    /// so a scene recovered from autosave is migrated on load exactly like a <c>.pix2d</c> file.
+    /// Distinct from <see cref="FormatVersion"/>, which versions this manifest's own schema.
+    /// A manifest written before this field existed reads as the baseline version (1).
+    /// </summary>
+    [JsonProperty("sfv")] public int SceneFormatVersion { get; set; } = 1;
+
     [JsonProperty("sid")] public string SessionId { get; set; } = "";
 
     /// <summary>Monotonic counter incremented on every successful commit.</summary>

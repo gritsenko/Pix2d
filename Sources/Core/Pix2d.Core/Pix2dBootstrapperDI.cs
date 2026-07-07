@@ -17,6 +17,7 @@ using Pix2d.Primitives;
 using Pix2d.Primitives.Crash;
 using Pix2d.Services.Project;
 using Pix2d.Services.AutoSave;
+using Pix2d.Project;
 using Pix2d.Project.AutoSave;
 using SkiaNodes.Serialization;
 using System.Reflection;
@@ -42,8 +43,9 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
 
     protected Pix2dBootstrapperDI()
     {
-        // Used to correctly serialize nodes types into project json
-        NodeSerializer.ExtraAssemblies = [typeof(Pix2dBootstrapperDI).Assembly, typeof(Pix2dSprite).Assembly];
+        // Initialises project-format serialization: assemblies scanned for node types plus the stable
+        // $type key registry and legacy aliases. Single source of truth is ProjectFormat (H1.2).
+        ProjectFormat.EnsureInitialized([typeof(Pix2dBootstrapperDI).Assembly, typeof(Pix2dSprite).Assembly]);
     }
 
     public virtual void ConfigureServices(IServiceCollection services)
@@ -100,7 +102,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         // MainActivity.SaveSessionSafely, FileCommands.Exit) keep working unchanged.
         services.AddSingleton<IProjectChangeTracker, ProjectChangeTracker>(); // Depends on: IMessenger, AppState
         services.AddSingleton<ISessionSnapshotProvider, UiThreadSnapshotProvider>();
-        services.AddSingleton<AutoSaveService>(); // Depends on: AppState, IPlatformStuffService, IMessenger, IProjectChangeTracker, ISessionSnapshotProvider, IProjectActivationService
+        services.AddSingleton<AutoSaveService>(); // Depends on: AppState, IPlatformStuffService, IMessenger, IProjectChangeTracker, ISessionSnapshotProvider, IProjectActivationService, ICrashReportService
         services.AddSingleton<IAutoSaveService>(sp => sp.GetRequiredService<AutoSaveService>());
         services.AddSingleton<ISessionService>(sp => sp.GetRequiredService<AutoSaveService>());
 

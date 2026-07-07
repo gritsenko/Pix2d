@@ -1,5 +1,6 @@
 #nullable enable
 using Newtonsoft.Json;
+using Pix2d.Project;
 using Pix2d.Project.AutoSave;
 using SkiaNodes;
 using SkiaNodes.Serialization;
@@ -131,6 +132,7 @@ public sealed class IncrementalSessionStore : IIncrementalSessionStore
         var manifest = new SessionManifest
         {
             FormatVersion = 1,
+            SceneFormatVersion = ProjectFormat.CurrentVersion,
             SessionId = SessionId,
             Revision = Interlocked.Increment(ref _lastRevision),
             CommittedAtUtc = DateTime.UtcNow,
@@ -196,7 +198,7 @@ public sealed class IncrementalSessionStore : IIncrementalSessionStore
         }
 
         var sceneJson = await File.ReadAllTextAsync(sceneJsonPath, ct).ConfigureAwait(false);
-        return NodeSerializer.Deserialize<SKNode>(sceneJson, images);
+        return ProjectFormat.DeserializeScene(sceneJson, manifest.SceneFormatVersion, images);
     }
 
     public Task DisposeAsync(bool deleteFolder)

@@ -11,6 +11,9 @@ public partial class SKNode
     [JsonIgnore]
     protected virtual SKColor BBoxColor => _bboxColor ??= new SKColor((byte)Random.Shared.Next(256), (byte)Random.Shared.Next(256), (byte)Random.Shared.Next(256));
 
+    // Transient render flag — must never be persisted. A freshly loaded node defaults to dirty so it
+    // renders on first paint; restoring a saved 'false' from disk could skip that initial draw.
+    [JsonIgnore]
     public bool IsDirty { get; private set; } = true;
 
     private SKMatrix _globalTransform;
@@ -144,6 +147,9 @@ public partial class SKNode
 
     public NodeCollection Nodes { get; private set; }
 
+    // Runtime hit-test flag: only ever set on adorner/thumb/editor overlay nodes (never persisted
+    // document nodes), and consumed by SKInput's hit-testing. Not document state — don't persist.
+    [JsonIgnore]
     public bool IsInteractive { get; set; }
 
     public bool IsVisible { get; set; } = true;

@@ -42,6 +42,7 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
     private readonly IProjectChangeTracker _tracker;
     private readonly ISessionSnapshotProvider _snapshotProvider;
     private readonly IProjectActivationService _projectActivation;
+    private readonly ICrashReportService _crashReportService;
     private readonly AutoSaveRecovery _recovery;
     private readonly string _sessionsRoot;
 
@@ -55,6 +56,9 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
     private PeriodicTimer? _timer;
     private Task? _loop;
 
+    // Number of projects restored by the last recovery pass; drives the crash-recovery banner.
+    private int _lastRecoveredCount;
+
     public bool IsRunning => _loop is { IsCompleted: false };
 
     public AutoSaveService(
@@ -63,7 +67,8 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
         IMessenger messenger,
         IProjectChangeTracker tracker,
         ISessionSnapshotProvider snapshotProvider,
-        IProjectActivationService projectActivation)
+        IProjectActivationService projectActivation,
+        ICrashReportService crashReportService)
     {
         _appState = appState;
         _platformStuff = platformStuff;
@@ -71,6 +76,7 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
         _tracker = tracker;
         _snapshotProvider = snapshotProvider;
         _projectActivation = projectActivation;
+        _crashReportService = crashReportService;
 
         _sessionsRoot = ResolveSessionsRoot(platformStuff);
         _recovery = new AutoSaveRecovery(_sessionsRoot);
@@ -259,6 +265,7 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
             _appState.CurrentProject.HasUnsavedChanges = true;
             _messenger.Send(new ProjectLoadedMessage(scene));
         });
+        _lastRecoveredCount = 1;
         return true;
     }
 
@@ -355,6 +362,7 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
             _messenger.Send(new ProjectActivatedMessage(activeProject));
         });
 
+        _lastRecoveredCount = recovered.Count;
         Logger.Log($"AutoSave: recovered workspace with {recovered.Count} tab(s) from {_sessionsRoot}");
         return true;
     }
@@ -398,7 +406,20 @@ public sealed class AutoSaveService : IAutoSaveService, ISessionService, IAsyncD
 
     private async Task StartAsyncWithRecovery()
     {
-        try { await TryRecoverAsync().ConfigureAwait(false); }
+        try
+        {
+            await TryRecoverAsync().ConfigureAwait(false);
+
+            // Silent restore always happens (browser-like tab persistence). The banner only informs
+            // the user when the recovered work came back after a crash / OS kill rather than a normal
+            // restart — gated on the existing clean-exit verdict from the crash-report service so we
+            // reuse the one authoritative shutdown signal instead of a parallel marker.
+            if (!_crashReportService.PreviousShutdownWasClean && _lastRecoveredCount > 0)
+            {
+                Logger.Log($"AutoSave: previous shutdown was unclean — surfacing recovery banner for {_lastRecoveredCount} project(s)");
+                await Dispatcher.UIThread.InvokeAsync(() => _appState.UiState.ShowRecoveryNotice = true);
+            }
+        }
         catch (Exception ex) { Logger.LogException(ex); }
         finally { await StartAsync().ConfigureAwait(false); }
     }

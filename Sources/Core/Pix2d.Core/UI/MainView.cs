@@ -283,6 +283,35 @@ public partial class MainView : ViewBase<MainViewModel>
                                         .Text(L("Working..."))
                                         .VerticalAlignment(VerticalAlignment.Center)
                                         .HorizontalAlignment(HorizontalAlignment.Center)
+                                ),
+
+                            // Non-blocking crash-recovery banner. A full-span, click-through host (no
+                            // Background) with a centred panel child — the same overlay shape as
+                            // LoadingOverlay above, which is why it lays out reliably (a separate ViewBase
+                            // host did not, and VerticalAlignment.Bottom does not render in this overlay —
+                            // Center does). Shown only after an unclean shutdown; see AutoSaveService.
+                            new Border().Name("RecoveryNotice")
+                                .Col(0).ColSpan(3)
+                                .Row(0).RowSpan(4)
+                                .IsVisible(vm, x => x.ShowRecoveryNotice)
+                                .Child(
+                                    new Border().Classes("Panel")
+                                        .HorizontalAlignment(HorizontalAlignment.Center)
+                                        .VerticalAlignment(VerticalAlignment.Center)
+                                        .Padding(16, 10)
+                                        .Child(new StackPanel()
+                                            .Orientation(Orientation.Horizontal)
+                                            .Children(
+                                                new TextBlock()
+                                                    .Classes("body14")
+                                                    .VerticalAlignment(VerticalAlignment.Center)
+                                                    .Text(L("Recovered your unsaved work after an unexpected close.")),
+                                                new Button()
+                                                    .Classes("btn")
+                                                    .Margin(12, 0, 0, 0)
+                                                    .VerticalAlignment(VerticalAlignment.Center)
+                                                    .Content(L("Dismiss"))
+                                                    .OnClick(_ => vm.DismissRecoveryNotice())))
                                 )
                         ])
                 ),

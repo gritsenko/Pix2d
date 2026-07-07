@@ -1,0 +1,200 @@
+{
+  "Bitmap": [
+    "bitmap",
+    "blendMode",
+    "designerState",
+    "effects",
+    "id",
+    "isVisible",
+    "lockTransparentPixels",
+    "name",
+    "nodes",
+    "opacity",
+    "pivotPosition",
+    "position",
+    "rotation",
+    "showEffects",
+    "size"
+  ],
+  "BitmapRef": [
+    "id"
+  ],
+  "ColorOverlayEffect": [
+    "color",
+    "effectType",
+    "opacity"
+  ],
+  "GrayscaleEffect": [
+    "effectType"
+  ],
+  "Group": [
+    "blendMode",
+    "designerState",
+    "effects",
+    "id",
+    "isVisible",
+    "name",
+    "nodes",
+    "opacity",
+    "pivotPosition",
+    "position",
+    "rotation",
+    "showEffects",
+    "size"
+  ],
+  "ImageAdjustEffect": [
+    "effectType",
+    "hue",
+    "lightness",
+    "saturation"
+  ],
+  "Layer": [
+    "blendMode",
+    "designerState",
+    "effects",
+    "frames",
+    "id",
+    "isVisible",
+    "lockTransparentPixels",
+    "name",
+    "nodes",
+    "opacity",
+    "pivotPosition",
+    "position",
+    "rotation",
+    "showEffects",
+    "size"
+  ],
+  "OutlineEffect": [
+    "color",
+    "radius"
+  ],
+  "PixelBlurEffect": [
+    "blur"
+  ],
+  "PixelGlowEffect": [
+    "blur",
+    "effectType",
+    "opacity",
+    "radius"
+  ],
+  "PixelShadowEffect": [
+    "blur",
+    "color",
+    "deltaX",
+    "deltaY",
+    "opacity"
+  ],
+  "Rectangle": [
+    "blendMode",
+    "designerState",
+    "effects",
+    "id",
+    "isVisible",
+    "name",
+    "nodes",
+    "opacity",
+    "pivotPosition",
+    "position",
+    "rotation",
+    "showEffects",
+    "size",
+    "style"
+  ],
+  "Root": [
+    "blendMode",
+    "cellSize",
+    "designerState",
+    "effects",
+    "gridColor",
+    "id",
+    "isVisible",
+    "name",
+    "nodes",
+    "opacity",
+    "pivotPosition",
+    "position",
+    "rotation",
+    "showEffects",
+    "showGrid",
+    "size"
+  ],
+  "Sprite": [
+    "backgroundColor",
+    "blendMode",
+    "designerState",
+    "effects",
+    "frameRate",
+    "gridCellSize",
+    "id",
+    "isVisible",
+    "name",
+    "nodes",
+    "onionSkinSettings",
+    "opacity",
+    "pivotPosition",
+    "position",
+    "rotation",
+    "selectedLayerIndex",
+    "showEffects",
+    "showGrid",
+    "size",
+    "useBackgroundColor"
+  ],
+  "SpriteNode": [
+    "bitmap",
+    "blendMode",
+    "designerState",
+    "effects",
+    "id",
+    "isVisible",
+    "lockTransparentPixels",
+    "name",
+    "nodes",
+    "opacity",
+    "pivotPosition",
+    "position",
+    "rotation",
+    "showEffects",
+    "size"
+  ],
+  "Text": [
+    "aliased",
+    "blendMode",
+    "bold",
+    "color",
+    "designerState",
+    "effects",
+    "fontFamily",
+    "fontSize",
+    "id",
+    "isVisible",
+    "italic",
+    "name",
+    "nodes",
+    "opacity",
+    "pivotPosition",
+    "position",
+    "rotation",
+    "showEffects",
+    "size",
+    "text"
+  ],
+  "~DesignerState": [
+    "exportSettings",
+    "isLocked",
+    "lockAspect",
+    "showChildrenInTree"
+  ],
+  "~ExportSettings": [
+    "className",
+    "exportFormat",
+    "exportMode",
+    "exportScale",
+    "onClickHandlerName",
+    "textureKey"
+  ],
+  "~OnionSkinSettings": [
+    "isEnabled"
+  ]
+}

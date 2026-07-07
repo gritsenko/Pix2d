@@ -21,6 +21,16 @@ public class ProjectPacker
 
         await using var outputFileStream = await file.OpenWriteAsync();
         using var zip = new ZipArchive(outputFileStream, ZipArchiveMode.Create, true, ZipEncoding);
+
+        // Format version anchor (H1.2): lets the unpacker migrate older documents on open. Written
+        // first so it is cheap to read without inflating the whole archive.
+        var manifestJson = Newtonsoft.Json.JsonConvert.SerializeObject(
+            new ProjectManifest { FormatVersion = ProjectFormat.CurrentVersion });
+        var manifestZipEntry = zip.CreateEntry("manifest.json", CompressionLevel.Fastest);
+        await using (var manifestZipStream = manifestZipEntry.Open())
+        await using (var manifestWriter = new StreamWriter(manifestZipStream))
+            await manifestWriter.WriteAsync(manifestJson);
+
         var projectZipEntry = zip.CreateEntry("project.json", CompressionLevel.Fastest);
 
         await using (var projectZipStream = projectZipEntry.Open())
@@ -64,6 +74,12 @@ public class ProjectPacker
         var sceneJson = serializer.Serialize(scene);
         var projectFile = await folder.GetFileSourceAsync("project", "pix2d.json", true);
         await projectFile.SaveAsync(sceneJson);
+
+        // Format version anchor (H1.2), mirroring the container layout.
+        var manifestFile = await folder.GetFileSourceAsync("manifest", "json", true);
+        await manifestFile.SaveAsync(Newtonsoft.Json.JsonConvert.SerializeObject(
+            new ProjectManifest { FormatVersion = ProjectFormat.CurrentVersion }));
+
         //saving images
         foreach (var entry in serializer.GetDataEntries())
         {

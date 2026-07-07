@@ -8,6 +8,15 @@ public interface ICrashReportService
     bool HasPendingCrashReport { get; }
     CrashReportSummary? PendingCrashReport { get; }
 
+    /// <summary>
+    /// Whether the previous run ended through a deliberate, graceful shutdown (the one-shot
+    /// <see cref="MarkCleanExit"/> marker was present at launch). False on a crash / OS kill, and on
+    /// the very first launch. Captured once during startup detection so callers see a stable verdict
+    /// even after the underlying marker is consumed. Used to decide whether to surface the
+    /// crash-recovery banner after autosave restores a session.
+    /// </summary>
+    bool PreviousShutdownWasClean { get; }
+
     TelemetryConsent TelemetryConsent { get; }
     void SetTelemetryConsent(TelemetryConsent consent);
 

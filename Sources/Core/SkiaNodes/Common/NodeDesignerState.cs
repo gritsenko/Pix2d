@@ -1,8 +1,14 @@
+using Newtonsoft.Json;
+
 namespace SkiaNodes;
 
 public class NodeDesignerState
 {
+    // Editor selection is transient UI state — must not persist (a saved file should not reopen with
+    // a stale "selected" node).
+    [JsonIgnore]
     public bool IsSelected { get; set; }
+
     public bool IsLocked { get; set; }
 
     public bool? LockAspect { get; set; }
@@ -10,6 +16,9 @@ public class NodeDesignerState
     public bool? ShowChildrenInTree { get; set; } = true;
 
     public NodeExportSettings ExportSettings { get; set; } = new NodeExportSettings();
+
+    // Tree-panel expansion is transient UI state.
+    [JsonIgnore]
     public bool IsExpanded { get; set; }
 }
 

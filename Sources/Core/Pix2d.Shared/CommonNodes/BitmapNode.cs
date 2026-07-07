@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
 using SkiaNodes;
@@ -302,6 +303,8 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     public void Crop(SKRect targetBounds)
         => ReplaceBitmap(Bitmap!.Crop(targetBounds), true);
 
+    // Runtime callback wired up by the editor — a delegate has no meaningful serialized form.
+    [JsonIgnore]
     public Action FlushRequestedAction { get; set; } = () => { };
     public bool LockTransparentPixels { get; } = false;
 

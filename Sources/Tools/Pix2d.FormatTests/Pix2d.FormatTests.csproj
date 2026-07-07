@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Standalone project-format backward-compatibility harness (roadmap H1.2).
+    Loads every corpus .pix2d through the real ProjectUnpacker load path and asserts it still
+    opens. Intentionally NOT listed in Sources/Pix2d.slnx so the multi-platform solution build
+    and CI are unaffected. Run it explicitly with a dotnet run against this project directory,
+    optionally passing a corpus folder as the first argument. Default corpus is the repo-root
+    TestImages folder (auto-located by walking up from the build output).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

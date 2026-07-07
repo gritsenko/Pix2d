@@ -57,6 +57,11 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial bool ShowLayerProperties { get; set; }
 
+    // Mirrors UiState.ShowRecoveryNotice (crash-recovery banner). One-way: dismissal goes through
+    // DismissRecoveryNotice so there is no OnChanged push-back partial.
+    [ObservableProperty]
+    public partial bool ShowRecoveryNotice { get; set; }
+
     public MainViewModel(
         AppState appState,
         IDialogService dialogService,
@@ -168,8 +173,11 @@ public sealed partial class MainViewModel : ObservableObject
         ShowPreviewPanel = _appState.UiState.ShowPreviewPanel;
         ShowCanvasResizePanel = _appState.UiState.ShowCanvasResizePanel;
         ShowLayerProperties = _appState.UiState.ShowLayerProperties;
+        ShowRecoveryNotice = _appState.UiState.ShowRecoveryNotice;
         IsBusy = _appState.IsBusy;
 
         _isSyncing = false;
     }
+
+    public void DismissRecoveryNotice() => _appState.UiState.ShowRecoveryNotice = false;
 }

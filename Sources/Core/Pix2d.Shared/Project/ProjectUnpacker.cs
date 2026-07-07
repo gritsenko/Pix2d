@@ -22,9 +22,20 @@ public class ProjectUnpacker
         if (!fileStream.CanRead || fileStream.Length < 1 || fileStream.Position < 0)
             throw new Exception($"Can't read file stream {file.Path} with size of {fileStream.Length}! [CanRead: {fileStream.CanRead}, Stream pos: {fileStream.Position}]");
 
+        return await LoadProjectSceneFromStream(fileStream, file.Path);
+    }
+
+    /// <summary>
+    /// Reads a <c>.pix2d</c> archive from an already-open stream. Split out from
+    /// <see cref="LoadProjectScene(IFileContentSource)"/> so tools that hold a raw stream (e.g. the
+    /// format-corpus test harness) can exercise the exact production load path without a platform
+    /// file-source implementation. The scene is deserialized through <see cref="ProjectFormat"/> so
+    /// the format version recorded in <c>manifest.json</c> drives any migration.
+    /// </summary>
+    public static async Task<SKNode?> LoadProjectSceneFromStream(Stream fileStream, string pathForErrors)
+    {
         try
         {
-
             using var zip = new ZipArchive(fileStream, ZipArchiveMode.Read, true, ZipEncoding);
             var images = new Dictionary<string, SKBitmap>();
 
@@ -58,16 +69,61 @@ public class ProjectUnpacker
             using var streamReader = new StreamReader(projectStream);
             var sceneJson = await streamReader.ReadToEndAsync();
 
-            var scene = NodeSerializer.Deserialize<SKNode>(sceneJson, images);
+            var formatVersion = await ReadFormatVersionAsync(zip);
+            var scene = ProjectFormat.DeserializeScene(sceneJson, formatVersion, images);
 
             return scene;
         }
         catch (Exception ex)
         {
             throw new Exception(
-                $"Can't read file {file.Path} with size of {fileStream.Length}!  \nException while unpack: {ex.Message}",
+                $"Can't read file {pathForErrors} with size of {(fileStream.CanSeek ? fileStream.Length : -1)}!  \nException while unpack: {ex.Message}",
                 ex);
 
+        }
+    }
+
+    /// <summary>
+    /// Reads the format version from the archive's <c>manifest.json</c>. Archives written before the
+    /// manifest existed have none — those are the baseline version.
+    /// </summary>
+    private static async Task<int> ReadFormatVersionAsync(ZipArchive zip)
+    {
+        var manifestEntry = zip.GetEntry("manifest.json");
+        if (manifestEntry == null)
+            return ProjectFormat.BaselineVersion;
+
+        try
+        {
+            await using var manifestStream = manifestEntry.Open();
+            using var reader = new StreamReader(manifestStream);
+            var json = await reader.ReadToEndAsync();
+            var manifest = Newtonsoft.Json.JsonConvert.DeserializeObject<ProjectManifest>(json);
+            return manifest?.FormatVersion ?? ProjectFormat.BaselineVersion;
+        }
+        catch
+        {
+            return ProjectFormat.BaselineVersion;
+        }
+    }
+
+    /// <summary>Folder-layout counterpart of <see cref="ReadFormatVersionAsync"/>.</summary>
+    private static async Task<int> ReadFolderFormatVersionAsync(IWriteDestinationFolder folder)
+    {
+        try
+        {
+            var manifestFile = await folder.GetFileSourceAsync("manifest", "json", false);
+            if (manifestFile is not { Exists: true })
+                return ProjectFormat.BaselineVersion;
+
+            using var reader = new StreamReader(await manifestFile.OpenRead());
+            var json = await reader.ReadToEndAsync();
+            var manifest = Newtonsoft.Json.JsonConvert.DeserializeObject<ProjectManifest>(json);
+            return manifest?.FormatVersion ?? ProjectFormat.BaselineVersion;
+        }
+        catch
+        {
+            return ProjectFormat.BaselineVersion;
         }
     }
 
@@ -88,7 +144,9 @@ public class ProjectUnpacker
         var projectFile = await folder.GetFileSourceAsync("project", "pix2d.json", true);
         using var reader = new StreamReader(await projectFile.OpenRead());
         var sceneJson = await reader.ReadToEndAsync();
-        var scene = NodeSerializer.Deserialize<SKNode>(sceneJson, images);
+
+        var formatVersion = await ReadFolderFormatVersionAsync(folder);
+        var scene = ProjectFormat.DeserializeScene(sceneJson, formatVersion, images);
 
         return scene;
     }

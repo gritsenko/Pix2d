@@ -129,4 +129,15 @@ public class UiState : StateBase
         get => Get<string>();
         set => Set(value);
     }
+
+    /// <summary>
+    /// True while the "recovered your work after an unexpected close" banner should be shown.
+    /// Set by the autosave service when a session is restored and the previous shutdown was not
+    /// clean; cleared when the user dismisses the banner. Non-blocking — rendered inline in MainView.
+    /// </summary>
+    public bool ShowRecoveryNotice
+    {
+        get => Get<bool>();
+        set => Set(value);
+    }
 }
