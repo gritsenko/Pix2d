@@ -2,6 +2,12 @@
   {
     "Strings": {
       "Menu": "Menu",
+      "Update available": "Update available",
+      "Check for updates": "Check for updates",
+      "Download update": "Download update",
+      "What's new": "What's new",
+      "Checking…": "Checking…",
+      "You have the latest version": "You have the latest version",
       "Clear": "Clear",
       "Export": "Export",
       "Tools": "Tools",

@@ -62,6 +62,7 @@ Goal: after the large v3.8.0 release, make export/selection/drawing bulletproof.
 ### H1.3 Repository hygiene `P1`
 - [ ] Remove `old.cs`, `test.cs`, `test_serialize.cs` from repo root (move logic into proper test projects).
 - [ ] Update [pix2d.com](https://pix2d.com) download links — the landing page still links portable/Linux builds of **3.5.3** while the latest release is **3.8.0**. Automate: generate download links from the [latest GitHub release](https://github.com/gritsenko/Pix2d/releases/latest) via API or a CI step that patches the site.
+- [x] **Self-update notifier (portable desktop).** On launch, portable desktop builds check the [latest GitHub release](https://github.com/gritsenko/Pix2d/releases/latest) API and surface an "Update available" block on the Info page (version + release notes + Download button → opens the release page). Gated by `IPlatformStuffService.SupportsSelfUpdate` (runtime MSIX-identity check — false for the Store build, Android and WASM). Throttled to once/day via settings, with a manual "Check for updates" button. `IUpdateService` / `UpdateService`. **Next:** optional in-app download of the release asset, then a full auto-updater (elevation, binary swap, restart).
 - [ ] Add this `ROADMAP.md` to the repo root and link it from `README.md` and the site.
 
 ---

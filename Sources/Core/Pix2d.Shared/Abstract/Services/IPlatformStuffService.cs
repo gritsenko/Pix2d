@@ -22,6 +22,13 @@ public interface IPlatformStuffService
     bool SupportsMultipleProjects => false;
 
     /// <summary>
+    /// Whether this build updates itself via GitHub releases (portable desktop) rather than through a
+    /// store / package manager. Gates the update-check and the "Update available" UI on the Info page.
+    /// Store (MSIX), Android and WASM builds are updated by their platform, so they return false.
+    /// </summary>
+    bool SupportsSelfUpdate => false;
+
+    /// <summary>
     /// Detect if any text input is selected in application
     /// </summary>
     bool IsTextInputFocused { get; }

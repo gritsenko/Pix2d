@@ -60,6 +60,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
 
         services.AddSingleton<ISettingsService, SettingsService>(); // Depends on: IPlatformStuffService
         services.AddSingleton<ICrashReportService, CrashReportService>(); // Depends on: IPlatformStuffService, ISettingsService, AppState
+        services.AddSingleton<IUpdateService, UpdateService>(); // Depends on: IPlatformStuffService, ISettingsService
 
         services
             .AddSingleton<IFileService,

@@ -15,6 +15,12 @@ public class PlatformStuffService : IPlatformStuffService
     private readonly IServiceProvider _serviceProvider;
     public PlatformType CurrentPlatform => PlatformType.CrossPlatformDesktop;
     public bool SupportsMultipleProjects => true;
+
+    // Portable builds self-update from GitHub; the Store (MSIX) build is updated by the Store. The same
+    // Pix2d.Desktop binary ships in both, so this is decided at runtime by MSIX package identity.
+    private bool? _supportsSelfUpdate;
+    public bool SupportsSelfUpdate => _supportsSelfUpdate ??= !IsRunningAsPackagedApp();
+
     public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;
 
     public PlatformStuffService(AppState state, IServiceProvider serviceProvider)
@@ -140,6 +146,33 @@ public class PlatformStuffService : IPlatformStuffService
     }
 
     public string GetAppVersion() => Pix2d.Common.BuildInfo.Version;
+
+    private const int AppmodelErrorNoPackage = 15700;
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetCurrentPackageFullName(ref int packageFullNameLength, char[]? packageFullName);
+
+    /// <summary>
+    /// True when the process runs inside an MSIX package (Microsoft Store build). On non-Windows
+    /// desktops there is no MSIX packaging, so this is always false (portable → self-update enabled).
+    /// </summary>
+    private static bool IsRunningAsPackagedApp()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return false;
+
+        try
+        {
+            var length = 0;
+            var result = GetCurrentPackageFullName(ref length, null);
+            return result != AppmodelErrorNoPackage;
+        }
+        catch
+        {
+            // API missing (very old Windows) → treat as unpackaged/portable.
+            return false;
+        }
+    }
     
     public void ToggleTopmostWindow()
     {

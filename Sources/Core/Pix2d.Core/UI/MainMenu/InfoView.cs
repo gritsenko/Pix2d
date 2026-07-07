@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Command;
 using Pix2d.Messages;
@@ -14,8 +15,9 @@ public partial class InfoView : ViewBase<InfoView.State>
         AppState appState,
         IPlatformStuffService platformStuffService,
         ICommandService commandService,
-        ICrashReportService crashReportService)
-        : base(new State(messenger, appState, platformStuffService, commandService, crashReportService))
+        ICrashReportService crashReportService,
+        IUpdateService updateService)
+        : base(new State(messenger, appState, platformStuffService, commandService, crashReportService, updateService))
     {
     }
 
@@ -92,13 +94,66 @@ public partial class InfoView : ViewBase<InfoView.State>
                             .Height(36)
                             .Margin(new Thickness(0, 0, 0, 16))
                             .Command(state.CrashCommands.ShowCrashReport)
-                            .Content(L("Show crash report"))
+                            .Content(L("Show crash report")),
+
+                        BuildUpdatePanel(state)
 #if DEBUG
                         ,
                         BuildDebugCrashPanel(state)
 #endif
                     )
             ));
+
+    // Update-check UI — only meaningful on self-updating (portable desktop) builds; the whole block
+    // is collapsed on Store / Android / WASM via State.SupportsSelfUpdate.
+    private static Control BuildUpdatePanel(State state) =>
+        new StackPanel()
+            .IsVisible(state, x => x.SupportsSelfUpdate)
+            .Margin(new Thickness(0, 0, 0, 16))
+            .Children(
+                new Border()
+                    .IsVisible(state, x => x.HasUpdate)
+                    .Classes("Panel")
+                    .Padding(new Thickness(12))
+                    .Margin(new Thickness(0, 0, 0, 8))
+                    .Child(new StackPanel().Children(
+                        new TextBlock()
+                            .Classes("body16")
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .TextWrapping(TextWrapping.Wrap)
+                            .Margin(new Thickness(0, 0, 0, 8))
+                            .Text(state, x => x.UpdateHeaderText),
+                        new Expander()
+                            .Header(L("What's new"))
+                            .Margin(new Thickness(0, 0, 0, 8))
+                            .Content(new ScrollViewer()
+                                .MaxHeight(200)
+                                .Content(new TextBlock()
+                                    .TextWrapping(TextWrapping.Wrap)
+                                    .FontFamily(StaticResources.Fonts.TextArticlesFontFamily)
+                                    .Text(state, x => x.ReleaseNotesText))),
+                        new Button()
+                            .Classes("btn").Classes("btn-bright")
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .Height(36)
+                            .OnClick(_ => state.DownloadUpdate())
+                            .Content(L("Download update")))),
+
+                new StackPanel()
+                    .Orientation(Orientation.Horizontal)
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .Children(
+                        new Button()
+                            .Classes("btn")
+                            .Height(32)
+                            .IsEnabled(state, x => x.CanCheckForUpdates)
+                            .OnClick(_ => state.CheckForUpdates())
+                            .Content(L("Check for updates")),
+                        new TextBlock()
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .Margin(new Thickness(8, 0, 0, 0))
+                            .Foreground(StaticResources.Brushes.SecondaryForegroundBrush)
+                            .Text(state, x => x.CheckStatusText)));
 
 #if DEBUG
     // Debug-only scaffolding to exercise the crash-report capture paths from the Info page.
@@ -140,6 +195,9 @@ public partial class InfoView : ViewBase<InfoView.State>
         private readonly AppState _appState;
         private readonly IPlatformStuffService _platformStuffService;
         private readonly ICrashReportService _crashReportService;
+        private readonly IUpdateService _updateService;
+
+        private UpdateInfo? _availableUpdate;
 
         [ObservableProperty]
         public partial string AppVersionText { get; set; } = string.Empty;
@@ -147,20 +205,40 @@ public partial class InfoView : ViewBase<InfoView.State>
         [ObservableProperty]
         public partial string CurrentProjectTitle { get; set; } = string.Empty;
 
+        public bool SupportsSelfUpdate { get; }
+
+        [ObservableProperty]
+        public partial bool HasUpdate { get; set; }
+
+        [ObservableProperty]
+        public partial string UpdateHeaderText { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial string ReleaseNotesText { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial bool CanCheckForUpdates { get; set; } = true;
+
+        [ObservableProperty]
+        public partial string CheckStatusText { get; set; } = string.Empty;
+
         public State(
             IMessenger messenger,
             AppState appState,
             IPlatformStuffService platformStuffService,
             ICommandService commandService,
-            ICrashReportService crashReportService)
+            ICrashReportService crashReportService,
+            IUpdateService updateService)
         {
             _appState = appState;
             _platformStuffService = platformStuffService;
             _crashReportService = crashReportService;
+            _updateService = updateService;
 
             FileCommands = commandService.GetCommandList<FileCommands>()!;
             CrashCommands = commandService.GetCommandList<Pix2d.Command.CrashCommands>()!;
             AppVersionText = $"Pix2d v{platformStuffService.GetAppVersion()}";
+            SupportsSelfUpdate = platformStuffService.SupportsSelfUpdate;
 
             _appState.WatchFor(x => x.CurrentProject, UpdateCurrentProjectTitle);
             _appState.WatchFor(x => x.CurrentProject.File, UpdateCurrentProjectTitle);
@@ -170,6 +248,48 @@ public partial class InfoView : ViewBase<InfoView.State>
             messenger.Register<ProjectSavedMessage>(this, _ => UpdateCurrentProjectTitle());
 
             UpdateCurrentProjectTitle();
+
+            if (SupportsSelfUpdate)
+                _ = RunUpdateCheckAsync(force: false);
+        }
+
+        /// <summary>Manual "Check for updates" — bypasses the once-per-day throttle.</summary>
+        public void CheckForUpdates() => _ = RunUpdateCheckAsync(force: true);
+
+        private async Task RunUpdateCheckAsync(bool force)
+        {
+            CanCheckForUpdates = false;
+            if (force)
+                CheckStatusText = L("Checking…");
+
+            try
+            {
+                var update = await _updateService.CheckForUpdateAsync(force);
+                if (update != null)
+                {
+                    _availableUpdate = update;
+                    UpdateHeaderText = $"{L("Update available")}: v{update.Version}";
+                    ReleaseNotesText = update.ReleaseNotes;
+                    HasUpdate = true;
+                    CheckStatusText = string.Empty;
+                }
+                else if (force)
+                {
+                    // Manual check that came back empty: reassure the user only when we actually asked.
+                    CheckStatusText = HasUpdate ? string.Empty : L("You have the latest version");
+                }
+            }
+            finally
+            {
+                CanCheckForUpdates = true;
+            }
+        }
+
+        public void DownloadUpdate()
+        {
+            var url = _availableUpdate?.HtmlUrl;
+            if (!string.IsNullOrWhiteSpace(url))
+                _platformStuffService.OpenUrlInBrowser(url);
         }
 
         public FileCommands FileCommands { get; }
