@@ -42,6 +42,9 @@ public sealed class DesktopSentryCrashTelemetrySink : ICrashTelemetrySink
                 o.Dsn = dsn;
                 o.AutoSessionTracking = false;
                 o.IsGlobalModeEnabled = true;
+                // Offline cache: if the Sentry host is unreachable at crash time, the envelope is
+                // persisted locally and re-sent on the next launch instead of being lost.
+                o.CacheDirectoryPath = GetCacheDirectory();
             });
             _sentryActive = true;
             Logger.Log("Sentry crash telemetry sink initialized.");
@@ -99,4 +102,10 @@ public sealed class DesktopSentryCrashTelemetrySink : ICrashTelemetrySink
             .GetCustomAttributes<AssemblyMetadataAttribute>()
             .FirstOrDefault(a => string.Equals(a.Key, "SentryDsn", StringComparison.Ordinal))?.Value;
     }
+
+    // Same LocalApplicationData\Pix2d root the rest of the app uses (see PlatformStuffService).
+    private static string GetCacheDirectory() =>
+        System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Pix2d", "SentryCache");
 }

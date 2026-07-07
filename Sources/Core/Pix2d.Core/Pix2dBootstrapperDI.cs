@@ -14,6 +14,7 @@ using Pix2d.Plugins.ImageFormats.SvgFormat;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Plugins.Sprite.Editors;
 using Pix2d.Primitives;
+using Pix2d.Primitives.Crash;
 using Pix2d.Services.Project;
 using Pix2d.Services.AutoSave;
 using Pix2d.Project.AutoSave;
@@ -34,6 +35,8 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
     private readonly AppState _appState = new AppState();
     private readonly List<Func<IServiceProvider, IPix2dPlugin>> _pluginResolvers = [];
     private IServiceProvider? _serviceProvider;
+    private bool _analyticsEnabled;
+    private AppStatLoggerTarget? _appStatTarget;
 
     public string? StartupDocument { get; set; }
 
@@ -160,10 +163,28 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         // Crash reporting must come up before anything else can fail.
         InitCrashReporting(serviceProvider);
 
-        // Opt-out anonymous analytics/conversion tracking. Runs on every head (independent of the
+        // Strict opt-in anonymous analytics/conversion tracking. Runs on every head (independent of the
         // per-head InitTelemetry override) and stays disabled unless a stats endpoint can be resolved
-        // from the baked-in DSN.
+        // from the baked-in DSN AND the user has allowed telemetry.
         InitAnalytics(serviceProvider);
+
+        // React to runtime consent changes (first-launch dialog / crash-dialog toggle / Settings toggle)
+        // without waiting for a relaunch: Allowed brings analytics + the crash-telemetry sink up;
+        // Denied/Unset stops analytics collection immediately.
+        var crashReportService = serviceProvider.GetService<ICrashReportService>();
+        if (crashReportService != null)
+            crashReportService.TelemetryConsentChanged += consent =>
+            {
+                if (consent == TelemetryConsent.Allowed)
+                {
+                    EnableAnalytics(serviceProvider);
+                    InitOptionalTelemetry(crashReportService);
+                }
+                else
+                {
+                    DisableAnalytics();
+                }
+            };
 
         UiBlocker.Initialize((busy, msg) => _appState.IsBusy = busy);
 
@@ -371,14 +392,31 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
     }
 
     /// <summary>
-    /// Registers the AppStat analytics logging target (custom events / conversions — never crashes).
-    /// The endpoint is derived from the Sentry DSN baked into the concrete head assembly, so this
-    /// works uniformly across heads without per-head plumbing; with no DSN it's a silent no-op.
-    /// <c>GetType()</c> resolves to the head bootstrapper subclass, so its <c>.Assembly</c> is the head
-    /// assembly that carries the <c>SentryDsn</c> metadata.
+    /// Brings up anonymous usage analytics — but only when the user has allowed telemetry. Strict
+    /// opt-in: on a fresh install (consent Unset) this is a no-op; analytics starts later, the moment
+    /// the first-launch consent dialog (or the crash-dialog toggle) flips consent to Allowed, via the
+    /// <see cref="ICrashReportService.TelemetryConsentChanged"/> subscription wired in <c>Initialize</c>.
     /// </summary>
     protected virtual void InitAnalytics(IServiceProvider serviceProvider)
     {
+        var crashService = serviceProvider.GetService<ICrashReportService>();
+        if (crashService?.TelemetryConsent == TelemetryConsent.Allowed)
+            EnableAnalytics(serviceProvider);
+    }
+
+    /// <summary>
+    /// Registers the AppStat analytics logging target (custom events / conversions — never crashes) and
+    /// emits the session's first event. The endpoint is derived from the Sentry DSN baked into the
+    /// concrete head assembly, so this works uniformly across heads without per-head plumbing; with no
+    /// DSN it's a silent no-op. <c>GetType()</c> resolves to the head bootstrapper subclass, so its
+    /// <c>.Assembly</c> is the head assembly that carries the <c>SentryDsn</c> metadata. Idempotent:
+    /// safe to call both at startup (consent already Allowed) and on a runtime consent grant.
+    /// </summary>
+    private void EnableAnalytics(IServiceProvider serviceProvider)
+    {
+        if (_analyticsEnabled)
+            return;
+
         try
         {
             var dsn = AppStatEndpoint.ReadDsn(GetType().Assembly);
@@ -388,8 +426,47 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
             var settingsService = serviceProvider.GetService<ISettingsService>();
             var installId = GetOrCreateInstallId(settingsService);
 
-            Logger.RegisterLoggerTarget(new AppStatLoggerTarget(trackUrl, Pix2d.Common.BuildInfo.Version, installId));
+            _appStatTarget = new AppStatLoggerTarget(trackUrl, Pix2d.Common.BuildInfo.Version, installId);
+            Logger.RegisterLoggerTarget(_appStatTarget);
+            _analyticsEnabled = true;
             Logger.Log("Analytics tracking enabled");
+
+            // First analytics event of the session: the app started with tracking enabled. The batch
+            // envelope already carries release / os / sessionId / installId, so we only add the head
+            // platform for segmentation (Android vs desktop vs WASM).
+            Logger.LogEventWithParams("App launched", new Dictionary<string, string?>
+            {
+                { "Platform", serviceProvider.GetService<IPlatformStuffService>()?.CurrentPlatform.ToString() }
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+        }
+    }
+
+    /// <summary>
+    /// Stops usage analytics mid-session (e.g. the user turns telemetry off in Settings). Flushes any
+    /// queued events, then unregisters the AppStat logger target so no further events are collected —
+    /// takes effect immediately, not just on the next launch. Crash forwarding is already consent-gated
+    /// per capture, so the Sentry sink is left as-is.
+    /// </summary>
+    private void DisableAnalytics()
+    {
+        if (!_analyticsEnabled)
+            return;
+
+        _analyticsEnabled = false;
+        try
+        {
+            if (_appStatTarget != null)
+            {
+                _appStatTarget.Flush();
+                Logger.UnregisterLoggerTarget(_appStatTarget);
+                _appStatTarget = null;
+            }
+
+            Logger.Log("Analytics tracking disabled");
         }
         catch (Exception ex)
         {

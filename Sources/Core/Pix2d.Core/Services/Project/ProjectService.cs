@@ -454,6 +454,13 @@ public class ProjectService : IProjectService, ISessionProjectLoader
     {
         OpLog(newProjectSize.Width + "x" + newProjectSize.Height);
 
+        // Analytics: every new-project entry point (File → New, Ctrl+T new tab, custom-size dialog)
+        // funnels through here, mirroring how export tracking lives in the single ExportView.Export().
+        Logger.LogEventWithParams("Project created", new Dictionary<string, string?>
+        {
+            { "Size", $"{newProjectSize.Width:0}x{newProjectSize.Height:0}" }
+        });
+
         // Desktop: a new project opens in its own tab; the current one stays loaded, so no
         // save prompt is needed. Startup placeholder (no scene) still uses the replace path.
         if (SupportsMultipleProjects && AppState.CurrentProject.SceneNode != null)

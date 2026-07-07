@@ -25,6 +25,15 @@
 // on a timer). Property values may be string / bool / int / long / double /
 // decimal / DateTime. Server-side limits (256 name, 20 props, 125 key/value)
 // are mirrored here so we don't waste bytes on the wire.
+//
+// OFFLINE / DEAD-BACKEND BEHAVIOR
+// -------------------------------
+// While the OS reports no connectivity, flushes are skipped entirely (no network
+// attempts); events keep queueing up to MaxQueue. When the backend is reachable
+// but failing (network errors, 5xx), each failed flush counts as a strike; after
+// MaxConsecutiveFailures strikes the client gives up for the rest of the process
+// lifetime — queue is dropped, Track() becomes a no-op. A 4xx response drops the
+// offending batch (retrying an already-rejected payload won't help).
 // ---------------------------------------------------------------------------
 
 using System;
@@ -33,6 +42,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -61,6 +71,8 @@ public sealed class AppStatTrackingClient : IAsyncDisposable, IDisposable
     private readonly SemaphoreSlim _flushLock = new(1, 1);
     private readonly Timer _timer;
     private int _queueCount;
+    private int _consecutiveFailures; // touched only under _flushLock
+    private volatile bool _gaveUp;
 
     /// <summary>Session id shared by every event this instance sends; join key with sessions/crashes.</summary>
     public string SessionId { get; }
@@ -70,6 +82,12 @@ public sealed class AppStatTrackingClient : IAsyncDisposable, IDisposable
 
     /// <summary>Ring-buffer cap: if the app is offline for a long time, oldest events are dropped past this.</summary>
     public int MaxQueue { get; init; } = 500;
+
+    /// <summary>After this many failed flushes in a row the client stops trying until the next app run.</summary>
+    public int MaxConsecutiveFailures { get; init; } = 5;
+
+    /// <summary>Per-request timeout for the internally created HttpClient (a blackholed host must not pin a flush for the 100 s default).</summary>
+    public static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(15);
 
     public AppStatTrackingClient(
         string endpointUrl,
@@ -84,7 +102,7 @@ public sealed class AppStatTrackingClient : IAsyncDisposable, IDisposable
         _userId = userId;
         _os = os ?? RuntimeInformation.OSDescription;
 
-        _http = httpClient ?? new HttpClient();
+        _http = httpClient ?? new HttpClient { Timeout = RequestTimeout };
         _ownsHttp = httpClient is null;
 
         SessionId = Guid.NewGuid().ToString("N");
@@ -96,7 +114,7 @@ public sealed class AppStatTrackingClient : IAsyncDisposable, IDisposable
     /// <summary>Queue a custom event. Non-blocking; safe to call from any thread / the UI thread.</summary>
     public void Track(string name, IReadOnlyDictionary<string, object>? properties = null)
     {
-        if (string.IsNullOrWhiteSpace(name))
+        if (_gaveUp || string.IsNullOrWhiteSpace(name))
             return;
 
         _queue.Enqueue(new QueuedEvent(Truncate(name, MaxNameLength), DateTime.UtcNow, Sanitize(properties)));
@@ -113,6 +131,14 @@ public sealed class AppStatTrackingClient : IAsyncDisposable, IDisposable
     /// <summary>Send everything currently queued. Called automatically on the timer and on dispose.</summary>
     public async Task FlushAsync()
     {
+        if (_gaveUp)
+            return;
+
+        // Fully offline — don't touch the network at all; events stay queued (ring buffer caps
+        // memory) and the next timer tick re-checks. Doesn't count as a failure strike.
+        if (!IsNetworkAvailable())
+            return;
+
         // Skip if a flush is already running — it will keep draining the queue.
         if (!await _flushLock.WaitAsync(0).ConfigureAwait(false))
             return;
@@ -136,15 +162,23 @@ public sealed class AppStatTrackingClient : IAsyncDisposable, IDisposable
                     using var content = new StringContent(SerializeBatch(batch), Encoding.UTF8, "application/json");
                     using var response = await _http.PostAsync(_endpoint, content).ConfigureAwait(false);
 
-                    if (!response.IsSuccessStatusCode)
+                    if (response.IsSuccessStatusCode)
                     {
-                        Requeue(batch);
-                        return; // back off; retry on the next interval
+                        _consecutiveFailures = 0;
+                        continue;
                     }
+
+                    // 4xx: the server rejected this payload — retrying the same batch is pointless,
+                    // drop it. 5xx: transient, keep the events for the next attempt.
+                    if ((int)response.StatusCode >= 500)
+                        Requeue(batch);
+                    RegisterFailure();
+                    return; // back off; retry on the next interval
                 }
                 catch
                 {
-                    Requeue(batch); // network error — keep events for the next attempt
+                    Requeue(batch); // network error / timeout — keep events for the next attempt
+                    RegisterFailure();
                     return;
                 }
             }
@@ -153,6 +187,29 @@ public sealed class AppStatTrackingClient : IAsyncDisposable, IDisposable
         {
             _flushLock.Release();
         }
+    }
+
+    /// <summary>
+    /// Counts a failed flush; after <see cref="MaxConsecutiveFailures"/> strikes in a row the backend
+    /// is treated as down for good and the client goes dormant until the next app run.
+    /// </summary>
+    private void RegisterFailure()
+    {
+        if (++_consecutiveFailures < MaxConsecutiveFailures)
+            return;
+
+        _gaveUp = true;
+        try { _timer.Change(Timeout.Infinite, Timeout.Infinite); } catch (ObjectDisposedException) { }
+        while (_queue.TryDequeue(out _))
+            Interlocked.Decrement(ref _queueCount);
+    }
+
+    private static bool IsNetworkAvailable()
+    {
+        // NetworkInformation is unsupported on some targets (Browser/WASM) — assume online there
+        // and let the request itself fail if it must.
+        try { return NetworkInterface.GetIsNetworkAvailable(); }
+        catch { return true; }
     }
 
     private void Requeue(List<QueuedEvent> batch)

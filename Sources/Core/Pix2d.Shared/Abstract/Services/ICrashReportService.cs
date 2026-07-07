@@ -8,8 +8,15 @@ public interface ICrashReportService
     bool HasPendingCrashReport { get; }
     CrashReportSummary? PendingCrashReport { get; }
 
-    CrashTelemetryConsent TelemetryConsent { get; }
-    void SetTelemetryConsent(CrashTelemetryConsent consent);
+    TelemetryConsent TelemetryConsent { get; }
+    void SetTelemetryConsent(TelemetryConsent consent);
+
+    /// <summary>
+    /// Raised whenever <see cref="SetTelemetryConsent"/> changes the stored consent. The bootstrapper
+    /// subscribes so it can bring up analytics / crash telemetry the moment the user allows it at
+    /// runtime (e.g. from the first-launch consent dialog), without waiting for the next launch.
+    /// </summary>
+    event Action<TelemetryConsent>? TelemetryConsentChanged;
 
     void MarkLaunchStarted();
     void MarkLaunchCompleted();

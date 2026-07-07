@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Pix2d.Primitives.Crash;
 using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.MainMenu;
@@ -9,8 +10,9 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
         AppState appState,
         ILocalizationService localizationService,
         IUiScaleService uiScaleService,
-        ISettingsService settingsService)
-        : base(new State(appState, localizationService, uiScaleService, settingsService))
+        ISettingsService settingsService,
+        ICrashReportService crashReportService)
+        : base(new State(appState, localizationService, uiScaleService, settingsService, crashReportService))
     {
     }
 
@@ -159,6 +161,21 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
                             .Text(L("Tactile \"pen on paper\" vibration while drawing. Requires a haptic pen such as the Surface Slim Pen 2 on Windows 11."))
                             .Margin(0, 0, 0, 12)
                             .TextWrapping(TextWrapping.Wrap)
+                            .FontSize(14),
+
+                        new TextBlock()
+                            .Text(L("Anonymous telemetry"))
+                            .Margin(0, 16, 0, 8)
+                            .FontSize(20)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
+                        new ToggleSwitch()
+                            .IsChecked(state, x => x.IsTelemetryEnabled, BindingMode.TwoWay)
+                            .Margin(0, 0, 0, 6),
+                        new TextBlock()
+                            .Text(L("Send anonymous usage statistics and crash reports to help fix bugs and decide what to build next. No personal data or artwork is ever collected."))
+                            .Margin(0, 0, 0, 12)
+                            .TextWrapping(TextWrapping.Wrap)
                             .FontSize(14)
                     )
             ));
@@ -169,6 +186,7 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
         private readonly ILocalizationService _localizationService;
         private readonly IUiScaleService _uiScaleService;
         private readonly ISettingsService _settingsService;
+        private readonly ICrashReportService _crashReportService;
         private bool _isSyncing;
 
         [ObservableProperty]
@@ -200,16 +218,21 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
         [ObservableProperty]
         public partial bool IsPenHapticsEnabled { get; set; }
 
+        [ObservableProperty]
+        public partial bool IsTelemetryEnabled { get; set; }
+
         public State(
             AppState appState,
             ILocalizationService localizationService,
             IUiScaleService uiScaleService,
-            ISettingsService settingsService)
+            ISettingsService settingsService,
+            ICrashReportService crashReportService)
         {
             _appState = appState;
             _localizationService = localizationService;
             _uiScaleService = uiScaleService;
             _settingsService = settingsService;
+            _crashReportService = crashReportService;
 
             AvailableLocales = localizationService.AvailableLocales;
 
@@ -316,6 +339,17 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             _settingsService.Set(nameof(AppState.IsPenHapticsEnabled), value);
         }
 
+        partial void OnIsTelemetryEnabledChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            // Toggling here records an explicit choice (Allowed/Denied). SetTelemetryConsent fires
+            // TelemetryConsentChanged, so switching on brings analytics + the crash sink up immediately
+            // (and off stops further events) without needing a relaunch.
+            _crashReportService.SetTelemetryConsent(value ? TelemetryConsent.Allowed : TelemetryConsent.Denied);
+        }
+
         public void ApplyScale()
         {
             _uiScaleService.SetUiScale(_appState.UiScale);
@@ -342,6 +376,9 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             IsSingleFingerPanEnabled = _appState.IsSingleFingerPanEnabled;
             IsAutoOpenTransformEditorAfterSelectionEnabled = _appState.IsAutoOpenTransformEditorAfterSelectionEnabled;
             IsPenHapticsEnabled = _appState.IsPenHapticsEnabled;
+            // Tri-state consent shown as a binary toggle: only the explicit "Allowed" reads as on;
+            // Unset (never answered) and Denied both read as off.
+            IsTelemetryEnabled = _crashReportService.TelemetryConsent == TelemetryConsent.Allowed;
 
             _isSyncing = false;
         }

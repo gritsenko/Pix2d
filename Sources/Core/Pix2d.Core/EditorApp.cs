@@ -4,6 +4,7 @@ using Avalonia.Themes.Simple;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Services;
+using Pix2d.Primitives.Crash;
 using Pix2d.UI;
 
 namespace Pix2d;
@@ -139,8 +140,9 @@ public class EditorApp : Application
             hostView.LoadMainView(UiModule!.GetMainViewType(), serviceProvider);
             SubscribeToLocaleChanges(hostView, serviceProvider);
 
-            // Main view loaded — capture any pending post-crash dialog opportunity.
-            TryShowPendingCrashReport(serviceProvider);
+            // Main view loaded — surface the pending crash report and/or the first-launch telemetry
+            // consent prompt.
+            TryShowStartupTelemetryDialog(serviceProvider);
         }
         catch (Exception ex)
         {
@@ -159,41 +161,64 @@ public class EditorApp : Application
         AppInitialized?.Invoke(this);
     }
 
-    private static void TryShowPendingCrashReport(IServiceProvider serviceProvider)
+    private static void TryShowStartupTelemetryDialog(IServiceProvider serviceProvider)
     {
         try
         {
             var crashService = serviceProvider.GetService<ICrashReportService>();
-            if (crashService is not { HasPendingCrashReport: true })
-                return;
-
             var dialogService = serviceProvider.GetService<IDialogService>();
             var platform = serviceProvider.GetService<IPlatformStuffService>();
-            if (dialogService == null || platform == null)
+            if (crashService == null || dialogService == null || platform == null)
                 return;
 
-            // Auto-show on the platforms that ship an opt-in crash telemetry sink — Android and the
-            // desktop family (Windows / Linux / macOS, incl. the MS Store bundle). Surfacing the
-            // report here is also how we collect the send-telemetry consent. WASM keeps manual-only
-            // (open via the command) since it produces local reports only.
-            if (platform.CurrentPlatform is not (PlatformType.Android
+            // Crash telemetry (the Sentry sink) exists on Android + the desktop family (Windows /
+            // Linux / macOS, incl. the MS Store bundle); anonymous usage analytics (AppStat)
+            // additionally runs on WASM. Consent is relevant wherever *any* of them can run.
+            var isCrashSinkPlatform = platform.CurrentPlatform is PlatformType.Android
                 or PlatformType.WindowsDesktop
                 or PlatformType.CrossPlatformDesktop
                 or PlatformType.MacOS
-                or PlatformType.WindowsStore))
+                or PlatformType.WindowsStore;
+            var isTelemetryPlatform = isCrashSinkPlatform || platform.CurrentPlatform == PlatformType.WASM;
+            if (!isTelemetryPlatform)
                 return;
 
-            Dispatcher.UIThread.Post(() =>
+            // A genuine pending crash wins: its dialog already collects consent (via its toggle) while
+            // consent is still Unset, so we never stack the standalone consent prompt on top of it.
+            // Auto-show stays on crash-sink platforms only — WASM keeps crash reports manual-only.
+            if (isCrashSinkPlatform && crashService.HasPendingCrashReport)
             {
-                try
+                Dispatcher.UIThread.Post(() =>
                 {
-                    _ = dialogService.ShowDialogAsync(
-                        new UI.Dialogs.CrashReportDialogView(crashService, platform));
-                }
-                catch
+                    try
+                    {
+                        _ = dialogService.ShowDialogAsync(
+                            new UI.Dialogs.CrashReportDialogView(crashService, platform));
+                    }
+                    catch
+                    {
+                    }
+                });
+                return;
+            }
+
+            // No crash to show — ask for telemetry consent once, on first launch (consent still Unset).
+            // Strict opt-in: nothing is sent until the user allows it here. Covers WASM too, so browser
+            // analytics is no longer silently disabled under the opt-in model.
+            if (crashService.TelemetryConsent == TelemetryConsent.Unset)
+            {
+                Dispatcher.UIThread.Post(() =>
                 {
-                }
-            });
+                    try
+                    {
+                        _ = dialogService.ShowDialogAsync(
+                            new UI.Dialogs.TelemetryConsentDialogView(crashService));
+                    }
+                    catch
+                    {
+                    }
+                });
+            }
         }
         catch
         {

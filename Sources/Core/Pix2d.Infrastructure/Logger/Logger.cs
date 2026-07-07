@@ -18,6 +18,11 @@ public class Logger
         _instance._targets.Add(target);
     }
 
+    public static void UnregisterLoggerTarget(ILoggerTarget target)
+    {
+        _instance._targets.Remove(target);
+    }
+
     public static void LogException(Exception ex, [CallerFilePath] string? callerFilePath = null, [CallerMemberName] string? callerMemberName = null)
     {
         _instance.AddLogEntry(ex, $"Exception in {callerFilePath}.{callerMemberName} ");

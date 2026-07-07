@@ -39,6 +39,11 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
                 o.Dsn = dsn;
                 o.AutoSessionTracking = false;
                 o.IsGlobalModeEnabled = true;
+                // Offline cache: if the Sentry host is unreachable at crash time, the envelope is
+                // persisted locally and re-sent on the next launch instead of being lost.
+                var cacheDir = Android.App.Application.Context.CacheDir?.AbsolutePath;
+                if (!string.IsNullOrEmpty(cacheDir))
+                    o.CacheDirectoryPath = System.IO.Path.Combine(cacheDir, "sentry");
             });
             _sentryActive = true;
             Android.Util.Log.Info("Pix2d.Crash", "Sentry crash telemetry sink initialized.");

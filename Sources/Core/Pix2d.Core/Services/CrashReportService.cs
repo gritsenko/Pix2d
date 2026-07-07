@@ -53,20 +53,44 @@ public class CrashReportService : ICrashReportService
     public bool HasPendingCrashReport { get; private set; }
     public CrashReportSummary? PendingCrashReport { get; private set; }
 
-    public CrashTelemetryConsent TelemetryConsent
+    public event Action<TelemetryConsent>? TelemetryConsentChanged;
+
+    // Pre-3.9 stored consent under a crash-only key; read it once and fold it into the unified key so
+    // a user who already answered the old crash dialog isn't prompted again.
+    private const string LegacyConsentKey = "CrashTelemetryConsent";
+
+    public TelemetryConsent TelemetryConsent
     {
         get
         {
-            var raw = _settingsService.Get<int>(nameof(AppSettings.CrashTelemetryConsent));
-            return raw is (int)CrashTelemetryConsent.Allowed or (int)CrashTelemetryConsent.Denied
-                ? (CrashTelemetryConsent)raw
-                : CrashTelemetryConsent.Unset;
+            var raw = _settingsService.Get<int>(nameof(AppSettings.TelemetryConsent));
+            if (raw == 0)
+            {
+                var legacy = _settingsService.Get<int>(LegacyConsentKey);
+                if (legacy is (int)TelemetryConsent.Allowed or (int)TelemetryConsent.Denied)
+                {
+                    raw = legacy;
+                    TrySet(nameof(AppSettings.TelemetryConsent), raw);
+                }
+            }
+
+            return raw is (int)TelemetryConsent.Allowed or (int)TelemetryConsent.Denied
+                ? (TelemetryConsent)raw
+                : TelemetryConsent.Unset;
         }
     }
 
-    public void SetTelemetryConsent(CrashTelemetryConsent consent)
+    public void SetTelemetryConsent(TelemetryConsent consent)
     {
-        _settingsService.Set(nameof(AppSettings.CrashTelemetryConsent), (int)consent);
+        _settingsService.Set(nameof(AppSettings.TelemetryConsent), (int)consent);
+        try
+        {
+            TelemetryConsentChanged?.Invoke(consent);
+        }
+        catch
+        {
+            // A consent listener must never break the setter (analytics/telemetry init is best-effort).
+        }
     }
 
     public void MarkLaunchStarted()
@@ -212,7 +236,7 @@ public class CrashReportService : ICrashReportService
     {
         try
         {
-            if (TelemetryConsent != CrashTelemetryConsent.Allowed)
+            if (TelemetryConsent != TelemetryConsent.Allowed)
                 return;
 
             var sink = _serviceProvider.GetService(typeof(ICrashTelemetrySink)) as ICrashTelemetrySink;
@@ -299,9 +323,20 @@ public class CrashReportService : ICrashReportService
                     return;
                 }
 
-                // No OS verdict (API < 30 or unavailable): fall back to the interrupted-launch
-                // heuristic, enriched with any pre-bootstrap Fatal.log we can recover.
-                PromoteImplicit(BuildImplicitSummary(null, ReadAndConsumeFatalLog()));
+                // No OS verdict (desktop has no IProcessExitInfoProvider; Android < API 30). A stuck
+                // "launch in progress" flag on its own is too weak a signal to surface a crash dialog
+                // from — on desktop it's routinely left set when a debug session is stopped or the
+                // process is killed, which produced the phantom "empty" crash report on the next
+                // launch. Only promote when we actually recovered a pre-bootstrap Fatal.log; otherwise
+                // just clear the flag (still consuming any Fatal.log so it can't linger).
+                var fatalLog = ReadAndConsumeFatalLog();
+                if (!string.IsNullOrWhiteSpace(fatalLog))
+                {
+                    PromoteImplicit(BuildImplicitSummary(null, fatalLog));
+                    return;
+                }
+
+                ClearLaunchInProgress();
                 return;
             }
 

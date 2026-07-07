@@ -55,7 +55,7 @@ public class AndroidPix2dBootstrapper : Pix2dBootstrapperDI
         // Strict opt-in: only initialise the Sentry sink once the user has explicitly allowed
         // anonymous crash reporting. Until then we do nothing — the local crash report flow
         // still works.
-        if (crashService.TelemetryConsent != CrashTelemetryConsent.Allowed)
+        if (crashService.TelemetryConsent != TelemetryConsent.Allowed)
             return;
 
         try

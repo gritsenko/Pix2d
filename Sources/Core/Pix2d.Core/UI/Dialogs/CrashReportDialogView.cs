@@ -45,8 +45,8 @@ public class CrashReportDialogView : ViewBase, IDialogView<bool>
 
         var displayText = _summary.FormatForDisplay();
         var consent = _crashService.TelemetryConsent;
-        var consentChecked = consent == CrashTelemetryConsent.Allowed;
-        var showConsent = consent == CrashTelemetryConsent.Unset && TelemetrySupportedOnThisPlatform();
+        var consentChecked = consent == TelemetryConsent.Allowed;
+        var showConsent = consent == TelemetryConsent.Unset && TelemetrySupportedOnThisPlatform();
 
         var consentToggle = new CheckBox()
             .Margin(new Thickness(0, 8, 0, 8))
@@ -138,7 +138,7 @@ public class CrashReportDialogView : ViewBase, IDialogView<bool>
     {
         if (!showConsent) return;
         var allowed = toggle.IsChecked == true;
-        _crashService.SetTelemetryConsent(allowed ? CrashTelemetryConsent.Allowed : CrashTelemetryConsent.Denied);
+        _crashService.SetTelemetryConsent(allowed ? TelemetryConsent.Allowed : TelemetryConsent.Denied);
     }
 
     private void TrySendReport()

@@ -17,9 +17,9 @@ public class AppSettings
     /// <summary>Stable, anonymous per-install id used to correlate analytics events. Random GUID, not PII.</summary>
     public string? InstallId { get; set; }
 
-    // Crash reporting
-    /// <summary>Tri-state consent for anonymous crash telemetry: 0=unset, 1=allowed, 2=denied.</summary>
-    public int CrashTelemetryConsent { get; set; } = 0;
+    // Telemetry
+    /// <summary>Unified tri-state consent for anonymous telemetry (usage analytics + crash reports): 0=unset, 1=allowed, 2=denied. Migrated from the legacy crash-only "CrashTelemetryConsent" key.</summary>
+    public int TelemetryConsent { get; set; } = 0;
     /// <summary>True when the previous launch was started but did not reach the "completed" marker.</summary>
     public bool LaunchInProgress { get; set; }
     /// <summary>Set when a fatal report has been written and the user has not yet dismissed the auto dialog.</summary>

@@ -46,7 +46,7 @@ public class DesktopPix2dBootstrapperDI : Pix2dBootstrapperDI // Inherits: Pix2d
         // Strict opt-in: only initialise the Sentry sink once the user has explicitly allowed
         // anonymous crash reporting. Until then we do nothing — the local crash report flow
         // still works.
-        if (crashService.TelemetryConsent != CrashTelemetryConsent.Allowed)
+        if (crashService.TelemetryConsent != TelemetryConsent.Allowed)
             return;
 
         try
@@ -76,6 +76,17 @@ public class DesktopPix2dBootstrapperDI : Pix2dBootstrapperDI // Inherits: Pix2d
     
     public override bool OnAppClosing()
     {
+        // Mark a deliberate shutdown so the next launch doesn't mistake this exit for an interrupted
+        // launch / crash. Desktop has no OS process-exit info, so without this marker a normal close
+        // could surface a phantom "empty" crash report on relaunch.
+        try
+        {
+            GetServiceProvider().GetService<ICrashReportService>()?.MarkCleanExit();
+        }
+        catch
+        {
+        }
+
         var autoSave = GetServiceProvider().GetRequiredService<IAutoSaveService>();
         autoSave.ForceSaveSync(TimeSpan.FromSeconds(5));
         return true;
