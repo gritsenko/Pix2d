@@ -122,7 +122,12 @@ public partial class Pix2dSprite
 
         protected override void OnDraw(SKCanvas canvas, ViewPort vp)
         {
-            if (Parent is Pix2dSprite parentSprite && parentSprite.OnionSkinSettings.IsEnabled)
+            // Onion skin is an editor-only aid, not content. RenderAdorners is true only for the
+            // interactive editor viewport and false for every preview/export/thumbnail/clipboard/
+            // project-pack render, so gating on it keeps the previous-frame ghost out of exports
+            // (issue #230) — the same convention used for EditMode highlights and artboard labels.
+            if (vp.Settings.RenderAdorners
+                && Parent is Pix2dSprite parentSprite && parentSprite.OnionSkinSettings.IsEnabled)
             {
                 var prevIndex = CurrentFrameIndex - 1;
                 if (prevIndex < 0)

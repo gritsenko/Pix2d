@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using Avalonia.Input;
 using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.Shared;
@@ -18,6 +19,8 @@ public enum SliderExNarrowMode
 public class SliderEx : ViewBase
 {
     private const double NarrowWindowThreshold = 500d;
+    private const double SliderSmallChange = 1d;
+    private const double SliderLargeChange = 10d;
 
     #region AvaloniaProperties
     public static readonly DirectProperty<SliderEx, double> ValueProperty
@@ -277,10 +280,14 @@ public class SliderEx : ViewBase
             .IsSnapToTickEnabled(true)
             .Maximum(Maximum)
             .Minimum(Minimum)
-            .SmallChange(1)
-            .LargeChange(10)
+            .SmallChange(SliderSmallChange)
+            .LargeChange(SliderLargeChange)
             .Value(Value)
-            .OnValueChanged(e => valueChanged(e.NewValue));
+            .OnValueChanged(e => valueChanged(e.NewValue))
+            // Desktop convenience: adjust the slider with the mouse wheel while hovering it
+            // (issue #242). One notch = 1 step, Ctrl = 10. Mark handled so a parent ScrollViewer
+            // (tool panels are scrollable) doesn't scroll instead.
+            .OnPointerWheelChanged(OnSliderPointerWheel);
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -434,5 +441,18 @@ public class SliderEx : ViewBase
             Value = value;
             ValueChanged?.Invoke(value);
         }
+    }
+
+    private void OnSliderPointerWheel(PointerWheelEventArgs e)
+    {
+        if (e.Delta.Y == 0)
+            return;
+
+        var step = (e.KeyModifiers & KeyModifiers.Control) != 0 ? SliderLargeChange : SliderSmallChange;
+        var direction = e.Delta.Y > 0 ? 1d : -1d;
+        var next = Math.Clamp(Value + direction * step, Minimum, Maximum);
+
+        OnSliderValueChanged(next);
+        e.Handled = true;
     }
 }

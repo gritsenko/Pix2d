@@ -156,28 +156,39 @@ public class Pix2dColorPicker : ViewBase
         _colorThumb.RenderTransform = new TranslateTransform();
         _hueThumb.RenderTransform = new TranslateTransform();
 
+        // Mark pointer events handled so a parent ScrollViewer's touch ScrollGestureRecognizer
+        // can't hijack the pointer mid-drag and steal the capture — that steal is what interrupts
+        // the color/hue drag on touch (issue #236: the "red" broken part of the trajectory).
         _colorSquare.PointerPressed += (sender, e) =>
         {
             e.Pointer.Capture(_colorSquare);
             UpdateColor(e.GetCurrentPoint(_colorSquare).Position);
+            e.Handled = true;
         };
 
         _colorSquare.PointerMoved += (sender, e) =>
         {
             if (e.Pointer.Captured == _colorSquare)
+            {
                 UpdateColor(e.GetCurrentPoint(_colorSquare).Position);
+                e.Handled = true;
+            }
         };
 
         _hueSlider.PointerPressed += (sender, e) =>
         {
             e.Pointer.Capture(_hueSlider);
             UpdateHue(e.GetCurrentPoint(_hueSlider).Position);
+            e.Handled = true;
         };
 
         _hueSlider.PointerMoved += (sender, e) =>
         {
             if (e.Pointer.Captured == _hueSlider)
+            {
                 UpdateHue(e.GetCurrentPoint(_hueSlider).Position);
+                e.Handled = true;
+            }
         };
     }
 
