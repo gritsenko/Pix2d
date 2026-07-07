@@ -1,26 +1,62 @@
-﻿#nullable enable
+#nullable enable
+using System.Collections.Generic;
+using AppStat.Client;
+
 namespace Pix2d.Logging;
 
-public class AppStatLoggerTarget : ILoggerTarget
+/// <summary>
+/// Forwards analytics / conversion events to the AppStat backend (stats.pix2d.com). This target is
+/// <see cref="EventsOnly"/>, so the <see cref="Logger"/> only delivers entries flagged as events
+/// (i.e. produced by <see cref="Logger.LogEventWithParams"/>) — crashes and diagnostic logs stay out
+/// of the analytics stream (those go through the crash telemetry pipeline / local log file). The
+/// wrapped <see cref="AppStatTrackingClient"/> batches and flushes on its own timer, so
+/// <see cref="OnLogged"/> is non-blocking.
+/// </summary>
+public sealed class AppStatLoggerTarget : ILoggerTarget
 {
-    private bool _initialized;
-    public bool EventsOnly => false;
-    
+    private readonly AppStatTrackingClient _client;
+
+    public bool EventsOnly => true;
+
+    public AppStatLoggerTarget(string endpointUrl, string release, string? userId = null, string? os = null)
+    {
+        _client = new AppStatTrackingClient(endpointUrl, release, userId, os);
+    }
+
     public void OnLogged(LogEntry logEntry)
     {
-        if (!_initialized)
+        try
         {
-            _initialized = true;
-            Initialize();
-        }
+            // Defensive: crashes/exceptions belong to the crash pipeline, never to analytics.
+            if (logEntry.Exception != null)
+                return;
 
-        if (logEntry.Exception == null)
+            _client.Track(logEntry.Message, BuildProperties(logEntry));
+        }
+        catch
         {
-            logEntry.IsEvent = true;
+            // A logging target must never throw.
         }
     }
 
-    private void Initialize()
+    /// <summary>Best-effort flush of anything still queued (e.g. on app shutdown).</summary>
+    public void Flush() => _ = _client.FlushAsync();
+
+    private static IReadOnlyDictionary<string, object>? BuildProperties(LogEntry e)
     {
+        var hasParams = e.ExtraParams is { Count: > 0 };
+        var hasMetrics = e.Metrics is { Count: > 0 };
+        if (!hasParams && !hasMetrics)
+            return null;
+
+        var props = new Dictionary<string, object>();
+        if (hasParams)
+            foreach (var (key, value) in e.ExtraParams!)
+                props[key] = value;
+        if (hasMetrics)
+            foreach (var (key, value) in e.Metrics!)
+                props[key] = value;
+
+        return props;
     }
 }

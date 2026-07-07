@@ -31,14 +31,27 @@ public class Logger
     public static void Trace(string message, [CallerFilePath] string? callerFilePath = null, [CallerMemberName] string? callerMemberName = null)
     {
         var msg = Path.GetFileName(callerFilePath?.Replace(".cs", "") ?? "") + "." + callerMemberName + ": " + message;
-        
+
         var entry = new LogEntry(msg)
         {
             Level = LogLevel.Trace
         };
 
-        foreach (var loggerTarget in _instance._targets)
+        _instance.Dispatch(entry, isEvent: false);
+    }
+
+    // Routes an entry to every registered target, honouring ILoggerTarget.EventsOnly: analytics-only
+    // targets (e.g. AppStatLoggerTarget) receive event entries only. isEvent is captured by the caller
+    // before dispatch so a target that mutates LogEntry.IsEvent can't alter routing for later targets.
+    private void Dispatch(LogEntry entry, bool isEvent)
+    {
+        foreach (var loggerTarget in _targets)
+        {
+            if (loggerTarget.EventsOnly && !isEvent)
+                continue;
+
             loggerTarget.OnLogged(entry);
+        }
     }
 
     private void AddLogEntry(Exception? ex, string message, object[]? args = default, string? eventId = null)
@@ -52,16 +65,14 @@ public class Logger
 
         entry.ExtraParams = entry.ExtraParams == null ? _paramDict : entry.ExtraParams.Concat(_paramDict).ToDictionary(x => x.Key, x => x.Value);
 
-        foreach (var loggerTarget in _targets) 
-            loggerTarget.OnLogged(entry);
+        Dispatch(entry, entry.IsEvent);
     }
 
     public static void LogEventWithParams(string eventName, IDictionary<string, string?>? extraParams, IDictionary<string, double>? metrics = null)
     {
         var entry = new LogEntry(eventName) { IsEvent = true, ExtraParams = extraParams?.ToDictionary(x => x.Key, x => x.Value ?? string.Empty), Metrics = metrics };
 
-        foreach (var loggerTarget in _instance._targets)
-            loggerTarget.OnLogged(entry);
+        _instance.Dispatch(entry, isEvent: true);
     }
 
 

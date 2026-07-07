@@ -14,6 +14,9 @@ public class AppSettings
     public bool IsSingleFingerPanEnabled { get; set; }
     public bool IsPenHapticsEnabled { get; set; } = true;
 
+    /// <summary>Stable, anonymous per-install id used to correlate analytics events. Random GUID, not PII.</summary>
+    public string? InstallId { get; set; }
+
     // Crash reporting
     /// <summary>Tri-state consent for anonymous crash telemetry: 0=unset, 1=allowed, 2=denied.</summary>
     public int CrashTelemetryConsent { get; set; } = 0;

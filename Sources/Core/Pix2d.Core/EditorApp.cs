@@ -172,8 +172,15 @@ public class EditorApp : Application
             if (dialogService == null || platform == null)
                 return;
 
-            // Auto-show only on Android in v1; other heads can open it manually via the command.
-            if (platform.CurrentPlatform != PlatformType.Android)
+            // Auto-show on the platforms that ship an opt-in crash telemetry sink — Android and the
+            // desktop family (Windows / Linux / macOS, incl. the MS Store bundle). Surfacing the
+            // report here is also how we collect the send-telemetry consent. WASM keeps manual-only
+            // (open via the command) since it produces local reports only.
+            if (platform.CurrentPlatform is not (PlatformType.Android
+                or PlatformType.WindowsDesktop
+                or PlatformType.CrossPlatformDesktop
+                or PlatformType.MacOS
+                or PlatformType.WindowsStore))
                 return;
 
             Dispatcher.UIThread.Post(() =>

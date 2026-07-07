@@ -74,14 +74,23 @@ We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTIN
 
 ## Privacy & Crash Reporting
 
-The Android build of Pix2D integrates [Sentry](https://sentry.io/) to collect anonymous reports of fatal crashes. This helps us diagnose issues that escape testing on real devices.
+The Android and desktop (Windows, Linux, macOS, and the Microsoft Store build) versions of Pix2D integrate [Sentry](https://sentry.io/) to collect anonymous reports of fatal crashes. This helps us diagnose issues that escape testing on real devices.
 
 - **Opt-in only.** No telemetry is sent until the user explicitly allows anonymous crash reporting; until then the local crash report flow is the only path.
 - **Fatal crashes only.** Non-fatal log/exception calls are filtered out — only unhandled/critical exceptions are forwarded.
 - **No personal data.** Reports include the exception, stack trace, app version, platform, and an opaque crash report id. No project files, image content, or user-identifying information are transmitted.
 - **Source-free DSN.** The Sentry DSN is injected at build time from a CI secret rather than being checked into source.
 
-The non-Android builds (Windows, Linux, macOS, Web) currently do not ship with a crash telemetry sink and only produce local crash reports.
+The Web (WASM) build does not ship with a crash telemetry sink and only produces local crash reports.
+
+### Anonymous usage analytics
+
+Separately from crash reporting, Pix2D sends anonymous **usage/conversion events** (e.g. "image exported", review prompts) to its own stats backend (`stats.pix2d.com`) to understand which features are used. This is available on Android, desktop, and Web.
+
+- **Events only.** Only explicit analytics events (`Logger.LogEventWithParams`) are forwarded — crashes, exceptions, and diagnostic logs are never sent to the analytics endpoint (they stay in the crash pipeline / local log file).
+- **No personal data.** Events carry an event name, a timestamp, a random anonymous per-install id, the app version, and the OS string. No project files, image content, or user-identifying information.
+- **Source-free endpoint.** The stats endpoint is derived from the same build-time DSN as crash reporting (`stats.pix2d.com/api/track`); with no DSN baked in (local/dev builds) analytics is disabled.
+- **Batched & best-effort.** Events are queued and flushed in the background; failures are retried and silently dropped past a cap, and never block the UI.
 
 ## License
 
@@ -95,7 +104,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 | [Avalonia](https://avaloniaui.net/) | MIT                  | UI framework                                 |
 | [Avalonia.Markup.Declarative](https://github.com/AvaloniaUI/Avalonia.Markup.Declarative) | MIT                  | Declarative UI framework for defining views with C# code instead of XAML, including .NET 6.0+ Hot Reload support |
 | [SixLabors.ImageSharp](https://github.com/SixLabors/ImageSharp) | Apache 2.0 (details in [Six Labors Split License](https://github.com/SixLabors/ImageSharp?tab=License-1-ov-file#readme)) | The Best image processing library for .net |
-| [Sentry](https://sentry.io/) | MIT                  | Crash analytics on Android (opt-in, fatal only) |
+| [Sentry](https://sentry.io/) | MIT                  | Crash analytics on Android + desktop (opt-in, fatal only) |
 
 ## Acknowledgements
 

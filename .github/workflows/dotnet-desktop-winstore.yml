@@ -109,6 +109,8 @@ jobs:
 
     - name: Build MSIX package
       shell: pwsh
+      env:
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
       run: |
         msbuild $env:WAP_PROJECT_PATH `
           /p:IsWAPHeadProject=true `
@@ -117,6 +119,7 @@ jobs:
           /p:UapAppxPackageBuildMode=StoreUpload `
           /p:AppxBundlePlatforms="x64|arm64" `
           /p:PackageCertificateKeyFile="$env:WAP_PROJECT_DIR/certificate.pfx" `
+          /p:SentryDsn=$env:SENTRY_DSN `
           /p:Platform=x64
 
     - name: Remove signing certificate

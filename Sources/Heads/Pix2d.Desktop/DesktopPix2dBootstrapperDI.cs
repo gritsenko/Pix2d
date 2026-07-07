@@ -2,11 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.Common.FileSystem;
+using Pix2d.Desktop.Services;
 using Pix2d.Infrastructure.Logger;
 using Pix2d.Plugins.Ai;
 using Pix2d.Plugins.BaseEffects;
 using Pix2d.Plugins.Drawing;
 using Pix2d.Plugins.PixelText;
+using Pix2d.Primitives.Crash;
 using Pix2d.Services;
 using System;
 using System.Threading.Tasks;
@@ -28,11 +30,33 @@ public class DesktopPix2dBootstrapperDI : Pix2dBootstrapperDI // Inherits: Pix2d
         services.AddSingleton<IPlatformStuffService, PlatformStuffService>(); // Depends on: AppState
         services.AddSingleton<IClipboardService, DesktopClipboardService>(); // Depends on: IDrawingService, IViewPortService, IDialogService, AppState
 
+        // Opt-in critical-crash telemetry sink (Sentry). Registered on every desktop OS; stays a no-op
+        // until the user allows anonymous crash reporting and a DSN was baked into the build.
+        services.AddSingleton<ICrashTelemetrySink, DesktopSentryCrashTelemetrySink>();
+
 #if WINDOWS
         // Replaces the no-op IPenHapticsService registered by the base bootstrapper. Win11-only API is
         // guarded inside the service, so this is harmless on older Windows (feature just stays off).
         services.AddSingleton<IPenHapticsService, Platform.WindowsPenHapticsService>();
 #endif
+    }
+
+    protected override void InitOptionalTelemetry(ICrashReportService crashService)
+    {
+        // Strict opt-in: only initialise the Sentry sink once the user has explicitly allowed
+        // anonymous crash reporting. Until then we do nothing — the local crash report flow
+        // still works.
+        if (crashService.TelemetryConsent != CrashTelemetryConsent.Allowed)
+            return;
+
+        try
+        {
+            var sink = GetServiceProvider().GetService(typeof(ICrashTelemetrySink)) as ICrashTelemetrySink;
+            sink?.Initialize();
+        }
+        catch
+        {
+        }
     }
     
     protected override void LoadPlugins()

@@ -160,6 +160,11 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         // Crash reporting must come up before anything else can fail.
         InitCrashReporting(serviceProvider);
 
+        // Opt-out anonymous analytics/conversion tracking. Runs on every head (independent of the
+        // per-head InitTelemetry override) and stays disabled unless a stats endpoint can be resolved
+        // from the baked-in DSN.
+        InitAnalytics(serviceProvider);
+
         UiBlocker.Initialize((busy, msg) => _appState.IsBusy = busy);
 
         var settingsService = serviceProvider.GetRequiredService<ISettingsService>();
@@ -363,6 +368,53 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
     /// </summary>
     protected virtual void InitOptionalTelemetry(ICrashReportService crashService)
     {
+    }
+
+    /// <summary>
+    /// Registers the AppStat analytics logging target (custom events / conversions — never crashes).
+    /// The endpoint is derived from the Sentry DSN baked into the concrete head assembly, so this
+    /// works uniformly across heads without per-head plumbing; with no DSN it's a silent no-op.
+    /// <c>GetType()</c> resolves to the head bootstrapper subclass, so its <c>.Assembly</c> is the head
+    /// assembly that carries the <c>SentryDsn</c> metadata.
+    /// </summary>
+    protected virtual void InitAnalytics(IServiceProvider serviceProvider)
+    {
+        try
+        {
+            var dsn = AppStatEndpoint.ReadDsn(GetType().Assembly);
+            if (!AppStatEndpoint.TryGetTrackUrl(dsn, out var trackUrl))
+                return; // no DSN baked in (local/dev builds) → analytics disabled
+
+            var settingsService = serviceProvider.GetService<ISettingsService>();
+            var installId = GetOrCreateInstallId(settingsService);
+
+            Logger.RegisterLoggerTarget(new AppStatLoggerTarget(trackUrl, Pix2d.Common.BuildInfo.Version, installId));
+            Logger.Log("Analytics tracking enabled");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+        }
+    }
+
+    private static string GetOrCreateInstallId(ISettingsService? settingsService)
+    {
+        try
+        {
+            if (settingsService != null
+                && settingsService.TryGet<string>(nameof(AppSettings.InstallId), out var existing)
+                && !string.IsNullOrEmpty(existing))
+                return existing!;
+
+            var id = Guid.NewGuid().ToString("N");
+            settingsService?.Set(nameof(AppSettings.InstallId), id);
+            return id;
+        }
+        catch
+        {
+            // Never let analytics setup break startup — fall back to an ephemeral per-run id.
+            return Guid.NewGuid().ToString("N");
+        }
     }
 
     protected virtual bool InitTelemetry()

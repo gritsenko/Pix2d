@@ -46,12 +46,12 @@ public class CrashReportDialogView : ViewBase, IDialogView<bool>
         var displayText = _summary.FormatForDisplay();
         var consent = _crashService.TelemetryConsent;
         var consentChecked = consent == CrashTelemetryConsent.Allowed;
-        var showConsent = consent == CrashTelemetryConsent.Unset && _platformService.CurrentPlatform == PlatformType.Android;
+        var showConsent = consent == CrashTelemetryConsent.Unset && TelemetrySupportedOnThisPlatform();
 
         var consentToggle = new CheckBox()
             .Margin(new Thickness(0, 8, 0, 8))
             .IsChecked(consentChecked)
-            .Content("Send anonymous critical crash data to help fix Pix2d (Android only)");
+            .Content("Send anonymous critical crash data to help fix Pix2d");
 
         var summaryHeader = $"Pix2d {_summary.AppVersion} on {_summary.Platform}\n{_summary.ExceptionType}: {_summary.Message}";
 
@@ -123,6 +123,16 @@ public class CrashReportDialogView : ViewBase, IDialogView<bool>
                                 Close(false);
                             })));
     }
+
+    // Platforms that ship an opt-in crash telemetry sink (Sentry): Android and the desktop family
+    // (Windows / Linux / macOS, incl. the MS Store bundle). WASM/iOS produce local reports only, so
+    // there's no consent to ask for there.
+    private bool TelemetrySupportedOnThisPlatform() =>
+        _platformService.CurrentPlatform is PlatformType.Android
+            or PlatformType.WindowsDesktop
+            or PlatformType.CrossPlatformDesktop
+            or PlatformType.MacOS
+            or PlatformType.WindowsStore;
 
     private void ApplyConsentFromToggle(CheckBox toggle, bool showConsent)
     {

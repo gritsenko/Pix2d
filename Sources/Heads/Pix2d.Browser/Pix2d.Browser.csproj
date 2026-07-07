@@ -13,6 +13,19 @@
 	<ItemGroup>
 		<TrimmerRootDescriptor Include="LinkerConfig.xml" />
 	</ItemGroup>
+	<!-- Sentry DSN, injected at build time from the SENTRY_DSN env var / CI secret and embedded as
+	     assembly metadata. WASM ships no Sentry crash SDK (no reliable browser-wasm support), but the
+	     analytics track endpoint (stats.pix2d.com) is derived from this DSN host by AppStatEndpoint,
+	     and AppStatTrackingClient is WASM-safe. Empty in local/dev builds → analytics stays disabled. -->
+	<PropertyGroup>
+		<SentryDsn Condition="'$(SentryDsn)' == '' and '$(SENTRY_DSN)' != ''">$(SENTRY_DSN)</SentryDsn>
+	</PropertyGroup>
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+			<_Parameter1>SentryDsn</_Parameter1>
+			<_Parameter2>$(SentryDsn)</_Parameter2>
+		</AssemblyAttribute>
+	</ItemGroup>
 	<ItemGroup>
 		<None Include="wwwroot\CNAME">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
