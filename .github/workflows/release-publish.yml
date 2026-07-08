@@ -348,11 +348,22 @@ jobs:
         mkdir -p artifacts/linux-desktop
         tar -czvf "artifacts/linux-desktop/Pix2d_linux-x64-$VERSION.tar.gz" -C "$OutputDir" .
 
+    - name: Install packaging tools
+      run: sudo apt-get update && sudo apt-get install -y imagemagick
+
+    - name: Package Debian (.deb)
+      shell: bash
+      run: |
+        bash Sources/Heads/Pix2d.Desktop/linux-deb-package.sh ./publish-linux "$VERSION" amd64
+        mv "pix2d_${VERSION}_amd64.deb" artifacts/linux-desktop/
+
     - name: Upload Linux Artifact
       uses: actions/upload-artifact@v4
       with:
         name: linux-desktop
-        path: artifacts/linux-desktop/Pix2d_linux-x64-${{ env.VERSION }}.tar.gz
+        path: |
+          artifacts/linux-desktop/Pix2d_linux-x64-${{ env.VERSION }}.tar.gz
+          artifacts/linux-desktop/pix2d_${{ env.VERSION }}_amd64.deb
 
   # Dedicated job for building the WASM artifacts so they can be uploaded
   build_wasm:
@@ -553,6 +564,7 @@ jobs:
           artifacts/android/pix2d_v${{ steps.extract_version.outputs.version }}.aab
           artifacts/windows-desktop/Pix2d_win-x64-${{ steps.extract_version.outputs.version }}-portable.zip
           artifacts/linux-desktop/Pix2d_linux-x64-${{ steps.extract_version.outputs.version }}.tar.gz
+          artifacts/linux-desktop/pix2d_${{ steps.extract_version.outputs.version }}_amd64.deb
           artifacts/macos-intel/Pix2d_macOS-x64-${{ steps.extract_version.outputs.version }}.dmg
           artifacts/macos-arm/Pix2d_macOS-arm64-${{ steps.extract_version.outputs.version }}.dmg
           # The WASM artifact is deployed directly to app.pix2d.com, so it's usually not attached as a separate file to the release.
