@@ -165,10 +165,11 @@ public class ProjectService : IProjectService, ISessionProjectLoader
             return;
         }
 
-        // we are editing existing pix2d project
-        if (ProjectState.File is { Extension: ".pix2d" })
+        // we are editing existing pix2d project (case-insensitive extension, matching the PNG path below)
+        if (ProjectState.File is { } projectFile
+            && string.Equals(projectFile.Extension, ".pix2d", StringComparison.OrdinalIgnoreCase))
         {
-            await SaveCurrentProjectToFileAsync(ProjectState.File);
+            await SaveCurrentProjectToFileAsync(projectFile);
             return;
         }
 

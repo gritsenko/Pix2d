@@ -124,7 +124,10 @@ public partial class ToolItemView : ViewBase<ToolItemView.State>
         {
             _appState.UiState.ShowToolGroup = false;
 
-            if (IsSelected)
+            // Decide on the *actual* active tool, not IsSelected — the latter also lights up the eyedropper
+            // during transient Alt-pick mode (#184), so clicking it then must still activate it.
+            var isActiveTool = _appState.ToolsState.CurrentToolKey == ToolKey;
+            if (isActiveTool)
             {
                 if (ToolState.HasToolProperties)
                     _appState.UiState.ShowToolProperties = !_appState.UiState.ShowToolProperties;

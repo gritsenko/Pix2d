@@ -51,6 +51,8 @@ public class SkiaCanvas : Control
     private bool _isUndoGestureTracking = false;
     private bool _isTouchDrawingSuppressed = false;
     private readonly HashSet<int> _activeTouchPointers = [];
+    // Alt keys currently held down; picker mode (#184) stays on until all are released.
+    private readonly HashSet<Key> _heldAltKeys = [];
     private long _touchSuppressionUntilMs;
 
     // Single-finger-pan mode only: when a one-finger press lands on a different (inactive) artboard we
@@ -193,7 +195,10 @@ public class SkiaCanvas : Control
         }
 
         if (e.Key is Key.LeftAlt or Key.RightAlt)
+        {
+            _heldAltKeys.Add(e.Key);
             SetColorPickerMode(IsBrushFamilyToolActive());
+        }
 
         Input.SetKeyPressed(key, ToModifiers(e.KeyModifiers));
     }
@@ -207,8 +212,14 @@ public class SkiaCanvas : Control
             UpdateCursor();
         }
 
+        // Only leave color-picker mode once *every* held Alt key is up — releasing one Alt while the other
+        // is still down (or LeftAlt/RightAlt reported separately) must not clear the mode prematurely.
         if (e.Key is Key.LeftAlt or Key.RightAlt)
-            SetColorPickerMode(false);
+        {
+            _heldAltKeys.Remove(e.Key);
+            if (_heldAltKeys.Count == 0)
+                SetColorPickerMode(false);
+        }
 
         Input.SetKeyReleased(key, ToModifiers(e.KeyModifiers));
     }
