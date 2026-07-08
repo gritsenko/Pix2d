@@ -1,6 +1,6 @@
 # Pix2D — Long-Term Roadmap
 
-> **Status:** Draft proposal · Last updated: 2026-07-08 · Baseline version: [v3.8.2](https://github.com/gritsenko/Pix2d/releases/tag/v3.8.2)
+> **Status:** Draft proposal · Last updated: 2026-07-09 · Baseline version: [v3.8.2](https://github.com/gritsenko/Pix2d/releases/tag/v3.8.2)
 >
 > This document is written for **both humans and AI coding agents**. Each work item includes context, acceptance criteria hints, and reference links so an agent can pick up a task with minimal extra briefing. Read [`CLAUDE.md`](../CLAUDE.md) and [`CONTRIBUTING.md`](../CONTRIBUTING.md) before starting any task. UI work must follow the project skill at [`.claude/skills/pix2d-ui`](../.claude/skills/pix2d-ui).
 
@@ -101,7 +101,7 @@ The single biggest gap vs. Aseprite's [tilemap mode](https://www.aseprite.org/do
 - [ ] Animation **tags/ranges** within one document (idle / run / jump), exported as ranges in metadata.
 - [ ] Per-frame duration (ms), not just global FPS.
 - [ ] Linked cels (share one image across frames) — memory + workflow win for static parts.
-- [ ] Export animated **GIF** (already?) verify quality, plus **APNG** and sprite-sheet-per-tag.
+- [ ] Export animated **GIF** — quality fixed: the encoder ([`AnimatedGifEncoder`](../Sources/Core/Pix2d.Core/Plugins/ImageFormats/GifFormat/Exporters/Gif/AnimatedGifEncoder.cs)) previously ran the `NeuQuant` quantizer **per frame** and wrote a **local color table per frame**, so identical colors drifted frame-to-frame and pixel-art shades flickered. It now builds **one palette shared by the whole animation** (Global Color Table, no local tables): if the animation fits the palette budget its colors are used **verbatim** (no quantization — exact fidelity), otherwise a single NeuQuant pass over all frames combined produces one shared reduced palette; transparency slot reserved only when actually used. Verified end-to-end (structural: 0 local color tables in all paths; round-trip: SkiaSharp `SKCodec` decodes every frame byte-exact). **Remaining:** **APNG** export and sprite-sheet-per-tag.
 
 ### H2.5 Scripting v1 (pre-plugin) `P2`
 Cheaper to ship and maintain than a full plugin API; lets the community close niche gaps themselves.
