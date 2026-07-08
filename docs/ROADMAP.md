@@ -1,6 +1,6 @@
 # Pix2D — Long-Term Roadmap
 
-> **Status:** Draft proposal · Last updated: 2026-07-08 · Baseline version: [v3.8.1](https://github.com/gritsenko/Pix2d/releases/tag/v3.8.1)
+> **Status:** Draft proposal · Last updated: 2026-07-08 · Baseline version: [v3.8.2](https://github.com/gritsenko/Pix2d/releases/tag/v3.8.2)
 >
 > This document is written for **both humans and AI coding agents**. Each work item includes context, acceptance criteria hints, and reference links so an agent can pick up a task with minimal extra briefing. Read [`CLAUDE.md`](../CLAUDE.md) and [`CONTRIBUTING.md`](../CONTRIBUTING.md) before starting any task. UI work must follow the project skill at [`.claude/skills/pix2d-ui`](../.claude/skills/pix2d-ui).
 
