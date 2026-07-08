@@ -1,4 +1,3 @@
-using Avalonia.Styling;
 using Pix2d.Abstract.UI;
 using Pix2d.UI.Resources;
 
@@ -8,32 +7,29 @@ public class UnsavedChangesDialogView : ViewBase, IDialogView<UnsavedChangesDial
 {
     protected override object Build() =>
         new Grid()
-            .Rows("*,48")
+            // Cap + margin so it reads as a card on desktop but shrinks to a narrow phone-portrait
+            // window (the host PopupView clamps it to the viewport as well).
+            .MaxWidth(420)
+            .Margin(new Thickness(16))
+            .Rows("Auto,Auto")
             .Children(
                 new TextBlock()
-                    .VerticalAlignment(VerticalAlignment.Center)
                     .HorizontalAlignment(HorizontalAlignment.Center)
-                    .Text("You have unsaved changes"),
+                    .Margin(new Thickness(0, 0, 0, 16))
+                    .TextWrapping(TextWrapping.Wrap)
+                    .TextAlignment(TextAlignment.Center)
+                    .Text(L("You have unsaved changes")),
 
-                new StackPanel().Row(1)
-                    .Orientation(Orientation.Horizontal)
-                    .HorizontalAlignment(HorizontalAlignment.Center)
-                    .VerticalAlignment(VerticalAlignment.Center)
-                    .Styles(
-                        new Style(s => s.OfType(typeof(Button)))
-                        {
-                            Setters =
-                            {
-                                new Setter(Button.MarginProperty, new Thickness(8,0)),
-                                new Setter(Button.BackgroundProperty, StaticResources.Brushes.ButtonSolidBrush),
-                                new Setter(Button.WidthProperty, 100d)
-                            }
-                        }) //styles
-
+                // Three stretched columns instead of a fixed 100px-per-button row, so the buttons
+                // always share the width and never overflow a narrow screen.
+                new Grid().Row(1)
+                    .Cols("*,*,*")
                     .Children(
                         new Button()
                             .Classes("btn")
-                            .Content("Save")
+                            .Margin(new Thickness(0, 0, 4, 0))
+                            .HorizontalAlignment(HorizontalAlignment.Stretch)
+                            .Content(L("Save"))
                             .Background(StaticResources.Brushes.AccentBrush)
                             // Accent fill needs crisp, fully-opaque white text — the theme default reads as dull grey.
                             .Foreground(Avalonia.Media.Brushes.White)
@@ -42,25 +38,28 @@ public class UnsavedChangesDialogView : ViewBase, IDialogView<UnsavedChangesDial
                                 DialogResult = UnsavedChangesDialogResult.Yes;
                                 OnDialogClosed?.Invoke(true);
                             }),
-                        new Button()
+                        new Button().Col(1)
                             .Classes("btn")
-                            .Content("Discard")
+                            .Margin(new Thickness(4, 0))
+                            .HorizontalAlignment(HorizontalAlignment.Stretch)
+                            .Background(StaticResources.Brushes.ButtonSolidBrush)
+                            .Content(L("Discard"))
                             .OnClick(_ =>
                             {
                                 DialogResult = UnsavedChangesDialogResult.No;
                                 OnDialogClosed?.Invoke(false);
                             }),
-                        new Button()
+                        new Button().Col(2)
                             .Classes("btn")
-                            .Content("Cancel")
+                            .Margin(new Thickness(4, 0, 0, 0))
+                            .HorizontalAlignment(HorizontalAlignment.Stretch)
+                            .Background(StaticResources.Brushes.ButtonSolidBrush)
+                            .Content(L("Cancel"))
                             .OnClick(_ =>
                             {
                                 DialogResult = UnsavedChangesDialogResult.Cancel;
                                 OnDialogClosed?.Invoke(null);
-                            })
-
-
-                    ) //stack panel children
+                            }))
             );
 
     public string Title { get; set; } = null!;

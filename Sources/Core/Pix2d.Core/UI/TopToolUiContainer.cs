@@ -1,5 +1,6 @@
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 
 namespace Pix2d.UI;
@@ -9,9 +10,21 @@ public partial class TopToolUiContainer(AppState appState) : ViewBase<TopToolUiC
     #region Markup
 
     protected override object Build(State state) =>
-        new BlurPanel()
+        // Horizontal scroll host so a wide tool UI (e.g. the selection-tool clipboard actions + slider)
+        // stays reachable on a narrow phone-portrait screen instead of overflowing off both edges. The
+        // host stretches to the available width (see the Stretch placement in MainView) while the pill
+        // itself stays content-sized and centred when it fits, and scrolls when it doesn't.
+        new ScrollViewer()
+            .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden)
+            .VerticalScrollBarVisibility(ScrollBarVisibility.Disabled)
             .IsVisible(state, x => x.HasToolUiContent)
-            .Content(state, x => x.ToolUiContent!);
+            // Bound to the window width so the bar scrolls instead of overflowing (its grid column's
+            // width is contaminated by the bottom side-panels, so it can't bound the scroll host itself).
+            .ClampMaxWidthToViewport(StaticResources.Measures.PanelMargin * 2)
+            .Content(
+                new BlurPanel()
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .Content(state, x => x.ToolUiContent!));
 
     #endregion
 

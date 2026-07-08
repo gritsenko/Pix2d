@@ -28,7 +28,10 @@ public class TelemetryConsentDialogView : ViewBase, IDialogView<bool>
 
     protected override object Build() =>
         new Grid()
-            .Width(400)
+            // Cap the width instead of pinning it, so the dialog shrinks to fit a narrow phone-portrait
+            // window (the host PopupView clamps it to the viewport as well) yet stays a comfortable
+            // 400px on desktop.
+            .MaxWidth(400)
             .Margin(new Thickness(16))
             .Rows("Auto,Auto,Auto")
             .Children(
@@ -46,23 +49,24 @@ public class TelemetryConsentDialogView : ViewBase, IDialogView<bool>
                     .TextWrapping(TextWrapping.Wrap)
                     .Text(L("Pix2d can send anonymous usage statistics and crash reports so we can fix bugs and decide what to build next. No personal data or artwork is ever collected. Pix2d works exactly the same either way.")),
 
-                new StackPanel().Row(2)
-                    .Orientation(Orientation.Horizontal)
-                    .HorizontalAlignment(HorizontalAlignment.Right)
+                // Two stretched columns rather than fixed button widths: the buttons always share the
+                // available width and never overflow a narrow screen.
+                new Grid().Row(2)
+                    .Cols("*,*")
                     .Children(
                         new Button()
                             .Classes("btn")
-                            .Margin(new Thickness(8, 0))
-                            .Width(140)
+                            .Margin(new Thickness(0, 0, 4, 0))
+                            .HorizontalAlignment(HorizontalAlignment.Stretch)
                             .Content(L("Allow"))
                             .Background(StaticResources.Brushes.AccentBrush)
                             // Accent fill needs crisp, fully-opaque white text — the theme default reads as dull grey.
                             .Foreground(Avalonia.Media.Brushes.White)
                             .OnClick(_ => Decide(true)),
-                        new Button()
+                        new Button().Col(1)
                             .Classes("btn")
-                            .Margin(new Thickness(8, 0))
-                            .Width(120)
+                            .Margin(new Thickness(4, 0, 0, 0))
+                            .HorizontalAlignment(HorizontalAlignment.Stretch)
                             .Content(L("No thanks"))
                             .OnClick(_ => Decide(false))));
 

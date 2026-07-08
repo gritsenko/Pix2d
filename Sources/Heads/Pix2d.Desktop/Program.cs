@@ -122,6 +122,8 @@ class Program
 
 #if DEBUG
         editorApp.AttachDeveloperTools();
+        // Force a full repaint after every hot reload (Avalonia leaves descendants stale until resize).
+        HotReloadRepaint.Install();
 #endif
 
     }

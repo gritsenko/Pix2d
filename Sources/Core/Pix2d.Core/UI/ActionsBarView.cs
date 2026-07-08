@@ -41,11 +41,19 @@ public partial class ActionsBarView(AppState appState, ICommandService commandSe
     ];
 
     protected override object Build(State state) =>
-        new BlurPanel().Content(
-            new ScrollViewer()
-                .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden)
-                .HorizontalAlignment(HorizontalAlignment.Center)
-                .Content(
+        // ScrollViewer is the OUTER element (bounded by the Stretch placement in MainView) so the action
+        // pill scrolls horizontally instead of overflowing off-screen on a narrow phone-portrait window;
+        // the BlurPanel pill stays content-sized and centred when everything fits.
+        new ScrollViewer()
+            .HorizontalScrollBarVisibility(ScrollBarVisibility.Hidden)
+            .VerticalScrollBarVisibility(ScrollBarVisibility.Disabled)
+            // Bound to the window width so the action pill scrolls instead of overflowing on a narrow
+            // screen (its grid column can't bound it — the bottom side-panels contaminate the column).
+            .ClampMaxWidthToViewport(StaticResources.Measures.PanelMargin * 2)
+            .Content(
+                new BlurPanel()
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .Content(
                     new StackPanel()
                         .Orientation(Orientation.Horizontal)
                         .Children(

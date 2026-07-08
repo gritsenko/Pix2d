@@ -106,7 +106,7 @@
 		<PackageReference Include="Clowd.Clipboard" Version="1.1.4" />
 		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.1.4" />
 		<!-- Debug-only: pulls in the ASP.NET Core web stack + remote-control surface; must not ship in Release. -->
-		<PackageReference Include="Declarative.Avalonia.AgentTools" Version="12.0.6-preview1" Condition="'$(Configuration)'=='Debug'" />
+		<PackageReference Include="Declarative.Avalonia.AgentTools" Version="12.0.6-preview2" Condition="'$(Configuration)'=='Debug'" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="Sentry" Version="6.5.0" />
 		<PackageReference Include="Tmds.DBus.Protocol" Version="0.93.0" />
