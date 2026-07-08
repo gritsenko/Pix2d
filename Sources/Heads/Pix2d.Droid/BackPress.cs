@@ -30,6 +30,9 @@ internal class BackPress : OnBackPressedCallback
             // OS exit reason as a crash. Then exit via System.exit (REASON_EXIT_SELF) instead of
             // Process.KillProcess (REASON_SIGNALED, which the crash detector treats as a native crash).
             MainActivity.MarkCleanExitSafely();
+            // End the Sentry session cleanly so its final update (duration / exit status) is sent
+            // before we terminate; no-op when telemetry is disabled or not consented to.
+            MainActivity.CloseTelemetrySinkSafely();
             activity.FinishAndRemoveTask();
             Java.Lang.JavaSystem.Exit(0);
         }

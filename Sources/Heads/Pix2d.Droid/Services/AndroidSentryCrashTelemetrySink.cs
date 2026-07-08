@@ -37,7 +37,10 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
             SentrySdk.Init(o =>
             {
                 o.Dsn = dsn;
-                o.AutoSessionTracking = false;
+                // Auto session tracking: SDK starts a session on Init() and, with global mode on,
+                // ends it on Close() (called from Shutdown()) — so Sentry receives session envelopes
+                // with duration / error count / exit status. Without this no sessions reach the server.
+                o.AutoSessionTracking = true;
                 o.IsGlobalModeEnabled = true;
                 // Offline cache: if the Sentry host is unreachable at crash time, the envelope is
                 // persisted locally and re-sent on the next launch instead of being lost.

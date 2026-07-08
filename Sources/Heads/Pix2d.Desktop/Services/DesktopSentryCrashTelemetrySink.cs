@@ -40,7 +40,11 @@ public sealed class DesktopSentryCrashTelemetrySink : ICrashTelemetrySink
             SentrySdk.Init(o =>
             {
                 o.Dsn = dsn;
-                o.AutoSessionTracking = false;
+                // Auto session tracking: SDK starts a session on Init() and ends it on shutdown,
+                // sending session envelopes with duration / error count / exit status. The Sentry SDK
+                // registers its own ProcessExit hook to flush and end the session on a normal exit;
+                // Shutdown() (→ SentrySdk.Close()) also ends it. Without this no sessions reach Sentry.
+                o.AutoSessionTracking = true;
                 o.IsGlobalModeEnabled = true;
                 // Offline cache: if the Sentry host is unreachable at crash time, the envelope is
                 // persisted locally and re-sent on the next launch instead of being lost.

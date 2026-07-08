@@ -244,6 +244,26 @@ public partial class MainActivity : AvaloniaMainActivity
         }
     }
 
+    // Called from the deliberate double-back exit just before the process is terminated. Closes the
+    // crash-telemetry sink (Sentry), which ends the current session and flushes a final session
+    // update (duration / error count / clean exit status). Skipped when telemetry is a no-op. This is
+    // only wired to the genuine exit — NOT OnPause/OnStop, which are backgrounding, not a shutdown.
+    internal static void CloseTelemetrySinkSafely()
+    {
+        try
+        {
+            if (EditorApp.Pix2dBootstrapper?.GetServiceProvider() is not { } sp)
+                return;
+
+            var sink = sp.GetService(typeof(Pix2d.Abstract.Services.ICrashTelemetrySink))
+                as Pix2d.Abstract.Services.ICrashTelemetrySink;
+            sink?.Shutdown();
+        }
+        catch
+        {
+        }
+    }
+
     internal static void SaveSessionSafely()
     {
         try
