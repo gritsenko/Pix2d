@@ -1,6 +1,6 @@
 # Pix2D — Long-Term Roadmap
 
-> **Status:** Draft proposal · Last updated: 2026-07-07 · Baseline version: [v3.8.1](https://github.com/gritsenko/Pix2d/releases/tag/v3.8.1)
+> **Status:** Draft proposal · Last updated: 2026-07-08 · Baseline version: [v3.8.1](https://github.com/gritsenko/Pix2d/releases/tag/v3.8.1)
 >
 > This document is written for **both humans and AI coding agents**. Each work item includes context, acceptance criteria hints, and reference links so an agent can pick up a task with minimal extra briefing. Read [`CLAUDE.md`](../CLAUDE.md) and [`CONTRIBUTING.md`](../CONTRIBUTING.md) before starting any task. UI work must follow the project skill at [`.claude/skills/pix2d-ui`](../.claude/skills/pix2d-ui).
 
@@ -51,6 +51,7 @@ Goal: after the large v3.8.0 release, make export/selection/drawing bulletproof.
 - [x] Pixel-perfect stroke flicker — [#241](https://github.com/gritsenko/Pix2d/issues/241). Resolved by the pixel-perfect drawing rework (swap-bitmap preview management `03b4282`, incremental preview + optimized bitmap handling `cf92167`, earlier `9e2e39f`); confirmed fixed in current builds.
 - [x] Slider mouse-wheel support on desktop — [#242](https://github.com/gritsenko/Pix2d/issues/242) (small UX win, cheap). `SliderEx` now adjusts on `PointerWheelChanged` while hovered (one notch = 1 step, Ctrl = 10, clamped to min/max); the event is marked handled so a parent `ScrollViewer` doesn't scroll instead. Applies to all three internal slider layouts (two-line / one-line / narrow popup).
 - [x] Palette slider interruption — [#236](https://github.com/gritsenko/Pix2d/issues/236). Not reproducible on desktop; hardened preventively: `Pix2dColorPicker` now marks its color-square / hue-slider pointer events `Handled` so a parent `ScrollViewer`'s touch `ScrollGestureRecognizer` can't hijack the pointer mid-drag and steal the capture (the capture-steal is what interrupted the drag on touch). Same class of fix as the slider mouse-wheel handling in [#242].
+- [x] Grid toggle did nothing — enabling "Show grid" in the grid-settings flyout never showed the grid. `GridSettingsView.State` captured a single `ViewPortState` instance at construction; the flyout is built once with `MainView` (before the first real project is current, and stale after every tab switch), so toggles wrote to an orphaned `ViewPortState` that no watcher — `SnappingService`/`ViewPortRefreshService` both rebind via `WatchForCurrentProjectViewPort` — ever observed. Fixed by making the view resolve `AppState.CurrentProject.ViewPortState` **live** on every read/write and rebind through `WatchForCurrentProjectViewPort` (which also reflects the Ctrl+. `ToggleGrid` shortcut back into the switch) — the same stale-binding gotcha documented in `CLAUDE.md`. Verified end-to-end against a running Debug build via the AgentTools inspector (flyout switch toggle now drives the active project's grid node in both directions).
 - [ ] Triage remaining [open issues](https://github.com/gritsenko/Pix2d/issues): label with `bug`/`Feature`, `complexity:*`, and platform (`android`, `windows`, `web`).
 
 ### H1.2 Project file format hardening `P0`

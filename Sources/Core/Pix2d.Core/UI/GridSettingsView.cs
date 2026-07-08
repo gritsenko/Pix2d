@@ -41,7 +41,11 @@ public partial class GridSettingsView(AppState appState) : ViewBase<GridSettings
 
     public sealed partial class State : ObservableObject
     {
-        private readonly ViewPortState _viewPortState;
+        private readonly AppState _appState;
+
+        // Guards the state->view sync so re-reading the current project's values doesn't
+        // echo back into the ViewPortState (and stomp another project on a tab switch).
+        private bool _syncing;
 
         [ObservableProperty]
         public partial bool? ShowGrid { get; set; }
@@ -52,30 +56,50 @@ public partial class GridSettingsView(AppState appState) : ViewBase<GridSettings
         [ObservableProperty]
         public partial decimal? GridCellSizeHeight { get; set; }
 
+        // Always resolve the LIVE current project's viewport state — the flyout is built once with
+        // MainView, so a captured instance goes stale after the first real project loads or a tab
+        // switch (see the WatchFor gotcha in CLAUDE.md), and toggles would write to an orphan state
+        // that nothing renders from.
+        private ViewPortState ViewPortState => _appState.CurrentProject.ViewPortState;
+
         public State(AppState appState)
         {
-            _viewPortState = appState.CurrentProject.ViewPortState;
+            _appState = appState;
 
-            ShowGrid = _viewPortState.ShowGrid;
-            GridCellSizeWidth = (decimal)_viewPortState.GridSpacing.Width;
-            GridCellSizeHeight = (decimal)_viewPortState.GridSpacing.Height;
+            SyncFromState();
+
+            // Re-bind on project switch and reflect external changes (e.g. the Toggle grid shortcut).
+            appState.WatchForCurrentProjectViewPort(x => x.ShowGrid, SyncFromState);
+            appState.WatchForCurrentProjectViewPort(x => x.GridSpacing, SyncFromState);
+        }
+
+        private void SyncFromState()
+        {
+            _syncing = true;
+            ShowGrid = ViewPortState.ShowGrid;
+            GridCellSizeWidth = (decimal)ViewPortState.GridSpacing.Width;
+            GridCellSizeHeight = (decimal)ViewPortState.GridSpacing.Height;
+            _syncing = false;
         }
 
         partial void OnShowGridChanged(bool? value)
         {
-            _viewPortState.ShowGrid = value ?? false;
+            if (_syncing) return;
+            ViewPortState.ShowGrid = value ?? false;
         }
 
         partial void OnGridCellSizeWidthChanged(decimal? value)
         {
-            var oldSize = _viewPortState.GridSpacing;
-            _viewPortState.GridSpacing = new SKSize((float)(value ?? 1), oldSize.Height);
+            if (_syncing) return;
+            var oldSize = ViewPortState.GridSpacing;
+            ViewPortState.GridSpacing = new SKSize((float)(value ?? 1), oldSize.Height);
         }
 
         partial void OnGridCellSizeHeightChanged(decimal? value)
         {
-            var oldSize = _viewPortState.GridSpacing;
-            _viewPortState.GridSpacing = new SKSize(oldSize.Width, (float)(value ?? 1));
+            if (_syncing) return;
+            var oldSize = ViewPortState.GridSpacing;
+            ViewPortState.GridSpacing = new SKSize(oldSize.Width, (float)(value ?? 1));
         }
     }
 }
