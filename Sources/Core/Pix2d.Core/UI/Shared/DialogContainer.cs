@@ -1,3 +1,4 @@
+using Avalonia.LogicalTree;
 using Mvvm;
 using Pix2d.Abstract.UI;
 using Pix2d.UI.Resources;
@@ -62,10 +63,34 @@ public class DialogContainer : ViewBase, IDialogContainer
         if (dialog is not Control control)
             throw new Exception("dialog is not control");
 
+        // The view may still be parented in a previously-shown (possibly stale) container. Detach it
+        // first, otherwise assigning it as our content throws "already has a visual parent".
+        DetachFromCurrentParent(control);
+
         Title = dialog.Title;
         _contentControl.Header = Title;
         _contentControl.Content = control;
         SetVisible(true);
+    }
+
+    private static void DetachFromCurrentParent(Control control)
+    {
+        // Dialog views are hosted through a PopupView's Content; clear that source so the OneWay
+        // binding releases the view from the old presenter before we re-host it here.
+        if (control.FindLogicalAncestorOfType<PopupView>() is { } ownerPopup && ReferenceEquals(ownerPopup.Content, control))
+            ownerPopup.Content = null;
+        else switch (control.Parent)
+        {
+            case ContentControl cc when ReferenceEquals(cc.Content, control):
+                cc.Content = null;
+                break;
+            case Panel panel:
+                panel.Children.Remove(control);
+                break;
+            case Decorator dec when ReferenceEquals(dec.Child, control):
+                dec.Child = null;
+                break;
+        }
     }
 
     public void CloseDialog()

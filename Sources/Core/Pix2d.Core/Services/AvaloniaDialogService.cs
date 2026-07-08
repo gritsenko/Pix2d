@@ -17,6 +17,17 @@ public class AvaloniaDialogService : IDialogService
     private IDialogInfo? _currentDialog;
     void IDialogService.SetDialogContainer(object container)
     {
+        // A new container means the previous one — and every dialog view parented inside its visual
+        // tree — is gone. This happens on Android when the MainView is rebuilt on a configuration
+        // change (e.g. window resize on ChromeOS). Drop the stale current/queued dialogs so we never
+        // try to re-parent a view that still lives in the old, detached container (which throws
+        // "already has a visual parent ContentPresenter").
+        if (_dialogContainer != null)
+            _dialogContainer.CloseButtonClicked -= _dialogContainer_CloseButtonClicked;
+
+        _openedDialogStack.Clear();
+        _currentDialog = null;
+
         _dialogContainer = container as IDialogContainer;
 
         if (_dialogContainer == null)
