@@ -107,7 +107,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         services.AddSingleton<ISessionService>(sp => sp.GetRequiredService<AutoSaveService>());
 
         services.AddSingleton<IProjectActivationService, ProjectActivationService>(); // Depends on: AppState, IMessenger, IOperationService, IViewPortService, IViewPortRefreshService, IEditService, IServiceProvider (lazy: SpriteEditor, IDrawingService, IProjectChangeTracker)
-        services.AddSingleton<IProjectService, ProjectService>(); // Depends on: AppState, IImportService, IMessenger, IFileService, IDialogService, IProjectActivationService, IPlatformStuffService, IOperationService, IAutoSaveService
+        services.AddSingleton<IProjectService, ProjectService>(); // Depends on: AppState, IImportService, IMessenger, IFileService, IDialogService, IProjectActivationService, IPlatformStuffService, IOperationService, IAutoSaveService, IExportService
         services.AddSingleton<ISessionProjectLoader, ProjectService>(); // Same as above
 
         services.AddSingleton<IImportFlowService, Services.Import.ImportFlowService>(); // Depends on: AppState, IImportService, IEditService, IProjectService, IDialogService
