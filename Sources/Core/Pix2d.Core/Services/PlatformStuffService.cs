@@ -199,7 +199,29 @@ public class PlatformStuffService : IPlatformStuffService
     }
 
     public string GetAppFolderPath() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Pix2d");
+        Path.Combine(GetLocalApplicationDataPath(), "Pix2d");
+
+    /// <summary>
+    /// Resolves the per-user local application-data directory in a cross-platform-safe way.
+    /// On Linux, <see cref="Environment.GetFolderPath(Environment.SpecialFolder)"/> for
+    /// <see cref="Environment.SpecialFolder.LocalApplicationData"/> returns an EMPTY string when
+    /// <c>~/.local/share</c> does not exist yet (default <see cref="Environment.SpecialFolderOption.None"/>).
+    /// That made <c>Path.Combine("", "Pix2d")</c> a relative "Pix2d" which <c>CreateDirectory</c> then tried
+    /// to create next to the executable (itself named "Pix2d") and crashed on a fresh profile. Passing
+    /// <see cref="Environment.SpecialFolderOption.Create"/> materialises and returns the real XDG dir; the
+    /// <c>$HOME/.local/share</c> fallback covers the (unusual) case where it is still empty.
+    /// </summary>
+    private static string GetLocalApplicationDataPath()
+    {
+        var path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData,
+            Environment.SpecialFolderOption.Create);
+
+        if (!string.IsNullOrWhiteSpace(path))
+            return path;
+
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return string.IsNullOrWhiteSpace(home) ? "" : Path.Combine(home, ".local", "share");
+    }
 
     public Task OpenAppDataFolder()
     {
