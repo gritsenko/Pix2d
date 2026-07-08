@@ -2,6 +2,7 @@ using Avalonia.Interactivity;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Abstract.Tools;
+using Pix2d.Plugins.Drawing.Tools;
 using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.ToolBar;
@@ -100,6 +101,7 @@ public partial class ToolItemView : ViewBase<ToolItemView.State>
 
             _appState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, SyncFromAppState);
             _appState.ToolsState.WatchFor(x => x.CurrentToolKey, SyncFromAppState);
+            _appState.ToolsState.WatchFor(x => x.IsColorPickerModeActive, SyncFromAppState);
         }
 
         public ToolState ToolState { get; }
@@ -138,7 +140,9 @@ public partial class ToolItemView : ViewBase<ToolItemView.State>
 
         private void SyncFromAppState()
         {
-            IsSelected = _appState.ToolsState.CurrentToolKey == ToolKey;
+            // The eyedropper item also lights up while a brush-family tool is in transient Alt-pick mode (#184).
+            IsSelected = _appState.ToolsState.CurrentToolKey == ToolKey
+                         || (_appState.ToolsState.IsColorPickerModeActive && ToolKey == nameof(EyedropperTool));
             IsEnabled = !_appState.SpriteEditorState.IsPlayingAnimation || ToolState.EnabledDuringAnimation;
         }
     }

@@ -39,6 +39,7 @@ public partial class ColorPickerView(AppState appState, IMessenger messenger, IP
                                                 new ColorPalette()
                                                     .Margin(-6, 0)
                                                     .Colors(state.RecentColors)
+                                                    .SelectedColor(state, x => x.SelectedColor, BindingMode.OneWay)
                                                     .OnColorSelected(c => state.SelectedColor = c),
 
                                                 new TextBlock()
@@ -51,6 +52,7 @@ public partial class ColorPickerView(AppState appState, IMessenger messenger, IP
                                                     .OnColorAdded(c => state.AddCustomColor(c))
                                                     .OnColorRemoved(state.OnColorRemoved)
                                                     .ColorToAdd(state, x => x.SelectedColor, BindingMode.OneWay)
+                                                    .SelectedColor(state, x => x.SelectedColor, BindingMode.OneWay)
                                                     .OnColorSelected(c => state.SelectedColor = c)
                                             )
                                     ),
