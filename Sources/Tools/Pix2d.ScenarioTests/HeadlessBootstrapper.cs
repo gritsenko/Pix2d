@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
+using Pix2d.Abstract.UI;
 using Pix2d.Infrastructure.Logger;
 using Pix2d.Plugins.Drawing;
 using Pix2d.Plugins.ImageFormats.PngFormat;
@@ -46,6 +47,9 @@ public sealed class HeadlessBootstrapper : Pix2dBootstrapperDI
         // Last-registration-wins: these override / fill in what a real head would supply.
         services.AddSingleton<IPlatformStuffService>(new HeadlessPlatformStuffService(_appFolder));
         services.AddSingleton<IClipboardService, InternalClipboardService>();
+        // Replace the Avalonia dialog service: a swept command that pops a dialog would otherwise try
+        // to build an Avalonia view with no TopLevel. All calls become deterministic no-ops.
+        services.AddSingleton<IDialogService, HeadlessDialogService>();
     }
 
     protected override void LoadPlugins()
@@ -84,4 +88,22 @@ internal sealed class HeadlessPlatformStuffService(string appFolder) : IPlatform
     public void ToggleFullscreenMode() { }
     public string GetAppFolderPath() => appFolder;
     public Task OpenAppDataFolder() => Task.CompletedTask;
+}
+
+/// <summary>No-op dialog surface: every prompt resolves to a safe default and no Avalonia view is built.</summary>
+internal sealed class HeadlessDialogService : IDialogService
+{
+    public void SetDialogContainer(object container) { }
+    public void SetPanelsContainer(object container) { }
+    public void Alert(string message, string title) { }
+    public Task ShowAlert(string message, string title) => Task.CompletedTask;
+    public Task<string?> ShowInputDialogAsync(string message, string title, string defaultValue = "")
+        => Task.FromResult<string?>(null);
+    public Task<bool> ShowYesNoDialog(string message, string title, string okLabel = "Ok", string cancelLabel = "Cancel")
+        => Task.FromResult(false);
+    public Task<UnsavedChangesDialogResult> ShowUnsavedChangesInProjectDialog()
+        => Task.FromResult(UnsavedChangesDialogResult.No);
+    public void ShowPanelView(IToolPanel panel) { }
+    public void TogglePanelView(IToolPanel panel) { }
+    public Task<TResult> ShowDialogAsync<TResult>(IDialogView<TResult> dialog) => Task.FromResult<TResult>(default!);
 }

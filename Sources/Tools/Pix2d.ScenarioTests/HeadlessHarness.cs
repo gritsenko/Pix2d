@@ -1,7 +1,12 @@
+using System.Diagnostics;
+using System.Runtime.ExceptionServices;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.Abstract.Tools;
 using Pix2d.CommonNodes;
+using Pix2d.Plugins.PngFormat.Exporters;
 using Pix2d.State;
 using SkiaNodes;
 using SkiaNodes.Interactive;
@@ -25,6 +30,7 @@ public sealed class HeadlessHarness
 
     private readonly IDrawingService _drawing;
     private readonly IToolService _tools;
+    private readonly ISelectionService _selection;
     private readonly ViewPort _viewPort;
     private readonly SKInput _input = SKInput.Current;
 
@@ -37,6 +43,7 @@ public sealed class HeadlessHarness
         Operations = services.GetRequiredService<IOperationService>();
         _drawing = services.GetRequiredService<IDrawingService>();
         _tools = services.GetRequiredService<IToolService>();
+        _selection = services.GetRequiredService<ISelectionService>();
     }
 
     /// <summary>
@@ -85,6 +92,77 @@ public sealed class HeadlessHarness
     public void ActivateTool<TTool>() where TTool : ITool => _tools.ActivateTool<TTool>();
 
     public void SetColor(SKColor color) => _drawing.SetCurrentColor(color);
+
+    /// <summary>Runs a command by name and waits for it to finish. Pumps the Avalonia dispatcher so
+    /// async commands (e.g. those awaiting <c>Task.Delay</c>) can complete without a running message
+    /// loop; rethrows the command's own exception, or times out after 2 s.</summary>
+    public void Exec(string commandName)
+        => PumpUntilComplete(Commands.ExecuteCommandAsync(commandName), TimeSpan.FromSeconds(2));
+
+    private static void PumpUntilComplete(Task task, TimeSpan timeout)
+    {
+        var sw = Stopwatch.StartNew();
+        while (!task.IsCompleted)
+        {
+            Dispatcher.UIThread.RunJobs();
+            if (sw.Elapsed > timeout)
+                throw new TimeoutException($"did not complete in {timeout.TotalSeconds:0}s (async work needs the UI loop?)");
+            Thread.Sleep(2);
+        }
+        if (task.IsFaulted)
+            ExceptionDispatchInfo.Capture(task.Exception!.InnerException ?? task.Exception!).Throw();
+    }
+
+    // --- Context setup so context-dependent commands can run in a sweep --------------------------
+    /// <summary>Replaces the scene with a fresh single-artboard project and resyncs the drawing target,
+    /// giving a deterministic clean state (used to reset before the command sweep).</summary>
+    public void NewProject(int size = 64)
+    {
+        PumpUntilComplete(
+            Services.GetRequiredService<IProjectService>().CreateNewProjectAsync(new SKSize(size, size)),
+            TimeSpan.FromSeconds(5));
+        _drawing.UpdateDrawingTarget();
+    }
+
+    /// <summary>Full-canvas pixel selection on the active layer — satisfies selection-dependent
+    /// sprite commands (Crop, Fill selection, Apply/Transform selection, Rotate-with-selection).
+    /// Resyncs the drawing target first: after tab/artboard switches it can be stale, and SelectAll
+    /// against a stale target throws.</summary>
+    public void EnsurePixelSelection()
+    {
+        _drawing.UpdateDrawingTarget();
+        _drawing.SelectAll();
+    }
+
+    /// <summary>Selects the first artboard as a scene-level node so object/General-context commands
+    /// (arrange z-order) have a non-null <see cref="ISelectionService.Selection"/> to act on.</summary>
+    public void EnsureNodeSelection()
+    {
+        var artboard = AppState.CurrentProject.SceneNode!.Nodes.OfType<Pix2dSprite>().FirstOrDefault();
+        if (artboard != null)
+            _selection.Select(artboard);
+    }
+
+    // --- Structural counts, read straight off the model tree --------------------------------------
+    public int LayerCount => ActiveSprite.Nodes.OfType<Pix2dSprite.Layer>().Count();
+    public int FrameCount => ActiveSprite.GetFramesCount();
+    public int ArtboardCount => AppState.CurrentProject.SceneNode!.Nodes.OfType<Pix2dSprite>().Count();
+
+    /// <summary>Renders the active artboard to PNG bytes through the real Png exporter (CPU Skia — no
+    /// GPU/window). Runs on a threadpool thread so an <c>await</c> can never rendezvous with the idle
+    /// UI dispatcher.</summary>
+    public byte[] ExportActivePng(double scale = 1)
+    {
+        var nodes = Services.GetRequiredService<IExportService>().GetNodesToExport(scale).ToArray();
+        var exporter = new PngImageExporter(Services.GetRequiredService<IFileService>());
+        return Task.Run(async () =>
+        {
+            await using var stream = await exporter.ExportToStreamAsync(nodes, scale);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            return ms.ToArray();
+        }).GetAwaiter().GetResult();
+    }
 
     /// <summary>Commits a single pencil dab at sprite-local pixel (x, y) as one undoable operation.
     /// The sprite sits at scene world origin, so sprite-local (x, y) is world (x + 0.5, y + 0.5); we
