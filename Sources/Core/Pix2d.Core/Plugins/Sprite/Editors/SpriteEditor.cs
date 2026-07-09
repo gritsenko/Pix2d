@@ -379,20 +379,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void FlipLayer(Pix2dSprite.Layer layer, FlipMode mode)
     {
-        if (!(layer.Nodes[CurrentFrameIndex] is BitmapNode sprite))
-            return;
-
-        switch (mode)
-        {
-            case FlipMode.Horizontal:
-                sprite.FlipHorizontal();
-                break;
-            case FlipMode.Vertical:
-                sprite.FlipVertical();
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
-        }
+        layer.FlipSourceBitmap(CurrentFrameIndex, mode);
     }
 
     public void SendLayerBackward(Pix2dSprite.Layer? layer = null)

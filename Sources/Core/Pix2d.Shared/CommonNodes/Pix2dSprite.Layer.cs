@@ -1,5 +1,6 @@
 #nullable enable
 using Newtonsoft.Json;
+using Pix2d.Primitives.Edit;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaNodes.Render;
@@ -463,6 +464,26 @@ public partial class Pix2dSprite
         {
             EnsureFrameHasUniqueSprite(frame);
             GetSpriteByFrame(frame)?.RotateSourceBitmap(resize);
+        }
+
+        public void FlipSourceBitmap(int frame, FlipMode mode)
+        {
+            EnsureFrameHasUniqueSprite(frame);
+            var sprite = GetSpriteByFrame(frame);
+            if (sprite == null)
+                return;
+
+            switch (mode)
+            {
+                case FlipMode.Horizontal:
+                    sprite.FlipHorizontal();
+                    break;
+                case FlipMode.Vertical:
+                    sprite.FlipVertical();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
+            }
         }
 
         public void HideFrame(int frameIndex)
