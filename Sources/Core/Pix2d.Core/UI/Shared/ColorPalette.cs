@@ -61,6 +61,20 @@ public class ColorPalette : ViewBase
     }
 
     /// <summary>
+    /// Currently selected color — the matching swatch (if any) is highlighted. Lets the eyedropper /
+    /// HSV picker "jump to" the palette entry it just produced (#220).
+    /// </summary>
+    public static readonly DirectProperty<ColorPalette, SKColor> SelectedColorProperty
+        = AvaloniaProperty.RegisterDirect<ColorPalette, SKColor>(nameof(SelectedColor), o => o.SelectedColor, (o, v) => o.SelectedColor = v);
+
+    private SKColor _selectedColor = SKColor.Empty;
+    public SKColor SelectedColor
+    {
+        get => _selectedColor;
+        set => SetAndRaise(SelectedColorProperty, ref _selectedColor, value);
+    }
+
+    /// <summary>
     /// Can add color
     /// </summary>
     public static readonly DirectProperty<ColorPalette, bool> CanAddColorProperty
@@ -84,8 +98,14 @@ public class ColorPalette : ViewBase
     public event Action<SKColor>? ColorAdded;
     public event Action<SKColor>? ColorRemoved;
 
+    private static readonly IBrush NormalItemBorderBrush =
+        Avalonia.Media.Colors.White.WithAlpha(0.3f).ToBrush().ToImmutable();
+    private static readonly IBrush SelectedItemBorderBrush =
+        Avalonia.Media.Colors.White.ToBrush().ToImmutable();
+
     private WrapPanel _wrapPanel = null!;
     private Button _addButton = null!;
+    private readonly List<(SKColor Color, Button Button)> _colorButtons = new();
 
     protected override object Build()
     {
@@ -104,6 +124,9 @@ public class ColorPalette : ViewBase
 
         if (change.Property == ColorToAddProperty && _addButton != null)
             _addButton.Background = ColorToAdd.ToBrush();
+
+        if (change.Property == SelectedColorProperty)
+            UpdateHighlight();
     }
 
     private void OnColorsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -116,6 +139,7 @@ public class ColorPalette : ViewBase
         if (_wrapPanel == null) return;
 
         _wrapPanel.Children.Clear();
+        _colorButtons.Clear();
 
         if (Colors != null)
         {
@@ -133,10 +157,8 @@ public class ColorPalette : ViewBase
 
     private Control CreateColorItem(SKColor itemVm)
     {
-        return new Button()
+        var button = new Button()
             .Background(itemVm.ToBrush())
-            .BorderThickness(1)
-            .BorderBrush(Avalonia.Media.Colors.White.WithAlpha(0.3f).ToBrush().ToImmutable())
             .OnClick(_ => ColorSelected?.Invoke(itemVm))
             .Width(32)
             .Height(32)
@@ -152,6 +174,23 @@ public class ColorPalette : ViewBase
                             .OnClick(_ => ColorRemoved?.Invoke(itemVm))
                     })
             );
+
+        _colorButtons.Add((itemVm, button));
+        ApplyItemHighlight(itemVm, button);
+        return button;
+    }
+
+    private void UpdateHighlight()
+    {
+        foreach (var (color, button) in _colorButtons)
+            ApplyItemHighlight(color, button);
+    }
+
+    private void ApplyItemHighlight(SKColor color, Button button)
+    {
+        var isSelected = !SelectedColor.Equals(SKColor.Empty) && color.Equals(SelectedColor);
+        button.BorderThickness = new Thickness(isSelected ? 2 : 1);
+        button.BorderBrush = isSelected ? SelectedItemBorderBrush : NormalItemBorderBrush;
     }
 
     private Control CreateAddButton()

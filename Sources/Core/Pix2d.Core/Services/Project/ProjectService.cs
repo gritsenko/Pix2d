@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Pix2d.Abstract.Operations;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
+using Pix2d.CommonNodes;
 using Pix2d.Infrastructure;
 using Pix2d.Infrastructure.Tasks;
 using Pix2d.Messages;
@@ -27,6 +28,7 @@ public class ProjectService : IProjectService, ISessionProjectLoader
     private IOperationService OperationService { get; }
     private IPlatformStuffService PlatformStuffService { get; }
     private IAutoSaveService AutoSaveService { get; }
+    private IExportService ExportService { get; }
 
     private bool SupportsMultipleProjects => PlatformStuffService.SupportsMultipleProjects;
 
@@ -38,7 +40,8 @@ public class ProjectService : IProjectService, ISessionProjectLoader
         IProjectActivationService projectActivationService,
         IOperationService operationService,
         IPlatformStuffService platformStuffService,
-        IAutoSaveService autoSaveService)
+        IAutoSaveService autoSaveService,
+        IExportService exportService)
     {
         Messenger = messenger;
         FileService = fileService;
@@ -49,6 +52,7 @@ public class ProjectService : IProjectService, ISessionProjectLoader
         OperationService = operationService;
         PlatformStuffService = platformStuffService;
         AutoSaveService = autoSaveService;
+        ExportService = exportService;
 
         Messenger.Register<OperationInvokedMessage>(this, msg =>
         {
@@ -161,10 +165,30 @@ public class ProjectService : IProjectService, ISessionProjectLoader
             return;
         }
 
-        // we are editing existing pix2d project
-        if (ProjectState.File is { Extension: ".pix2d" })
+        // we are editing existing pix2d project (case-insensitive extension, matching the PNG path below)
+        if (ProjectState.File is { } projectFile
+            && string.Equals(projectFile.Extension, ".pix2d", StringComparison.OrdinalIgnoreCase))
         {
-            await SaveCurrentProjectToFileAsync(ProjectState.File);
+            await SaveCurrentProjectToFileAsync(projectFile);
+            return;
+        }
+
+        // Project opened from a flat PNG that is still a single sprite / single layer / single frame:
+        // overwrite the original image in place instead of prompting a ".pix2d" Save As (#200). Once the
+        // user adds a layer or a frame (or another artboard) the shape no longer maps to a flat PNG, so we
+        // fall through to the project save below.
+        if (ProjectState.File is { } pngFile
+            && string.Equals(pngFile.Extension, ".png", StringComparison.OrdinalIgnoreCase)
+            && ProjectState.SceneNode?.Nodes.OfType<Pix2dSprite>().ToArray() is { Length: 1 } sprites
+            && sprites[0].Layers.Count() == 1
+            && sprites[0].GetFramesCount() == 1)
+        {
+            using (new UiBlocker("Saving image..."))
+                await ExportService.ExportNodesToFileAsync(pngFile, sprites, 1);
+
+            HasUnsavedChanges = false;
+            FileService.AddToMru(pngFile);
+            OnProjectSaved();
             return;
         }
 

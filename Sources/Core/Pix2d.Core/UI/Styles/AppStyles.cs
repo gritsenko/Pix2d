@@ -112,6 +112,22 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .CornerRadius(new CornerRadius(StaticResources.Measures.PanelCornerRadius))
                     .ClipToBounds(true),
 
+                // Notification banner cards (crash-recovery, rate prompt). GLOBAL (not view-local) so the
+                // responsive rules also reach the content of nested views like RatePromptView. Wide
+                // default: panel chrome + a centred, content-sized card whose message and actions sit on
+                // one row. The Narrow overrides below stretch the card (so text wraps to the viewport) and
+                // stack the content vertically (so the actions drop onto a new line). Orientation /
+                // HorizontalAlignment must be set ONLY here — a local value would beat the Narrow style.
+                new Style<Border>(s => s.Class("notify-card"))
+                    .Background(StaticResources.Brushes.PanelsBackgroundBrush)
+                    .BorderBrush(StaticResources.Brushes.PanelsBorderBrush)
+                    .BorderThickness(1)
+                    .CornerRadius(new CornerRadius(StaticResources.Measures.PanelCornerRadius))
+                    .ClipToBounds(true)
+                    .HorizontalAlignment(HorizontalAlignment.Center),
+                new Style<StackPanel>(s => s.Class("notify-content"))
+                    .Orientation(Orientation.Horizontal),
+
                 new Style<TextBlock>(s => s.Class("FontIcon"))
                     .FontFamily(StaticResources.Fonts.IconFontSegoe)
                     .FontSize(10d)
@@ -146,6 +162,13 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
                 new Style<ToggleButton>(_ => VisualStates.Narrow().OfType<ToggleButton>())
                     .CornerRadius(StaticResources.Measures.CompactButtonCornerRadius),
+
+                // Narrow overrides for the notification cards (see the wide defaults above): fill the
+                // viewport width and stack the content so the action buttons wrap onto their own line.
+                new Style<Border>(_ => VisualStates.Narrow().OfType<Border>().Class("notify-card"))
+                    .HorizontalAlignment(HorizontalAlignment.Stretch),
+                new Style<StackPanel>(_ => VisualStates.Narrow().OfType<StackPanel>().Class("notify-content"))
+                    .Orientation(Orientation.Vertical),
             ]
         );
 

@@ -78,6 +78,7 @@ public partial class MainView : ViewBase<MainViewModel>
 
         new StyleGroup(_ => VisualStates.Narrow())
         {
+
             new Style<LayersView>()
                 .Margin(0, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin, StaticResources.Measures.PanelMargin + 56 + 24 + 56)
                 .VerticalAlignment(VerticalAlignment.Bottom)
@@ -163,7 +164,13 @@ public partial class MainView : ViewBase<MainViewModel>
 
                             ViewFactory.Create<ZoomPanelView>(),
 
-                            new Grid().Col(0).ColSpan(3).Row(1).Rows("auto,auto")
+                            // Full-width top strip: action / tool bars (Row 0-1) with the notification
+                            // zone directly under them (Row 2). The ActionsBar and TopToolUiContainer are
+                            // horizontal scroll hosts whose width is clamped to the window
+                            // (ClampMaxWidthToViewport) so they scroll instead of overflowing on a narrow
+                            // screen — the grid column can't bound them because the bottom side-panels
+                            // contaminate the Auto columns' width.
+                            new Grid().Col(0).ColSpan(3).Row(1).Rows("auto,auto,auto")
                                 .Margin(StaticResources.Measures.PanelMargin)
                                 .Children(
                                     ViewFactory.Create<ActionsBarView>()
@@ -178,8 +185,40 @@ public partial class MainView : ViewBase<MainViewModel>
 
                                     ViewFactory.Create<TopToolUiContainer>().Row(1)
                                         .HorizontalAlignment(HorizontalAlignment.Center)
-                                        .VerticalAlignment(VerticalAlignment.Top)
-                                ),
+                                        .VerticalAlignment(VerticalAlignment.Top),
+
+                                    // Notification cards (crash-recovery / rate prompt), directly under the
+                                    // bars. Each is a responsive card (notify-card / notify-content styles):
+                                    // centred + one-row on desktop, stretched + actions-on-a-new-line on a
+                                    // narrow screen. Width is clamped to the window so the card wraps its
+                                    // text instead of forcing the grid wider than the viewport. Both are
+                                    // IsVisible-gated and mutually exclusive in practice, so they share Row 2.
+                                    new Panel().Row(2)
+                                        .Margin(0, StaticResources.Measures.PanelMargin, 0, 0)
+                                        .Children(
+                                            new Border().Name("RecoveryNotice").Classes("notify-card")
+                                                .IsVisible(vm, x => x.ShowRecoveryNotice)
+                                                .ClampMaxWidthToViewport(StaticResources.Measures.PanelMargin * 2)
+                                                .Padding(16, 10)
+                                                .Child(new StackPanel().Classes("notify-content").Spacing(8)
+                                                    .Children(
+                                                        new TextBlock().Classes("body14")
+                                                            .MaxWidth(320)
+                                                            .VerticalAlignment(VerticalAlignment.Center)
+                                                            .TextWrapping(TextWrapping.Wrap)
+                                                            .Text(L("Recovered your unsaved work after an unexpected close.")),
+                                                        new Button().Classes("btn")
+                                                            .VerticalAlignment(VerticalAlignment.Center)
+                                                            .HorizontalAlignment(HorizontalAlignment.Right)
+                                                            .Content(L("Dismiss"))
+                                                            .OnClick(_ => vm.DismissRecoveryNotice()))),
+
+                                            new Border().Classes("notify-card")
+                                                .IsVisible(vm, x => x.ShowRatePrompt)
+                                                .ClampMaxWidthToViewport(StaticResources.Measures.PanelMargin * 2)
+                                                .Padding(16, 10)
+                                                .Child(ViewFactory.Create<RatePromptView>())
+                                )),
 
                             ViewFactory.Create<TimeLineView>()
                                 .With(v => v.Transitions = new Transitions
@@ -283,35 +322,6 @@ public partial class MainView : ViewBase<MainViewModel>
                                         .Text(L("Working..."))
                                         .VerticalAlignment(VerticalAlignment.Center)
                                         .HorizontalAlignment(HorizontalAlignment.Center)
-                                ),
-
-                            // Non-blocking crash-recovery banner. A full-span, click-through host (no
-                            // Background) with a centred panel child — the same overlay shape as
-                            // LoadingOverlay above, which is why it lays out reliably (a separate ViewBase
-                            // host did not, and VerticalAlignment.Bottom does not render in this overlay —
-                            // Center does). Shown only after an unclean shutdown; see AutoSaveService.
-                            new Border().Name("RecoveryNotice")
-                                .Col(0).ColSpan(3)
-                                .Row(0).RowSpan(4)
-                                .IsVisible(vm, x => x.ShowRecoveryNotice)
-                                .Child(
-                                    new Border().Classes("Panel")
-                                        .HorizontalAlignment(HorizontalAlignment.Center)
-                                        .VerticalAlignment(VerticalAlignment.Center)
-                                        .Padding(16, 10)
-                                        .Child(new StackPanel()
-                                            .Orientation(Orientation.Horizontal)
-                                            .Children(
-                                                new TextBlock()
-                                                    .Classes("body14")
-                                                    .VerticalAlignment(VerticalAlignment.Center)
-                                                    .Text(L("Recovered your unsaved work after an unexpected close.")),
-                                                new Button()
-                                                    .Classes("btn")
-                                                    .Margin(12, 0, 0, 0)
-                                                    .VerticalAlignment(VerticalAlignment.Center)
-                                                    .Content(L("Dismiss"))
-                                                    .OnClick(_ => vm.DismissRecoveryNotice())))
                                 )
                         ])
                 ),

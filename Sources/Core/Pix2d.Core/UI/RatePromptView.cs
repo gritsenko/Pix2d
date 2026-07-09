@@ -5,37 +5,46 @@ using Pix2d.UI.Resources;
 
 namespace Pix2d.UI;
 
-public partial class RatePromptView(IReviewService? reviewService, ICommandService commandService)
+// IReviewService is only registered on heads that support store review (e.g. Android); the default
+// null lets ActivatorUtilities build this view on desktop/web too (where ShowRatePrompt simply stays
+// false and the banner never appears) instead of throwing "unable to resolve IReviewService".
+public partial class RatePromptView(IReviewService? reviewService = null, ICommandService commandService = null!)
     : ViewBase<RatePromptView.State>(new State(reviewService, commandService))
 {
+    // Content row: message + action buttons. Horizontal by default; the MainView "notify-content"
+    // Narrow style flips it to vertical so the buttons wrap onto their own line on a phone-portrait
+    // screen instead of the row overflowing off-screen.
     protected override object Build(State state) =>
+        // NOTE: Orientation is driven by the MainView "notify-content" style (Horizontal wide /
+        // Vertical narrow) — do NOT set it locally here, a local value would beat the Narrow style.
         new StackPanel()
-            .HorizontalAlignment(HorizontalAlignment.Center)
-            .VerticalAlignment(VerticalAlignment.Top)
-            .Margin(new Thickness(0, 4, 0, 0))
-            .Orientation(Orientation.Horizontal)
-            .Background("#994384de".ToColor().ToBrush())
+            .Classes("notify-content")
+            .Spacing(12)
             .Children(
                 new TextBlock()
-                    .MaxWidth(220)
-                    .FontSize(12)
-                    .FontFamily(StaticResources.Fonts.DefaultTextFontFamily)
+                    .Classes("body14")
+                    .MaxWidth(240)
                     .Text(state, x => x.RatePromptMessage)
-                    .Margin(16, 4, 16, 4)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .TextWrapping(TextWrapping.Wrap),
-                new Button()
-                    .FontSize(16)
+                new StackPanel()
+                    .Orientation(Orientation.Horizontal)
+                    .Spacing(8)
                     .VerticalAlignment(VerticalAlignment.Center)
-                    .Command(state.WindowCommands.RateAppCommand)
-                    .Content(state, x => x.RatePromptButtonText)
-                    .Background("#FFDB7B06".ToColor().ToBrush()),
-                new Button()
-                    .FontSize(14)
-                    .VerticalAlignment(VerticalAlignment.Center)
-                    .Margin(new Thickness(4))
-                    .Command(state.WindowCommands.CloseRatePromptCommand)
-                    .Content("Not now")
+                    .HorizontalAlignment(HorizontalAlignment.Right)
+                    .Children(
+                        new Button()
+                            .Classes("btn")
+                            .Command(state.WindowCommands.RateAppCommand)
+                            .Content(state, x => x.RatePromptButtonText)
+                            .Background(StaticResources.Brushes.AccentBrush)
+                            // Accent fill needs crisp, fully-opaque white text — the theme default reads as dull grey.
+                            .Foreground(Avalonia.Media.Brushes.White),
+                        new Button()
+                            .Classes("btn")
+                            .Command(state.WindowCommands.CloseRatePromptCommand)
+                            .Content(L("Not now"))
+                    )
             );
 
     public sealed partial class State : ObservableObject

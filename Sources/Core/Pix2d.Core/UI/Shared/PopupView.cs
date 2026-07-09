@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using Avalonia.Controls.Shapes;
+using Avalonia.Reactive;
 using Avalonia.Threading;
 using Pix2d.Messages;
 using Pix2d.UI.Resources;
@@ -55,6 +56,7 @@ public class PopupView(AppState appState, IMessenger messenger) : ViewBase
                 else
                 {
                     _state.OnClosed(this, ShowPinButton);
+                    StopObservingParentSize();
                 }
             }
         }
@@ -223,6 +225,17 @@ public class PopupView(AppState appState, IMessenger messenger) : ViewBase
     private Action _onShowAction = null!;
     private DateTime _autoCloseTime;
 
+    // Author-set MinWidth floor, captured on first constraint pass so the narrow-screen clamp can be
+    // undone when the viewport grows back. NaN = not captured yet.
+    private double _baseMinWidth = double.NaN;
+    // Live subscription to the positioning parent's size while the popup is open, so an already-open
+    // dialog re-fits when the window is resized or the device is rotated.
+    private IDisposable? _parentBoundsSub;
+    // Set BEFORE subscribing: Avalonia's GetObservable pushes the current value synchronously on
+    // Subscribe, and that first callback runs before _parentBoundsSub is assigned — this flag stops it
+    // from re-entering EnsureParentSizeSubscription and subscribing again (infinite recursion).
+    private bool _parentSizeSubscribed;
+
     private Point GetCurrentPos()
     {
         var x = Canvas.GetLeft(this);
@@ -262,9 +275,37 @@ public class PopupView(AppState appState, IMessenger messenger) : ViewBase
         Dispatcher.UIThread.Post(ApplyPositionForCurrentLayout, DispatcherPriority.Loaded);
     }
 
+    // Re-fit the popup whenever the viewport it sits in changes size (window resize / device rotation)
+    // so the width clamp in UpdateSizeConstraints keeps it inside a now-narrower screen. Bound lazily
+    // from ApplyPositionForCurrentLayout (posted at Loaded priority) rather than the IsOpen setter,
+    // because a dialog shown during startup may not be attached to the visual tree yet when it opens —
+    // at that point GetPositioningParent() is still null and there would be nothing to observe.
+    private void EnsureParentSizeSubscription()
+    {
+        if (_parentSizeSubscribed)
+            return;
+        if (GetPositioningParent() is { } parent)
+        {
+            _parentSizeSubscribed = true;
+            _parentBoundsSub = parent.GetObservable(BoundsProperty)
+                .Subscribe(new AnonymousObserver<Rect>(_ =>
+                {
+                    if (IsOpen) ApplyPositionForCurrentLayout();
+                }));
+        }
+    }
+
+    private void StopObservingParentSize()
+    {
+        _parentBoundsSub?.Dispose();
+        _parentBoundsSub = null;
+        _parentSizeSubscribed = false;
+    }
+
     private void ApplyPositionForCurrentLayout()
     {
         UpdateSizeConstraints();
+        EnsureParentSizeSubscription();
 
         if (!IsOpen || !_state.ShouldCenterOnNarrowScreen(CenterOnNarrowScreen))
             return;
@@ -287,6 +328,23 @@ public class PopupView(AppState appState, IMessenger messenger) : ViewBase
 
         _popupRoot.MaxHeight = availableHeight;
         _contentScrollViewer.MaxHeight = Math.Max(0, availableHeight - headerHeight);
+
+        // Cap the width to the viewport too (not just the height): on a narrow phone-portrait window a
+        // dialog/popup whose content asks for a fixed width wider than the screen would otherwise spill
+        // past the edges (the content scroll viewer disables horizontal scrolling, so it clips instead).
+        if (parent.Bounds.Width > 0)
+        {
+            var availableWidth = Math.Max(44, parent.Bounds.Width - StaticResources.Measures.PanelMargin * 2);
+            _popupRoot.MaxWidth = availableWidth;
+
+            // A fixed MinWidth floor (e.g. the dialog host's 300px minimum) must not out-vote the
+            // viewport on a very narrow phone screen — MinWidth wins over MaxWidth in Avalonia's
+            // measure, so without this the popup would stay its floor width and clip. Clamp it to the
+            // viewport, remembering the author-set floor so it restores when the window grows again.
+            if (double.IsNaN(_baseMinWidth))
+                _baseMinWidth = MinWidth;
+            MinWidth = Math.Min(_baseMinWidth, availableWidth);
+        }
     }
 
     private Visual? GetPositioningParent() => Parent as Visual;

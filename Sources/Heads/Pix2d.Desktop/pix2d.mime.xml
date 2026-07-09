@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-pix2d">
+    <comment>Pix2D project</comment>
+    <glob pattern="*.pix2d"/>
+    <icon name="pix2d"/>
+  </mime-type>
+</mime-info>

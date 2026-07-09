@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Pix2D
+GenericName=Pixel Art Editor
+Comment=Animated sprite and pixel art editor
+Exec=/opt/pix2d/Pix2d %F
+TryExec=/opt/pix2d/Pix2d
+Icon=pix2d
+Terminal=false
+Categories=Graphics;2DGraphics;RasterGraphics;
+MimeType=application/x-pix2d;
+StartupNotify=true
+StartupWMClass=Pix2d
+Keywords=pixel;sprite;animation;art;drawing;editor;

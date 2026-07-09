@@ -49,7 +49,11 @@ public class DialogContainer : ViewBase, IDialogContainer
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Ref(out _contentControl)
                     .Header(string.Empty)
-                    .IsOpen(true)
+                    // Start closed so the FIRST ShowDialog toggles IsOpen false→true and fires the
+                    // popup's OnOpened (which applies the narrow-screen size clamp and binds the resize
+                    // watcher). If it started open, the first dialog shown — e.g. the startup telemetry
+                    // prompt — would skip that path and never fit itself to a narrow window.
+                    .IsOpen(false)
                     .OnCloseButtonClicked(e => OnCloseButtonClicked())
             );
 

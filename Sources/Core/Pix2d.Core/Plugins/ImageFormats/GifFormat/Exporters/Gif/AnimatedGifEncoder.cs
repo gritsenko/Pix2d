@@ -5,8 +5,24 @@ using SkiaSharp;
 
 namespace Pix2d.Common.Gif;
 
+/// <summary>
+/// Animated GIF encoder that builds a single palette shared by every frame.
+///
+/// Pixel-art animations use a small fixed palette, so quantizing each frame
+/// independently (the original NeuQuant-per-frame behaviour, which also emitted
+/// a local color table per frame) made identical colors drift frame-to-frame
+/// and the shades appeared to flicker. Here the palette is computed once over
+/// all frames and written once as the Global Color Table:
+///   * if the whole animation fits in the palette budget, colors are used
+///     verbatim (no quantization at all — exact fidelity, no flicker);
+///   * otherwise NeuQuant runs a single time over the combined frames so every
+///     frame still maps against the same shared palette.
+/// </summary>
 public class AnimatedGifEncoder
 {
+    // A pixel is treated as transparent when its alpha is below this value.
+    private const int AlphaThreshold = 128;
+
     protected int width; // image size
     protected int height;
     protected SKColor transparent = default(SKColor); // transparent color if given
@@ -14,23 +30,24 @@ public class AnimatedGifEncoder
     protected int repeat = -1; // no repeat
     protected int delay = 0; // frame delay (hundredths)
     protected bool started = false; // ready to output frames
-    //	protected BinaryWriter bw;
     protected MemoryStream ms = new();
-//		protected FileStream fs;
 
-    protected SKBitmap image = new(); // current frame
-    protected byte[] pixels = []; // BGR byte array from frame
-    protected byte[] indexedPixels = []; // converted frame indexed to palette
-    protected int colorDepth; // number of bit planes
-    protected byte[] colorTab = []; // RGB palette
-    protected bool[] usedEntry = new bool[256]; // active palette entries
-    protected int palSize = 7; // color table size (bits-1)
+    protected byte[] indexedPixels = []; // current frame indexed to palette
+    protected int colorDepth = 8; // number of bit planes
+    protected byte[] colorTab = []; // RGB palette (global color table)
+    protected int palSize = 7; // color table size (bits-1) -> 256 entries
     protected int dispose = -1; // disposal code (-1 = use default)
     protected bool closeStream = false; // close stream when finished
-    protected bool firstFrame = true;
     protected bool sizeSet = false; // if false, get size from first frame
     protected int sample = 10; // default sample interval for quantizer
-    private List<SKBitmap> _frames = new();
+    private readonly List<SKBitmap> _frames = new();
+
+    // Shared-palette state, computed once in BuildGlobalPalette.
+    private bool _hasTransparency;
+    private bool _exactPalette;
+    private Dictionary<int, byte>? _exactMap; // packed RGB -> palette index
+    private NeuQuant? _quantizer;
+    private int _firstColorSlot; // 1 when a transparent slot is reserved, else 0
 
     public AnimatedGifEncoder(int frameDelay, int scale)
     {
@@ -38,60 +55,43 @@ public class AnimatedGifEncoder
         SetRepeat(0);
     }
 
-    /**
-     * Sets the delay time between each frame, or changes it
-     * for subsequent frames (applies to last frame added).
-     *
-     * @param ms int delay time in milliseconds
-     */
-    public void SetDelay(int ms) 
+    /// <summary>
+    /// Sets the delay time between each frame in milliseconds.
+    /// </summary>
+    public void SetDelay(int msDelay)
     {
-        delay = ( int ) Math.Round(ms / 10.0f);
+        delay = (int)Math.Round(msDelay / 10.0f);
     }
-	
-    /**
-     * Sets the GIF frame disposal code for the last added frame
-     * and any subsequent frames.  Default is 0 if no transparent
-     * color has been set, otherwise 2.
-     * @param code int disposal code.
-     */
-    public void SetDispose(int code) 
+
+    /// <summary>
+    /// Sets the GIF frame disposal code. Default depends on whether the
+    /// animation has transparency.
+    /// </summary>
+    public void SetDispose(int code)
     {
-        if (code >= 0) 
+        if (code >= 0)
         {
             dispose = code;
         }
     }
-	
-    /**
-     * Sets the number of times the set of GIF frames
-     * should be played.  Default is 1; 0 means play
-     * indefinitely.  Must be invoked before the first
-     * image is added.
-     *
-     * @param iter int number of iterations.
-     * @return
-     */
-    public void SetRepeat(int iter) 
+
+    /// <summary>
+    /// Sets the number of times the set of GIF frames should be played.
+    /// Default is 1; 0 means play indefinitely.
+    /// </summary>
+    public void SetRepeat(int iter)
     {
-        if (iter >= 0) 
+        if (iter >= 0)
         {
             repeat = iter;
         }
     }
-	
-    /**
-     * Sets the transparent color for the last added frame
-     * and any subsequent frames.
-     * Since all colors are subject to modification
-     * in the quantization process, the color in the final
-     * palette for each frame closest to the given color
-     * becomes the transparent color for that frame.
-     * May be set to null to indicate no transparent color.
-     *
-     * @param c Color to be treated as transparent on display.
-     */
-    public void SetTransparent(SKColor c) 
+
+    /// <summary>
+    /// Sets a transparent color hint. Kept for API compatibility; transparency
+    /// is now derived per-pixel from the frames' alpha channel.
+    /// </summary>
+    public void SetTransparent(SKColor c)
     {
         transparent = c;
     }
@@ -101,378 +101,325 @@ public class AnimatedGifEncoder
         _frames.Add(im);
     }
 
-    /**
-     * Adds next GIF frame.  The frame is not written immediately, but is
-     * actually deferred until the next frame is received so that timing
-     * data can be inserted.  Invoking <code>finish()</code> flushes all
-     * frames.  If <code>setSize</code> was not invoked, the size of the
-     * first image is used for all subsequent frames.
-     *
-     * @param im BufferedImage containing frame to write.
-     * @return true if successful.
-     */
-    private bool AddFrameCore(SKBitmap im) 
-    {
-        if ((im == null) || !started) 
-        {
-            return false;
-        }
-        bool ok = true;
-        try 
-        {
-            if (!sizeSet) 
-            {
-                // use first frame's size
-                SetSize((int) im.Width, (int) im.Height);
-            }
-            image = im;
-            AnalyzePixels(); // build color table & map pixels
-            if (firstFrame) 
-            {
-                WriteLSD(); // logical screen descriptior
-                WritePalette(); // global color table
-                if (repeat >= 0) 
-                {
-                    // use NS app extension to indicate reps
-                    WriteNetscapeExt();
-                }
-            }
-            WriteGraphicCtrlExt(); // write graphic control extension
-            WriteImageDesc(); // image descriptor
-            if (!firstFrame) 
-            {
-                WritePalette(); // local color table
-            }
-            WritePixels(); // encode and write pixel data
-            firstFrame = false;
-        } 
-        catch (IOException) 
-        {
-            ok = false;
-        }
-
-        return ok;
-    }
-	
-    /**
-     * Flushes any pending data and closes output file.
-     * If writing to an OutputStream, the stream is not
-     * closed.
-     */
-    public bool Finish() 
+    /// <summary>
+    /// Flushes any pending data and writes the GIF trailer.
+    /// </summary>
+    public bool Finish()
     {
         if (!started) return false;
         bool ok = true;
         started = false;
-        try 
+        try
         {
-            ms.WriteByte( 0x3b ); // gif trailer
+            ms.WriteByte(0x3b); // gif trailer
             ms.Flush();
-            if (closeStream) 
-            {
-//					ms.Close();
-            }
-        } 
-        catch (IOException) 
+        }
+        catch (IOException)
         {
             ok = false;
         }
 
         // reset for subsequent use
         transIndex = 0;
-//			fs = null;
-        image = new SKBitmap();
-        pixels = [];
         indexedPixels = [];
         colorTab = [];
         closeStream = false;
-        firstFrame = true;
 
         return ok;
     }
-	
-    /**
-     * Sets frame rate in frames per second.  Equivalent to
-     * <code>setDelay(1000/fps)</code>.
-     *
-     * @param fps float frame rate (frames per second)
-     */
-    public void SetFrameRate(float fps) 
+
+    /// <summary>
+    /// Sets frame rate in frames per second.
+    /// </summary>
+    public void SetFrameRate(float fps)
     {
-        if (fps != 0f) 
+        if (fps != 0f)
         {
-            delay = ( int ) Math.Round(100f / fps);
+            delay = (int)Math.Round(100f / fps);
         }
     }
-	
-    /**
-     * Sets quality of color quantization (conversion of images
-     * to the maximum 256 colors allowed by the GIF specification).
-     * Lower values (minimum = 1) produce better colors, but slow
-     * processing significantly.  10 is the default, and produces
-     * good color mapping at reasonable speeds.  Values greater
-     * than 20 do not yield significant improvements in speed.
-     *
-     * @param quality int greater than 0.
-     * @return
-     */
-    public void SetQuality(int quality) 
+
+    /// <summary>
+    /// Sets quality of color quantization used only when the animation exceeds
+    /// the palette budget. Lower values (minimum = 1) produce better colors but
+    /// are slower. 10 is the default.
+    /// </summary>
+    public void SetQuality(int quality)
     {
         if (quality < 1) quality = 1;
         sample = quality;
     }
-	
-    /**
-     * Sets the GIF frame size.  The default size is the
-     * size of the first frame added if this method is
-     * not invoked.
-     *
-     * @param w int frame width.
-     * @param h int frame width.
-     */
-    public void SetSize(int w, int h) 
+
+    /// <summary>
+    /// Sets the GIF frame size. Defaults to the size of the first frame added.
+    /// </summary>
+    public void SetSize(int w, int h)
     {
-        if (started && !firstFrame) return;
         width = w;
         height = h;
         if (width < 1) width = 320;
         if (height < 1) height = 240;
         sizeSet = true;
     }
-	
-    /**
-     * Initiates GIF file creation on the given stream.  The stream
-     * is not closed automatically.
-     *
-     * @param os OutputStream on which GIF images are written.
-     * @return false if initial write failed.
-     */
 
-    public bool Start( MemoryStream os) 
+    /// <summary>
+    /// Initiates GIF file creation on the given stream. The stream is not
+    /// closed automatically.
+    /// </summary>
+    public bool Start(MemoryStream os)
     {
         if (os == null) return false;
         bool ok = true;
         closeStream = false;
         ms = os;
-        try 
+        try
         {
             WriteString("GIF89a"); // header
-        } 
-        catch (IOException) 
+        }
+        catch (IOException)
         {
             ok = false;
         }
         return started = ok;
     }
 
-    /**
-     * Initiates writing of a GIF file to a memory stream.
-     *
-     * @return false if open or initial write failed.
-     */
-    public bool Start() 
+    /// <summary>
+    /// Initiates writing of a GIF file to a memory stream.
+    /// </summary>
+    public bool Start()
     {
-        bool ok = true;
-        try 
+        bool ok;
+        try
         {
-            ok = Start(new MemoryStream(10*1024));
+            ok = Start(new MemoryStream(10 * 1024));
             closeStream = true;
-        } 
-        catch (IOException) 
+        }
+        catch (IOException)
         {
             ok = false;
         }
         return started = ok;
     }
 
-    /**
-     * Initiates writing of a GIF file with the specified name.
-     *
-     * @return false if open or initial write failed.
-     */
-    //public bool Output(string file) 
-    //{
-    //	try 
-    //	{
-    //		FileStream fs = new FileStream( file, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None );
-    //		fs.Write(ms.ToArray(),0,(int) ms.Length);
-    //		fs.Close();
-    //	}
-    //	catch (IOException e) 
-    //	{
-    //		return false;
-    //	}
-    //	return true;
-    //}
-				
     public MemoryStream Output()
     {
         return ms;
     }
 
-    /**
-     * Analyzes image colors and creates color map.
-     */
-    protected void AnalyzePixels() 
+    public void Encode()
     {
-        var cols = GetImagePixels(); // convert to correct format if necessary
-
-        int len = pixels.Length;
-        int nPix = len / 3;
-        indexedPixels = new byte[nPix];
-        NeuQuant nq = new NeuQuant(pixels, len, sample);
-        // initialize quantizer
-        colorTab = nq.Process(1); // create reduced palette
-        // map image pixels to new palette
-        int k = 0;
-        for (int i = 0; i < nPix; i++) 
+        if (_frames.Count == 0)
         {
-            int index =
-                nq.Map(pixels[k++] & 0xff,
-                    pixels[k++] & 0xff,
-                    pixels[k++] & 0xff);
-            usedEntry[index] = true;
-            indexedPixels[i] = (byte) (index + 1);
+            Start(new MemoryStream());
+            Finish();
+            return;
+        }
 
-            if (cols[i].Alpha < 127)
+        Start(new MemoryStream());
+
+        if (!sizeSet)
+        {
+            SetSize(_frames[0].Width, _frames[0].Height);
+        }
+
+        // Read every frame's pixels once; the palette is derived from the
+        // actual (already-scaled) output pixels.
+        var framePixels = new List<SKColor[]>(_frames.Count);
+        foreach (var frame in _frames)
+        {
+            framePixels.Add(frame.Pixels);
+        }
+
+        BuildGlobalPalette(framePixels);
+
+        // Header structures are written exactly once.
+        WriteLSD(); // logical screen descriptor
+        WritePalette(); // global color table (shared by all frames)
+        if (repeat >= 0)
+        {
+            WriteNetscapeExt(); // loop count
+        }
+
+        foreach (var cols in framePixels)
+        {
+            WriteGraphicCtrlExt(); // per-frame delay / disposal
+            WriteImageDesc(); // image descriptor (no local color table)
+            indexedPixels = MapFrame(cols); // map against the shared palette
+            WritePixels(); // encode and write pixel data
+        }
+
+        Finish();
+    }
+
+    public Stream GetResultStream()
+    {
+        ms.Seek(0, SeekOrigin.Begin);
+        return ms;
+    }
+
+    /// <summary>
+    /// Builds a single palette shared by every frame. When the whole animation
+    /// fits the palette budget the colors are used verbatim (no quantization);
+    /// otherwise a single NeuQuant pass over all frames produces a shared
+    /// reduced palette. Either way there is one Global Color Table and no
+    /// per-frame local tables, so colors stay consistent across the animation.
+    /// </summary>
+    private void BuildGlobalPalette(List<SKColor[]> framePixels)
+    {
+        // Scan all frames: detect transparency and collect distinct opaque colors.
+        var distinct = new HashSet<int>();
+        _hasTransparency = false;
+        var tooManyColors = false;
+
+        foreach (var cols in framePixels)
+        {
+            foreach (var c in cols)
             {
-                indexedPixels[i] = 0;
+                if (c.Alpha < AlphaThreshold)
+                {
+                    _hasTransparency = true;
+                    continue; // transparent pixels never occupy a palette slot
+                }
+
+                if (!tooManyColors)
+                {
+                    distinct.Add((c.Red << 16) | (c.Green << 8) | c.Blue);
+                    if (distinct.Count > 256)
+                    {
+                        // Beyond the exact-palette budget; keep scanning only to
+                        // finish transparency detection.
+                        tooManyColors = true;
+                    }
+                }
             }
         }
-        pixels = [];
+
+        // Reserve palette index 0 for transparency only when it's actually used;
+        // otherwise the full 256 slots are available for opaque colors.
+        _firstColorSlot = _hasTransparency ? 1 : 0;
+        transIndex = 0;
         colorDepth = 8;
-        palSize = 7;
-        // get closest match to transparent color if specified
-        //if (transparent != Color.Empty ) 
-        {
-            //transIndex = FindClosest(transparent);
-            transIndex = 0;//nq.Map(transparent.B, transparent.G, transparent.R);
-        }
+        palSize = 7; // 256-entry global color table
 
+        var maxExactColors = 256 - _firstColorSlot;
 
-    }
-	
-    /**
-     * Returns index of palette color closest to c
-     *
-     */
-    protected int FindClosest(SKColor c) 
-    {
-        if (colorTab.Length == 0) return -1;
-        int r = c.Red;
-        int g = c.Green;
-        int b = c.Blue;
-        int minpos = 0;
-        int dmin = 256 * 256 * 256;
-        int len = colorTab.Length;
-        for (int i = 0; i < len;) 
+        if (!tooManyColors && distinct.Count <= maxExactColors)
         {
-            int dr = r - (colorTab[i++] & 0xff);
-            int dg = g - (colorTab[i++] & 0xff);
-            int db = b - (colorTab[i] & 0xff);
-            int d = dr * dr + dg * dg + db * db;
-            int index = i / 3;
-            if (usedEntry[index] && (d < dmin)) 
+            // Exact path: use the animation's own colors, no quantization.
+            _exactPalette = true;
+            _quantizer = null;
+            _exactMap = new Dictionary<int, byte>(distinct.Count);
+            colorTab = new byte[3 * 256];
+
+            var slot = _firstColorSlot;
+            foreach (var key in distinct)
             {
-                dmin = d;
-                minpos = index;
-            }
-            i++;
-        }
-        return minpos;
-    }
-	
-    /**
-     * Extracts image pixels into byte array "pixels"
-     */
-    protected SKColor[] GetImagePixels() 
-    {
-        int w = (int) image.Width;
-        int h = (int) image.Height;
-        //		int type = image.GetType().;
-        //if ((w != width)
-        //	|| (h != height)
-        //	) 
-        //{
-        //	// create new image with right size/format
-        //	Image temp =
-        //		new Bitmap(width, height );
-        //	Graphics g = Graphics.FromImage( temp );
-        //	g.DrawImage(image, 0, 0);
-        //	image = temp;
-        //	g.Dispose();
-        //}
-        /*
-            ToDo:
-            improve performance: use unsafe code
-        */
-        pixels = new Byte [ 3 * w * h ];
-        int count = 0;
-        //Bitmap tempBitmap = new Bitmap( image );
-        var cols = image.Pixels;
-        for (int th = 0; th < h; th++)
-        {
-            for (int tw = 0; tw < w; tw++)
-            {
-                var color = cols[w*th + tw];
-                //Color color = tempBitmap.PickColorByPoint(tw, th);
-                pixels[count] = color.Red;
-                count++;
-                pixels[count] = color.Green;
-                count++;
-                pixels[count] = color.Blue;
-                count++;
+                colorTab[slot * 3] = (byte)((key >> 16) & 0xff);
+                colorTab[slot * 3 + 1] = (byte)((key >> 8) & 0xff);
+                colorTab[slot * 3 + 2] = (byte)(key & 0xff);
+                _exactMap[key] = (byte)slot;
+                slot++;
             }
         }
-        return cols;
-        //		pixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        else
+        {
+            // Quantized fallback: one NeuQuant pass over all frames combined so
+            // every frame maps against the same reduced palette.
+            _exactPalette = false;
+            _exactMap = null;
+
+            long totalPixels = 0;
+            foreach (var cols in framePixels)
+            {
+                totalPixels += cols.Length;
+            }
+
+            var rgb = new byte[totalPixels * 3];
+            var p = 0;
+            foreach (var cols in framePixels)
+            {
+                foreach (var c in cols)
+                {
+                    rgb[p++] = c.Red;
+                    rgb[p++] = c.Green;
+                    rgb[p++] = c.Blue;
+                }
+            }
+
+            _quantizer = new NeuQuant(rgb, rgb.Length, sample);
+            // Process(offset) shifts the reduced colors so the reserved
+            // transparent slot (when present) stays at index 0.
+            colorTab = _quantizer.Process(_firstColorSlot);
+        }
     }
-	
-    /**
-     * Writes Graphic Control Extension
-     */
-    protected void WriteGraphicCtrlExt() 
+
+    /// <summary>
+    /// Maps one frame's pixels to indices in the shared global palette.
+    /// </summary>
+    private byte[] MapFrame(SKColor[] cols)
+    {
+        var idx = new byte[cols.Length];
+        for (var i = 0; i < cols.Length; i++)
+        {
+            var c = cols[i];
+            if (_hasTransparency && c.Alpha < AlphaThreshold)
+            {
+                idx[i] = 0; // transparent index
+                continue;
+            }
+
+            if (_exactPalette)
+            {
+                idx[i] = _exactMap![(c.Red << 16) | (c.Green << 8) | c.Blue];
+            }
+            else
+            {
+                idx[i] = (byte)(_quantizer!.Map(c.Red, c.Green, c.Blue) + _firstColorSlot);
+            }
+        }
+        return idx;
+    }
+
+    /// <summary>
+    /// Writes Graphic Control Extension for the current frame.
+    /// </summary>
+    protected void WriteGraphicCtrlExt()
     {
         ms.WriteByte(0x21); // extension introducer
         ms.WriteByte(0xf9); // GCE label
         ms.WriteByte(4); // data block size
+
         int transp, disp;
-        //if (transparent == Color.Empty ) 
-        //{
-        //	transp = 0;
-        //	disp = 0; // dispose = no action
-        //} 
-        //else 
-        //{
-        //	transp = 1;
-        //	disp = 2; // force clear if using transparent color
-        //}
+        if (_hasTransparency)
+        {
+            transp = 1;
+            disp = 2; // restore to background so transparency shows through
+        }
+        else
+        {
+            transp = 0;
+            disp = 1; // leave frame in place (full-frame opaque renders)
+        }
 
-        transp = 1;
-        disp = 2; // force clear if using transparent color
-
-        if (dispose >= 0) 
+        if (dispose >= 0)
         {
             disp = dispose & 7; // user override
         }
         disp <<= 2;
 
-        // packed fields
-        var byt = Convert.ToByte(0 | // 1:3 reserved
-                                 disp | // 4:6 disposal
-                                 0 | // 7   user input - 0 = none
-                                 transp);
-
-        ms.WriteByte( byt); // 8   transparency flag
+        // packed fields: 1:3 reserved | 4:6 disposal | 7 user input | 8 transparency
+        var byt = (byte)(disp | transp);
+        ms.WriteByte(byt);
 
         WriteShort(delay); // delay x 1/100 sec
-        ms.WriteByte( Convert.ToByte( transIndex)); // transparent color index
+        ms.WriteByte((byte)transIndex); // transparent color index
         ms.WriteByte(0); // block terminator
     }
-	
-    /**
-     * Writes Image Descriptor
-     */
+
+    /// <summary>
+    /// Writes Image Descriptor. All frames reference the global color table, so
+    /// no local color table is ever emitted.
+    /// </summary>
     protected void WriteImageDesc()
     {
         ms.WriteByte(0x2c); // image separator
@@ -480,45 +427,30 @@ public class AnimatedGifEncoder
         WriteShort(0);
         WriteShort(width); // image size
         WriteShort(height);
-        // packed fields
-        if (firstFrame) 
-        {
-            // no LCT  - GCT is used for first (or only) frame
-            ms.WriteByte(0);
-        } 
-        else 
-        {
-            // specify normal LCT
-            ms.WriteByte( Convert.ToByte( 0x80 | // 1 local color table  1=yes
-                                          0 | // 2 interlace - 0=no
-                                          0 | // 3 sorted - 0=no
-                                          0 | // 4-5 reserved
-                                          palSize ) ); // 6-8 size of color table
-        }
+        ms.WriteByte(0); // no local color table -> use the global color table
     }
-	
-    /**
-     * Writes Logical Screen Descriptor
-     */
-    protected void WriteLSD()  
+
+    /// <summary>
+    /// Writes Logical Screen Descriptor.
+    /// </summary>
+    protected void WriteLSD()
     {
         // logical screen size
         WriteShort(width);
         WriteShort(height);
         // packed fields
-        ms.WriteByte( Convert.ToByte (0x80 | // 1   : global color table flag = 1 (gct used)
-                                      0x70 | // 2-4 : color resolution = 7
-                                      0x00 | // 5   : gct sort flag = 0
-                                      palSize) ); // 6-8 : gct size
+        ms.WriteByte(Convert.ToByte(0x80 | // 1   : global color table flag = 1 (gct used)
+                                    0x70 | // 2-4 : color resolution = 7
+                                    0x00 | // 5   : gct sort flag = 0
+                                    palSize)); // 6-8 : gct size
 
         ms.WriteByte(0); // background color index
         ms.WriteByte(0); // pixel aspect ratio - assume 1:1
     }
-	
-    /**
-     * Writes Netscape application extension to define
-     * repeat count.
-     */
+
+    /// <summary>
+    /// Writes Netscape application extension to define repeat count.
+    /// </summary>
     protected void WriteNetscapeExt()
     {
         ms.WriteByte(0x21); // extension introducer
@@ -530,66 +462,48 @@ public class AnimatedGifEncoder
         WriteShort(repeat); // loop count (extra iterations, 0=repeat forever)
         ms.WriteByte(0); // block terminator
     }
-	
-    /**
-     * Writes color table
-     */
+
+    /// <summary>
+    /// Writes the color table, padded to 256 entries.
+    /// </summary>
     protected void WritePalette()
     {
         ms.Write(colorTab, 0, colorTab.Length);
         int n = (3 * 256) - colorTab.Length;
-        for (int i = 0; i < n; i++) 
+        for (int i = 0; i < n; i++)
         {
             ms.WriteByte(0);
         }
     }
-	
-    /**
-     * Encodes and writes pixel data
-     */
+
+    /// <summary>
+    /// Encodes and writes pixel data for the current frame.
+    /// </summary>
     protected void WritePixels()
     {
         LZWEncoder encoder =
             new LZWEncoder(width, height, indexedPixels, colorDepth);
-        encoder.Encode( ms );
+        encoder.Encode(ms);
     }
-	
-    /**
-     *    Write 16-bit value to output stream, LSB first
-     */
+
+    /// <summary>
+    /// Write 16-bit value to output stream, LSB first.
+    /// </summary>
     protected void WriteShort(int value)
     {
-        ms.WriteByte( Convert.ToByte( value & 0xff));
-        ms.WriteByte( Convert.ToByte( (value >> 8) & 0xff ));
+        ms.WriteByte(Convert.ToByte(value & 0xff));
+        ms.WriteByte(Convert.ToByte((value >> 8) & 0xff));
     }
-	
-    /**
-     * Writes string to output stream
-     */
+
+    /// <summary>
+    /// Writes string to output stream.
+    /// </summary>
     protected void WriteString(String s)
     {
         char[] chars = s.ToCharArray();
-        for (int i = 0; i < chars.Length; i++) 
+        for (int i = 0; i < chars.Length; i++)
         {
-            ms.WriteByte((byte) chars[i]);
+            ms.WriteByte((byte)chars[i]);
         }
-    }
-
-    public void Encode()
-    {
-        Start(new MemoryStream());
-            
-        foreach (var frame in _frames)
-        {
-            AddFrameCore(frame);
-        }
-
-        Finish();
-    }
-
-    public Stream GetResultStream()
-    {
-        ms.Seek(0, SeekOrigin.Begin);
-        return ms;
     }
 }

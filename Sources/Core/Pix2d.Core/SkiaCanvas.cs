@@ -32,6 +32,7 @@ public class SkiaCanvas : Control
     private DateTime _initTime;
     private ICustomDrawOperation _drawingOp = null!;
     private Cursor? _cursor;
+    private Cursor? _pickerCursor;
     private bool _isPointerPressed;
     private Point _initialPos;
     private SKPoint _initialPan;
@@ -50,6 +51,8 @@ public class SkiaCanvas : Control
     private bool _isUndoGestureTracking = false;
     private bool _isTouchDrawingSuppressed = false;
     private readonly HashSet<int> _activeTouchPointers = [];
+    // Alt keys currently held down; picker mode (#184) stays on until all are released.
+    private readonly HashSet<Key> _heldAltKeys = [];
     private long _touchSuppressionUntilMs;
 
     // Single-finger-pan mode only: when a one-finger press lands on a different (inactive) artboard we
@@ -80,6 +83,8 @@ public class SkiaCanvas : Control
         _appState.WatchFor(x => x.TwoFingerDoubleTapTimeoutMs, ApplyUndoGestureSettings);
         _appState.WatchFor(x => x.IsStylusModeEnabled, OnTouchInputModeChanged);
         _appState.WatchFor(x => x.IsSingleFingerPanEnabled, OnTouchInputModeChanged);
+        // Switching tools clears the transient Alt color-pick mode so its cursor/highlight can't stick (#184).
+        _appState.ToolsState.WatchFor(x => x.CurrentToolKey, () => SetColorPickerMode(false));
 
         ClipToBounds = true;
         if (Design.IsDesignMode)
@@ -189,6 +194,12 @@ public class SkiaCanvas : Control
             UpdateCursor();
         }
 
+        if (e.Key is Key.LeftAlt or Key.RightAlt)
+        {
+            _heldAltKeys.Add(e.Key);
+            SetColorPickerMode(IsBrushFamilyToolActive());
+        }
+
         Input.SetKeyPressed(key, ToModifiers(e.KeyModifiers));
     }
 
@@ -200,7 +211,31 @@ public class SkiaCanvas : Control
             Input.PanMode = false;
             UpdateCursor();
         }
+
+        // Only leave color-picker mode once *every* held Alt key is up — releasing one Alt while the other
+        // is still down (or LeftAlt/RightAlt reported separately) must not clear the mode prematurely.
+        if (e.Key is Key.LeftAlt or Key.RightAlt)
+        {
+            _heldAltKeys.Remove(e.Key);
+            if (_heldAltKeys.Count == 0)
+                SetColorPickerMode(false);
+        }
+
         Input.SetKeyReleased(key, ToModifiers(e.KeyModifiers));
+    }
+
+    // Holding Alt over a brush-family tool (Brush/Eraser/pixel Shape) makes it pick a color instead of
+    // draw — see PixelBrushToolBase. Reflect that transient mode so the cursor and the toolbar show it (#184).
+    private bool IsBrushFamilyToolActive()
+        => _appState.ToolsState.CurrentTool?.ToolInstance is PixelBrushToolBase;
+
+    private void SetColorPickerMode(bool active)
+    {
+        if (_appState.ToolsState.IsColorPickerModeActive == active)
+            return;
+
+        _appState.ToolsState.IsColorPickerModeActive = active;
+        UpdateCursor();
     }
 
     private void UpdateCursor()
@@ -209,6 +244,11 @@ public class SkiaCanvas : Control
         {
             _cursor ??= new Cursor(StandardCursorType.Hand);
             Cursor = _cursor;
+        }
+        else if (_appState.ToolsState.IsColorPickerModeActive)
+        {
+            _pickerCursor ??= new Cursor(StandardCursorType.Cross);
+            Cursor = _pickerCursor;
         }
         else
         {

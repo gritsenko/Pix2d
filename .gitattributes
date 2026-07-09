@@ -3,6 +3,10 @@
 ###############################################################################
 * text=auto
 
+# Shell scripts must always check out with LF so they run on Linux/macOS CI
+# runners even when the repo is edited/committed from Windows (core.autocrlf=true).
+*.sh text eol=lf
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #
