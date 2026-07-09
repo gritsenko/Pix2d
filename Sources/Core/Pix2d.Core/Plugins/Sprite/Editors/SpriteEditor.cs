@@ -367,10 +367,15 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         {
             selectionEditor.FlipSelection(mode);
         }
-        else
+        else if (CurrentSprite != null)
         {
             var layerToFlip = layer ?? SelectedLayer ?? throw new InvalidOperationException("No layer selected");
+
+            var operation = new EditFrameOperation(CurrentSprite);
             FlipLayer(layerToFlip, mode);
+            operation.SetFinalData();
+            _operationService.PushOperations(operation);
+
             _drawingService.UpdateDrawingTarget();
         }
 
