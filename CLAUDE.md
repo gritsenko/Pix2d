@@ -44,6 +44,16 @@ There is **no test project** in this solution — `dotnet test` has nothing to r
 
 CI lives in `.github/workflows/release-publish.yml` and `dotnet-desktop-winstore.yml`. Multi-platform releases are triggered via `workflow_dispatch` or tag pushes `v*`.
 
+## Releasing a new version
+
+The release pipeline is [.github/workflows/release-publish.yml](.github/workflows/release-publish.yml). Pushing a `v*` tag builds every platform (Android → Google Play production, Windows portable `.zip`, Linux `.tar.gz` + `.deb`, macOS Intel + ARM `.dmg`, WASM → `app.pix2d.com`) and then the `create_release` job auto-creates the GitHub release. CI derives the build number **from the tag** (`refs/tags/v…`), so the tag — not the props file — is the source of truth for the release version; keep them identical. Steps:
+
+1. **Bump the version.** Edit `Pix2dVersion` in [Sources/Directory.Build.props](Sources/Directory.Build.props) to the new `X.Y.Z`, and bump `Pix2dAndroidVersion` (the Google Play version code must strictly increase, or the Android publish step is rejected). This keeps the in-app version correct even though CI overrides it from the tag.
+2. **Push the changes.** Commit the bump and push to `main` (branch first if you're not meant to push directly): `git commit -am "Release vX.Y.Z" && git push`.
+3. **Push the trigger tag.** Create and push the matching tag to fire the pipeline: `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal the `Pix2dVersion` from step 1 and match `^\d+\.\d+\.\d+$` (CI validates and fails otherwise).
+4. **Wait for the CI build.** Watch the run (`gh run list --workflow "Multi-Platform Release"`, then `gh run watch <id>`, or the Actions tab). All build/deploy jobs must go green before `create_release` runs; a failed platform job blocks the release.
+5. **Add release notes.** CI opens the release `Pix2D vX.Y.Z` with `generate_release_notes: true` plus a placeholder body. Once it exists, write real notes summarizing what changed since the previous release — review the range with `git log v<prev>..vX.Y.Z --oneline` — and update the release: `gh release edit vX.Y.Z --notes-file <notes.md>` (or edit it in the web UI).
+
 ## Architecture
 
 ### Head → Core → Shared layering
