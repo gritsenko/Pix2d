@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Headless scenario / integration test harness (roadmap Track Q). Boots the REAL DI container
+    from Pix2dBootstrapperDI without a window (Avalonia SetupWithoutStarting), then:
+      1. enumerates every registered command (coverage inventory),
+      2. executes a curated safe subset and asserts no exception,
+      3. runs scripted user scenarios (draw a pixel, assert the layer bitmap + undo/redo).
+
+    Intended to be run manually before a release, NOT on every build. Intentionally NOT listed in
+    Sources/Pix2d.slnx so the multi-platform solution build and CI stay unaffected (same policy as
+    Pix2d.FormatTests). Run with a dotnet run against this project directory.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <!-- Win32 platform init (UsePlatformDetect) wants an STA thread. -->
+    <ApplicationManifest />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+    <ProjectReference Include="..\..\Core\Pix2d.Core\Pix2d.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Only needed for AppBuilder.UsePlatformDetect().SetupWithoutStarting(), which brings up the
+         AssetLoader (LocalizationService reads avares://.../strings.json), Dispatcher and FontManager
+         without opening a window. Keep the version in lockstep with the heads (Avalonia 12.0.5). -->
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.5" />
+  </ItemGroup>
+
+</Project>

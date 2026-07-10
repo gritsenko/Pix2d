@@ -367,10 +367,15 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         {
             selectionEditor.FlipSelection(mode);
         }
-        else
+        else if (CurrentSprite != null)
         {
             var layerToFlip = layer ?? SelectedLayer ?? throw new InvalidOperationException("No layer selected");
+
+            var operation = new EditFrameOperation(CurrentSprite);
             FlipLayer(layerToFlip, mode);
+            operation.SetFinalData();
+            _operationService.PushOperations(operation);
+
             _drawingService.UpdateDrawingTarget();
         }
 
@@ -379,20 +384,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     public void FlipLayer(Pix2dSprite.Layer layer, FlipMode mode)
     {
-        if (!(layer.Nodes[CurrentFrameIndex] is BitmapNode sprite))
-            return;
-
-        switch (mode)
-        {
-            case FlipMode.Horizontal:
-                sprite.FlipHorizontal();
-                break;
-            case FlipMode.Vertical:
-                sprite.FlipVertical();
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
-        }
+        layer.FlipSourceBitmap(CurrentFrameIndex, mode);
     }
 
     public void SendLayerBackward(Pix2dSprite.Layer? layer = null)
