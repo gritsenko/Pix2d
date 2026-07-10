@@ -69,7 +69,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
                 AvaloniaFileService>(); // Depends on: IMessenger, IPlatformStuffService, ISettingsService
 
         //core pix2d services
-        services.AddSingleton<IPaletteService, PaletteService>(); // no dependencies
+        services.AddSingleton<IPaletteService, PaletteService>(); // Depends on: ISettingsService, IFileService
         services.AddSingleton<IEffectsService, EffectsService>(); // no dependencies
 
         services.AddSingleton<IImportService, ImportService>(); // Depends on: AppState

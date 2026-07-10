@@ -1,3 +1,5 @@
+using Pix2d.Primitives.Palette;
+
 namespace Pix2d.Services;
 
 public class AppSettings
@@ -6,6 +8,9 @@ public class AppSettings
     public string? Locale { get; set; }
     public bool ShowLayers { get; set; } = true;
     public string? CustomPalette { get; set; }
+
+    /// <summary>User's named-palette library (see <see cref="PaletteData"/>). Persisted by <c>PaletteService</c>.</summary>
+    public List<PaletteData>? SavedPalettes { get; set; }
     public double UiScale { get; set; } = 1.0;
     public int MouseWheelBehavior { get; set; } = 1;
     public bool IsTwoFingerDoubleTapUndoEnabled { get; set; } = true;

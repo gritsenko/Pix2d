@@ -3,14 +3,15 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Common.Extensions;
 using Pix2d.Messages;
 using Pix2d.State;
+using Pix2d.UI.Resources;
 using Pix2d.UI.Shared;
 using SkiaSharp;
 using System.Collections.ObjectModel;
 
 namespace Pix2d.UI;
 
-public partial class ColorPickerView(AppState appState, IMessenger messenger, IPaletteService paletteService, IDrawingService drawingService)
-    : ViewBase<ColorPickerView.State>(new State(appState, messenger, paletteService, drawingService))
+public partial class ColorPickerView(AppState appState, IMessenger messenger, IPaletteService paletteService, IDrawingService drawingService, IDialogService dialogService)
+    : ViewBase<ColorPickerView.State>(new State(appState, messenger, paletteService, drawingService, dialogService))
 {
     protected override object Build(State state)
     {
@@ -110,18 +111,63 @@ public partial class ColorPickerView(AppState appState, IMessenger messenger, IP
                                             )
                                     )
                             )
-                    )
+                    ),
+
+                BuildPaletteMenuButton(state)
             );
     }
+
+    // All palette-library actions live under one compact menu button in the top-right of the
+    // tab strip (Row 2). The flyout opens downward (room below) so nothing clips; the saved-palette
+    // list and delete list are submenus so an arbitrarily long library never overflows the popup.
+    private static Control BuildPaletteMenuButton(State state) =>
+        new Button()
+            .Row(2)
+            .HorizontalAlignment(HorizontalAlignment.Right)
+            .VerticalAlignment(VerticalAlignment.Top)
+            .Margin(0, 14, 12, 0)
+            .Width(30)
+            .Height(30)
+            .Padding(0)
+            .CornerRadius(StaticResources.Measures.SmallButtonCornerRadius)
+            .Background(StaticResources.Brushes.ButtonBackgroundBrush)
+            .Content(new TextBlock()
+                .Text("⋯")
+                .FontSize(18)
+                .HorizontalAlignment(HorizontalAlignment.Center)
+                .VerticalAlignment(VerticalAlignment.Center)
+                .Foreground(StaticResources.Brushes.IconForegroundBrush))
+            .Flyout(
+                new MenuFlyout()
+                    .Placement(PlacementMode.Bottom)
+                    .ItemsSource(new Control[]
+                    {
+                        new MenuItem().Header(L("Load palette"))
+                            .ItemsSource(state.LoadMenuItems),
+                        new MenuItem().Header(L("Save current palette…"))
+                            .OnClick(e => _ = state.SaveCurrentPaletteAsync()),
+                        new MenuItem().Header(L("Delete saved palette"))
+                            .ItemsSource(state.DeleteMenuItems),
+                        new Separator(),
+                        new MenuItem().Header(L("Import from file…"))
+                            .OnClick(e => _ = state.ImportPaletteAsync()),
+                        new MenuItem().Header(L("Export to file…"))
+                            .OnClick(e => _ = state.ExportPaletteAsync()),
+                        new MenuItem().Header(L("Load from Lospec…"))
+                            .OnClick(e => _ = state.LoadFromLospecAsync()),
+                    })
+            );
 
     public sealed partial class State : ObservableObject
     {
         private readonly AppState _appState;
         private readonly IPaletteService _paletteService;
         private readonly IDrawingService _drawingService;
+        private readonly IDialogService _dialogService;
         private SKColor _previousColor;
         private bool _isUpdatingEditors;
         private bool _isSyncingSelectedColor;
+        private string? _currentPaletteName;
 
         [ObservableProperty]
         public partial SKColor SelectedColor { get; set; }
@@ -156,17 +202,24 @@ public partial class ColorPickerView(AppState appState, IMessenger messenger, IP
 
         public ObservableCollection<SKColor> CustomColors { get; } = [];
         public ObservableCollection<SKColor> RecentColors { get; } = [];
+
+        // Saved-palette library rendered as upward-opening menus (kept as menu items so the list
+        // can never be clipped at the bottom of the color-picker popup — see #palette feedback).
+        public ObservableCollection<Control> LoadMenuItems { get; } = [];
+        public ObservableCollection<Control> DeleteMenuItems { get; } = [];
         public bool IsPaletteEditorVisible => !EditorMode;
         public bool IsEyedropperSelected => _appState.ToolsState.CurrentToolKey == "EyedropperTool";
 
-        public State(AppState appState, IMessenger messenger, IPaletteService paletteService, IDrawingService drawingService)
+        public State(AppState appState, IMessenger messenger, IPaletteService paletteService, IDrawingService drawingService, IDialogService dialogService)
         {
             _appState = appState;
             _paletteService = paletteService;
             _drawingService = drawingService;
+            _dialogService = dialogService;
 
             SelectedColor = _appState.SpriteEditorState.CurrentColor;
             LoadColors();
+            RefreshSavedPalettes();
             UpdateEditors();
             _previousColor = SelectedColor;
 
@@ -174,6 +227,7 @@ public partial class ColorPickerView(AppState appState, IMessenger messenger, IP
             _appState.SpriteEditorState.WatchFor(x => x.CurrentColor, OnDrawingStateColorChanged);
             messenger.Register<DrawingServiceOnDrawnMessage>(this, DrawingServiceDrawn);
             _paletteService.PaletteChanged += PaletteService_PaletteChanged;
+            _paletteService.SavedPalettesChanged += (_, _) => RefreshSavedPalettes();
         }
 
         partial void OnSelectedColorChanged(SKColor value)
@@ -249,6 +303,76 @@ public partial class ColorPickerView(AppState appState, IMessenger messenger, IP
             if (colorToRemove != default)
             {
                 _paletteService.RemoveColor(nameof(IPaletteService.CustomPalette), colorToRemove);
+            }
+        }
+
+        private void LoadNamedPalette(string name)
+        {
+            _currentPaletteName = name;
+            _paletteService.LoadSavedPalette(name);
+        }
+
+        public async Task SaveCurrentPaletteAsync()
+        {
+            var name = await _dialogService.ShowInputDialogAsync(
+                L("Palette name"), L("Save palette"), _currentPaletteName ?? L("My palette"));
+            if (string.IsNullOrWhiteSpace(name))
+                return;
+
+            _currentPaletteName = name.Trim();
+            _paletteService.SaveCurrentPaletteAs(_currentPaletteName);
+        }
+
+        public async Task DeleteNamedPaletteAsync(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return;
+
+            var confirmed = await _dialogService.ShowYesNoDialog(
+                string.Format(L("Delete palette \"{0}\"?"), name), L("Delete palette"));
+            if (!confirmed)
+                return;
+
+            if (_currentPaletteName == name)
+                _currentPaletteName = null;
+
+            _paletteService.DeleteSavedPalette(name);
+        }
+
+        public Task ImportPaletteAsync() => _paletteService.ImportPaletteFromFileAsync();
+
+        public Task ExportPaletteAsync() => _paletteService.ExportPaletteToFileAsync(_currentPaletteName ?? "palette");
+
+        public async Task LoadFromLospecAsync()
+        {
+            var slug = await _dialogService.ShowInputDialogAsync(
+                L("Lospec palette name or URL"), L("Load from Lospec"));
+            if (string.IsNullOrWhiteSpace(slug))
+                return;
+
+            var loaded = await _paletteService.ImportPaletteFromLospecAsync(slug.Trim());
+            if (!loaded)
+                _dialogService.Alert(L("Could not load palette from Lospec"), L("Load from Lospec"));
+        }
+
+        private void RefreshSavedPalettes()
+        {
+            LoadMenuItems.Clear();
+            DeleteMenuItems.Clear();
+
+            var names = _paletteService.GetSavedPaletteNames();
+            if (names.Count == 0)
+            {
+                LoadMenuItems.Add(new MenuItem().Header(L("(no saved palettes)")).With(m => m.IsEnabled = false));
+                DeleteMenuItems.Add(new MenuItem().Header(L("(no saved palettes)")).With(m => m.IsEnabled = false));
+                return;
+            }
+
+            foreach (var name in names)
+            {
+                var captured = name;
+                LoadMenuItems.Add(new MenuItem().Header(captured).OnClick(_ => LoadNamedPalette(captured)));
+                DeleteMenuItems.Add(new MenuItem().Header(captured).OnClick(e => _ = DeleteNamedPaletteAsync(captured)));
             }
         }
 
