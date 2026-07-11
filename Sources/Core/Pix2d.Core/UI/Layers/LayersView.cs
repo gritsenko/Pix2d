@@ -168,7 +168,14 @@ public partial class LayersView : ViewBase<LayersView.State>
         private void InvalidateThumbnailItems(IEnumerable<int> affectedLayerIndexes)
         {
             foreach (var index in affectedLayerIndexes)
-                Layers[ReverseIndex(index)]?.Invalidate();
+            {
+                // Affected indexes are captured at operation time and may not line up
+                // with the UI's Layers mirror (e.g. operation targets a different sprite/
+                // frame, or the mirror hasn't reloaded yet), so skip anything out of range.
+                var itemIndex = ReverseIndex(index);
+                if (itemIndex >= 0 && itemIndex < Layers.Count)
+                    Layers[itemIndex]?.Invalidate();
+            }
         }
 
         private void UpdateSelectedLayerIndex()
