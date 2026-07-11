@@ -63,6 +63,10 @@ public class ExportService(
             await exporter.ExportAsync(nodesToRender, scale);
             Messenger.Send<ProjectExportedMessage>(null!);
         }
+        catch (OperationCanceledException)
+        {
+            // User cancelled the operation (e.g. dismissed the save/folder picker), do nothing
+        }
         catch (Exception e)
         {
             dialogService.Alert("There's nothing to Export!", "Export");

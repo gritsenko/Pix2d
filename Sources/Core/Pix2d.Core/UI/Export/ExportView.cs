@@ -255,10 +255,10 @@ public partial class ExportView : ViewBase<ExportView.State>
 
             _configuredExporter = exporterInfo.CreateInstanceFunc();
 
-            if (exporterInfo.ExporterType == typeof(SpritesheetImageExporter))
+            if (exporterInfo.ExporterType == typeof(SpriteSheetExporter))
             {
-                var settingsView = ViewFactory.Create<SpritesheetExportSettingsView>();
-                settingsView.Exporter = (SpritesheetImageExporter)_configuredExporter;
+                var settingsView = ViewFactory.Create<SpriteSheetExportSettingsView>();
+                settingsView.Exporter = (SpriteSheetExporter)_configuredExporter;
                 ExporterSettingsContent = settingsView;
             }
             else if (exporterInfo.ExporterType == typeof(SpritePngSequenceExporter))

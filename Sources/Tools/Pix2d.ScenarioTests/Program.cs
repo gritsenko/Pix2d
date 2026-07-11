@@ -1,6 +1,9 @@
 using Avalonia;
 using Avalonia.Themes.Simple;
+using Newtonsoft.Json.Linq;
 using Pix2d.Abstract;
+using Pix2d.Export.Sheet;
+using Pix2d.Export.Sheet.Metadata;
 using Pix2d.Primitives;
 using Pix2d.ScenarioTests;
 using SkiaSharp;
@@ -52,6 +55,7 @@ static class Runner
         LayerScenario(harness, t);
         FrameScenario(harness, t);
         ExportScenario(harness, t);
+        SpriteSheetExportScenario(harness, t);
         ArtboardScenario(harness, t);
         SafeSweep(harness);
 
@@ -223,6 +227,109 @@ static class Runner
             var c = bmp.GetPixel(5, 5);
             Assert.True(c.Green == 255 && c.Red == 0 && c.Alpha > 0, $"expected lime at (5,5) in PNG, got {c}");
         });
+    }
+
+    // --- Scenario 6b: sprite-sheet v2 build + Aseprite JSON metadata (pure core, no file dialogs) ---
+    static void SpriteSheetExportScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Sprite sheet export v2 scenario ===");
+
+        // Fresh 3-frame sprite: draw a distinct pixel on each frame so no frame is fully empty.
+        h.NewProject(64);
+        h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+        h.SetColor(SKColors.Red);
+        h.DrawPixel(5, 5);
+        h.Exec("Sprite.Animation.AddFrame");
+        h.DrawPixel(10, 10);
+        h.Exec("Sprite.Animation.AddFrame");
+        h.DrawPixel(20, 20);
+
+        var sprite = h.ActiveSprite;
+        var frameCount = sprite.GetFramesCount();
+        var canvasW = (int)sprite.Size.Width;
+        var canvasH = (int)sprite.Size.Height;
+        var expectedDuration = (int)Math.Round(1000f / Math.Max(1f, sprite.FrameRate));
+
+        // --- Grid pack, no trim -------------------------------------------------------------------
+        using var grid = SpriteSheetBuilder.Build(sprite, 1, new SpriteSheetOptions
+        {
+            PackMode = SheetPackMode.Grid,
+            MaxColumns = 4,
+            SpriteName = "test",
+            ImageFileName = "test.png"
+        });
+
+        Console.WriteLine($"  [diag] frames={grid.Frames.Count} sheet={grid.Image.Width}x{grid.Image.Height} " +
+                          $"(canvas {canvasW}x{canvasH}, {frameCount} frames)");
+
+        t.Check("grid sheet packs every frame", () =>
+            Assert.True(grid.Frames.Count == frameCount, $"packed {grid.Frames.Count}, expected {frameCount}"));
+
+        t.Check("grid sheet dimensions match columns x rows", () =>
+        {
+            var cols = Math.Min(4, frameCount);
+            var rows = (int)Math.Ceiling(frameCount / (double)cols);
+            Assert.True(grid.Image.Width == cols * canvasW && grid.Image.Height == rows * canvasH,
+                $"sheet {grid.Image.Width}x{grid.Image.Height}, expected {cols * canvasW}x{rows * canvasH}");
+        });
+
+        t.Check("grid sheet frames are untrimmed, full canvas source size", () =>
+            Assert.True(grid.Frames.All(f => !f.Trimmed
+                                             && f.SourceSize.Width == canvasW && f.SourceSize.Height == canvasH
+                                             && f.Frame.Width == canvasW && f.Frame.Height == canvasH),
+                "expected every frame untrimmed and full-canvas"));
+
+        // --- Aseprite JSON emit + parse -----------------------------------------------------------
+        var json = new AsepriteJsonEmitter().Emit(grid, new SheetMetadataOptions { AppVersion = "9.9.9" });
+        Console.WriteLine("  [diag] json head: " + json.Replace("\r", "").Replace("\n", " ").Substring(0, Math.Min(140, json.Length)));
+
+        t.Check("Aseprite JSON parses and has one frame entry per frame", () =>
+        {
+            var doc = JObject.Parse(json);
+            var frames = (JObject)doc["frames"]!;
+            Assert.True(frames.Count == frameCount, $"json frames {frames.Count}, expected {frameCount}");
+        });
+
+        t.Check("Aseprite JSON meta matches the sheet (image, size, version)", () =>
+        {
+            var meta = JObject.Parse(json)["meta"]!;
+            Assert.True((string?)meta["image"] == "test.png", $"meta.image = {meta["image"]}");
+            Assert.True((int)meta["size"]!["w"]! == grid.Image.Width && (int)meta["size"]!["h"]! == grid.Image.Height,
+                "meta.size mismatch");
+            Assert.True((string?)meta["version"] == "9.9.9", $"meta.version = {meta["version"]}");
+            Assert.True((string?)meta["scale"] == "1", $"meta.scale should be the string \"1\", got {meta["scale"]}");
+        });
+
+        t.Check("Aseprite JSON frames carry duration + source geometry", () =>
+        {
+            var frames = (JObject)JObject.Parse(json)["frames"]!;
+            foreach (var (_, val) in frames)
+            {
+                var f = (JObject)val!;
+                Assert.True((int)f["duration"]! == expectedDuration,
+                    $"duration {f["duration"]}, expected {expectedDuration} (from {sprite.FrameRate} fps)");
+                Assert.True((int)f["sourceSize"]!["w"]! == canvasW && (int)f["sourceSize"]!["h"]! == canvasH,
+                    "sourceSize mismatch");
+                Assert.True(f["frame"] != null && f["spriteSourceSize"] != null, "missing frame/spriteSourceSize");
+            }
+        });
+
+        // --- Tight pack + trim: trimmed frames must be smaller than the full canvas ---------------
+        using var tight = SpriteSheetBuilder.Build(sprite, 1, new SpriteSheetOptions
+        {
+            PackMode = SheetPackMode.Tight,
+            Trim = true,
+            SpriteName = "test",
+            ImageFileName = "test.png"
+        });
+
+        t.Check("trim shrinks frames below the full canvas", () =>
+            Assert.True(tight.Frames.All(f => f.Trimmed && f.SpriteSourceRect.Width < canvasW),
+                "expected every single-pixel frame to trim below the canvas width"));
+
+        t.Check("tight+trim sheet is smaller than the untrimmed grid", () =>
+            Assert.True(tight.Image.Width * tight.Image.Height < grid.Image.Width * grid.Image.Height,
+                $"tight {tight.Image.Width}x{tight.Image.Height} not smaller than grid {grid.Image.Width}x{grid.Image.Height}"));
     }
 
     // --- Scenario 7: artboards (multiple sprites in one scene) --------------------------------------
