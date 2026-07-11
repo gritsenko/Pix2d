@@ -107,6 +107,42 @@ form (frames as an array, each with a `filename`) is available for importers tha
 | `meta.slices` | Pivot and 9-slice data, using Aseprite's slice mechanism: a slice key's `pivot` is the anchor; its `center` rect is the 9-slice inner rect. Empty when neither is set. |
 | `animations` | Optional top-level Pixi/Phaser convenience map (`tag name → frame keys`). Emitted only when the sprite has tags. Aseprite-strict importers ignore it. |
 
+## Headless CLI
+
+The same sheet engine is exposed as a command-line tool, [`Sources/Tools/Pix2d.Cli`](../Sources/Tools/Pix2d.Cli)
+(assembly `pix2d`), for CI pipelines and agents. It references only `Pix2d.Shared` (no Avalonia, no
+display), so it runs on a bare headless runner, and it calls the **same** `SpriteSheetBuilder` +
+metadata emitters as the in-app exporter — CLI and GUI output are identical.
+
+```
+pix2d export <project.pix2d> --spritesheet <out.png> [--data <out.json>] [options]
+pix2d list   <project.pix2d>
+pix2d --version | --help
+```
+
+`export` options: `--data <path>` (write a metadata sidecar), `--format <id>` (default `aseprite`),
+`--sheet-type grid|tight` (default `grid`), `--columns <n>`, `--padding <n>`, `--trim`, `--pot`,
+`--scale <n>`, `--artboard <name|index>` (default: the first artboard).
+
+```bash
+# grid sheet + Aseprite JSON
+pix2d export hero.pix2d --spritesheet hero.png --data hero.json
+
+# tightly-packed, trimmed, power-of-two, 2× scale
+pix2d export hero.pix2d --spritesheet hero.png --sheet-type tight --trim --pot --scale 2
+
+# inspect artboards (pure JSON on stdout — pipeable)
+pix2d list hero.pix2d | jq '.artboards'
+```
+
+`list` prints artboards (index, name, size, layers, frames, fps) as JSON on **stdout**; load-time
+diagnostics go to stderr, so the stdout payload stays machine-readable. Exit codes: `0` ok, `1` runtime
+error, `2` bad arguments / file not found.
+
+The tool is currently built on demand (`dotnet run --project Sources/Tools/Pix2d.Cli -- …`) and is not
+yet in `Pix2d.slnx`; publishing it as a release artifact is a later increment (roadmap **H2.2 PR-5**).
+It is also the foundation for the MCP server (roadmap **E.3**).
+
 ## Not yet populated (animation-metadata model)
 
 `frameTags`, per-frame `duration`, `slices` (pivot / 9-slice) and the `animations` map are already in
@@ -117,10 +153,10 @@ schema change** — a sheet exported today stays forward-compatible.
 
 ## Roadmap
 
-- **Now (this increment):** grid + tight packing, trim, power-of-two, Aseprite-compatible JSON.
+- **Shipped:** grid + tight packing, trim, power-of-two, Aseprite-compatible JSON, and the headless
+  CLI (`pix2d export … / list`).
 - **Next:** animation tags + per-frame durations + pivot/9-slice on the model → populated `frameTags`,
-  real `duration`, `slices`; headless CLI (`pix2d export … --spritesheet out.png --data out.json`);
-  engine presets (Godot `SpriteFrames` `.tres`, Unity meta, libGDX atlas) as sibling emitters over the
-  same packed result.
+  real `duration`, `slices` (which the emitters already anticipate); engine presets (Godot
+  `SpriteFrames` `.tres`, Unity meta, libGDX atlas) as sibling emitters over the same packed result.
 
 See the roadmap ([`docs/ROADMAP.md`](ROADMAP.md), **H2.2**) for the full plan.

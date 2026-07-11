@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Headless Pix2D command-line tool (roadmap H2.2 PR-2). Batch-exports .pix2d projects to sprite
+    sheets + engine metadata for CI pipelines (see the export/list verbs in Program.cs).
+
+    References ONLY Pix2d.Shared (which brings SkiaNodes): no Avalonia, no DI, no display, so it runs
+    on a headless CI runner. It reuses the exact same sheet engine as the in-app exporter
+    (SpriteSheetBuilder + the metadata emitters in Pix2d.Shared/Export/Sheet). Intentionally NOT listed
+    in Sources/Pix2d.slnx (same policy as Pix2d.FormatTests / Pix2d.ScenarioTests) so the multi-platform
+    solution build and CI are unaffected; it is promoted into the release pipeline in a later increment.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>pix2d</AssemblyName>
+    <RootNamespace>Pix2d.Cli</RootNamespace>
+    <!-- So meta.version in exported metadata reports the real product version. -->
+    <Version>$(Pix2dVersion)</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
