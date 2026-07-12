@@ -28,9 +28,19 @@ public partial class SpritePngSequenceExporterSettingsView() : ViewBase<SpritePn
         }
     }
 
+    /// <summary>Raised whenever an option is changed so the host export dialog can refresh preview/output info.</summary>
+    public event Action? SettingsChanged
+    {
+        add => ViewModel!.SettingsChanged += value;
+        remove => ViewModel!.SettingsChanged -= value;
+    }
+
     public sealed partial class State : ObservableObject
     {
         private SpritePngSequenceExporter? _exporter;
+
+        /// <summary>Fired after any option is pushed onto the exporter instance.</summary>
+        public event Action? SettingsChanged;
 
         [ObservableProperty]
         public partial string Title { get; set; } = string.Empty;
@@ -46,6 +56,7 @@ public partial class SpritePngSequenceExporterSettingsView() : ViewBase<SpritePn
             if (_exporter != null)
             {
                 _exporter.FileNamePrefix = value;
+                SettingsChanged?.Invoke();
             }
         }
     }

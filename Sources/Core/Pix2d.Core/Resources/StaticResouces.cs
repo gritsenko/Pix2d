@@ -73,6 +73,42 @@ public static class StaticResources
         public static Brush LinkHighlightBrush { get; } = Colors.MyLinkHighlightColor.ToBrush();
         public static Brush CheckerTilesBrush { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap) { TileMode = TileMode.Tile, Stretch = Stretch.Uniform, Transform = new ScaleTransform(0.2, 0.2) };
         public static Brush CheckerTilesBrushNoScale { get; } = new ImageBrush(StaticResources.CheckerTilesBitmap) { TileMode = TileMode.FlipXY, DestinationRect = new RelativeRect(0, 0, 100, 100, RelativeUnit.Absolute) };
+
+        /// <summary>Seam-free transparency checker (a vector 2×2 tile drawn 1:1 and repeated on integer
+        /// boundaries) — unlike <see cref="CheckerTilesBrush"/> it never shows gaps in wide/short/arbitrary
+        /// boxes. Use for image previews of any aspect ratio.</summary>
+        public static Brush CheckerBrush { get; } = CreateCheckerBrush();
+
+        private static Brush CreateCheckerBrush()
+        {
+            const double cell = 8d;
+            var dark = "#26262A".ToColor();
+            var light = "#33333A".ToColor();
+
+            var drawing = new DrawingGroup();
+            drawing.Children.Add(new GeometryDrawing
+            {
+                Brush = dark.ToBrush(),
+                Geometry = new RectangleGeometry(new Rect(0, 0, cell * 2, cell * 2))
+            });
+
+            var lightSquares = new GeometryGroup();
+            lightSquares.Children.Add(new RectangleGeometry(new Rect(0, 0, cell, cell)));
+            lightSquares.Children.Add(new RectangleGeometry(new Rect(cell, cell, cell, cell)));
+            drawing.Children.Add(new GeometryDrawing
+            {
+                Brush = light.ToBrush(),
+                Geometry = lightSquares
+            });
+
+            return new DrawingBrush
+            {
+                Drawing = drawing,
+                TileMode = TileMode.Tile,
+                Stretch = Stretch.None,
+                DestinationRect = new RelativeRect(0, 0, cell * 2, cell * 2, RelativeUnit.Absolute)
+            };
+        }
         public static Brush ActionsBarBackground { get; set; } = "#444E59".ToColor().ToBrush();
         public static Brush ModalOverlayBrush { get; set; } = Colors.ModalOverlayColor.ToBrush();
         public static Brush SelectedToggleButtonBrush { get; set; } = Colors.BrushButtonColor.ToBrush();

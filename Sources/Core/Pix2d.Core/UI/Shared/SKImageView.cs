@@ -33,15 +33,44 @@ public class SKImageView : ViewBase
         }
     }
 
-    protected override object Build() =>
-        new Border()
-            .Ref(out _border)
-            .Child(
-                new Image()
-                    //.StretchDirection(StretchDirection.DownOnly)
-                    .HorizontalAlignment(HorizontalAlignment.Center)
-                    .VerticalAlignment(VerticalAlignment.Center)
-                    .Ref(out _imageControl));
+    public static readonly DirectProperty<SKImageView, bool> PixelPerfectProperty
+        = AvaloniaProperty.RegisterDirect<SKImageView, bool>(nameof(PixelPerfect), o => o.PixelPerfect, (o, v) => o.PixelPerfect = v);
+
+    private bool _pixelPerfect;
+
+    /// <summary>When true, the bitmap scales with nearest-neighbour (crisp pixels) instead of the framework
+    /// default smoothing — use for pixel-art that may be up-scaled to fit the view. Off leaves thumbnails smooth.</summary>
+    public bool PixelPerfect
+    {
+        get => _pixelPerfect;
+        set
+        {
+            SetAndRaise(PixelPerfectProperty, ref _pixelPerfect, value);
+            ApplyInterpolationMode();
+        }
+    }
+
+    protected override object Build()
+    {
+        _imageControl = new Image()
+            .HorizontalAlignment(HorizontalAlignment.Center)
+            .VerticalAlignment(VerticalAlignment.Center);
+
+        ApplyInterpolationMode();
+
+        _border = new Border().Child(_imageControl);
+        return _border;
+    }
+
+    private void ApplyInterpolationMode()
+    {
+        if (_imageControl == null)
+            return;
+
+        // Only opt in to nearest-neighbour; otherwise leave the framework default so downscaled thumbnails stay smooth.
+        if (_pixelPerfect)
+            RenderOptions.SetBitmapInterpolationMode(_imageControl, BitmapInterpolationMode.None);
+    }
 
     private Image _imageControl = null!;
     private SKBitmapObservable _bitmap = null!;
@@ -89,7 +118,7 @@ public class SKImageView : ViewBase
 
         if (show)
         {
-            _border.Background = StaticResources.Brushes.CheckerTilesBrush;
+            _border.Background = StaticResources.Brushes.CheckerBrush;
         }
         else
         {

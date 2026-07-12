@@ -66,9 +66,19 @@ public partial class SpriteSheetExportSettingsView()
         }
     }
 
+    /// <summary>Raised whenever an option is changed so the host export dialog can refresh preview/output info.</summary>
+    public event Action? SettingsChanged
+    {
+        add => ViewModel!.SettingsChanged += value;
+        remove => ViewModel!.SettingsChanged -= value;
+    }
+
     public sealed partial class State : ObservableObject
     {
         private SpriteSheetExporter? _exporter;
+
+        /// <summary>Fired after any option is pushed onto the exporter instance.</summary>
+        public event Action? SettingsChanged;
 
         // Index 0 = "None (image only)"; the rest come from the emitter registry.
         private readonly List<string> _metadataIds = ["none", .. SheetMetadataEmitters.All.Select(e => e.Id)];
@@ -97,38 +107,51 @@ public partial class SpriteSheetExportSettingsView()
 
         partial void OnPackModeIndexChanged(int value)
         {
-            if (_exporter != null)
-                _exporter.PackMode = value == 1 ? SheetPackMode.Tight : SheetPackMode.Grid;
+            if (_exporter == null)
+                return;
+            _exporter.PackMode = value == 1 ? SheetPackMode.Tight : SheetPackMode.Grid;
+            SettingsChanged?.Invoke();
         }
 
         partial void OnMaxColumnsChanged(decimal value)
         {
-            if (_exporter != null)
-                _exporter.MaxColumns = (int)value;
+            if (_exporter == null)
+                return;
+            _exporter.MaxColumns = (int)value;
+            SettingsChanged?.Invoke();
         }
 
         partial void OnPaddingChanged(decimal value)
         {
-            if (_exporter != null)
-                _exporter.Padding = (int)value;
+            if (_exporter == null)
+                return;
+            _exporter.Padding = (int)value;
+            SettingsChanged?.Invoke();
         }
 
         partial void OnTrimChanged(bool value)
         {
-            if (_exporter != null)
-                _exporter.Trim = value;
+            if (_exporter == null)
+                return;
+            _exporter.Trim = value;
+            SettingsChanged?.Invoke();
         }
 
         partial void OnPowerOfTwoChanged(bool value)
         {
-            if (_exporter != null)
-                _exporter.PowerOfTwo = value;
+            if (_exporter == null)
+                return;
+            _exporter.PowerOfTwo = value;
+            SettingsChanged?.Invoke();
         }
 
         partial void OnMetadataFormatIndexChanged(int value)
         {
             if (_exporter != null && value >= 0 && value < _metadataIds.Count)
+            {
                 _exporter.MetadataFormat = _metadataIds[value];
+                SettingsChanged?.Invoke();
+            }
         }
     }
 }
