@@ -143,6 +143,44 @@ public class CrashReportService : ICrashReportService
 
     public void RecordLastCommand(string commandName) => _lastCommandName = commandName;
 
+    // One event per (exception type + source) per window keeps a repeatedly-failing action (button
+    // mashing, a throwing render loop) from flooding telemetry while still recording the first hit;
+    // Sentry-side occurrence counts come from separate signatures/sessions, not from this app spamming.
+    private static readonly TimeSpan HandledDedupeWindow = TimeSpan.FromSeconds(30);
+    private readonly Dictionary<string, DateTime> _handledSignatures = new();
+
+    public void CaptureHandled(Exception exception, string source)
+    {
+        try
+        {
+            if (TelemetryConsent != TelemetryConsent.Allowed)
+                return;
+
+            if (_serviceProvider.GetService(typeof(ICrashTelemetrySink)) is not ICrashTelemetrySink { IsInitialized: true } sink)
+                return;
+
+            var signature = $"{exception.GetType().FullName}|{source}";
+            var now = DateTime.UtcNow;
+            lock (_handledSignatures)
+            {
+                if (_handledSignatures.TryGetValue(signature, out var last) && now - last < HandledDedupeWindow)
+                    return;
+
+                // The signature space is tiny in practice (distinct failing call sites); reset rather
+                // than grow unbounded if something pathological generates unique sources.
+                if (_handledSignatures.Count > 128)
+                    _handledSignatures.Clear();
+                _handledSignatures[signature] = now;
+            }
+
+            sink.CaptureNonFatal(exception, source, _lastCommandName);
+        }
+        catch
+        {
+            // Telemetry must never throw back into the caller's error handling.
+        }
+    }
+
     public CrashReportSummary? LoadLatestReport()
     {
         try

@@ -14,4 +14,11 @@ public interface ICrashTelemetrySink
     void Initialize();
     void Shutdown();
     void CaptureFatal(CrashReportSummary summary, Exception exception);
+
+    /// <summary>
+    /// Forwards a handled (non-fatal) exception with its origin, e.g. a failing command. Unlike
+    /// <see cref="CaptureFatal"/> this writes no local crash envelope and never surfaces crash UI —
+    /// it exists purely so recoverable errors are still visible remotely with their context attached.
+    /// </summary>
+    void CaptureNonFatal(Exception exception, string source, string? lastCommand);
 }

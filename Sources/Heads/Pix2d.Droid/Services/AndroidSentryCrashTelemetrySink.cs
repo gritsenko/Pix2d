@@ -83,6 +83,7 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
 
             SentrySdk.CaptureException(exception, scope =>
             {
+                scope.Level = SentryLevel.Fatal;
                 scope.SetTag("app_version", summary.AppVersion);
                 scope.SetTag("platform", string.IsNullOrEmpty(summary.Platform) ? "android" : summary.Platform);
                 scope.SetTag("crash_report_id", summary.Id);
@@ -91,6 +92,15 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
                     scope.SetTag("crash_implicit", "true");
                 if (!string.IsNullOrEmpty(summary.LastCommandName))
                     scope.SetTag("last_command", summary.LastCommandName);
+                // Raw managed context survives even when SDK frame extraction yields nothing
+                // (trimmed/AOT builds): the text stack, the full inner-exception chain, and the last
+                // user operations leading up to the crash.
+                if (!string.IsNullOrEmpty(summary.StackTrace))
+                    scope.SetExtra("stack_trace_text", Tail(summary.StackTrace, 8 * 1024));
+                if (!string.IsNullOrEmpty(summary.ExceptionChain))
+                    scope.SetExtra("exception_chain", Tail(summary.ExceptionChain, 4 * 1024));
+                if (!string.IsNullOrEmpty(summary.SessionOperationLog))
+                    scope.SetExtra("session_op_log_tail", Tail(summary.SessionOperationLog, 4 * 1024));
             });
             SentrySdk.Flush(TimeSpan.FromSeconds(2));
         }
@@ -98,6 +108,28 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
         {
         }
     }
+
+    public void CaptureNonFatal(Exception exception, string source, string? lastCommand)
+    {
+        if (!_initialized || !_sentryActive) return;
+        try
+        {
+            SentrySdk.CaptureException(exception, scope =>
+            {
+                scope.Level = SentryLevel.Error;
+                scope.SetTag("handled", "true");
+                scope.SetTag("error_source", source);
+                if (!string.IsNullOrEmpty(lastCommand))
+                    scope.SetTag("last_command", lastCommand);
+            });
+        }
+        catch
+        {
+        }
+    }
+
+    private static string Tail(string text, int maxChars) =>
+        text.Length <= maxChars ? text : text.Substring(text.Length - maxChars);
 
     private static string? ReadDsnFromAssemblyMetadata()
     {

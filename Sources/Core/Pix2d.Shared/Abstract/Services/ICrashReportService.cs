@@ -44,6 +44,13 @@ public interface ICrashReportService
     /// <summary>Captures an unhandled/critical exception and writes a normalized envelope.</summary>
     CrashReportSummary CaptureFatal(Exception exception, string source);
 
+    /// <summary>
+    /// Reports a handled, recoverable exception (e.g. a command that threw) to remote telemetry with
+    /// its source attached. Consent-gated and rate-limited per exception signature; writes no crash
+    /// envelope and shows no crash UI. Callers remain responsible for local logging.
+    /// </summary>
+    void CaptureHandled(Exception exception, string source);
+
     /// <summary>Clears the "pending" flag so the auto dialog won't show on next launch (the report file remains).</summary>
     void DismissPending();
 

@@ -155,6 +155,29 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .Background(StaticResources.Brushes.BrushButtonBrush)
                     .BorderThickness(0),
 
+                // ── Scrollbars ─────────────────────────────────────────────────────────
+                // Slim overlay look: a 2px thumb centred on a fully transparent rail, with the
+                // arrow line-buttons removed. SimpleTheme paints the rail through the template's
+                // root Border (ThemeControlMidBrush) and sizes the thumb from the
+                // ScrollBarThumbThickness resource — so the thumb thickness / gutter width are set
+                // via the resource overrides below, and the rail / page-track / arrow parts are
+                // neutralised here through /template/ selectors. Selecting Border/Thumb inside the
+                // ScrollBar template scope only reaches the rail root and the thumb — the thumb's
+                // own inner Border lives in a nested template scope and is left untouched, so the
+                // thumb keeps its default fill and hover/pressed feedback.
+                new Style<Border>(s => s.OfType<ScrollBar>().Template().OfType<Border>())
+                    .Background(Brushes.Transparent),
+                new Style<RepeatButton>(s => s.OfType<ScrollBar>().Template().OfType<RepeatButton>().Class("repeattrack"))
+                    .Background(Brushes.Transparent),
+                new Style<RepeatButton>(s => s.OfType<ScrollBar>().Template().OfType<RepeatButton>().Name("PART_LineUpButton"))
+                    .IsVisible(false),
+                new Style<RepeatButton>(s => s.OfType<ScrollBar>().Template().OfType<RepeatButton>().Name("PART_LineDownButton"))
+                    .IsVisible(false),
+                new Style<Thumb>(s => s.OfType<ScrollBar>().Class(":vertical").Template().OfType<Thumb>())
+                    .HorizontalAlignment(HorizontalAlignment.Center),
+                new Style<Thumb>(s => s.OfType<ScrollBar>().Class(":horizontal").Template().OfType<Thumb>())
+                    .VerticalAlignment(VerticalAlignment.Center),
+
                 // Compact (Narrow) overrides — declared after the base button styles above so they
                 // win by order within this same style host. Halves the corner radius on app buttons
                 // and toggle buttons everywhere in narrow mode (top bar, additional bar, action bar).
@@ -171,6 +194,11 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .Orientation(Orientation.Vertical),
             ]
         );
+
+        // Slim scrollbars (see the ScrollBar styles above): a 2px thumb on a 6px transparent
+        // gutter. Both keys are scrollbar-specific SimpleTheme resources, safe to override globally.
+        Resources["ScrollBarThickness"] = 6.0;
+        Resources["ScrollBarThumbThickness"] = 2.0;
 
         Resources["ThemeAccentColor"] = StaticResources.Colors.MyAccentColor;
         Resources["ThemeAccentBrush"] = StaticResources.Brushes.AccentBrush;

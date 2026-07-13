@@ -125,7 +125,7 @@ public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportSh
 
     public void ToggleTopmostWindow()
     {
-        throw new NotImplementedException();
+        // No topmost-window concept on Android.
     }
 
     public bool HasKeyboard => true;
@@ -203,7 +203,8 @@ public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportSh
 
     public Task OpenAppDataFolder()
     {
-        throw new NotImplementedException();
+        // The app-data folder is private on Android; crash reports are shared via ShareCrashReportFile instead.
+        return Task.CompletedTask;
     }
 
     // Max amount of OS-provided tombstone / ANR trace we keep — these can be large.

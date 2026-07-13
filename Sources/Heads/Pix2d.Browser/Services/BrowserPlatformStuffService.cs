@@ -51,7 +51,8 @@ public class BrowserPlatformStuffService : IPlatformStuffService
     public string GetAppFolderPath() => "/";
     public Task OpenAppDataFolder()
     {
-        throw new NotImplementedException();
+        // No user-visible file system in the browser sandbox.
+        return Task.CompletedTask;
     }
 
     public BrowserPlatformStuffService(AppState state)

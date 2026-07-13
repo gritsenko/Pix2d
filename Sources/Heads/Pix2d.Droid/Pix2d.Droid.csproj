@@ -15,6 +15,9 @@
 	<PropertyGroup Condition="$(TargetFramework.Contains('-android')) and '$(Configuration)' == 'Release'">
 		<PublishTrimmed>true</PublishTrimmed>
 		<RunAOTCompilation>true</RunAOTCompilation>
+		<!-- Keep real exception messages in release builds: with trimming the default is resource keys
+		     only, which turns crash reports into e.g. "Arg_NotImplementedException" with no detail. -->
+		<UseSystemResourceKeys>false</UseSystemResourceKeys>
 		<AndroidSigningKeyStore>C:\tmp\Pix2d.keystore</AndroidSigningKeyStore>
 		<AndroidSigningKeyAlias>Pix2d</AndroidSigningKeyAlias>
 		<AndroidSigningKeyPass>file:C:\tmp\pass.txt</AndroidSigningKeyPass>

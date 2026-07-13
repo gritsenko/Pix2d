@@ -90,12 +90,37 @@ public class CommandService : ICommandService
              var editContextType = _appState.CurrentProject.CurrentContextType;
              if (FindCommand(e.Key, e.Modifiers, editContextType, out var command) && command != null)
              {
-                 await ExecuteCommandAsync(command.Name);
+                 await ExecuteCommandGuardedAsync(command.Name);
              }
         }
         catch (Exception ex)
         {
             Logger.LogException(ex);
+        }
+    }
+
+    /// <summary>
+    /// Runs a command and owns its failure: logs locally and reports to telemetry with the exact
+    /// command name attached. Every fire-and-forget entry point (shortcuts, ICommand.Execute from UI
+    /// bindings) must go through this — a discarded faulted Task otherwise surfaces only at GC time
+    /// as a context-free UnobservedTaskException.
+    /// </summary>
+    private async Task ExecuteCommandGuardedAsync(string name)
+    {
+        try
+        {
+            await ExecuteCommandAsync(name);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+            try
+            {
+                _serviceProvider?.GetService<ICrashReportService>()?.CaptureHandled(ex, $"Command:{name}");
+            }
+            catch
+            {
+            }
         }
     }
 
@@ -138,7 +163,7 @@ public class CommandService : ICommandService
 
     public void RegisterCommand(Pix2dCommand cmd)
     {
-        cmd.DirectExecuteAction = name => _ = Task.FromResult(ExecuteCommandAsync(name));
+        cmd.DirectExecuteAction = name => _ = ExecuteCommandGuardedAsync(name);
         _commands[cmd.Name] = cmd;
     }
 
