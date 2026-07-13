@@ -66,30 +66,54 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
         throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// Returns this node's bitmap, lazily (re)allocating a blank one sized to <see cref="SKNode.Size"/> when it
+    /// is missing. A frame sprite can legitimately reach the undo/redo diff-apply path with a null bitmap — e.g.
+    /// after a partial session restore, or once its pixels were disposed on unload while the node is still
+    /// referenced by the operation history. Throwing "Bitmap is null" there aborts the undo and leaves the
+    /// operation stack inconsistent (the op is popped but never pushed to redo), so the user just sees a
+    /// repeated error. Rebuilding an empty buffer of the right size lets the diff re-apply and undo keep working;
+    /// we still throw only when the size is genuinely unknown (nothing recoverable). Mirrors the lazy creation
+    /// in <see cref="OnSizeChanged"/>.
+    /// </summary>
+    private SKBitmap EnsureBitmap()
+    {
+        if (_bitmap != null)
+            return _bitmap;
+
+        var w = (int)Size.Width;
+        var h = (int)Size.Height;
+        if (w <= 0 || h <= 0)
+            throw new InvalidOperationException("Bitmap is null");
+
+        Bitmap = new SKBitmap(w, h, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
+        _bitmap!.Erase(SKColor.Empty);
+        return _bitmap!;
+    }
+
     public void SetData(byte[] data)
     {
-        if (Bitmap == null)
-            throw new InvalidOperationException("Bitmap is null");
+        var bitmap = EnsureBitmap();
 
         // Allow empty data - treat as "clear bitmap"
         if (data.Length == 0)
         {
-            Bitmap.Erase(SKColor.Empty);
+            bitmap.Erase(SKColor.Empty);
             InvalidateBitmap();
             return;
         }
 
-        if (data.Length != Bitmap.ByteCount)
+        if (data.Length != bitmap.ByteCount)
         {
             throw new InvalidOperationException(
-                $"Size of input data {data.Length} is not equal to the size of the bitmap {Bitmap.ByteCount}");
+                $"Size of input data {data.Length} is not equal to the size of the bitmap {bitmap.ByteCount}");
         }
 
         unsafe
         {
             fixed (byte* pSource = data)
             {
-                Buffer.MemoryCopy(pSource, Bitmap.GetPixels().ToPointer(), data.Length, data.Length);
+                Buffer.MemoryCopy(pSource, bitmap.GetPixels().ToPointer(), data.Length, data.Length);
             }
         }
         InvalidateBitmap();
@@ -282,9 +306,7 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
 
     public byte[] GetData()
     {
-        if (Bitmap == null)
-            throw new InvalidOperationException("Bitmap is null");
-        return Bitmap.Bytes;
+        return EnsureBitmap().Bytes;
     }
     public void RotateSourceBitmap(bool resize = false)
         => ReplaceBitmap(Bitmap!.Rotate90(), resize);

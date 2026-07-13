@@ -101,6 +101,8 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
                     scope.SetExtra("exception_chain", Tail(summary.ExceptionChain, 4 * 1024));
                 if (!string.IsNullOrEmpty(summary.SessionOperationLog))
                     scope.SetExtra("session_op_log_tail", Tail(summary.SessionOperationLog, 4 * 1024));
+                if (!string.IsNullOrEmpty(summary.AppContext))
+                    scope.SetExtra("app_context", summary.AppContext);
             });
             SentrySdk.Flush(TimeSpan.FromSeconds(2));
         }
@@ -109,7 +111,7 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
         }
     }
 
-    public void CaptureNonFatal(Exception exception, string source, string? lastCommand)
+    public void CaptureNonFatal(CrashReportSummary summary, Exception exception)
     {
         if (!_initialized || !_sentryActive) return;
         try
@@ -118,9 +120,22 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
             {
                 scope.Level = SentryLevel.Error;
                 scope.SetTag("handled", "true");
-                scope.SetTag("error_source", source);
-                if (!string.IsNullOrEmpty(lastCommand))
-                    scope.SetTag("last_command", lastCommand);
+                scope.SetTag("error_source", summary.Source);
+                scope.SetTag("app_version", summary.AppVersion);
+                scope.SetTag("platform", string.IsNullOrEmpty(summary.Platform) ? "android" : summary.Platform);
+                if (!string.IsNullOrEmpty(summary.LastCommandName))
+                    scope.SetTag("last_command", summary.LastCommandName);
+                // Same rich context as CaptureFatal — critical when the exception is frame-less and the
+                // SDK extracts no stack: the text stack (with capture-site fallback), inner-exception
+                // chain, recent operations and the app-state snapshot are the only way to locate it.
+                if (!string.IsNullOrEmpty(summary.StackTrace))
+                    scope.SetExtra("stack_trace_text", Tail(summary.StackTrace, 8 * 1024));
+                if (!string.IsNullOrEmpty(summary.ExceptionChain))
+                    scope.SetExtra("exception_chain", Tail(summary.ExceptionChain, 4 * 1024));
+                if (!string.IsNullOrEmpty(summary.SessionOperationLog))
+                    scope.SetExtra("session_op_log_tail", Tail(summary.SessionOperationLog, 4 * 1024));
+                if (!string.IsNullOrEmpty(summary.AppContext))
+                    scope.SetExtra("app_context", summary.AppContext);
             });
         }
         catch

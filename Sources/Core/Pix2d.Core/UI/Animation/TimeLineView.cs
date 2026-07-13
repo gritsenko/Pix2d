@@ -184,8 +184,13 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
             {
                 foreach (var index in spriteEditorOperation.AffectedFrameIndexes)
                 {
-                    var frame = Frames[index];
-                    frame?.Invalidate();
+                    // AffectedFrameIndexes are captured when the operation runs; by the time an undo/redo
+                    // replays it the active sprite may have fewer frames (frames deleted, or a different
+                    // artboard is now active and drives this Frames list), so the index can be stale.
+                    if (index < 0 || index >= Frames.Count)
+                        continue;
+
+                    Frames[index]?.Invalidate();
                 }
             }
         }

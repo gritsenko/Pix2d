@@ -173,7 +173,12 @@ public class CrashReportService : ICrashReportService
                 _handledSignatures[signature] = now;
             }
 
-            sink.CaptureNonFatal(exception, source, _lastCommandName);
+            // Build the same rich summary as the fatal path so a handled error carries the text stack
+            // (with capture-site fallback), exception chain, session op-log tail and app-state snapshot —
+            // without persisting an envelope or surfacing crash UI. This is what turns a frame-less
+            // handled error (e.g. an AOT-stripped NRE) into something triageable.
+            var summary = BuildSummary(exception, source, isImplicit: false);
+            sink.CaptureNonFatal(summary, exception);
         }
         catch
         {
@@ -453,14 +458,91 @@ public class CrashReportService : ICrashReportService
             IsImplicit = isImplicit,
             ExceptionType = exception.GetType().FullName ?? exception.GetType().Name,
             Message = exception.Message ?? string.Empty,
-            StackTrace = exception.StackTrace ?? string.Empty,
+            StackTrace = BuildStackText(exception),
             ExceptionChain = BuildExceptionChain(exception),
             SessionOperationLog = SafeSessionLog(),
             LogTail = ReadLogTail(),
             StartupDocument = SafeStartupDocument(),
             LastCommandName = _lastCommandName,
+            AppContext = SafeAppContext(),
         };
         return summary;
+    }
+
+    /// <summary>
+    /// Returns the exception's own captured stack, or — when it is empty (frame-less: common on
+    /// trimmed/AOT Android builds, or thrown deep in framework/native code with no managed frames) —
+    /// a marker plus the current <see cref="Environment.StackTrace"/> at the reporting call site. That
+    /// fallback at least records which handler/command surfaced the error and the managed call chain
+    /// leading into the capture, so an otherwise-untriageable event points somewhere.
+    /// </summary>
+    private static string BuildStackText(Exception exception)
+    {
+        var stack = exception.StackTrace;
+        if (!string.IsNullOrWhiteSpace(stack))
+            return stack;
+
+        try
+        {
+            return "(exception carried no stack — capture-site trace below)\n" + Environment.StackTrace;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Compact, always-present snapshot of app state at capture time. Best-effort and fully guarded —
+    /// crash handlers run on arbitrary threads and reading observable state may race, so any failure
+    /// degrades to a partial/empty string rather than throwing back into the crash path.
+    /// </summary>
+    private string SafeAppContext()
+    {
+        try
+        {
+            var sb = new StringBuilder();
+            sb.Append("plat=").Append(SafePlatform());
+
+            try { sb.Append(" tool=").Append(_appState.ToolsState.CurrentToolKey ?? "-"); } catch { }
+
+            try
+            {
+                sb.Append(" tabs=").Append(_appState.LoadedProjects.Count)
+                    .Append('@').Append(_appState.ActiveProjectIndex);
+            }
+            catch { }
+
+            try
+            {
+                var p = _appState.CurrentProject;
+                if (p != null)
+                {
+                    sb.Append(" ctx=").Append(p.CurrentContextType)
+                        .Append(" new=").Append(p.IsNewProject)
+                        .Append(" sel=").Append(p.HasSelection);
+
+                    var edited = p.CurrentEditedNode;
+                    if (edited != null)
+                        sb.Append(" canvas=").Append((int)edited.Size.Width)
+                            .Append('x').Append((int)edited.Size.Height);
+                }
+            }
+            catch { }
+
+            try
+            {
+                sb.Append(" frame=").Append(_appState.SpriteEditorState.CurrentFrameIndex)
+                    .Append('/').Append(_appState.SpriteEditorState.FramesCount);
+            }
+            catch { }
+
+            return sb.ToString();
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 
     private CrashReportSummary BuildImplicitSummary(ProcessExitDetails? exit, string? fatalLog)
@@ -524,6 +606,7 @@ public class CrashReportService : ICrashReportService
             LogTail = ReadLogTail(),
             StartupDocument = SafeStartupDocument(),
             LastCommandName = _lastCommandName,
+            AppContext = SafeAppContext(),
         };
     }
 

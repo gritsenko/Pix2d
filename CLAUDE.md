@@ -54,6 +54,19 @@ The release pipeline is [.github/workflows/release-publish.yml](.github/workflow
 4. **Wait for the CI build.** Watch the run (`gh run list --workflow "Multi-Platform Release"`, then `gh run watch <id>`, or the Actions tab). All build/deploy jobs must go green before `create_release` runs; a failed platform job blocks the release.
 5. **Add release notes.** CI opens the release `Pix2D vX.Y.Z` with `generate_release_notes: true` plus a placeholder body. Once it exists, write real notes summarizing what changed since the previous release — review the range with `git log v<prev>..vX.Y.Z --oneline` — and update the release: `gh release edit vX.Y.Z --notes-file <notes.md>` (or edit it in the web UI).
 
+## Crash & error triage (appstat MCP)
+
+The `appstat` MCP server is the **read/triage side of the app's crash-telemetry pipeline** — the same pipeline the app writes to at runtime. On device, `ICrashReportService` ([ICrashReportService.cs](Sources/Core/Pix2d.Shared/Abstract/Services/ICrashReportService.cs)) captures crashes and, when the user has consented to anonymous reporting, forwards them through `ICrashTelemetrySink` ([ICrashTelemetrySink.cs](Sources/Core/Pix2d.Shared/Abstract/Services/ICrashTelemetrySink.cs)) — implemented per head by [DesktopSentryCrashTelemetrySink.cs](Sources/Heads/Pix2d.Desktop/Services/DesktopSentryCrashTelemetrySink.cs) and [AndroidSentryCrashTelemetrySink.cs](Sources/Heads/Pix2d.Droid/Services/AndroidSentryCrashTelemetrySink.cs) — to Sentry: `CaptureFatal` for unhandled crashes (with app version, platform, `last_command`, text stack, exception chain and session op-log tail attached) and `CaptureNonFatal` for handled errors (e.g. a command that threw, tagged `error_source` + `last_command`). `appstat` reads those aggregated signatures back, so you can see what's breaking in production and fix it without leaving the editor.
+
+Use it whenever you need to know **what's actually crashing/erroring in the wild** — e.g. before/after a release, when the user reports "it crashed", or to sanity-check a fix landed. Signatures reference real source symbols (`BitmapNode.GetData`, `OperationService.Undo`, `EditCommands.Undo`, …), so a `get_issue` stack trace usually points straight at the offending code in this repo.
+
+**Tools** (all take a rolling `days` window, 1–90):
+- `list_diagnostics` — ranked open crash/error **signatures** (each a collapsed group with a stable `key`, `count`, affected `users`, `release`, first/last seen). Filter with `kind: "crash"` (unhandled, app terminated) vs `"error"` (handled), `release` (single app version), `limit`, and `includeResolved`. Default window is 14 days. Start here.
+- `get_issue` — full detail for one `key`, including the **stack trace of the most recent occurrence** plus OS, device and release. This is what you fix from. Default window 90 days; pass `release` to pin a version.
+- `resolve_issue` — mark a `key` resolved (or `resolved: false` to reopen). **Call it only after you've shipped a fix** — a resolved signature auto-reopens if the same signature recurs afterward, so resolving prematurely just hides a live bug.
+
+**Triage loop:** `list_diagnostics` (rank by `count`/`users`) → `get_issue` on the worst `key` (read the stack, locate the code, fix) → ship → `resolve_issue`. The `key` format is `"<kind>|<title>"` (e.g. `"error|Bitmap is null"`) and is what both `get_issue` and `resolve_issue` accept. Weigh `users` alongside `count` — a high count from a single user (`users: 1`) is often one person hitting a loop, not a widespread bug.
+
 ## Architecture
 
 ### Head → Core → Shared layering

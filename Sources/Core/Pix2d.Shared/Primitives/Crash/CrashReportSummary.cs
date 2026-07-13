@@ -15,6 +15,15 @@ public sealed class CrashReportSummary
     public string LogTail { get; set; } = string.Empty;
     public string? StartupDocument { get; set; }
     public string? LastCommandName { get; set; }
+
+    /// <summary>
+    /// Compact one-line snapshot of app state at capture time (active tool, open tabs, canvas size,
+    /// current frame/layer, selection). Cheap to attach and, unlike the stack, always present — the
+    /// single most useful field for triaging a frame-less exception (empty <see cref="StackTrace"/>),
+    /// which is common on trimmed/AOT Android builds.
+    /// </summary>
+    public string? AppContext { get; set; }
+
     public string Source { get; set; } = string.Empty;
     public bool IsImplicit { get; set; }
 
@@ -32,6 +41,8 @@ public sealed class CrashReportSummary
             sb.AppendLine($"Startup document: {StartupDocument}");
         if (!string.IsNullOrEmpty(LastCommandName))
             sb.AppendLine($"Last command: {LastCommandName}");
+        if (!string.IsNullOrEmpty(AppContext))
+            sb.AppendLine($"App context: {AppContext}");
 
         sb.AppendLine();
         sb.AppendLine("=== Exception ===");
