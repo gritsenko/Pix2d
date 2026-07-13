@@ -335,7 +335,13 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
 
     public int GetFramesCount()
     {
-        return Layers.FirstOrDefault()?.FrameCount ?? 0;
+        var firstLayer = Layers.FirstOrDefault();
+        // Legacy .pix2d files store frames as raw child nodes with an empty Frames list; the frame
+        // metadata is rebuilt lazily only on first frame *access* (GetFrameByIndex). Counting never
+        // triggered that, so headless callers (CLI / SpriteSheetBuilder) that count before accessing
+        // saw 0 frames and produced empty sheets. Ensure init here so the count is correct on load.
+        firstLayer?.EnsureFramesInitialized();
+        return firstLayer?.FrameCount ?? 0;
     }
 
     public static Pix2dSprite CreateEmpty(SKSize size)

@@ -217,6 +217,20 @@ static List<string> Validate(SKNode? scene, out string stats)
     if (frames > 0 && bitmaps == 0)
         problems.Add("no frame bitmaps linked (image entries failed to bind)");
 
+    // A sprite whose first layer holds frame nodes must report a non-zero GetFramesCount(). Legacy
+    // files store frames as raw child nodes with an empty Frames metadata list, rebuilt lazily only on
+    // frame *access*; if counting doesn't trigger that init, headless exporters (CLI / SpriteSheetBuilder)
+    // see 0 frames and emit empty sheets. (The count can legitimately EXCEED the node count — modern
+    // files persist empty/linked frames that carry no distinct bitmap node — so this only guards the
+    // zero case, which is the real regression.)
+    foreach (var s in scene.Nodes.OfType<Pix2dSprite>())
+    {
+        var firstLayerFrameNodes = s.Layers.FirstOrDefault()?.Nodes.OfType<SpriteNode>().Count() ?? 0;
+        if (firstLayerFrameNodes > 0 && s.GetFramesCount() == 0)
+            problems.Add($"sprite '{s.Name}': GetFramesCount()==0 but first layer has " +
+                         $"{firstLayerFrameNodes} frame node(s) — legacy frame metadata not initialized on count");
+    }
+
     return problems;
 }
 
