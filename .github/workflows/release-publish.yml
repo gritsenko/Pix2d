@@ -104,10 +104,10 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
 
@@ -214,7 +214,7 @@ jobs:
         }
 
     - name: Upload Android Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: android
         path: ${{ env.OUTPUT_PATH }}/pix2d_v${{ env.VERSION }}.*
@@ -239,10 +239,10 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.include_windows == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
 
@@ -286,7 +286,7 @@ jobs:
         Compress-Archive -Path "$OutputDir/*" -DestinationPath "Pix2d_win-x64-$env:VERSION-portable.zip"
 
     - name: Upload Windows Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: windows-desktop
         path: Pix2d_win-x64-${{ env.VERSION }}-portable.zip
@@ -300,10 +300,10 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.include_linux == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
 
@@ -358,7 +358,7 @@ jobs:
         mv "pix2d_${VERSION}_amd64.deb" artifacts/linux-desktop/
 
     - name: Upload Linux Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: linux-desktop
         path: |
@@ -375,10 +375,10 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.include_wasm_deploy  == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
 
@@ -429,7 +429,7 @@ jobs:
           --property WarningLevel=0
 
     - name: Upload WASM Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: browser-wasm # Name for the WASM artifact
         path: ${{ env.OUTPUT_PATH }}/${{ env.WASM_OUTPUT_DIR_NAME }} # Path to the published WASM directory
@@ -448,7 +448,7 @@ jobs:
 
     steps:
     - name: Download WASM Artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: browser-wasm # Download the artifact that was uploaded in build_wasm
         path: wasm_build # Path where WASM files will be downloaded
@@ -478,7 +478,7 @@ jobs:
         echo "Using version: $clean_version"
 
     - name: Checkout app.pix2d.com repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: gritsenko/app.pix2d.com # Target repository
         token: ${{ secrets.APP_PIX2D_COM_REPO_TOKEN }} # Token for writing
@@ -519,7 +519,7 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event.inputs.trigger_release == 'true' }}
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         path: artifacts
 
@@ -543,7 +543,7 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
 
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: v${{ steps.extract_version.outputs.version }}
         name: Pix2D v${{ steps.extract_version.outputs.version }}
@@ -576,10 +576,10 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.include_macos_intel == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
 
@@ -627,7 +627,7 @@ jobs:
         mv Pix2d_macOS-${{ env.VERSION }}.dmg Pix2d_macOS-x64-${{ env.VERSION }}.dmg
 
     - name: Upload macOS Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: macos-intel
         path: Pix2d_macOS-x64-${{ env.VERSION }}.dmg
@@ -637,10 +637,10 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.include_macos_arm == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
 
@@ -688,7 +688,7 @@ jobs:
         mv Pix2d_macOS-${{ env.VERSION }}.dmg Pix2d_macOS-arm64-${{ env.VERSION }}.dmg
 
     - name: Upload macOS Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: macos-arm
         path: Pix2d_macOS-arm64-${{ env.VERSION }}.dmg
