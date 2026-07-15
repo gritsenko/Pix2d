@@ -237,7 +237,22 @@ public static class SKNodeExtensions
         var w = (int)(bounds.Width * scale);
         var h = (int)(bounds.Height * scale);
 
+        // Guard the allocation with a descriptive, catchable error instead of SkiaSharp's opaque
+        // "Unable to allocate pixels for the bitmap." An oversized export target (huge canvas × scale)
+        // otherwise surfaces as a frame-less fatal that names neither the size nor this call site.
+        if (w <= 0 || h <= 0)
+            throw new InvalidOperationException(
+                $"Cannot render to a {w}×{h} bitmap (empty/non-positive size; bounds {bounds.Width:0.#}×{bounds.Height:0.#}, scale {scale:0.###}).");
+
         var bitmap = new SKBitmap(new SKImageInfo(w, h, SKApp.ColorType, SKAlphaType.Premul));
+        if (bitmap.GetPixels() == IntPtr.Zero)
+        {
+            var mb = (long)w * h * 4 / (1024 * 1024);
+            bitmap.Dispose();
+            throw new InvalidOperationException(
+                $"Out of memory rendering a {w}×{h} bitmap (~{mb} MB) — the image or export scale ({scale:0.###}×) is too large.");
+        }
+
         var vp = new ViewPort(w, h) { Settings = { RenderAdorners = false } };
         vp.ShowArea(bounds);
         var canvas = new SKCanvas(bitmap);

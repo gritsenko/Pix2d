@@ -1,8 +1,10 @@
 ﻿#nullable enable
 using System.Collections.Immutable;
+using System.IO;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
+using Pix2d.Abstract.Services;
 using Pix2d.Messages;
 using Pix2d.Plugins.PngFormat.Exporters;
 using SkiaNodes;
@@ -14,7 +16,8 @@ public class ExportService(
     IMessenger messenger,
     IPlatformStuffService platformStuffService,
     IFileService fileService,
-    IDialogService dialogService) : IExportService
+    IDialogService dialogService,
+    ICrashReportService? crashReportService = null) : IExportService
 {
     private readonly List<ExporterInfo> _exporters = [];
 
@@ -51,8 +54,7 @@ public class ExportService(
         }
         catch (Exception e)
         {
-            dialogService.Alert("There's nothing to Export!", "Export");
-            Logger.Log(e.Message);
+            HandleExportException(e);
         }
     }
 
@@ -69,8 +71,7 @@ public class ExportService(
         }
         catch (Exception e)
         {
-            dialogService.Alert("There's nothing to Export!", "Export");
-            Logger.Log(e.Message);
+            HandleExportException(e);
         }
     }
 
@@ -85,10 +86,45 @@ public class ExportService(
         }
         catch (Exception e)
         {
-            dialogService.Alert("There's nothing to Export!", "Export");
-            Logger.Log(e.Message);
+            HandleExportException(e);
+        }
+    }
+
+    /// <summary>
+    /// Single failure path for all export entry points. Distinguishes an unwritable/locked destination
+    /// (permission denied, file in use, disk full) and an over-large render (SkiaSharp OOM, now surfaced
+    /// as a sized <see cref="InvalidOperationException"/> by <c>RenderToBitmap</c>) from the generic
+    /// empty-scene case, so the user sees an accurate message instead of the misleading "nothing to
+    /// Export!". Every failure is also reported to telemetry with a precise <c>Export</c> source — caught
+    /// here at the throwing call, so the captured exception carries a real stack (not a frame-less fatal
+    /// that reached a global handler unattributed).
+    /// </summary>
+    private void HandleExportException(Exception e)
+    {
+        switch (e)
+        {
+            case UnauthorizedAccessException:
+            case IOException:
+                dialogService.Alert(
+                    "Couldn't save the file — the location isn't writable or the file is in use. Try exporting to a different folder.",
+                    "Export");
+                break;
+            case OutOfMemoryException:
+            // "Out of memory …" is our sized message from RenderToBitmap; "allocate pixels" is
+            // SkiaSharp's raw wording when the SKBitmap/SKCanvas ctor throws before the guard's check.
+            case { } when e.Message.Contains("Out of memory", StringComparison.OrdinalIgnoreCase)
+                          || e.Message.Contains("allocate pixels", StringComparison.OrdinalIgnoreCase):
+                dialogService.Alert(
+                    "Couldn't export — the image or export scale is too large to fit in memory. Try a smaller size or scale.",
+                    "Export");
+                break;
+            default:
+                dialogService.Alert("There's nothing to Export!", "Export");
+                break;
         }
 
+        Logger.Log(e.Message);
+        crashReportService?.CaptureHandled(e, "Export");
     }
 
     public IEnumerable<SKNode> GetNodesToExport(double scale)

@@ -159,6 +159,10 @@ public class CrashReportService : ICrashReportService
             if (_serviceProvider.GetService(typeof(ICrashTelemetrySink)) is not ICrashTelemetrySink { IsInitialized: true } sink)
                 return;
 
+            // Unwrap aggregates and stamp a capture-site stack on frame-less exceptions before both the
+            // signature and the report are derived from it — otherwise a stackless error is untriageable.
+            exception = PrepareForCapture(exception);
+
             var signature = $"{exception.GetType().FullName}|{source}";
             var now = DateTime.UtcNow;
             lock (_handledSignatures)
@@ -234,6 +238,11 @@ public class CrashReportService : ICrashReportService
 
     public CrashReportSummary CaptureFatal(Exception exception, string source)
     {
+        // Unwrap AggregateException wrappers (the TaskScheduler.UnobservedTaskException path hands us
+        // one whose own frames are empty) and stamp a capture-site stack when the exception carries
+        // none, so the local envelope and the forwarded Sentry event both point at real code.
+        exception = PrepareForCapture(exception);
+
         var summary = BuildSummary(exception, source, isImplicit: false);
 
         // Best-effort persist; never throw from the crash path.
@@ -470,6 +479,48 @@ public class CrashReportService : ICrashReportService
     }
 
     /// <summary>
+    /// Normalizes an exception before it is summarized and forwarded to telemetry so the remote event
+    /// carries a locatable managed stack. Two gaps otherwise produce frame-less Sentry events that are
+    /// impossible to pin to code (exactly the "errors without a stack trace" seen in the wild):
+    /// <list type="number">
+    /// <item>An <see cref="AggregateException"/> wrapper — e.g. from
+    /// <c>TaskScheduler.UnobservedTaskException</c> — whose own frames are empty while the real culprit
+    /// sits in <c>InnerException</c>. We flatten a single-inner aggregate to that culprit so its type,
+    /// message and stack become what gets reported.</item>
+    /// <item>An exception that was constructed/surfaced but never actually thrown, so
+    /// <see cref="Exception.StackTrace"/> is <c>null</c> (Sentry extracts frames from the exception
+    /// object, so it shows only the type + message). We re-throw it once here to stamp the current
+    /// capture-site call stack — the handler/command chain that led into the report.</item>
+    /// </list>
+    /// Guarded so an exception that already carries frames is returned untouched (never restamped).
+    /// </summary>
+    private static Exception PrepareForCapture(Exception exception)
+    {
+        var ex = exception;
+
+        if (ex is AggregateException aggregate)
+        {
+            var flattened = aggregate.Flatten();
+            if (flattened.InnerExceptions.Count == 1)
+                ex = flattened.InnerExceptions[0];
+        }
+
+        if (string.IsNullOrEmpty(ex.StackTrace))
+        {
+            try
+            {
+                throw ex;
+            }
+            catch (Exception stamped)
+            {
+                return stamped;
+            }
+        }
+
+        return ex;
+    }
+
+    /// <summary>
     /// Returns the exception's own captured stack, or — when it is empty (frame-less: common on
     /// trimmed/AOT Android builds, or thrown deep in framework/native code with no managed frames) —
     /// a marker plus the current <see cref="Environment.StackTrace"/> at the reporting call site. That
@@ -671,6 +722,24 @@ public class CrashReportService : ICrashReportService
         while (current != null && depth < 8)
         {
             sb.AppendLine($"[{depth}] {current.GetType().FullName}: {current.Message}");
+
+            // TargetSite (the throwing method) and Source (the throwing assembly) are captured on the
+            // exception object at throw time, independently of the StackTrace string — so on a
+            // frame-less event they are often the only pointer at *where* the error came from. Guarded:
+            // resolving TargetSite can itself throw on trimmed/AOT builds.
+            try
+            {
+                var site = current.TargetSite;
+                if (site != null)
+                    sb.AppendLine($"      at {site.DeclaringType?.FullName ?? "?"}.{site.Name}");
+            }
+            catch
+            {
+            }
+
+            if (!string.IsNullOrEmpty(current.Source))
+                sb.AppendLine($"      source: {current.Source}");
+
             current = current.InnerException;
             depth++;
         }
