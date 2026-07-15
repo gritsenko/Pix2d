@@ -29,6 +29,7 @@ public class DesktopPix2dBootstrapperDI : Pix2dBootstrapperDI // Inherits: Pix2d
 
         services.AddSingleton<IPlatformStuffService, PlatformStuffService>(); // Depends on: AppState
         services.AddSingleton<IClipboardService, DesktopClipboardService>(); // Depends on: IDrawingService, IViewPortService, IDialogService, AppState
+        services.AddSingleton<IReviewService, DesktopReviewService>(); // Depends on: ISettingsService, IMessenger, AppState, IPlatformStuffService
 
         // Opt-in critical-crash telemetry sink (Sentry). Registered on every desktop OS; stays a no-op
         // until the user allows anonymous crash reporting and a DSN was baked into the build.

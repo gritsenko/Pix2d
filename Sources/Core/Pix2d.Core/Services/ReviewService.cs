@@ -108,6 +108,9 @@ public abstract class ReviewService : IReviewService, IDisposable
 
     public void DefferNextReviewPrompt()
     {
+        // Reached only from the "Not now" button (CloseRatePromptCommand) — funnel: banner dismissed.
+        LogReview("Dismissed");
+
         SettingsService.TryGet<int>("AppReviewPromptsCount", out var promptsCount);
         var defferDays = 0;
 
@@ -135,7 +138,16 @@ public abstract class ReviewService : IReviewService, IDisposable
         SettingsService.Set("NextPromptTime", nextPromptTime);
     }
 
-    public abstract Task<bool> RateApp();
+    // Template method: the base owns the funnel logging (the user accepted the banner), heads implement
+    // the channel-specific rating in RateAppCore and log their own destination/outcome detail
+    // ("Store dialog" + result, "Opened store page", "Opened review hub", "In-app review requested").
+    public async Task<bool> RateApp()
+    {
+        LogReview("Accepted");
+        return await RateAppCore();
+    }
+
+    protected abstract Task<bool> RateAppCore();
 
     public string GetPromptMessage()
     {
@@ -147,7 +159,7 @@ public abstract class ReviewService : IReviewService, IDisposable
         return RatePromptButtonText;
     }
 
-    public void LogReview(string action, string? context = default)
+    public void LogReview(string action, string? context = default, IReadOnlyDictionary<string, string>? extra = null)
     {
         var promptMessage = RatePromptMessage;
 
@@ -157,23 +169,37 @@ public abstract class ReviewService : IReviewService, IDisposable
         SettingsService.TryGet<int>("AppReviewPromptsCount", out var promptsCount);
         SettingsService.TryGet<TimeSpan>("TotalWorkTime", out var totalWorkTime);
 
-        var args = new Dictionary<string, string>();
+        Dictionary<string, string> args;
 
         if (context == default)
         {
-            args = _lastReviewArgs;
+            // Response/outcome events (Accepted/Dismissed/Store dialog/…) reuse the args captured when the
+            // prompt was shown, so the whole funnel shares one context/promptMsg/counters set.
+            args = _lastReviewArgs ?? new Dictionary<string, string>();
         }
         else
         {
-            args["context"] = context;
-            args["promptMsg"] = promptMessage;
-            args["promptsCount"] = promptsCount.ToString();
-            args["workTime"] = FormatTimespan(totalWorkTime);
-            args["sessionTime"] = FormatTimespan(sessionTime);
-            args["buttonText"] = RatePromptButtonText;
+            args = new Dictionary<string, string>
+            {
+                ["context"] = context,
+                ["promptMsg"] = promptMessage,
+                ["promptsCount"] = promptsCount.ToString(),
+                ["workTime"] = FormatTimespan(totalWorkTime),
+                ["sessionTime"] = FormatTimespan(sessionTime),
+                ["buttonText"] = RatePromptButtonText,
+            };
             _lastReviewArgs = args;
         }
-        Logger.LogEventWithParams("*Review: " + action, (IDictionary<string, string?>?)args);
+
+        // Merge per-event extras (result/dest) into a copy so the cached _lastReviewArgs is never mutated.
+        if (extra != null)
+        {
+            args = new Dictionary<string, string>(args);
+            foreach (var (key, value) in extra)
+                args[key] = value;
+        }
+
+        Logger.LogEventWithParams("*Review: " + action, args.ToDictionary(x => x.Key, x => (string?)x.Value));
     }
 
     private static string FormatTimespan(TimeSpan period)

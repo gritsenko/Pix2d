@@ -21,6 +21,11 @@ public class PlatformStuffService : IPlatformStuffService
     private bool? _supportsSelfUpdate;
     public bool SupportsSelfUpdate => _supportsSelfUpdate ??= !IsRunningAsPackagedApp();
 
+    // The MS Store build ships the same Pix2d.Desktop binary as the portable one; MSIX package identity
+    // (checked at runtime) is what tells them apart — see IsRunningAsPackagedApp.
+    private bool? _isStorePackage;
+    public bool IsStorePackage => _isStorePackage ??= IsRunningAsPackagedApp();
+
     public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;
 
     public PlatformStuffService(AppState state, IServiceProvider serviceProvider)

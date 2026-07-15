@@ -14,7 +14,12 @@ public class WindowCommands : CommandsListBase
 
     public Pix2dCommand RateAppCommand => GetCommand(async () =>
     {
-        var result = await ServiceProvider.GetRequiredService<IReviewService>().RateApp();
+        // Tolerate a head with no IReviewService registered — the prompt can't normally show there, but
+        // never crash the command if it somehow does.
+        var reviewService = ServiceProvider.GetService<IReviewService>();
+        if (reviewService != null)
+            await reviewService.RateApp();
+
         AppState.UiState.ShowRatePrompt = false;
         ServiceProvider.GetRequiredService<ISettingsService>().Set("IsAppReviewed", true);
     });
@@ -22,6 +27,6 @@ public class WindowCommands : CommandsListBase
     public Pix2dCommand CloseRatePromptCommand => GetCommand(() =>
     {
         AppState.UiState.ShowRatePrompt = false;
-        ServiceProvider.GetRequiredService<IReviewService>().DefferNextReviewPrompt();
+        ServiceProvider.GetService<IReviewService>()?.DefferNextReviewPrompt();
     });
 }

@@ -216,6 +216,11 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
 
         InitPlugins(serviceProvider);
 
+        // Force-construct the review service (heads that register one) so its Save/Export subscriptions
+        // are live from launch. Otherwise it would only wake up when RatePromptView's optional injection
+        // happens to resolve it — a fragile coupling that silently kills the rate prompt if the view
+        // stops being built eagerly. Optional: heads without an IReviewService are unaffected.
+        serviceProvider.GetService<IReviewService>();
     }
 
     private void InitPlugins(IServiceProvider serviceProvider)

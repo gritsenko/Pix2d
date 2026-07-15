@@ -11,7 +11,7 @@ public class AndroidReviewService(ISettingsService settingsService, IMessenger m
     : ReviewService(settingsService, messenger, appState)
 {
 
-    public override async Task<bool> RateApp()
+    protected override async Task<bool> RateAppCore()
     {
         try
         {
@@ -22,11 +22,15 @@ public class AndroidReviewService(ISettingsService settingsService, IMessenger m
             if (isInAppReviewShown == true)
             {
                 Plugin.StoreReview.CrossStoreReview.Current.OpenStoreReviewPage(appId);
+                LogReview("Opened store page");
             }
             else
             {
                 SettingsService.Set("isInAppReviewShown", true);
+                // Google's in-app review API surfaces no outcome (it may even show nothing if quota-limited),
+                // so "requested" is the strongest signal we can log — the dialog was asked for.
                 await Plugin.StoreReview.CrossStoreReview.Current.RequestReview(false);
+                LogReview("In-app review requested");
             }
             return true;
         }

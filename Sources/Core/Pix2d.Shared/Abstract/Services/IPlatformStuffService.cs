@@ -29,6 +29,14 @@ public interface IPlatformStuffService
     bool SupportsSelfUpdate => false;
 
     /// <summary>
+    /// True when this build runs from a first-party store package (Windows MSIX / Microsoft Store).
+    /// Portable, Linux and macOS DMG builds return false. Used to route the "rate app" action to the
+    /// store's native review flow instead of the pix2d.com review hub — kept independent from
+    /// <see cref="SupportsSelfUpdate"/> so store/update policy can diverge without breaking review routing.
+    /// </summary>
+    bool IsStorePackage => false;
+
+    /// <summary>
     /// Detect if any text input is selected in application
     /// </summary>
     bool IsTextInputFocused { get; }

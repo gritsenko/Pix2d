@@ -362,8 +362,8 @@ static class Runner
     [
         "Sprite.Animation.TogglePlay",   // starts a playback loop (background timer)
         "Edit.Import",                   // needs a real file picker (Avalonia StorageProvider)
-        "Window.RateAppCommand",         // store review — IReviewService is registered on Android only
-        "Window.CloseRatePromptCommand", // store review — IReviewService is registered on Android only
+        "Window.RateAppCommand",         // store review — no-op headless (no IReviewService); real heads open the store/browser
+        "Window.CloseRatePromptCommand", // store review — no-op headless (no IReviewService)
     ];
 
     // Commands that genuinely error without a pixel selection (rather than gracefully no-op'ing);
