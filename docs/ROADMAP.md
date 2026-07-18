@@ -1,6 +1,6 @@
 # Pix2D — Long-Term Roadmap
 
-> **Status:** Draft proposal · Last updated: 2026-07-18 · Baseline version: [v3.10.0](https://github.com/gritsenko/Pix2d/releases/tag/v3.10.0)
+> **Status:** Draft proposal · Last updated: 2026-07-18 · Baseline version: [v3.11.0](https://github.com/gritsenko/Pix2d/releases/tag/v3.11.0)
 >
 > This document is written for **both humans and AI coding agents**. Each work item includes context, acceptance criteria hints, and reference links so an agent can pick up a task with minimal extra briefing. Read [`CLAUDE.md`](../CLAUDE.md) and [`CONTRIBUTING.md`](../CONTRIBUTING.md) before starting any task. UI work must follow the project skill at [`.claude/skills/pix2d-ui`](../.claude/skills/pix2d-ui).
 
@@ -213,7 +213,8 @@ Make Pix2D drivable by AI agents so it becomes a node in AI game-dev pipelines.
 | 3.8.x | Stabilization | H1.1, H1.2 |
 | 3.9 | Interop & palettes | H2.3 (palettes), H1.x stabilization |
 | 3.10 | Export pipeline | H2.2 (spritesheet v2 + CLI + export dialog preview/summary), crash-telemetry hardening (Track Q), `LayersView`/`TimeLineView`/`BitmapNode` crash fixes |
-| 3.11 | Animation parity | H2.4 |
+| 3.11 | Engagement & UI polish | Cross-platform rate-the-app prompt (desktop `DesktopReviewService` + distribution-channel gating), `SliderEx` Figma redesign, Avalonia 12.1.0, autosave commit-gate hardening, crash-reporting improvements |
+| 3.12 | Animation parity | H2.4 |
 | 4.0 | **Tilemaps** | H2.1 (flagship), next format revision (explicit property allow-list + tilemap data) |
 | 4.1 | Scripting + MCP | H2.5, E.3 |
 | 4.2 | Web first-class | H3.1, E.1 quantization |
