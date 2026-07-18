@@ -28,9 +28,7 @@ public partial class MagicWandToolSettingsView(ICommandService commandService, I
                             .Spacing(12)
                             .Children(
                                 new SliderEx()
-                                    .LayoutMode(SliderExLayoutMode.OneLine)
-                                    .NarrowMode(SliderExNarrowMode.PopupEditor)
-                                    .NarrowWidthThreshold(250)
+                                    .Width(168)
                                     .Label("Tolerance")
                                     .Minimum(0)
                                     .Maximum(255)

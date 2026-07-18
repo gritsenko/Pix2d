@@ -112,6 +112,16 @@ public partial class AppStyles : Avalonia.Styling.Styles
                     .CornerRadius(new CornerRadius(StaticResources.Measures.PanelCornerRadius))
                     .ClipToBounds(true),
 
+                // Raw Flyouts (color-picker button, background selector, narrow slider editors, …) drop
+                // their content straight into a FlyoutPresenter, which by default paints SimpleTheme's gray
+                // chrome. Override it so every floating surface — PopupView panels AND flyouts — reads as
+                // the same near-black "Base" frame from the Figma redesign.
+                new Style<FlyoutPresenter>()
+                    .Background(StaticResources.Brushes.PopupBackgroundBrush)
+                    .BorderBrush(StaticResources.Brushes.PanelStrokeBrush)
+                    .BorderThickness(new Thickness(1))
+                    .CornerRadius(new CornerRadius(StaticResources.Measures.PanelCornerRadius)),
+
                 // Notification banner cards (crash-recovery, rate prompt). GLOBAL (not view-local) so the
                 // responsive rules also reach the content of nested views like RatePromptView. Wide
                 // default: panel chrome + a centred, content-sized card whose message and actions sit on

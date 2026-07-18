@@ -1,26 +1,41 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Pix2d.UI.Resources;
 
 namespace Pix2d.UI.Shared;
 
-public enum SliderExLayoutMode
-{
-    TwoLine,
-    OneLine,
-}
-
-public enum SliderExNarrowMode
-{
-    None,
-    PopupEditor,
-}
-
+/// <summary>
+/// Numeric slider styled after the Pix2D redesign: a rounded track whose accent fill grows left→right
+/// with the value, the label on top of the current value inside the box, and the units on the right.
+///
+/// Interaction (mirrors the color-picker hue bar, <see cref="Pix2dColorPicker"/>):
+/// • press + drag anywhere on the track scrubs the value (absolute, like a slider);
+/// • a click without drag turns the value into a keyboard text field — Enter / focus-loss commits,
+///   Esc or the ✕ button cancels;
+/// • the mouse wheel nudges the value while hovering (1 step, Ctrl = 10) — issue #242.
+/// </summary>
 public class SliderEx : ViewBase
 {
-    private const double NarrowWindowThreshold = 500d;
     private const double SliderSmallChange = 1d;
     private const double SliderLargeChange = 10d;
+    // Pointer travel (px) that separates a "click" (→ text edit) from a "drag" (→ scrub).
+    private const double DragThreshold = 4d;
+
+    private static readonly FontFamily Font = StaticResources.Fonts.DefaultTextFontFamily;
+
+    // The accent fill is a background band; the label / value / units always stay in the light
+    // foreground tiers on top of it (the dark stays the track's *background*, never painted over text).
+    private static readonly IBrush LabelBrush = StaticResources.Brushes.SecondaryForegroundBrush;
+    private static readonly IBrush ValueBrush = StaticResources.Brushes.ForegroundBrush;
+    private static readonly IBrush UnitsBrush = StaticResources.Brushes.SecondaryForegroundBrush;
+
+    // Accent fill: the redesign's orange→amber gradient, horizontal (matches AccentBrush / SelectedToolBrush).
+    private static readonly IBrush AccentFillBrush =
+        new LinearGradientBrush()
+            .EndPoint(new Point(1, 0), RelativeUnit.Relative)
+            .GradientStops([new GradientStop("#FF6B00".ToColor(), 0), new GradientStop("#E5B407".ToColor(), 1)]);
 
     #region AvaloniaProperties
     public static readonly DirectProperty<SliderEx, double> ValueProperty
@@ -73,386 +88,358 @@ public class SliderEx : ViewBase
         get => _maximum;
         set => SetAndRaise(MaximumProperty, ref _maximum, value);
     }
-
-    public static readonly DirectProperty<SliderEx, SliderExLayoutMode> LayoutModeProperty
-        = AvaloniaProperty.RegisterDirect<SliderEx, SliderExLayoutMode>(nameof(LayoutMode), o => o.LayoutMode, (o, v) => o.LayoutMode = v);
-    private SliderExLayoutMode _layoutMode = SliderExLayoutMode.TwoLine;
-    public SliderExLayoutMode LayoutMode
-    {
-        get => _layoutMode;
-        set => SetAndRaise(LayoutModeProperty, ref _layoutMode, value);
-    }
-
-    public static readonly DirectProperty<SliderEx, SliderExNarrowMode> NarrowModeProperty
-        = AvaloniaProperty.RegisterDirect<SliderEx, SliderExNarrowMode>(nameof(NarrowMode), o => o.NarrowMode, (o, v) => o.NarrowMode = v);
-    private SliderExNarrowMode _narrowMode;
-    public SliderExNarrowMode NarrowMode
-    {
-        get => _narrowMode;
-        set => SetAndRaise(NarrowModeProperty, ref _narrowMode, value);
-    }
-
-    public static readonly DirectProperty<SliderEx, double> NarrowWidthThresholdProperty
-        = AvaloniaProperty.RegisterDirect<SliderEx, double>(nameof(NarrowWidthThreshold), o => o.NarrowWidthThreshold, (o, v) => o.NarrowWidthThreshold = v);
-    private double _narrowWidthThreshold = 260d;
-    public double NarrowWidthThreshold
-    {
-        get => _narrowWidthThreshold;
-        set => SetAndRaise(NarrowWidthThresholdProperty, ref _narrowWidthThreshold, value);
-    }
-
     #endregion
 
     public event Action<double>? ValueChanged;
 
+    private Border _track = null!;
+    private Border _fill = null!;
+    private TextBlock _labelLight = null!;
+    private TextBlock _valueLight = null!;
+    private TextBlock _unitsLight = null!;
+    private Grid _editOverlay = null!;
+    private TextBlock _editLabel = null!;
+    private TextBox _editBox = null!;
+
+    private bool _isPointerDown;
+    private bool _isDragging;
+    private bool _isEditing;
+    private double _pressX;
+
     protected override object Build() =>
-        new Grid()
-            .Ref(out _root)
-            .OnSizeChanged(_ => UpdateVisualState())
-            .Children(
-                BuildTwoLineLayout(),
-                BuildOneLineLayout(),
-                BuildNarrowLayout());
-
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnAttachedToVisualTree(e);
-        AttachTopLevel();
-        UpdateVisualState();
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        DetachTopLevel();
-        base.OnDetachedFromVisualTree(e);
-    }
-
-    private Grid _root = null!;
-    private Grid _twoLineLayout = null!;
-    private TextBlock _twoLineLabelTextBlock = null!;
-    private NumericUpDown _twoLineNumericUpDown = null!;
-    private TextBlock _twoLineUnitsTextBlock = null!;
-    private Slider _twoLineSlider = null!;
-    private Grid _oneLineLayout = null!;
-    private TextBlock _oneLineLabelTextBlock = null!;
-    private NumericUpDown _oneLineNumericUpDown = null!;
-    private TextBlock _oneLineUnitsTextBlock = null!;
-    private Slider _oneLineSlider = null!;
-    private Button _narrowButton = null!;
-    private TextBlock _narrowValueTextBlock = null!;
-    private TextBlock _popupLabelTextBlock = null!;
-    private NumericUpDown _popupNumericUpDown = null!;
-    private TextBlock _popupUnitsTextBlock = null!;
-    private Slider _popupSlider = null!;
-    private TopLevel? _topLevel;
-
-    private Grid BuildTwoLineLayout() =>
-        new Grid()
-            .Ref(out _twoLineLayout)
-            .Rows("Auto,Auto")
-            .Cols("Auto,*,Auto")
-            .Margin(0, 4)
-            .IsVisible(LayoutMode == SliderExLayoutMode.TwoLine)
-            .Children(
-                new TextBlock()
-                    .Ref(out _twoLineLabelTextBlock)
-                    .Classes("caption")
-                    .Text(Label)
-                    .VerticalAlignment(VerticalAlignment.Center),
-                CreateNumericUpDown(out _twoLineNumericUpDown, OnNumericValueChanged)
-                    .Col(1)
-                    .HorizontalAlignment(HorizontalAlignment.Right),
-                new TextBlock()
-                    .Ref(out _twoLineUnitsTextBlock)
-                    .Classes("caption")
-                    .Text(Units)
-                    .VerticalAlignment(VerticalAlignment.Center)
-                    .Margin(4)
-                    .Col(2),
-                CreateSlider(out _twoLineSlider, OnSliderValueChanged)
-                    .Row(1)
-                    .ColSpan(3));
-
-    private Grid BuildOneLineLayout() =>
-        new Grid()
-            .Ref(out _oneLineLayout)
-            .Cols("Auto,*,Auto,Auto")
-            .Margin(0, 4)
-            .IsVisible(LayoutMode == SliderExLayoutMode.OneLine)
-            .Children(
-                new TextBlock()
-                    .Ref(out _oneLineLabelTextBlock)
-                    .Classes("caption")
-                    .Text(Label)
-                    .VerticalAlignment(VerticalAlignment.Center)
-                    .Margin(0, 0, 12, 0),
-                CreateSlider(out _oneLineSlider, OnSliderValueChanged)
-                    .Col(1)
-                    .VerticalAlignment(VerticalAlignment.Center),
-                CreateNumericUpDown(out _oneLineNumericUpDown, OnNumericValueChanged)
-                    .Col(2)
-                    .Margin(12, 0, 0, 0),
-                new TextBlock()
-                    .Ref(out _oneLineUnitsTextBlock)
-                    .Classes("caption")
-                    .Text(Units)
-                    .VerticalAlignment(VerticalAlignment.Center)
-                    .Margin(4, 0, 0, 0)
-                    .Col(3));
-
-    private Button BuildNarrowLayout() =>
-        new Button()
-            .Ref(out _narrowButton)
-            .Margin(0, 4)
-            .Padding(new Thickness(0))
-            .HorizontalAlignment(HorizontalAlignment.Left)
-            .Background(Avalonia.Media.Brushes.Transparent)
-            .BorderThickness(new Thickness(0))
-            .IsVisible(false)
-            .With(button =>
-            {
-                var flyout = new Flyout() { Placement = PlacementMode.Bottom };
-                button.Click += (_, _) => flyout.ShowAt(button);
-                flyout.Content = BuildNarrowFlyoutContent();
-            })
-            .Content(
-                new Border()
-                    .Padding(new Thickness(12, 6))
-                    .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
-                    .BorderBrush(StaticResources.Brushes.PanelsBorderBrush)
-                    .BorderThickness(new Thickness(1))
-                    .CornerRadius(new CornerRadius(8))
-                    .Child(
-                        new TextBlock()
-                            .Ref(out _narrowValueTextBlock)
-                            .HorizontalAlignment(HorizontalAlignment.Center)
-                            .Text(GetNarrowValueText())
-                            .FontSize(10)
-                    ));
-
-    private Control BuildNarrowFlyoutContent() =>
         new Border()
-            .Padding(new Thickness(12))
-            .Background(StaticResources.Brushes.PanelsBackgroundBrush)
-            .BorderBrush(StaticResources.Brushes.PanelsBorderBrush)
-            .BorderThickness(new Thickness(1))
+            .Ref(out _track)
+            .Margin(0, 4)
+            .MinHeight(48)
             .CornerRadius(new CornerRadius(12))
+            .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
+            .BorderThickness(new Thickness(1))
+            .BorderBrush(Avalonia.Media.Brushes.Transparent)
+            .ClipToBounds(true)
+            .OnSizeChanged(_ => UpdateFill())
             .Child(
+                new Panel()
+                    .Children(
+                        // 1. Accent fill (background band), its width proportional to the value.
+                        new Border()
+                            .Ref(out _fill)
+                            .HorizontalAlignment(HorizontalAlignment.Left)
+                            .Background(AccentFillBrush)
+                            .Width(0),
+
+                        // 2. Label / value / units, always in the light foreground over the fill.
+                        CreateContentGrid(LabelBrush, ValueBrush, UnitsBrush,
+                            out _labelLight, out _valueLight, out _unitsLight),
+
+                        // 3. Keyboard-entry overlay, shown on click.
+                        BuildEditOverlay()));
+
+    private Grid CreateContentGrid(IBrush labelBrush, IBrush valueBrush, IBrush unitsBrush,
+        out TextBlock labelTb, out TextBlock valueTb, out TextBlock unitsTb) =>
+        new Grid()
+            .Cols("*,Auto")
+            .Children(
                 new StackPanel()
-                    .Spacing(12)
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .Margin(14, 0, 0, 0)
+                    .Spacing(1)
                     .Children(
                         new TextBlock()
-                            .Ref(out _popupLabelTextBlock)
-                            .Classes("caption")
-                            .Text(Label)
-                            .IsVisible(!string.IsNullOrWhiteSpace(Label)),
-                        new StackPanel()
-                            .Orientation(Orientation.Horizontal)
-                            .VerticalAlignment(VerticalAlignment.Center)
-                            .Spacing(8)
-                            .Children(
-                                CreateNumericUpDown(out _popupNumericUpDown, OnNumericValueChanged),
-                                new TextBlock()
-                                    .Ref(out _popupUnitsTextBlock)
-                                    .Classes("caption")
-                                    .Text(Units)
-                                    .VerticalAlignment(VerticalAlignment.Center)
-                            ),
-                        CreateSlider(out _popupSlider, OnSliderValueChanged)
-                            .Width(220)
-                    ));
+                            .Ref(out labelTb)
+                            .FontFamily(Font)
+                            .FontSize(9)
+                            .Foreground(labelBrush)
+                            .Text(Label),
+                        new TextBlock()
+                            .Ref(out valueTb)
+                            .FontFamily(Font)
+                            .FontSize(20)
+                            .Foreground(valueBrush)
+                            .Text(FormatValue())),
+                new TextBlock()
+                    .Ref(out unitsTb)
+                    .Col(1)
+                    .FontFamily(Font)
+                    .FontSize(15)
+                    .Foreground(unitsBrush)
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .Margin(0, 0, 14, 0)
+                    .Text(Units));
 
-    private NumericUpDown CreateNumericUpDown(out NumericUpDown numericUpDown, Action<decimal?> valueChanged) =>
-        new NumericUpDown()
-            .Ref(out numericUpDown)
-            .Width(80)
-            .Minimum((decimal)Minimum)
-            .Maximum((decimal)Maximum)
-            .NumberFormat(new NumberFormatInfo() { NumberDecimalDigits = 0 })
-            .Increment(1)
-            .Value((decimal)Value)
-            .OnValueChanged(e => valueChanged(e.NewValue));
+    private Grid BuildEditOverlay() =>
+        new Grid()
+            .Ref(out _editOverlay)
+            .Cols("*,Auto")
+            .IsVisible(false)
+            .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
+            .Children(
+                new StackPanel()
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .Margin(14, 0, 0, 0)
+                    .Spacing(1)
+                    .Children(
+                        new TextBlock()
+                            .Ref(out _editLabel)
+                            .FontFamily(Font)
+                            .FontSize(9)
+                            .Foreground(LabelBrush)
+                            .Text(Label),
+                        new TextBox()
+                            .Ref(out _editBox)
+                            .FontFamily(Font)
+                            .FontSize(20)
+                            .Foreground(ValueBrush)
+                            .CaretBrush(StaticResources.Brushes.ForegroundBrush)
+                            .Background(Avalonia.Media.Brushes.Transparent)
+                            .BorderThickness(new Thickness(0))
+                            .Padding(new Thickness(0))
+                            .MinWidth(40)
+                            .VerticalContentAlignment(VerticalAlignment.Center)),
+                new Button()
+                    .Col(1)
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .Margin(0, 0, 8, 0)
+                    .Width(28)
+                    .Height(28)
+                    .MinWidth(0)
+                    .MinHeight(0)
+                    .Padding(new Thickness(0))
+                    .CornerRadius(new CornerRadius(8))
+                    .Background(Avalonia.Media.Brushes.Transparent)
+                    .ToolTip_Tip(L("Cancel"))
+                    .OnClick(_ => CancelEdit())
+                    .Content(
+                        new TextBlock()
+                            .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                            .FontSize(12)
+                            .Foreground(StaticResources.Brushes.SecondaryForegroundBrush)
+                            .Text("") // Segoe MDL2 close
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .VerticalAlignment(VerticalAlignment.Center)));
 
-    private Slider CreateSlider(out Slider slider, Action<double> valueChanged) =>
-        new Slider()
-            .Ref(out slider)
-            .TickFrequency(1)
-            .IsSnapToTickEnabled(true)
-            .Maximum(Maximum)
-            .Minimum(Minimum)
-            .SmallChange(SliderSmallChange)
-            .LargeChange(SliderLargeChange)
-            .Value(Value)
-            .OnValueChanged(e => valueChanged(e.NewValue))
-            // Desktop convenience: adjust the slider with the mouse wheel while hovering it
-            // (issue #242). One notch = 1 step, Ctrl = 10. Mark handled so a parent ScrollViewer
-            // (tool panels are scrollable) doesn't scroll instead.
-            .OnPointerWheelChanged(OnSliderPointerWheel);
+    protected override void OnAfterInitialized()
+    {
+        _track.PointerPressed += OnTrackPointerPressed;
+        _track.PointerMoved += OnTrackPointerMoved;
+        _track.PointerReleased += OnTrackPointerReleased;
+        _track.PointerCaptureLost += OnTrackPointerCaptureLost;
+        // Desktop convenience: adjust with the mouse wheel while hovering (issue #242). One notch = 1
+        // step, Ctrl = 10. Marked handled so a parent ScrollViewer (tool panels scroll) doesn't scroll.
+        _track.PointerWheelChanged += OnTrackPointerWheel;
+        _track.Cursor = new Cursor(StandardCursorType.SizeWestEast);
+
+        _editBox.KeyDown += OnEditBoxKeyDown;
+        _editBox.LostFocus += OnEditBoxLostFocus;
+
+        UpdateFill();
+    }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
 
-        if (_root == null)
+        if (_track == null)
             return;
 
         if (change.Property == LabelProperty)
             UpdateLabels();
         else if (change.Property == UnitsProperty)
             UpdateUnits();
-        else if (change.Property == MinimumProperty)
-            UpdateMinimum();
-        else if (change.Property == MaximumProperty)
-            UpdateMaximum();
         else if (change.Property == ValueProperty)
             UpdateValue();
-        else if (change.Property == LayoutModeProperty || change.Property == NarrowModeProperty || change.Property == NarrowWidthThresholdProperty)
-            UpdateVisualState();
+        else if (change.Property == MinimumProperty || change.Property == MaximumProperty)
+            UpdateFill();
     }
 
     private void UpdateLabels()
     {
-        _twoLineLabelTextBlock.Text = Label;
-        _oneLineLabelTextBlock.Text = Label;
-        _popupLabelTextBlock.Text = Label;
-        _popupLabelTextBlock.IsVisible = !string.IsNullOrWhiteSpace(Label);
+        _labelLight.Text = Label;
+        _editLabel.Text = Label;
     }
 
     private void UpdateUnits()
     {
-        _twoLineUnitsTextBlock.Text = Units;
-        _oneLineUnitsTextBlock.Text = Units;
-        _popupUnitsTextBlock.Text = Units;
-        _narrowValueTextBlock.Text = GetNarrowValueText();
-    }
-
-    private void UpdateMinimum()
-    {
-        UpdateNumericRange(n => n.Minimum = (decimal)Minimum);
-        UpdateSliderRange(s => s.Minimum = Minimum);
-    }
-
-    private void UpdateMaximum()
-    {
-        UpdateNumericRange(n => n.Maximum = (decimal)Maximum);
-        UpdateSliderRange(s => s.Maximum = Maximum);
+        _unitsLight.Text = Units;
     }
 
     private void UpdateValue()
     {
-        var decimalValue = (decimal)Value;
-
-        UpdateNumericRange(n =>
-        {
-            if (n.Value != decimalValue)
-                n.Value = decimalValue;
-        });
-
-        UpdateSliderRange(s =>
-        {
-            if (s.Value != Value)
-                s.Value = Value;
-        });
-
-        _narrowValueTextBlock.Text = GetNarrowValueText();
+        _valueLight.Text = FormatValue();
+        UpdateFill();
     }
 
-    private void UpdateNumericRange(Action<NumericUpDown> update)
+    /// <summary>Resizes the accent fill (and the clipped dark-text copy) to reflect the current value.</summary>
+    private void UpdateFill()
     {
-        update(_twoLineNumericUpDown);
-        update(_oneLineNumericUpDown);
-        update(_popupNumericUpDown);
-    }
-
-    private void UpdateSliderRange(Action<Slider> update)
-    {
-        update(_twoLineSlider);
-        update(_oneLineSlider);
-        update(_popupSlider);
-    }
-
-    private void UpdateVisualState()
-    {
-        if (_twoLineLayout == null || _oneLineLayout == null || _narrowButton == null)
+        if (_track == null)
             return;
 
-        var actualWidth = GetActualWidth();
-        var isControlNarrow = actualWidth > 0 && actualWidth <= NarrowWidthThreshold;
-        var isWindowNarrow = IsWindowNarrow();
-        var isNarrow = NarrowMode == SliderExNarrowMode.PopupEditor && (isControlNarrow || isWindowNarrow);
+        var width = _track.Bounds.Width;
+        var range = Maximum - Minimum;
+        var ratio = range > 0 ? (Value - Minimum) / range : 0d;
+        ratio = Math.Clamp(ratio, 0d, 1d);
 
-        _twoLineLayout.IsVisible = !isNarrow && LayoutMode == SliderExLayoutMode.TwoLine;
-        _oneLineLayout.IsVisible = !isNarrow && LayoutMode == SliderExLayoutMode.OneLine;
-        _narrowButton.IsVisible = isNarrow;
+        _fill.Width = ratio * width;
     }
 
-    private double GetActualWidth() => _root.Bounds.Width > 0 ? _root.Bounds.Width : Bounds.Width;
+    private string FormatValue() => ((int)Math.Round(Value)).ToString(CultureInfo.InvariantCulture);
 
-    private bool IsWindowNarrow()
-    {
-        var topLevelWidth = _topLevel?.Bounds.Width ?? TopLevel.GetTopLevel(this)?.Bounds.Width ?? 0;
-        return topLevelWidth > 0 && topLevelWidth <= NarrowWindowThreshold;
-    }
+    #region Pointer scrubbing (mirrors Pix2dColorPicker's hue bar)
 
-    private void AttachTopLevel()
+    private void OnTrackPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (ReferenceEquals(_topLevel, topLevel))
+        if (_isEditing)
             return;
 
-        DetachTopLevel();
-        _topLevel = topLevel;
-
-        if (_topLevel != null)
-            _topLevel.SizeChanged += TopLevelOnSizeChanged;
-    }
-
-    private void DetachTopLevel()
-    {
-        if (_topLevel == null)
+        var point = e.GetCurrentPoint(_track);
+        if (!(point.Properties.IsLeftButtonPressed || e.Pointer.Type == PointerType.Touch))
             return;
 
-        _topLevel.SizeChanged -= TopLevelOnSizeChanged;
-        _topLevel = null;
+        e.Pointer.Capture(_track);
+        _pressX = point.Position.X;
+        _isPointerDown = true;
+        _isDragging = false;
+        e.Handled = true;
     }
 
-    private void TopLevelOnSizeChanged(object? sender, SizeChangedEventArgs e) => UpdateVisualState();
-
-    private string GetNarrowValueText()
+    private void OnTrackPointerMoved(object? sender, PointerEventArgs e)
     {
-        var valueText = ((int)Math.Round(Value)).ToString();
-        return string.IsNullOrWhiteSpace(Units) ? valueText : $"{valueText} {Units}";
-    }
+        if (!_isPointerDown || e.Pointer.Captured != _track)
+            return;
 
-    private void OnNumericValueChanged(decimal? value)
-    {
-        var nextValue = (double)(value ?? 0m);
-        if (Value != nextValue)
+        var x = e.GetCurrentPoint(_track).Position.X;
+        if (!_isDragging && Math.Abs(x - _pressX) > DragThreshold)
+            _isDragging = true;
+
+        if (_isDragging)
         {
-            Value = nextValue;
-            ValueChanged?.Invoke(nextValue);
+            SetValueFromX(x);
+            e.Handled = true;
         }
     }
 
-    private void OnSliderValueChanged(double value)
+    private void OnTrackPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (Value != value)
-        {
-            Value = value;
-            ValueChanged?.Invoke(value);
-        }
+        if (!_isPointerDown)
+            return;
+
+        var wasDragging = _isDragging;
+        _isPointerDown = false;
+        _isDragging = false;
+
+        if (e.Pointer.Captured == _track)
+            e.Pointer.Capture(null);
+
+        // A press that never crossed the drag threshold is a click → open the keyboard editor.
+        if (!wasDragging)
+            EnterEditMode();
+
+        e.Handled = true;
     }
 
-    private void OnSliderPointerWheel(PointerWheelEventArgs e)
+    private void OnTrackPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        _isPointerDown = false;
+        _isDragging = false;
+    }
+
+    private void OnTrackPointerWheel(object? sender, PointerWheelEventArgs e)
     {
         if (e.Delta.Y == 0)
             return;
 
         var step = (e.KeyModifiers & KeyModifiers.Control) != 0 ? SliderLargeChange : SliderSmallChange;
         var direction = e.Delta.Y > 0 ? 1d : -1d;
-        var next = Math.Clamp(Value + direction * step, Minimum, Maximum);
-
-        OnSliderValueChanged(next);
+        CommitValue(Value + direction * step);
         e.Handled = true;
     }
+
+    private void SetValueFromX(double x)
+    {
+        var width = _track.Bounds.Width;
+        if (width <= 0)
+            return;
+
+        var ratio = Math.Clamp(x / width, 0d, 1d);
+        CommitValue(Minimum + ratio * (Maximum - Minimum));
+    }
+
+    private void CommitValue(double value)
+    {
+        var clamped = Math.Clamp(Math.Round(value), Minimum, Maximum);
+        if (clamped == Value)
+            return;
+
+        Value = clamped; // setter raises ValueProperty → UpdateValue() refreshes text + fill
+        ValueChanged?.Invoke(Value);
+    }
+
+    #endregion
+
+    #region Keyboard editing
+
+    private void EnterEditMode()
+    {
+        if (_isEditing)
+            return;
+
+        _isEditing = true;
+        _editBox.Text = FormatValue();
+        _editOverlay.IsVisible = true;
+        _track.BorderBrush = StaticResources.Brushes.AccentBrush;
+
+        // Focus + select-all once the overlay is realized, so the current value is ready to overtype.
+        Dispatcher.UIThread.Post(() =>
+        {
+            _editBox.Focus();
+            _editBox.SelectAll();
+        }, DispatcherPriority.Input);
+    }
+
+    private void OnEditBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            CommitEdit();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            CancelEdit();
+            e.Handled = true;
+        }
+    }
+
+    // Clicking away from the editor commits, matching a plain text field.
+    private void OnEditBoxLostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (_isEditing)
+            CommitEdit();
+    }
+
+    private void CommitEdit()
+    {
+        var text = _editBox.Text;
+        if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ||
+            double.TryParse(text, NumberStyles.Any, CultureInfo.CurrentCulture, out parsed))
+        {
+            CommitValue(parsed);
+        }
+
+        ExitEditMode();
+    }
+
+    private void CancelEdit() => ExitEditMode();
+
+    private void ExitEditMode()
+    {
+        if (!_isEditing)
+            return;
+
+        _isEditing = false;
+        _editOverlay.IsVisible = false;
+        _track.BorderBrush = Avalonia.Media.Brushes.Transparent;
+    }
+
+    #endregion
 }

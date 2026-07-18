@@ -34,7 +34,9 @@ public static class StaticResources
         public static Color BrushButtonColor { get; } = "#FFFFFF".ToColor().WithAlpha(0.2f);
         public static Color BrushItemColor { get; } = "#FFFFFF".ToColor().WithAlpha(0.1f);
         public static Color InnerPanelBackgroundColor { get; } = "#3a3f46".ToColor();
-        public static Color PopupBackgroundColor { get; } = "#2A2A2A".ToColor().WithAlpha(0.95f);
+        // Popups & flyouts share the docked panels' near-black "Base" frame color from the Figma
+        // redesign — not a lighter gray. (Was #2A2A2A, which read as gray against the black panels.)
+        public static Color PopupBackgroundColor { get; } = PanelsBackgroundColor;
 
     }
 
