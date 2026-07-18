@@ -100,20 +100,20 @@
 	  <None Remove="artifacts\**" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia" Version="12.0.5" />
-		<PackageReference Include="Avalonia.Desktop" Version="12.0.5" />
+		<PackageReference Include="Avalonia" Version="12.1.0" />
+		<PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
 		<PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
 		<PackageReference Include="Clowd.Clipboard" Version="1.1.4" />
 		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.1.4" />
 		<!-- Debug-only: pulls in the ASP.NET Core web stack + remote-control surface; must not ship in Release. -->
-		<PackageReference Include="Declarative.Avalonia.AgentTools" Version="12.0.6-preview2" Condition="'$(Configuration)'=='Debug'" />
+		<PackageReference Include="Declarative.Avalonia.AgentTools" Version="12.1.0" Condition="'$(Configuration)'=='Debug'" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="Sentry" Version="6.5.0" />
-		<!-- Pinned to match the version Avalonia.FreeDesktop (12.0.5) is compiled against. Pix2d has no
+		<!-- Pinned to match the version Avalonia.FreeDesktop (12.1.0) is compiled against. Pix2d has no
 		     direct Tmds usage, but Avalonia's X11 backend loads Tmds.DBus.Protocol.Connection during
 		     platform init on Linux. Bumping this ahead of Avalonia (e.g. 0.93.0) changed the Connection
 		     type surface and threw TypeLoadException at startup on Linux — keep it in lockstep with Avalonia. -->
-		<PackageReference Include="Tmds.DBus.Protocol" Version="0.92.0" />
+		<PackageReference Include="Tmds.DBus.Protocol" Version="0.94.1" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />

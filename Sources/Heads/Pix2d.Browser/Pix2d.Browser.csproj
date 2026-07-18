@@ -38,7 +38,7 @@
 		</None>
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia.Browser" Version="12.0.5" />
+		<PackageReference Include="Avalonia.Browser" Version="12.1.0" />
 		<PackageReference Include="SkiaSharp" Version="3.119.4" />
 		<PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="3.119.4" />
 		<!--<PackageReference Include="Microsoft.NET.WebAssembly.Threading" Version="9.0.0-rc.2.24473.5" />-->

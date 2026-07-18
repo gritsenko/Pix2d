@@ -92,8 +92,13 @@ public class SliderEx : ViewBase
 
     public event Action<double>? ValueChanged;
 
+    // Shared corner radius for the track, the clip and the accent focus frame — keep them equal so the
+    // frame rounds exactly along the track's rounded rect (otherwise the corners look "cut").
+    private const double CornerRadiusValue = 10d;
+
     private Border _track = null!;
     private Border _fill = null!;
+    private Border _focusFrame = null!;
     private TextBlock _labelLight = null!;
     private TextBlock _valueLight = null!;
     private TextBlock _unitsLight = null!;
@@ -109,12 +114,10 @@ public class SliderEx : ViewBase
     protected override object Build() =>
         new Border()
             .Ref(out _track)
-            .Margin(0, 4)
-            .MinHeight(48)
-            .CornerRadius(new CornerRadius(12))
+            .Margin(0, 3)
+            .MinHeight(36)
+            .CornerRadius(new CornerRadius(CornerRadiusValue))
             .Background(StaticResources.Brushes.InnerPanelBackgroundBrush)
-            .BorderThickness(new Thickness(1))
-            .BorderBrush(Avalonia.Media.Brushes.Transparent)
             .ClipToBounds(true)
             .OnSizeChanged(_ => UpdateFill())
             .Child(
@@ -132,7 +135,19 @@ public class SliderEx : ViewBase
                             out _labelLight, out _valueLight, out _unitsLight),
 
                         // 3. Keyboard-entry overlay, shown on click.
-                        BuildEditOverlay()));
+                        BuildEditOverlay(),
+
+                        // 4. Accent focus frame — top-most so the edit overlay's opaque background can't
+                        //    paint over its rounded corners. Same radius as the track → corners round
+                        //    together with the control instead of being clipped square.
+                        new Border()
+                            .Ref(out _focusFrame)
+                            .IsVisible(false)
+                            .IsHitTestVisible(false)
+                            .CornerRadius(new CornerRadius(CornerRadiusValue))
+                            .BorderThickness(new Thickness(1))
+                            .BorderBrush(StaticResources.Brushes.AccentBrush)
+                            .Background(Avalonia.Media.Brushes.Transparent)));
 
     private Grid CreateContentGrid(IBrush labelBrush, IBrush valueBrush, IBrush unitsBrush,
         out TextBlock labelTb, out TextBlock valueTb, out TextBlock unitsTb) =>
@@ -141,29 +156,29 @@ public class SliderEx : ViewBase
             .Children(
                 new StackPanel()
                     .VerticalAlignment(VerticalAlignment.Center)
-                    .Margin(14, 0, 0, 0)
-                    .Spacing(1)
+                    .Margin(12, 0, 0, 0)
+                    .Spacing(0)
                     .Children(
                         new TextBlock()
                             .Ref(out labelTb)
                             .FontFamily(Font)
-                            .FontSize(9)
+                            .FontSize(8)
                             .Foreground(labelBrush)
                             .Text(Label),
                         new TextBlock()
                             .Ref(out valueTb)
                             .FontFamily(Font)
-                            .FontSize(20)
+                            .FontSize(16)
                             .Foreground(valueBrush)
                             .Text(FormatValue())),
                 new TextBlock()
                     .Ref(out unitsTb)
                     .Col(1)
                     .FontFamily(Font)
-                    .FontSize(15)
+                    .FontSize(13)
                     .Foreground(unitsBrush)
                     .VerticalAlignment(VerticalAlignment.Center)
-                    .Margin(0, 0, 14, 0)
+                    .Margin(0, 0, 12, 0)
                     .Text(Units));
 
     private Grid BuildEditOverlay() =>
@@ -175,19 +190,19 @@ public class SliderEx : ViewBase
             .Children(
                 new StackPanel()
                     .VerticalAlignment(VerticalAlignment.Center)
-                    .Margin(14, 0, 0, 0)
-                    .Spacing(1)
+                    .Margin(12, 0, 0, 0)
+                    .Spacing(0)
                     .Children(
                         new TextBlock()
                             .Ref(out _editLabel)
                             .FontFamily(Font)
-                            .FontSize(9)
+                            .FontSize(8)
                             .Foreground(LabelBrush)
                             .Text(Label),
                         new TextBox()
                             .Ref(out _editBox)
                             .FontFamily(Font)
-                            .FontSize(20)
+                            .FontSize(16)
                             .Foreground(ValueBrush)
                             .CaretBrush(StaticResources.Brushes.ForegroundBrush)
                             .Background(Avalonia.Media.Brushes.Transparent)
@@ -198,9 +213,9 @@ public class SliderEx : ViewBase
                 new Button()
                     .Col(1)
                     .VerticalAlignment(VerticalAlignment.Center)
-                    .Margin(0, 0, 8, 0)
-                    .Width(28)
-                    .Height(28)
+                    .Margin(0, 0, 6, 0)
+                    .Width(24)
+                    .Height(24)
                     .MinWidth(0)
                     .MinHeight(0)
                     .Padding(new Thickness(0))
@@ -211,7 +226,7 @@ public class SliderEx : ViewBase
                     .Content(
                         new TextBlock()
                             .FontFamily(StaticResources.Fonts.IconFontSegoe)
-                            .FontSize(12)
+                            .FontSize(11)
                             .Foreground(StaticResources.Brushes.SecondaryForegroundBrush)
                             .Text("") // Segoe MDL2 close
                             .HorizontalAlignment(HorizontalAlignment.Center)
@@ -386,7 +401,7 @@ public class SliderEx : ViewBase
         _isEditing = true;
         _editBox.Text = FormatValue();
         _editOverlay.IsVisible = true;
-        _track.BorderBrush = StaticResources.Brushes.AccentBrush;
+        _focusFrame.IsVisible = true;
 
         // Focus + select-all once the overlay is realized, so the current value is ready to overtype.
         Dispatcher.UIThread.Post(() =>
@@ -438,7 +453,7 @@ public class SliderEx : ViewBase
 
         _isEditing = false;
         _editOverlay.IsVisible = false;
-        _track.BorderBrush = Avalonia.Media.Brushes.Transparent;
+        _focusFrame.IsVisible = false;
     }
 
     #endregion

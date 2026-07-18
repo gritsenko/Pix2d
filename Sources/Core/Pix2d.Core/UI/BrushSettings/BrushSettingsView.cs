@@ -28,7 +28,9 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
         new ScrollViewer()
             .Content(
                 new Grid()
-                    .Rows("Auto,Auto,Auto,64,64,64,Auto")
+                    // Slider rows are Auto so each SliderEx uses its own (compact) height instead of being
+                    // stretched to a fixed row — keep them in sync with SliderEx's intrinsic size.
+                    .Rows("Auto,Auto,Auto,Auto,Auto,Auto,Auto")
                     .Margin(8, 0)
                     .Children(
                         // Live stroke preview at 100% scale. Reflects size / opacity / spacing and the stylus
