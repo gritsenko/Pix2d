@@ -38,6 +38,13 @@ public class DesktopReviewService(
 {
     private readonly IPlatformStuffService _platformStuff = platformStuff;
 
+    // Temporarily gate the rate prompt to the Microsoft Store build only. Portable / itch.io / Gumroad /
+    // Linux / macOS ship the same binary but have no in-app review destination worth prompting for right
+    // now (they'd just be sent to the pix2d.com/review hub), so we don't ask on those channels. Web has
+    // no IReviewService registered at all, so it's already silent. Flip this back to `true` (or drop the
+    // override) to re-enable the prompt everywhere on desktop.
+    protected override bool IsReviewPromptEnabled => _platformStuff.IsStorePackage;
+
     protected override async Task<bool> RateAppCore()
     {
         try

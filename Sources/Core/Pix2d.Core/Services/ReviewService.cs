@@ -82,8 +82,17 @@ public abstract class ReviewService : IReviewService, IDisposable
 
     public string RatePromptMessage { get; set; }
 
+    // Master switch for the whole in-app rate funnel. Heads override this to gate the prompt by
+    // distribution channel — e.g. desktop only prompts in the MS Store build, portable/itch/Gumroad/
+    // Linux/macOS stay silent. Kept above the DEBUG bypass below so a disabled channel never prompts,
+    // even in DEBUG. Default: always enabled.
+    protected virtual bool IsReviewPromptEnabled => true;
+
     public bool TrySuggestRate(string? contextTitle)
     {
+        if (!IsReviewPromptEnabled)
+            return false;
+
         SettingsService.TryGet<bool>("IsAppReviewed", out var isReviewed);
         SettingsService.TryGet<DateTime>("NextPromptTime", out var nextPromptTime);
         SettingsService.TryGet<TimeSpan>("TotalWorkTime", out var totalWorkTime);
