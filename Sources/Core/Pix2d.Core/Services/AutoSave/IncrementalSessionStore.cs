@@ -43,6 +43,20 @@ public sealed class IncrementalSessionStore : IIncrementalSessionStore
     /// </summary>
     private FileStream? _lockHandle;
 
+    /// <summary>
+    /// Serializes commits on THIS store. <c>AutoSaveService._commitLock</c> normally
+    /// guarantees a single commit at a time, but <c>ForceSaveSync</c>'s timeout path
+    /// releases that lock while its background commit keeps running; a later periodic
+    /// tick could then start a second <see cref="CommitAsync"/> on the same store,
+    /// colliding on the deterministic <c>&lt;key&gt;.png.tmp</c> path ("used by another
+    /// process" on create, or FileNotFound when the sibling's <c>File.Move</c> already
+    /// consumed the temp). This gate makes the overlapping commit wait instead of race.
+    /// Not disposed: SemaphoreSlim allocates no unmanaged handle unless AvailableWaitHandle
+    /// is touched (it isn't), and skipping disposal avoids racing a background commit at
+    /// shutdown / tab-discard.
+    /// </summary>
+    private readonly SemaphoreSlim _commitGate = new(1, 1);
+
     public string SessionId { get; }
     public string SessionFolderPath => _root;
 
@@ -91,62 +105,72 @@ public sealed class IncrementalSessionStore : IIncrementalSessionStore
 
     public async Task<SessionManifest> CommitAsync(SceneSnapshot snapshot, CancellationToken ct = default)
     {
-        // 1. Write each dirty PNG via temp + atomic replace.
-        foreach (var frame in snapshot.DirtyFrames)
+        // Serialize against any other in-flight commit on this store (see _commitGate) so two
+        // commits never race on the same temp files.
+        await _commitGate.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            await WriteFrameAtomicAsync(frame, ct).ConfigureAwait(false);
-        }
-
-        // 2. Write the scene tree if structure changed.
-        if (snapshot.SceneJson is not null)
-        {
-            ct.ThrowIfCancellationRequested();
-            await WriteTextAtomicAsync(Path.Combine(_root, SceneFile), snapshot.SceneJson, ct)
-                .ConfigureAwait(false);
-        }
-
-        // 3. Thumbnail is best-effort, never blocks recovery.
-        if (snapshot.Thumbnail is not null)
-        {
-            try
+            // 1. Write each dirty PNG via temp + atomic replace.
+            foreach (var frame in snapshot.DirtyFrames)
             {
-                await WriteImageAtomicAsync(
-                    Path.Combine(_root, ThumbnailFile),
-                    snapshot.Thumbnail.Image,
-                    SKEncodedImageFormat.Jpeg,
-                    quality: 75,
-                    ct).ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested();
+                await WriteFrameAtomicAsync(frame, ct).ConfigureAwait(false);
             }
-            catch { /* ignore */ }
+
+            // 2. Write the scene tree if structure changed.
+            if (snapshot.SceneJson is not null)
+            {
+                ct.ThrowIfCancellationRequested();
+                await WriteTextAtomicAsync(Path.Combine(_root, SceneFile), snapshot.SceneJson, ct)
+                    .ConfigureAwait(false);
+            }
+
+            // 3. Thumbnail is best-effort, never blocks recovery.
+            if (snapshot.Thumbnail is not null)
+            {
+                try
+                {
+                    await WriteImageAtomicAsync(
+                        Path.Combine(_root, ThumbnailFile),
+                        snapshot.Thumbnail.Image,
+                        SKEncodedImageFormat.Jpeg,
+                        quality: 75,
+                        ct).ConfigureAwait(false);
+                }
+                catch { /* ignore */ }
+            }
+
+            // 4. Garbage-collect orphan PNGs not referenced by the new scene.
+            if (snapshot.StructureChanged)
+                TryCollectOrphanFrames(snapshot.LiveFrameKeys);
+
+            // 5. Refresh the heartbeat alongside the commit.
+            try { await HeartbeatAsync(ct).ConfigureAwait(false); } catch { /* ignore */ }
+
+            // 6. Build + atomically publish the manifest. This is the COMMIT POINT.
+            var manifest = new SessionManifest
+            {
+                FormatVersion = 1,
+                SceneFormatVersion = ProjectFormat.CurrentVersion,
+                SessionId = SessionId,
+                Revision = Interlocked.Increment(ref _lastRevision),
+                CommittedAtUtc = DateTime.UtcNow,
+                SourceProjectPath = snapshot.SourceProjectPath,
+                FrameKeys = snapshot.LiveFrameKeys.ToList(),
+                SceneFile = SceneFile,
+                ThumbnailFile = snapshot.Thumbnail is not null ? ThumbnailFile : null,
+            };
+
+            var manifestJson = JsonConvert.SerializeObject(manifest, Formatting.Indented);
+            await WriteTextAtomicAsync(Path.Combine(_root, ManifestFile), manifestJson, ct)
+                .ConfigureAwait(false);
+
+            return manifest;
         }
-
-        // 4. Garbage-collect orphan PNGs not referenced by the new scene.
-        if (snapshot.StructureChanged)
-            TryCollectOrphanFrames(snapshot.LiveFrameKeys);
-
-        // 5. Refresh the heartbeat alongside the commit.
-        try { await HeartbeatAsync(ct).ConfigureAwait(false); } catch { /* ignore */ }
-
-        // 6. Build + atomically publish the manifest. This is the COMMIT POINT.
-        var manifest = new SessionManifest
+        finally
         {
-            FormatVersion = 1,
-            SceneFormatVersion = ProjectFormat.CurrentVersion,
-            SessionId = SessionId,
-            Revision = Interlocked.Increment(ref _lastRevision),
-            CommittedAtUtc = DateTime.UtcNow,
-            SourceProjectPath = snapshot.SourceProjectPath,
-            FrameKeys = snapshot.LiveFrameKeys.ToList(),
-            SceneFile = SceneFile,
-            ThumbnailFile = snapshot.Thumbnail is not null ? ThumbnailFile : null,
-        };
-
-        var manifestJson = JsonConvert.SerializeObject(manifest, Formatting.Indented);
-        await WriteTextAtomicAsync(Path.Combine(_root, ManifestFile), manifestJson, ct)
-            .ConfigureAwait(false);
-
-        return manifest;
+            _commitGate.Release();
+        }
     }
 
     public async Task<SessionManifest?> TryReadManifestAsync(CancellationToken ct = default)

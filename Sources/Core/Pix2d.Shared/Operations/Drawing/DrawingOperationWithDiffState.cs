@@ -139,6 +139,21 @@ public class DrawingOperationWithDiffState : EditOperationBase, IDisposable, ISp
         var data = target.GetData();
         var pixels = MemoryMarshal.Cast<byte, int>(data.AsSpan());
 
+        // The diff blocks form a run-length cover of the whole bitmap captured when the operation ran,
+        // so the sum of their lengths equals the target's pixel count at that time. If the target has
+        // since been resized (e.g. crop/resize replayed out of order, or a different-sized artboard is
+        // now the drawing target), the runs no longer align with the current buffer: writing them would
+        // run past the end (IndexOutOfRangeException) or corrupt a mismatched buffer. Bail out safely.
+        var totalLen = 0;
+        foreach (var diffBlock in changes)
+            totalLen += diffBlock.Len;
+
+        if (totalLen != pixels.Length)
+        {
+            Logger.Trace($"Skipping incompatible drawing diff: expected {totalLen} pixels but target has {pixels.Length}.");
+            return;
+        }
+
         var index = 0;
         foreach (var diffBlock in changes)
         {
