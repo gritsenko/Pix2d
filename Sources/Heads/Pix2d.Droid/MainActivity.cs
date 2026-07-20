@@ -105,6 +105,26 @@ public partial class MainActivity : AvaloniaMainActivity
         }
     }
 
+    // Avalonia.Android 12.1.0 has a bug in AndroidKeyboardEventsHelper.GetKeySymbol: it indexes an
+    // internal per-key symbol array out of range for certain hardware/IME key codes, throwing
+    // IndexOutOfRangeException while dispatching the key. Activity.DispatchKeyEvent sits above the
+    // AvaloniaView's own DispatchKeyEvent on the dispatch path, so wrapping the base call lets us
+    // swallow that framework bug instead of letting a single stray key crash the app. The key is
+    // simply dropped (returning false = "not consumed", so the system can still apply default
+    // handling for e.g. hardware keys). Remove once the Avalonia fix lands upstream.
+    public override bool DispatchKeyEvent(Android.Views.KeyEvent? e)
+    {
+        try
+        {
+            return base.DispatchKeyEvent(e);
+        }
+        catch (IndexOutOfRangeException ex)
+        {
+            Android.Util.Log.Warn("Pix2d", $"Swallowed Avalonia key-dispatch bug (keyCode={e?.KeyCode}): {ex.Message}");
+            return false;
+        }
+    }
+
     //public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
     //{
     //    Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults);

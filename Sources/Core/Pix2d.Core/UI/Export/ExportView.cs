@@ -658,7 +658,18 @@ public partial class ExportView : ViewBase<ExportView.State>
                 ? spriteEditor.CurrentSprite.BackgroundColor
                 : SKColor.Empty;
 
-            SetPreviewBitmap(nodes.RenderToBitmap(background, Scale));
+            // RenderToBitmap throws when the export target (canvas × scale) is too large to allocate —
+            // this method is `async void`, so an unhandled throw here becomes a fatal unobserved
+            // exception rather than a failed preview. Catch it so an oversized preview just doesn't
+            // update (the user can still lower the scale / export) instead of taking the app down.
+            try
+            {
+                SetPreviewBitmap(nodes.RenderToBitmap(background, Scale));
+            }
+            catch (Exception e)
+            {
+                Logger.Log("Export preview render failed: " + e.Message);
+            }
         }
 
         private void SetPreviewBitmap(SKBitmap bitmap)
