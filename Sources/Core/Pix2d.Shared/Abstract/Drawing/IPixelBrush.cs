@@ -29,7 +29,7 @@ public interface IPixelBrush
     SKPointI PixelOffset { get; }
 
     SKBitmap GetPreviewBitmap(float scale);
-    SKSurface GetPreviewSurface(SKColor color, float scale);
+    SKSurface? GetPreviewSurface(SKColor color, float scale);
 
     int Size { get; }
     float Opacity { get; }

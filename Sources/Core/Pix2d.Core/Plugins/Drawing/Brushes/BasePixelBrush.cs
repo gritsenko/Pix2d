@@ -101,14 +101,26 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
 
     public abstract SKBitmap GetPreviewBitmap(float scale);
 
-    public SKSurface GetPreviewSurface(SKColor color, float scale)
+    public SKSurface? GetPreviewSurface(SKColor color, float scale)
     {
         var bm = GetBrushBitmap(color, scale);
         if (bm == null)
-            throw new InvalidOperationException("Brush bitmap could not be created");
-        _surface = SKSurface.Create(new SKImageInfo(bm.Width, bm.Height, bm.ColorType));
+            return null;
+
+        // Dispose the previously cached surface before allocating a new one — this is called on every
+        // color/size change, so overwriting the field leaked a native SKSurface each time.
+        _surface?.Dispose();
+        _surface = null;
+
+        // SKSurface.Create returns null (not throws) when it can't allocate — e.g. under memory pressure
+        // on mobile, or a zero-sized image info. Guard both so we return null instead of NRE-ing on .Canvas.
+        var info = new SKImageInfo(Math.Max(1, bm.Width), Math.Max(1, bm.Height), bm.ColorType);
+        _surface = SKSurface.Create(info);
+        if (_surface == null)
+            return null;
+
         using var canvas = _surface.Canvas;
-        canvas.DrawBitmap(bm,0,0);
+        canvas.DrawBitmap(bm, 0, 0);
         return _surface;
     }
 

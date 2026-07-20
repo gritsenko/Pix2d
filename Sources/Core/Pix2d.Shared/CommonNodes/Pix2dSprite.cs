@@ -51,7 +51,10 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
     [JsonIgnore]
     public IEnumerable<Layer> Layers => Nodes.OfType<Layer>();
 
-    private Layer? GetLayer(int index) => Nodes[index] as Layer;
+    // Bounds-checked: SelectedLayerIndex can briefly outrun Nodes during a layer add/remove while the
+    // layers list is being rebuilt (LayerItemView virtualization reads SelectedLayer mid-rebuild), which
+    // otherwise throws ArgumentOutOfRangeException. Every caller already treats null as "no layer".
+    private Layer? GetLayer(int index) => index >= 0 && index < Nodes.Count ? Nodes[index] as Layer : null;
 
     public int NextFrameIndex => (CurrentFrameIndex + 1) % GetFramesCount();
 

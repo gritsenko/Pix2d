@@ -980,6 +980,11 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
 
     private void RenderBrushPreview(SKCanvas canvas)
     {
+        // The preview surface can be null when the brush couldn't produce a stamp bitmap or a surface
+        // allocation failed (see BasePixelBrush.GetPreviewSurface); skip rather than NRE on DrawSurface.
+        if (_brushPreviewSurface == null)
+            return;
+
         canvas.DrawSurface(_brushPreviewSurface, PreviewPosition.X - Brush.PixelOffset.X, PreviewPosition.Y - Brush.PixelOffset.Y);
 
         if (MirrorY || MirrorX)
