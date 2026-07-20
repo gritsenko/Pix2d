@@ -26,6 +26,8 @@ internal class BackPress : OnBackPressedCallback
         if (backPressed + delay > DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
         {
             MainActivity.SaveSessionSafely();
+            // Flush a final active-session ping before we terminate; no-op when analytics is off.
+            MainActivity.FlushSessionStatsSafely();
             // Mark the shutdown as deliberate BEFORE terminating, so the next launch doesn't read the
             // OS exit reason as a crash. Then exit via System.exit (REASON_EXIT_SELF) instead of
             // Process.KillProcess (REASON_SIGNALED, which the crash detector treats as a native crash).

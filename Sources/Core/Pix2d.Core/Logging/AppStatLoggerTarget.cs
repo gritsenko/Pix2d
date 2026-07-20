@@ -42,6 +42,30 @@ public sealed class AppStatLoggerTarget : ILoggerTarget
     /// <summary>Best-effort flush of anything still queued (e.g. on app shutdown).</summary>
     public void Flush() => _ = _client.FlushAsync();
 
+    /// <summary>
+    /// Sends a session-stats ping (<c>"@session"</c>, an infrastructure event the server intercepts
+    /// and never lists among product events). Counters are cumulative-since-process-start; the server
+    /// upserts by session id with a max-merge, so out-of-order / duplicate pings are harmless.
+    /// Bypasses <see cref="Logger"/> so these pings don't spam the log file or other targets.
+    /// </summary>
+    public void TrackSessionStats(long activeSeconds, long wallSeconds, System.DateTime startedUtc, string? platform)
+    {
+        try
+        {
+            _client.Track("@session", new Dictionary<string, object>
+            {
+                ["activeSeconds"] = activeSeconds,
+                ["wallSeconds"] = wallSeconds,
+                ["startedUtc"] = startedUtc,
+                ["platform"] = platform ?? string.Empty,
+            });
+        }
+        catch
+        {
+            // A logging target must never throw.
+        }
+    }
+
     private static IReadOnlyDictionary<string, object>? BuildProperties(LogEntry e)
     {
         var hasParams = e.ExtraParams is { Count: > 0 };

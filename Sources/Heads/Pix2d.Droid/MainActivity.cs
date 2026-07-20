@@ -174,12 +174,16 @@ public partial class MainActivity : AvaloniaMainActivity
         // in the background. A genuine crash mid-session is still caught via process-exit info.
         MarkLaunchCompletedSafely();
         SaveSessionSafely();
+        // Backgrounding safety net: the OS may freeze/kill us before the next callback, so push a
+        // final active-session ping now (matches the autosave belt-and-braces on this transition).
+        FlushSessionStatsSafely();
         base.OnPause();
     }
 
     protected override void OnStop()
     {
         SaveSessionSafely();
+        FlushSessionStatsSafely();
         base.OnStop();
     }
 
@@ -258,6 +262,21 @@ public partial class MainActivity : AvaloniaMainActivity
             var sink = sp.GetService(typeof(Pix2d.Abstract.Services.ICrashTelemetrySink))
                 as Pix2d.Abstract.Services.ICrashTelemetrySink;
             sink?.Shutdown();
+        }
+        catch
+        {
+        }
+    }
+
+    // Called from the deliberate double-back exit: forces a final active-session ping so the tail
+    // of usage time isn't lost (the reporter's periodic timer would otherwise miss it). No-op when
+    // analytics is disabled. Also fires from OnPause/OnStop as a background safety net.
+    internal static void FlushSessionStatsSafely()
+    {
+        try
+        {
+            if (EditorApp.Pix2dBootstrapper is Pix2dBootstrapperDI bootstrapper)
+                bootstrapper.FlushSessionStats();
         }
         catch
         {

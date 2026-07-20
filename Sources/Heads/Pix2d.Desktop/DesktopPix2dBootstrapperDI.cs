@@ -88,6 +88,10 @@ public class DesktopPix2dBootstrapperDI : Pix2dBootstrapperDI // Inherits: Pix2d
         {
         }
 
+        // Send a final active-session ping before we go — the reporter's 5-min timer would
+        // otherwise miss the tail of the session. No-op when analytics is disabled.
+        FlushSessionStats();
+
         var autoSave = GetServiceProvider().GetRequiredService<IAutoSaveService>();
         autoSave.ForceSaveSync(TimeSpan.FromSeconds(5));
         return true;

@@ -26,7 +26,10 @@ using Pix2d.Messages.ViewPort;
 using Pix2d.Common.FileSystem;
 using Pix2d.Primitives.ViewPort;
 using Pix2d.UI;
+using Avalonia;
 using Avalonia.Threading;
+using Pix2d.Infrastructure.AppStat;
+using Pix2d.Services.Telemetry;
 
 namespace Pix2d;
 
@@ -38,6 +41,13 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
     private IServiceProvider? _serviceProvider;
     private bool _analyticsEnabled;
     private AppStatLoggerTarget? _appStatTarget;
+
+    // Active-session telemetry: the tracker accumulates real usage time (foreground & not idle)
+    // regardless of consent (it's inert until reported); the lifecycle host feeds it Avalonia
+    // signals; the reporter pushes pings and exists only while analytics is enabled.
+    private ActiveTimeTracker? _activeTimeTracker;
+    private ActiveSessionLifecycleHost? _activeSessionHost;
+    private SessionStatsReporter? _sessionStatsReporter;
 
     public string? StartupDocument { get; set; }
 
@@ -212,7 +222,18 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
 
         var messenger = serviceProvider.GetRequiredService<IMessenger>();
         SessionLogger.InitInstance(messenger);
-        messenger.Register<ViewPortInitializedMessage>(this, msg => TryLoadStartupDocument());
+
+        // Active-session tracking: measure real usage time (foreground & not idle), not process
+        // wall-clock. The tracker/host are created unconditionally (no I/O, no consent implications —
+        // data only leaves the device via the reporter, which is consent-gated in EnableAnalytics).
+        InitActiveSessionTracking();
+
+        messenger.Register<ViewPortInitializedMessage>(this, msg =>
+        {
+            TryLoadStartupDocument();
+            // The top level is created lazily on some heads (Android); (re)attach once the UI is up.
+            _activeSessionHost?.AttachInput(EditorApp.TopLevel);
+        });
 
         InitPlugins(serviceProvider);
 
@@ -413,6 +434,45 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
     }
 
     /// <summary>
+    /// Stands up the active-session accumulator and wires it to Avalonia lifecycle + input signals.
+    /// Consent-independent: the tracker only accumulates in-memory time; it is inert until the
+    /// consent-gated <see cref="SessionStatsReporter"/> (created in <see cref="EnableAnalytics"/>)
+    /// reads it. Guarded so it can never break startup.
+    /// </summary>
+    private void InitActiveSessionTracking()
+    {
+        try
+        {
+            _activeTimeTracker = new ActiveTimeTracker();
+
+            if (Application.Current is { } app)
+            {
+                _activeSessionHost = new ActiveSessionLifecycleHost(_activeTimeTracker, app)
+                {
+                    // On mobile the OS may kill us while backgrounded — flush a final ping there.
+                    BackgroundReport = () => _sessionStatsReporter?.ReportNow(force: true),
+                };
+                _activeSessionHost.Bind();
+                _activeSessionHost.AttachInput(EditorApp.TopLevel);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+        }
+    }
+
+    /// <summary>
+    /// Forces a final active-session ping (+ flush). Called from head shutdown/exit hooks
+    /// (desktop <c>OnAppClosing</c>, Android double-back exit). No-op when analytics is off.
+    /// </summary>
+    public void FlushSessionStats()
+    {
+        try { _sessionStatsReporter?.ReportNow(force: true); }
+        catch (Exception ex) { Logger.LogException(ex); }
+    }
+
+    /// <summary>
     /// Registers the AppStat analytics logging target (custom events / conversions — never crashes) and
     /// emits the session's first event. The endpoint is derived from the Sentry DSN baked into the
     /// concrete head assembly, so this works uniformly across heads without per-head plumbing; with no
@@ -439,13 +499,21 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
             _analyticsEnabled = true;
             Logger.Log("Analytics tracking enabled");
 
+            var platform = serviceProvider.GetService<IPlatformStuffService>()?.CurrentPlatform.ToString();
+
             // First analytics event of the session: the app started with tracking enabled. The batch
             // envelope already carries release / os / sessionId / installId, so we only add the head
             // platform for segmentation (Android vs desktop vs WASM).
             Logger.LogEventWithParams("App launched", new Dictionary<string, string?>
             {
-                { "Platform", serviceProvider.GetService<IPlatformStuffService>()?.CurrentPlatform.ToString() }
+                { "Platform", platform }
             });
+
+            // Start reporting active-session stats over the same transport. The tracker was created
+            // consent-independently in InitActiveSessionTracking; the reporter is what actually sends,
+            // so it lives only while analytics is enabled.
+            if (_activeTimeTracker != null && _sessionStatsReporter == null)
+                _sessionStatsReporter = new SessionStatsReporter(_activeTimeTracker, _appStatTarget, platform);
         }
         catch (Exception ex)
         {
@@ -467,6 +535,15 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         _analyticsEnabled = false;
         try
         {
+            // Stop active-session pings first: send a final one (so the work up to the withdrawal
+            // isn't lost) while the target is still registered, then tear the reporter down.
+            if (_sessionStatsReporter != null)
+            {
+                _sessionStatsReporter.ReportNow(force: true);
+                _sessionStatsReporter.Dispose();
+                _sessionStatsReporter = null;
+            }
+
             if (_appStatTarget != null)
             {
                 _appStatTarget.Flush();
