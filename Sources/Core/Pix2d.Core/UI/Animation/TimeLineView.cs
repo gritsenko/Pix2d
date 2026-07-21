@@ -22,14 +22,26 @@ namespace Pix2d.UI.Animation;
 
 public partial class TimeLineView : ViewBase<TimeLineView.State>
 {
-    public TimeLineView(AppState appState, IMessenger messenger)
-        : base(new State(appState, messenger))
+    public TimeLineView(AppState appState, IMessenger messenger, ICommandService commandService)
+        : base(new State(appState, messenger, commandService))
     {
     }
 
     protected override StyleGroup BuildStyles() =>
     [
         new Style<Button>(s => s.Class("anim-btn"))
+            .CornerRadius(10)
+            .Foreground(StaticResources.Brushes.ForegroundBrush)
+            .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+            .FontSize(14)
+            .Width(44)
+            .Height(44)
+            .Padding(0),
+
+        // ToggleButton (the Play button) needs its own rule — AppStyles.cs has a global,
+        // unscoped `Style<ToggleButton>()` (Width/Height 44) that otherwise wins over the
+        // Narrow override below and leaves Play stuck at 44px while its sibling Buttons shrink.
+        new Style<ToggleButton>(s => s.Class("anim-btn"))
             .CornerRadius(10)
             .Foreground(StaticResources.Brushes.ForegroundBrush)
             .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
@@ -50,6 +62,18 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
                 .FontSize(14)
                 .Width(32)
                 .Height(32)
+                .Padding(0),
+
+            // AppStyles.cs' global, unscoped `Style<ToggleButton>()` also sets Margin(6) — override it
+            // here or Play keeps a visible gap around it that its sibling Buttons (Margin 0) don't have.
+            new Style<ToggleButton>(s => s.Class("anim-btn"))
+                .CornerRadius(10)
+                .Foreground(StaticResources.Brushes.ForegroundBrush)
+                .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                .FontSize(14)
+                .Width(32)
+                .Height(32)
+                .Margin(0)
                 .Padding(0),
         }
     ];
@@ -75,30 +99,48 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
                         new FuncDataTemplate<AnimationFrameViewModel>((itemVm, _) =>
                             itemVm == null
                                 ? new TextBlock().Text("No frame")
-                                : new Border()
-                                    .Background(StaticResources.Brushes.CheckerTilesBrush)
-                                    .CornerRadius(4)
-                                    .ClipToBounds(true)
-                                    .Child(
-                                        new Rectangle()
-                                            .Width(52)
-                                            .Height(52)
-                                            .Fill(itemVm, vm => vm.PreviewBrush))
-                                    .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })))
+                                : itemVm.IsAddFrame
+                                    ? new Border()
+                                        .Width(52)
+                                        .Height(52)
+                                        .Background(StaticResources.Brushes.ButtonBackgroundBrush)
+                                        .BorderBrush(Colors.White.WithAlpha(0.3f).ToBrush())
+                                        .BorderThickness(1)
+                                        .CornerRadius(4)
+                                        .Child(
+                                            new TextBlock()
+                                                .FontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
+                                                .FontSize(16)
+                                                .Foreground(StaticResources.Brushes.IconForegroundBrush)
+                                                .HorizontalAlignment(HorizontalAlignment.Center)
+                                                .VerticalAlignment(VerticalAlignment.Center)
+                                                .Text("\xe920"))
+                                    : new Border()
+                                        .Background(StaticResources.Brushes.CheckerTilesBrush)
+                                        .CornerRadius(4)
+                                        .ClipToBounds(true)
+                                        .Child(
+                                            new Rectangle()
+                                                .Width(52)
+                                                .Height(52)
+                                                .Fill(itemVm, vm => vm.PreviewBrush))
+                                        .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })))
             ]);
 
     public sealed partial class State : ToolkitObservableObject
     {
         private readonly AppState _appState;
         private readonly IMessenger _messenger;
+        private readonly Pix2dCommand _addFrameAtEndCommand;
         private SpriteEditor? _editor;
         private bool _isSyncing;
         private ItemReorderInfo<AnimationFrameViewModel>? _reorderInfo;
 
-        public State(AppState appState, IMessenger messenger)
+        public State(AppState appState, IMessenger messenger, ICommandService commandService)
         {
             _appState = appState;
             _messenger = messenger;
+            _addFrameAtEndCommand = commandService.GetCommandList<ISpriteAnimationCommands>()!.AddFrameAtEnd;
 
             _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
             _messenger.Register<SelectedFrameChangedMessage>(this, OnSelectedFrameChanged);
@@ -117,6 +159,12 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
         {
             if (_isSyncing || value == -1)
                 return;
+
+            if (value < Frames.Count && Frames[value].IsAddFrame)
+            {
+                _addFrameAtEndCommand.Execute();
+                return;
+            }
 
             _appState.SpriteEditorState.CurrentFrameIndex = value;
             _editor?.SetFrameIndex(value);
@@ -147,10 +195,11 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
                 var count = _editor?.FramesCount ?? 1;
                 var frames = Enumerable
                     .Range(0, count)
-                    .Select(_ => new AnimationFrameViewModel { PreviewProvider = PreviewProvider });
+                    .Select(_ => new AnimationFrameViewModel { PreviewProvider = PreviewProvider })
+                    .Append(new AnimationFrameViewModel { IsAddFrame = true });
 
                 Frames.ReloadItems(frames, silent: isReordering);
-                _appState.SpriteEditorState.FramesCount = Frames.Count;
+                _appState.SpriteEditorState.FramesCount = count;
             }
 
             SyncSelectedIndex();
@@ -252,6 +301,12 @@ public class AnimationFrameViewModel : LegacyObservableObject
 
     public Func<AnimationFrameViewModel, SKBitmap?>? PreviewProvider { get; set; }
     public Action<AnimationFrameViewModel>? UpdatePropertiesAction { get; set; }
+
+    public bool IsAddFrame
+    {
+        get => Get<bool>();
+        set => Set(value);
+    }
 
     public SKBitmap? Preview
     {

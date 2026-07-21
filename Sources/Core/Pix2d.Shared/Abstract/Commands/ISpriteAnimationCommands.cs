@@ -5,6 +5,7 @@ namespace Pix2d.Abstract.Commands;
 public interface ISpriteAnimationCommands : ICommandList
 {
     Pix2dCommand AddFrame { get; }
+    Pix2dCommand AddFrameAtEnd { get; }
     Pix2dCommand DuplicateFrame { get; }
     Pix2dCommand TogglePlay { get; }
     Pix2dCommand PrevFrame { get; }

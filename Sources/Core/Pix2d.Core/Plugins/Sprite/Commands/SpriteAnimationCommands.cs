@@ -14,6 +14,9 @@ public class SpriteAnimationCommands : CommandsListBase, ISpriteAnimationCommand
     public Pix2dCommand AddFrame =>
         GetCommand(() => { SpriteEditor?.AddFrame(); }, "Add frame", null, EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 
+    public Pix2dCommand AddFrameAtEnd =>
+        GetCommand(() => { SpriteEditor?.AddFrameAtEnd(); }, "Add frame at end", null, EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
+
     public Pix2dCommand DuplicateFrame =>
         GetCommand(() => { SpriteEditor?.DuplicateFrame(); }, "Duplicate frame", null, EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 

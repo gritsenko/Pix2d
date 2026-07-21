@@ -487,6 +487,17 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         _operationService.InvokeAndPushOperations(operation);
         OnFramesChanged(FramesChangedType.Add, [CurrentFrameIndex]);
     }
+
+    public void AddFrameAtEnd()
+    {
+        if (CurrentSprite == null)
+            return;
+
+        //previousIndex == -1 means add to end of list
+        var operation = new AddAnimationFrameOperation(CurrentSprite, -1);
+        _operationService.InvokeAndPushOperations(operation);
+        OnFramesChanged(FramesChangedType.Add, [CurrentFrameIndex]);
+    }
     public void DuplicateFrame()
     {
         if (CurrentSprite == null)

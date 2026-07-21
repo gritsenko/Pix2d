@@ -10,7 +10,7 @@ namespace Pix2d.Plugins.Sprite.Operations;
 public class AddAnimationFrameOperation : EditOperationBase, ISpriteEditorOperation
 {
     private readonly Pix2dSprite _sprite;
-    private readonly int _previousIndex;
+    private readonly int _restoreFrameIndex;
     private readonly int _newFrameIndex;
     private LayerFrameMeta[]? _framesToRestore;
     private BitmapNode[]? _nodesToRestore;
@@ -27,10 +27,10 @@ public class AddAnimationFrameOperation : EditOperationBase, ISpriteEditorOperat
         _sprite = sprite;
 
         //previousIndex == -1 means add to end of list
-        _previousIndex = previousIndex;
-        _newFrameIndex = _previousIndex + 1;
+        _newFrameIndex = previousIndex == -1 ? sprite.GetFramesCount() : previousIndex + 1;
+        _restoreFrameIndex = previousIndex == -1 ? _newFrameIndex - 1 : previousIndex;
 
-        AffectedFrameIndexes = [_previousIndex, _newFrameIndex];
+        AffectedFrameIndexes = [_restoreFrameIndex, _newFrameIndex];
         AffectedLayerIndexes = sprite.Layers.Select(x => x.Index).ToHashSet();
     }
 
@@ -66,7 +66,7 @@ public class AddAnimationFrameOperation : EditOperationBase, ISpriteEditorOperat
              layers[i].DeleteFrame(_newFrameIndex);
          }
 
-         _sprite.SetFrameIndex(_previousIndex);
+         _sprite.SetFrameIndex(_restoreFrameIndex);
      }
 
     public override IEnumerable<SKNode> GetEditedNodes()
