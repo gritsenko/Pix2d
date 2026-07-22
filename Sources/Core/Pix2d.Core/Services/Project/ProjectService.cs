@@ -201,6 +201,8 @@ public class ProjectService : IProjectService, ISessionProjectLoader
         if (string.IsNullOrWhiteSpace(defaultName))
             defaultName = GetDefaultFileName();
 
+        defaultName = SanitizeProjectFileName(defaultName);
+
         var i = 0;
         var name = defaultName;
         while (folder.GetFileSource(name, ".pix2d").Exists)
@@ -210,6 +212,22 @@ public class ProjectService : IProjectService, ISessionProjectLoader
         }
 
         return folder.GetFileSource(name, ".pix2d");
+    }
+
+    // Guards against names sourced from external file pickers / content providers, which can hand
+    // back invalid-for-filesystem characters or (rarely) a display name hundreds of chars long -
+    // either of which would otherwise blow the OS path-length limit deep inside File.OpenWrite.
+    private const int MaxProjectFileNameLength = 100;
+
+    private static string SanitizeProjectFileName(string name)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        if (name.IndexOfAny(invalidChars) >= 0)
+            name = string.Concat(name.Select(c => invalidChars.Contains(c) ? '_' : c));
+
+        return name.Length > MaxProjectFileNameLength
+            ? name[..MaxProjectFileNameLength]
+            : name;
     }
 
     public async Task SaveCurrentProjectAsAsync(ExportImportProjectType saveAsType)
@@ -312,7 +330,12 @@ public class ProjectService : IProjectService, ISessionProjectLoader
             var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
             if (AppState.Settings.UseInternalFolder && !file.Path.StartsWith(folder.Path))
             {
-                var projectName = Path.GetFileNameWithoutExtension(file.Path);
+                // file.Title is the display name (e.g. from SAF's DISPLAY_NAME column); file.Path
+                // for a content:// source is the raw URI, whose document-id segment can itself
+                // encode the source folder path (.../document/primary%3ADownload%2F...) with no
+                // literal '/', so GetFileNameWithoutExtension(file.Path) would treat that whole
+                // blob as the file name and blow past the OS path-length limit (#crash).
+                var projectName = Path.GetFileNameWithoutExtension(file.Title);
                 file = GetUniqueProjectFile(folder, projectName);
                 HasUnsavedChanges = true;
             }
@@ -364,7 +387,7 @@ public class ProjectService : IProjectService, ISessionProjectLoader
             var folder = await FileService.GetLocalFolderAsync(ProjectsFolder);
             if (AppState.Settings.UseInternalFolder && !file.Path.StartsWith(folder.Path))
             {
-                var projectName = Path.GetFileNameWithoutExtension(file.Path);
+                var projectName = Path.GetFileNameWithoutExtension(file.Title);
                 file = GetUniqueProjectFile(folder, projectName);
                 hasUnsavedChanges = true;
             }
