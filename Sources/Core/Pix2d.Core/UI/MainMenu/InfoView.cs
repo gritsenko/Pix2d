@@ -297,6 +297,7 @@ public partial class InfoView : ViewBase<InfoView.State>
 
         public void OpenSupportPage()
         {
+            Logger.LogEventWithParams("Support Pix2d clicked", null);
             _platformStuffService.OpenUrlInBrowser("https://pix2d.com/donate.html");
         }
 

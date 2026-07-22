@@ -60,23 +60,39 @@ public abstract class ReviewService : IReviewService, IDisposable
 
         var start = random.Next(0, PromptButtonText.Length);
         RatePromptButtonText = PromptButtonText[start];
-        
+
+        // Fold the previous session's elapsed wall-clock time into "TotalWorkTime" now, at the start of
+        // this one — Dispose() (the old flush point for this) is never reached in practice: Android
+        // backgrounds/kills the process via OnPause/OnStop/OnDestroy without disposing this service, and
+        // desktop's OnAppClosing doesn't touch it either. Doing it here instead makes the 2-hour gate in
+        // TrySuggestRate cumulative across app launches rather than resetting (and never firing) every time.
+        if (SettingsService.TryGet<DateTime>("LaunchTime", out var previousLaunchTime) && previousLaunchTime != default)
+        {
+            SettingsService.TryGet<TimeSpan>("TotalWorkTime", out var accumulated);
+            SettingsService.Set("TotalWorkTime", accumulated + (DateTime.Now - previousLaunchTime));
+        }
+
         SettingsService.Set("LaunchTime", DateTime.Now);
     }
 
     public void SaveTotalWorkTime()
     {
+        SettingsService.Set("TotalWorkTime", GetTotalWorkTime());
+        // Reset the session clock so a later Dispose() (if it ever fires) doesn't double-count
+        // the span already folded into "TotalWorkTime".
+        SettingsService.Set("LaunchTime", DateTime.Now);
+    }
+
+    // "TotalWorkTime" is only persisted here and in SaveTotalWorkTime(), but Dispose() (the only
+    // caller of the latter) is never reached in the real app lifecycle — Android backgrounds/kills
+    // the process via OnPause/OnStop/OnDestroy and desktop's OnAppClosing never touches this service.
+    // Without folding in the current session's elapsed time, the stored value stays 0 forever and
+    // TrySuggestRate's 2-hour gate can never pass. Compute it live instead of relying on a flush point.
+    private TimeSpan GetTotalWorkTime()
+    {
         var launchTime = SettingsService.Get<DateTime>("LaunchTime");
-        var curTime = DateTime.Now;
-        var delta = curTime - launchTime;
-
-        var totalTime = TimeSpan.Zero;
-
-        SettingsService.TryGet("TotalWorkTime", out totalTime);
-
-        totalTime += delta;
-
-        SettingsService.Set("TotalWorkTime", totalTime);
+        SettingsService.TryGet<TimeSpan>("TotalWorkTime", out var totalTime);
+        return totalTime + (DateTime.Now - launchTime);
     }
     public string RatePromptButtonText { get; set; }
 
@@ -95,7 +111,7 @@ public abstract class ReviewService : IReviewService, IDisposable
 
         SettingsService.TryGet<bool>("IsAppReviewed", out var isReviewed);
         SettingsService.TryGet<DateTime>("NextPromptTime", out var nextPromptTime);
-        SettingsService.TryGet<TimeSpan>("TotalWorkTime", out var totalWorkTime);
+        var totalWorkTime = GetTotalWorkTime();
 
         if (isReviewed || nextPromptTime > DateTime.Now || totalWorkTime.TotalHours < 2)
         {
@@ -176,7 +192,7 @@ public abstract class ReviewService : IReviewService, IDisposable
         var sessionTime = DateTime.Now - launchTime;
 
         SettingsService.TryGet<int>("AppReviewPromptsCount", out var promptsCount);
-        SettingsService.TryGet<TimeSpan>("TotalWorkTime", out var totalWorkTime);
+        var totalWorkTime = GetTotalWorkTime();
 
         Dictionary<string, string> args;
 
