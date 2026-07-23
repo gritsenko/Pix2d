@@ -39,11 +39,21 @@ public class DeleteAnimationFrameOperation : EditOperationBase, ISpriteEditorOpe
     {
             var layers = _sprite.Layers.ToArray();
 
+            // Layers can desync in frame count (e.g. after an interrupted reorder); Layer.DeleteFrame
+            // indexes into each layer's own Frames list, so an index valid for one layer can be out of
+            // range for another. Validate against every layer up front so we never delete from some
+            // layers and then throw on another, which would leave the sprite inconsistent.
+            foreach (var layer in layers)
+            {
+                if (_deletedFrameIndex < 0 || _deletedFrameIndex >= layer.Frames.Count)
+                    return;
+            }
+
             for (var i = 0; i < layers.Length; i++)
             {
                 var layer = layers[i];
 
-                var i1 = i;//resharper idea 
+                var i1 = i;//resharper idea
      layer.DeleteFrame(_deletedFrameIndex, s => _deletedNodes[i1] = s, f => _deletedFrameNodeId = f);
             }
 

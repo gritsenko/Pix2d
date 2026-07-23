@@ -261,7 +261,32 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
         private void OnFramesReordered(ItemReorderInfo<AnimationFrameViewModel> reorderInfo)
         {
             Debug.WriteLine($"Reordered frames from {reorderInfo.OldIndex} to {reorderInfo.NewIndex}");
-            _editor?.ReorderFrames(reorderInfo.OldIndex, reorderInfo.NewIndex);
+
+            var frameCount = _editor?.FramesCount ?? 0;
+            var oldIndex = reorderInfo.OldIndex;
+            var newIndex = reorderInfo.NewIndex;
+
+            // The Frames collection carries an extra "add frame" placeholder at index == frameCount.
+            // The drag behavior treats it as an ordinary item, so a user can drag the placeholder itself
+            // (oldIndex == frameCount) or drop a real frame onto its slot (newIndex == frameCount). Both
+            // push an index past the real-frame range and throw inside ReorderAnimationFramesOperation.
+            // Reject the placeholder as a drag source and clamp a drop-on-placeholder to the last frame.
+            if (oldIndex < 0 || oldIndex >= frameCount)
+            {
+                ReloadFrames(_editor); // placeholder was dragged - rebuild the VM order the Move mangled
+                return;
+            }
+
+            if (newIndex >= frameCount)
+                newIndex = frameCount - 1;
+
+            if (newIndex < 0 || newIndex == oldIndex)
+            {
+                ReloadFrames(_editor);
+                return;
+            }
+
+            _editor?.ReorderFrames(oldIndex, newIndex);
         }
 
         private SKBitmap? PreviewProvider(AnimationFrameViewModel frameVm)

@@ -30,31 +30,38 @@ public class ReorderAnimationFramesOperation : EditOperationBase, ISpriteEditorO
 
     public override void OnPerform()
     {
-            var layers = _sprite.Layers.ToArray();
-            var reorderedFrames = _sprite.Layers.Select(x => LayerFrameMeta.Copy(x.Frames[_oldFrameIndex])).ToArray();
-
-            for (var i = 0; i < layers.Length; i++)
-            {
-                var frame = reorderedFrames[i];
-                layers[i].Frames.RemoveAt(_oldFrameIndex);
-                layers[i].Frames.Insert(_newFrameIndex, frame);
-            }
-
-            _sprite.SetFrameIndex(_newFrameIndex);
+            Reorder(_oldFrameIndex, _newFrameIndex);
         }
 
     public override void OnPerformUndo()
     {
+            Reorder(_newFrameIndex, _oldFrameIndex);
+        }
+
+    private void Reorder(int fromIndex, int toIndex)
+    {
             var layers = _sprite.Layers.ToArray();
-            var reorderedFrames = _sprite.Layers.Select(x => LayerFrameMeta.Copy(x.Frames[_newFrameIndex])).ToArray();
+
+            // Validate both indices against EVERY layer before touching any of them. Layers can hold
+            // different frame counts (e.g. a prior partial reorder), and mutating layer-by-layer while
+            // one throws mid-loop would leave layers with mismatched counts and corrupt the project.
+            foreach (var layer in layers)
+            {
+                var count = layer.Frames.Count;
+                if (fromIndex < 0 || fromIndex >= count || toIndex < 0 || toIndex >= count)
+                    return;
+            }
+
+            var reorderedFrames = layers.Select(x => LayerFrameMeta.Copy(x.Frames[fromIndex])).ToArray();
 
             for (var i = 0; i < layers.Length; i++)
             {
                 var frame = reorderedFrames[i];
-                layers[i].Frames.RemoveAt(_newFrameIndex);
-                layers[i].Frames.Insert(_oldFrameIndex, frame);
+                layers[i].Frames.RemoveAt(fromIndex);
+                layers[i].Frames.Insert(toIndex, frame);
             }
-            _sprite.SetFrameIndex(_oldFrameIndex);
+
+            _sprite.SetFrameIndex(toIndex);
         }
 
     public override IEnumerable<SKNode> GetEditedNodes()
