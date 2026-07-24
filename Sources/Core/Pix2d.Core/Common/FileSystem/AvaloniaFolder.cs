@@ -5,7 +5,10 @@ namespace Pix2d.Common.FileSystem;
 
 public class AvaloniaFolder(IStorageFolder folder) : IWriteDestinationFolder
 {
-    public string Path => folder.Path.AbsolutePath;
+    // TryGetLocalPath gives a real filesystem path; Uri.AbsolutePath does not — for file:///C:/a/My%20Art
+    // it yields "/C:/a/My%20Art", which is neither rooted correctly nor unescaped, so every Directory/File
+    // call built on it missed the actual folder.
+    public string Path => folder.TryGetLocalPath() ?? folder.Path.LocalPath;
 
     public IFileContentSource GetFileSource(string name, string extension = "png", bool overWrite = false)
     {
@@ -14,18 +17,18 @@ public class AvaloniaFolder(IStorageFolder folder) : IWriteDestinationFolder
             Directory.CreateDirectory(Path);
         }
 
-        return new NetFileSource(GetFileName(name, extension.TrimStart('.'), overWrite));
+        return new NetFileSource(GetFilePath(name, extension.TrimStart('.'), overWrite));
     }
 
     public async Task<IFileContentSource> GetFileSourceAsync(string name, string extension = "png", bool overwrite = false)
     {
-        var file = await folder.CreateFileAsync(GetFileName(name, extension.TrimStart('.')));
+        var file = await folder.CreateFileAsync(GetUniqueFileName(name, extension.TrimStart('.'), overwrite));
         return new AvaloniaFileSource(file!);
     }
 
     public Task<IFileContentSource> GetFileSourceToReadAsync(string name, string extension = "png")
     {
-        var path = GetFileName(name, extension.TrimStart('.'), true);
+        var path = GetFilePath(name, extension.TrimStart('.'), true);
         if (File.Exists(path))
         {
             return Task.FromResult<IFileContentSource>(new NetFileSource(path));
@@ -44,18 +47,30 @@ public class AvaloniaFolder(IStorageFolder folder) : IWriteDestinationFolder
     }
 
 
-    private string GetFileName(string name, string extension, bool overWrite = false)
-    {
-        var i = 0;
-        var filePath = System.IO.Path.Combine(System.IO.Path.GetFileNameWithoutExtension(name) + "." + extension);
+    /// <summary>
+    /// Full path of the target file inside this folder. Callers that hand the result to a raw File/Directory
+    /// API must use this rather than the bare name — a relative name resolves against the process working
+    /// directory, which is C:\Windows\System32 when Pix2d is launched via a file association.
+    /// </summary>
+    private string GetFilePath(string name, string extension, bool overWrite = false)
+        => System.IO.Path.Combine(Path, GetUniqueFileName(name, extension, overWrite));
 
-        while (!overWrite && File.Exists(filePath)) 
+    /// <summary>File name only — this is what IStorageFolder.CreateFileAsync expects.</summary>
+    private string GetUniqueFileName(string name, string extension, bool overWrite = false)
+    {
+        var baseName = System.IO.Path.GetFileNameWithoutExtension(name);
+        var fileName = baseName + "." + extension;
+
+        var i = 0;
+        // Probe inside this folder. The old code tested a bare name against the working directory, so the
+        // collision check practically never matched and existing exports were silently overwritten.
+        while (!overWrite && File.Exists(System.IO.Path.Combine(Path, fileName)))
         {
             i++;
-            filePath = System.IO.Path.Combine(System.IO.Path.GetFileNameWithoutExtension(name) + "_" + i + "." + extension);
+            fileName = baseName + "_" + i + "." + extension;
         }
 
-        return filePath;
+        return fileName;
     }
 
     public void CopyTemplateFrom(string templatePath)

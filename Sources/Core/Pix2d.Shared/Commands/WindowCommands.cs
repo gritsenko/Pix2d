@@ -14,14 +14,17 @@ public class WindowCommands : CommandsListBase
 
     public Pix2dCommand RateAppCommand => GetCommand(async () =>
     {
+        // Dismiss the banner *before* awaiting: RateApp() blocks on a platform rate dialog (Google Play /
+        // MS Store) that can take seconds to appear, and a button left live in the meantime invited the
+        // second tap that double-logged the funnel's "Accepted" event.
+        AppState.UiState.ShowRatePrompt = false;
+
         // Tolerate a head with no IReviewService registered — the prompt can't normally show there, but
-        // never crash the command if it somehow does.
+        // never crash the command if it somehow does. Persisting "reviewed" belongs to RateApp() itself,
+        // so it can't be forgotten by another entry point (and isn't written when there's no funnel at all).
         var reviewService = ServiceProvider.GetService<IReviewService>();
         if (reviewService != null)
             await reviewService.RateApp();
-
-        AppState.UiState.ShowRatePrompt = false;
-        ServiceProvider.GetRequiredService<ISettingsService>().Set("IsAppReviewed", true);
     });
 
     public Pix2dCommand CloseRatePromptCommand => GetCommand(() =>

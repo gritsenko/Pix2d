@@ -2,6 +2,7 @@
 using Avalonia.Platform.Storage;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
+using Pix2d.Abstract.Services;
 using Pix2d.Common.FileSystem;
 using Pix2d.Infrastructure;
 using Pix2d.Messages;
@@ -36,7 +37,11 @@ public class AvaloniaFileService(
                 ]
             };
 
+            options.SuggestedStartLocation = await GetStartLocationAsync(sp, contextKey);
+
             var result = await sp.OpenFilePickerAsync(options);
+
+            RememberFolder(contextKey, result.FirstOrDefault());
 
             return result.Select(GetFileSource);
         }
@@ -49,6 +54,73 @@ public class AvaloniaFileService(
     private IStorageProvider GetStorageProvider()
     {
         return EditorApp.TopLevel?.StorageProvider ?? throw new InvalidOperationException("StorageProvider is null");
+    }
+
+    /// <summary>
+    /// Resolves the folder a picker should open in for the given context, implementing the per-context
+    /// last-folder memory documented on <see cref="IFileService"/>. Without an explicit start location the
+    /// Win32 picker falls back to the process working directory, which is C:\Windows\System32 when Pix2d is
+    /// launched through a file association — users then accepted that folder and every write failed with
+    /// UnauthorizedAccessException. Falls back to Documents so the default is always writable.
+    /// </summary>
+    private async Task<IStorageFolder?> GetStartLocationAsync(IStorageProvider sp, string? contextKey)
+    {
+        try
+        {
+            if (GetContextFolders().TryGetValue(contextKey ?? DefaultContextKey, out var lastPath)
+                && !string.IsNullOrWhiteSpace(lastPath)
+                && Directory.Exists(lastPath))
+            {
+                var folder = await sp.TryGetFolderFromPathAsync(lastPath);
+                if (folder != null)
+                    return folder;
+            }
+
+            return await sp.TryGetWellKnownFolderAsync(WellKnownFolder.Documents);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+            return null;
+        }
+    }
+
+    private const string DefaultContextKey = "default";
+
+    private Dictionary<string, string> GetContextFolders()
+    {
+        try
+        {
+            return settingsService.Get<Dictionary<string, string>>(SettingsConstants.FileServiceContexts) ?? [];
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+            return [];
+        }
+    }
+
+    private void RememberFolder(string? contextKey, IStorageItem? item)
+    {
+        try
+        {
+            var path = item?.TryGetLocalPath();
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+
+            // A picked file gives us its folder; a picked folder is already the folder we want to reuse.
+            var folderPath = item is IStorageFolder ? path : Path.GetDirectoryName(path);
+            if (string.IsNullOrWhiteSpace(folderPath))
+                return;
+
+            var contexts = GetContextFolders();
+            contexts[contextKey ?? DefaultContextKey] = folderPath;
+            settingsService.Set(SettingsConstants.FileServiceContexts, contexts);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+        }
     }
 
     public async Task<bool> SaveTextToFileWithDialogAsync(string text, string[] fileTypeFilter,
@@ -103,11 +175,15 @@ public class AvaloniaFileService(
 
             var sp = GetStorageProvider();
 
+            options.SuggestedStartLocation = await GetStartLocationAsync(sp, contextKey);
+
             var result = await sp.SaveFilePickerAsync(options);
             if (result == null)
             {
                 return FileDialogResultError.NoFileSelected;
             }
+
+            RememberFolder(contextKey, result);
 
             return Result<IFileContentSource, FileDialogResultError>.FromNullable(GetFileSource(result),
                 FileDialogResultError.FileSourceNotCreated);
@@ -132,8 +208,12 @@ public class AvaloniaFileService(
             var sp = GetStorageProvider();
 
             var options = new FolderPickerOpenOptions() { Title = "Select folder to export" };
+            options.SuggestedStartLocation = await GetStartLocationAsync(sp, contextKey);
+
             var folders = await sp.OpenFolderPickerAsync(options);
             var folder = folders.FirstOrDefault();
+
+            RememberFolder(contextKey, folder);
 
             return folder != null ? new AvaloniaFolder(folder) : null;
         }

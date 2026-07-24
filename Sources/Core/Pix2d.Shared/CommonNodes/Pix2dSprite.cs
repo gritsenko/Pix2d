@@ -56,7 +56,9 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
     // otherwise throws ArgumentOutOfRangeException. Every caller already treats null as "no layer".
     private Layer? GetLayer(int index) => index >= 0 && index < Nodes.Count ? Nodes[index] as Layer : null;
 
-    public int NextFrameIndex => (CurrentFrameIndex + 1) % GetFramesCount();
+    // The playback timer reads this every tick; GetFramesCount() is 0 for a sprite with no layers
+    // (mid-load / after the last layer is removed), which would make the modulo throw DivideByZero.
+    public int NextFrameIndex => GetFramesCount() is var count && count > 0 ? (CurrentFrameIndex + 1) % count : 0;
 
     public void SetNextFrame(bool cycled = true)
     {
@@ -418,7 +420,13 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
     public void SetFrameIndex(int index) => SetFrameIndex(index, false);
     public void SetFrameIndex(int index, bool cancelRequestedAction)
     {
-        //CurrentFrameIndex = index;
+        // Clamp at the single entry point that mutates the sprite's frame pointer. Indexes arrive from the
+        // timeline view-models, undo operations and the playback timer, any of which can be one edit behind
+        // the model (e.g. a frame deleted while the timeline still selects it). Every drawing path reads
+        // CurrentFrameIndex and forwards it to Layer.Frames[..], so a stale value used to be fatal.
+        var framesCount = GetFramesCount();
+        index = framesCount == 0 ? 0 : Math.Clamp(index, 0, framesCount - 1);
+
         if (_currentFrameIndex != index)
         {
             if (!cancelRequestedAction && !IsPlaying)

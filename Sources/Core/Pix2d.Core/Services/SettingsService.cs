@@ -177,6 +177,12 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
         }
     }
 
+    /// <summary>
+    /// Keys already reported by <see cref="Set{T}"/> as unbacked, so a setting written on every
+    /// launch/interaction warns once per process instead of spamming the log.
+    /// </summary>
+    private static readonly HashSet<string> _reportedMissingKeys = new(StringComparer.OrdinalIgnoreCase);
+
     public void Set<T>(string key, T? value)
     {
         EnsureSettingsInitialized();
@@ -188,7 +194,15 @@ public class SettingsService(IPlatformStuffService platformStuffService) : ISett
             {
                 property.SetValue(Settings, value);
                 Save();
+                return;
             }
+
+            // A key with no writable AppSettings property is a silent write loss: the value never reaches
+            // disk and every later Get/TryGet returns default. That silence is what let the whole rate-prompt
+            // gate ("LaunchTime"/"IsAppReviewed"/… were never declared) misbehave for a full release, so make
+            // it loud — the fix is always to add the property to AppSettings, never to swallow this.
+            if (_reportedMissingKeys.Add(key))
+                Logger.Log($"SettingsService: setting '{key}' is not backed by an AppSettings property — value was NOT persisted.");
         }
         finally
         {

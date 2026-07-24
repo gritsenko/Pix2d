@@ -81,9 +81,22 @@ public partial class Pix2dSprite
         private SpriteNode? GetActiveFrameSprite() => GetSpriteByFrame(GetFrameByIndex(CurrentFrameIndex));
         public SpriteNode? GetSpriteByFrame(int index) => GetSpriteByFrame(GetFrameByIndex(index));
 
-        private LayerFrameMeta GetFrameByIndex(int index)
+        /// <summary>
+        /// Resolves frame metadata by index, or null when the index doesn't address an existing frame.
+        /// Frame indexes reach this class from UI collections (timeline VMs), undo operations and the
+        /// playback timer, and those can lag one edit behind the model — a frame deleted while the
+        /// timeline still points at it used to surface as a fatal ArgumentOutOfRangeException from
+        /// Frames[index] on the next brush stroke. Layers can also desync in frame count, so an index
+        /// valid for one layer may be out of range for another. Degrading to null lets callers skip the
+        /// operation instead of killing the stroke.
+        /// </summary>
+        private LayerFrameMeta? GetFrameByIndex(int index)
         {
             EnsureFramesInitialized();
+
+            if (index < 0 || index >= Frames.Count)
+                return null;
+
             return Frames[index];
         }
 
@@ -105,9 +118,9 @@ public partial class Pix2dSprite
             }
         }
 
-        private SpriteNode? GetSpriteByFrame(LayerFrameMeta frame)
+        private SpriteNode? GetSpriteByFrame(LayerFrameMeta? frame)
         {
-            return frame.NodeId == Guid.Empty
+            return frame == null || frame.NodeId == Guid.Empty
                 ? null
                 : Nodes.OfType<SpriteNode>().FirstOrDefault(x => x.Id == frame.NodeId);
         }
@@ -183,7 +196,7 @@ public partial class Pix2dSprite
             {
 
                 var frame = GetFrameByIndex(frameIndex);
-                if (HasFrameUniqueSprite(frame))
+                if (frame == null || HasFrameUniqueSprite(frame))
                     return;
 
                 var sprite = new SpriteNode(this.Size);
@@ -212,16 +225,16 @@ public partial class Pix2dSprite
         }
 
         public bool HasFrameUniqueSprite(int frameIndex) => HasFrameUniqueSprite(GetFrameByIndex(frameIndex));
-        private bool HasFrameUniqueSprite(LayerFrameMeta frame)
+        private bool HasFrameUniqueSprite(LayerFrameMeta? frame)
         {
-            if (frame.IsEmpty)
+            if (frame == null || frame.IsEmpty)
                 return false;
 
             for (var i = 0; i < FrameCount; i++)
             {
                 var other = GetFrameByIndex(i);
                 //skip checking frame
-                if (other == frame) continue;
+                if (other == null || other == frame) continue;
 
                 if (frame.NodeId == other.NodeId)
                     return false;
@@ -396,6 +409,9 @@ public partial class Pix2dSprite
         public void DeleteFrame(int index, Action<SpriteNode>? onSpriteDeletedAction = default, Action<Guid>? onEmptyFrameDeletedAction = default)
         {
             var frame = GetFrameByIndex(index);
+            if (frame == null)
+                return;
+
             if (HasFrameUniqueSprite(frame))
             {
                 var sprite = GetSpriteByFrame(frame);
@@ -415,14 +431,7 @@ public partial class Pix2dSprite
 
         internal void SetFrame(int value)
         {
-            if (value == CurrentFrameIndex) return;
-
             CurrentFrameIndex = value;
-            if (CurrentFrameIndex >= FrameCount)
-            {
-                CurrentFrameIndex = FrameCount - 1;
-            }
-
             EnsureValidFrameIndex();
         }
 
@@ -430,8 +439,13 @@ public partial class Pix2dSprite
         {
             if (FrameCount == 0) return;
 
+            // Deleting frames can leave CurrentFrameIndex past the end. Re-clamping unconditionally (rather
+            // than only when the requested value changed) matters because the sprite may repeat the same
+            // index after frames were removed under it — the old early-return kept the stale index alive.
             if (CurrentFrameIndex >= FrameCount)
                 CurrentFrameIndex = FrameCount - 1;
+            else if (CurrentFrameIndex < 0)
+                CurrentFrameIndex = 0;
         }
 
         public void Resize(SKSize newSize, float horizontalAnchor, float verticalAnchor)
@@ -457,6 +471,9 @@ public partial class Pix2dSprite
         public void ClearFrame(int frameIndex)
         {
             var frame = GetFrameByIndex(frameIndex);
+            if (frame == null)
+                return;
+
             SetSpriteToFrame(frame, null);
         }
 

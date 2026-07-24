@@ -17,16 +17,16 @@ public class AndroidReviewService(ISettingsService settingsService, IMessenger m
         {
             var appId = "com.pix2d.pix2dapp";
 
-            var isInAppReviewShown = SettingsService.Get<bool?>("isInAppReviewShown");
+            SettingsService.TryGet<bool>(nameof(AppSettings.IsInAppReviewShown), out var isInAppReviewShown);
 
-            if (isInAppReviewShown == true)
+            if (isInAppReviewShown)
             {
                 Plugin.StoreReview.CrossStoreReview.Current.OpenStoreReviewPage(appId);
                 LogReview("Opened store page");
             }
             else
             {
-                SettingsService.Set("isInAppReviewShown", true);
+                SettingsService.Set(nameof(AppSettings.IsInAppReviewShown), true);
                 // Google's in-app review API surfaces no outcome (it may even show nothing if quota-limited),
                 // so "requested" is the strongest signal we can log — the dialog was asked for.
                 await Plugin.StoreReview.CrossStoreReview.Current.RequestReview(false);
