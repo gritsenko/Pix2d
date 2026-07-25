@@ -86,7 +86,19 @@ public class CrashReportService : ICrashReportService
 
     public void SetTelemetryConsent(TelemetryConsent consent)
     {
-        _settingsService.Set(nameof(AppSettings.TelemetryConsent), (int)consent);
+        try
+        {
+            _settingsService.Set(nameof(AppSettings.TelemetryConsent), (int)consent);
+        }
+        catch (Exception ex)
+        {
+            // Persisting the choice must never throw at the caller: this runs from the consent dialog's
+            // button handler, and an escaping exception used to abort it before it closed the dialog,
+            // leaving the user with two dead buttons. Failing to store the value only means consent stays
+            // Unset and is asked again next launch, while the in-memory switch below still takes effect.
+            Logger.LogException(ex);
+        }
+
         try
         {
             TelemetryConsentChanged?.Invoke(consent);

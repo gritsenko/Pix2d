@@ -6,8 +6,26 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<TrimMode>link</TrimMode>
 		<EnableTrimAnalyzer>true</EnableTrimAnalyzer>
-		<PublishTrimmed>false</PublishTrimmed>
+		<!-- Untrimmed, the whole BCL shipped: 174 framework assemblies, 48.2 MB uncompressed / 16.7 MB
+		     over the wire. Trimming takes that to 30.3 MB / 10.65 MB and 226 → 86 files. The Pix2d
+		     assemblies are rooted preserve="all" in LinkerConfig.xml, so only the BCL and Avalonia
+		     (which supports trimming) are actually reduced. -->
+		<PublishTrimmed>true</PublishTrimmed>
 		<WasmBuildNative>true</WasmBuildNative>
+		<!-- Both properties only take effect once PublishTrimmed is on, but they must be set here or a
+		     trimmed browser build breaks at runtime:
+		     1. The WASM SDK bakes System.Text.Json.JsonSerializer.IsReflectionEnabledByDefault=false into
+		        a trimmed build's runtimeconfig, so every reflection-based JsonSerializer.Serialize/
+		        Deserialize call throws InvalidOperationException. BrowserSettingsService (localStorage,
+		        i.e. ALL settings) and CrashReportService's local report store use exactly those overloads,
+		        and the Pix2d assemblies are rooted preserve="all" in LinkerConfig.xml, so the types
+		        reflection needs are never trimmed away — re-enable it instead of hand-writing a
+		        JsonSerializerContext for them.
+		     2. UseSystemResourceKeys defaults to true when trimming, which replaces BCL exception
+		        messages with bare resource keys and made the failure above unreadable in the console.
+		        Pix2d.Droid already opts out for the same reason. -->
+		<JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+		<UseSystemResourceKeys>false</UseSystemResourceKeys>
 	<!--<WasmEnableThreads>false</WasmEnableThreads>-->
 	</PropertyGroup>
 	<ItemGroup>

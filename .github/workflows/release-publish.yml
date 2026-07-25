@@ -501,6 +501,19 @@ jobs:
         cp -r wasm_build/wwwroot/* app.pix2d.com_repo/
       shell: bash
 
+    - name: Drop precompressed assets GitHub Pages cannot serve
+      # The WASM SDK emits a .gz and a .br next to every asset for a server that does content
+      # negotiation. GitHub Pages has no such configuration — it compresses on the fly instead
+      # (verified: it returns Content-Encoding: gzip even for application/wasm) — so these files are
+      # never requested and only add ~30 MB to every deploy commit. Delete them if the site ever moves
+      # to a host that serves brotli (then .br becomes the payload and this step must go).
+      run: |
+        cd app.pix2d.com_repo
+        before=$(du -sm . | cut -f1)
+        find . -path ./.git -prune -o -type f \( -name '*.gz' -o -name '*.br' \) -print -delete | wc -l
+        echo "size: ${before} MB -> $(du -sm . | cut -f1) MB"
+      shell: bash
+
     - name: Commit and Push to app.pix2d.com
       run: |
         cd app.pix2d.com_repo
