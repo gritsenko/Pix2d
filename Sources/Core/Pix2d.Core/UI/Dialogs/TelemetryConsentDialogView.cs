@@ -70,10 +70,18 @@ public class TelemetryConsentDialogView : ViewBase, IDialogView<bool>
                             .Content(L("No thanks"))
                             .OnClick(_ => Decide(false))));
 
+    // The dialog closes even if recording the decision fails — a modal the user cannot dismiss is worse
+    // than an unstored consent value (which is simply asked again on the next launch).
     private void Decide(bool allowed)
     {
-        _crashService.SetTelemetryConsent(allowed ? TelemetryConsent.Allowed : TelemetryConsent.Denied);
         DialogResult = allowed;
-        OnDialogClosed?.Invoke(allowed);
+        try
+        {
+            _crashService.SetTelemetryConsent(allowed ? TelemetryConsent.Allowed : TelemetryConsent.Denied);
+        }
+        finally
+        {
+            OnDialogClosed?.Invoke(allowed);
+        }
     }
 }

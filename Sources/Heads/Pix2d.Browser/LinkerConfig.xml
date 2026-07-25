@@ -1,12 +1,13 @@
 ﻿<linker>
+	<!-- Rooting the Pix2d assemblies wholesale is deliberate: the declarative UI, the tool/view factories
+	     (ActivatorUtilities), CommandsListBase's property reflection and NodeSerializer's Type.GetType all
+	     resolve types by name at runtime, which the trimmer cannot follow. The size win comes from the BCL
+	     and Avalonia instead. Do NOT list Pix2d.UI / Pix2d.Plugins.* here — those are namespaces inside
+	     Pix2d.Core, not assemblies, and ILLink rejected them with IL2007 "Could not resolve assembly". -->
 	<assembly fullname="Avalonia.Markup.Declarative" preserve="all" />
 	<assembly fullname="Pix2d.Browser" preserve="all" />
 	<assembly fullname="Pix2d.Core" preserve="all" />
 	<assembly fullname="Pix2d.Infrastructure" preserve="all" />
-	<assembly fullname="Pix2d.UI" preserve="all" />
-	<assembly fullname="Pix2d.Plugins.Drawing" preserve="all" />
-	<assembly fullname="Pix2d.Plugins.BaseEffects" preserve="all" />
-	<assembly fullname="Pix2d.Plugins.PixelText" preserve="all" />
 
 	<assembly fullname="Newtonsoft.Json" preserve="all">
 		<type fullname="Newtonsoft.Json.Linq.JObject" preserve="all" />
