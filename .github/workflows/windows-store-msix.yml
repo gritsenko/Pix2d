@@ -66,10 +66,13 @@ jobs:
       env:
         SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
       run: |
+        # Must be a hashtable, not an array: array splatting binds elements
+        # POSITIONALLY, so @('-Version', '1.2.3') lands as -Version '-Version'
+        # -Configuration '1.2.3'. Only hashtable splatting passes named parameters.
         # Not named $args — that is a reserved PowerShell automatic variable.
-        $packArgs = @()
+        $packArgs = @{}
         if ('${{ steps.version.outputs.version }}') {
-          $packArgs += @('-Version', '${{ steps.version.outputs.version }}')
+          $packArgs['Version'] = '${{ steps.version.outputs.version }}'
         }
         ./build/pack-msix.ps1 @packArgs
 
