@@ -1,0 +1,82 @@
+# Builds the Microsoft Store MSIX bundle straight from the SDK-style project, with no
+# Windows Application Packaging Project (.wapproj) and no MSBuild/Visual Studio:
+#
+#   dotnet publish win-x64 / win-arm64  ->  winapp package  ->  .msixbundle
+#
+# All of the logic lives in build/pack-msix.ps1 so the exact same command runs locally.
+# The bundle is left unsigned on purpose — Partner Center accepts .msixbundle directly
+# and Microsoft re-signs on submission.
+#
+# The older msbuild/.wapproj pipeline is kept in dotnet-desktop-winstore.yml as a
+# manual-only fallback. Only one of the two should be wired to tag pushes.
+name: Windows Store MSIX Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'App version (X.Y.Z). Defaults to Pix2dVersion from Directory.Build.props.'
+        required: false
+        default: ''
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-2025
+
+    env:
+      # Pinned deliberately: winapp CLI is still in public preview, so CI must not
+      # silently move to a new packer. Bump together with the local install.
+      WINAPP_CLI_VERSION: '0.5.0'
+      WINAPP_CLI_TELEMETRY_OPTOUT: '1'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: |
+          10.0.x
+
+    - name: Install winapp CLI
+      shell: pwsh
+      run: npm install -g "@microsoft/winappcli@${env:WINAPP_CLI_VERSION}"
+
+    - name: Determine app version
+      id: version
+      shell: pwsh
+      run: |
+        $version = ''
+        if ($env:GITHUB_REF -like 'refs/tags/v*') {
+          $version = $env:GITHUB_REF -replace '^refs/tags/v', ''
+        }
+        if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ github.event.inputs.version }}') {
+          $version = '${{ github.event.inputs.version }}'
+        }
+        # Empty is valid: pack-msix.ps1 then falls back to Pix2dVersion.
+        Write-Host "Version: '$version'"
+        "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+    - name: Build MSIX bundle
+      shell: pwsh
+      env:
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      run: |
+        # Not named $args — that is a reserved PowerShell automatic variable.
+        $packArgs = @()
+        if ('${{ steps.version.outputs.version }}') {
+          $packArgs += @('-Version', '${{ steps.version.outputs.version }}')
+        }
+        ./build/pack-msix.ps1 @packArgs
+
+    - name: Upload MSIX bundle
+      uses: actions/upload-artifact@v7
+      with:
+        name: msix-bundle
+        path: artifacts/msix/*.msixbundle
+        if-no-files-found: error
+        retention-days: 14

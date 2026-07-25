@@ -1,4 +1,8 @@
-﻿name: Windows Store MSIX Package
+﻿# LEGACY fallback pipeline: builds the Store MSIX through the .wapproj with MSBuild and
+# Visual Studio. Superseded by windows-store-msix.yml (dotnet publish + winapp package),
+# which is the one wired to tag pushes. Kept manual-only so a tag does not build the same
+# package twice; use it if the winapp-based pipeline has to be rolled back.
+name: Windows Store MSIX Package (legacy wapproj)
 
 on:
   workflow_dispatch:
@@ -11,9 +15,6 @@ on:
         description: 'Отправить на сертификацию сразу? (true/false)'
         required: false
         default: 'true'
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   build:
