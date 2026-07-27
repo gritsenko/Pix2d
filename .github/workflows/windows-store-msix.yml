@@ -7,8 +7,10 @@
 # The bundle is left unsigned on purpose — Partner Center accepts .msixbundle directly
 # and Microsoft re-signs on submission.
 #
-# The older msbuild/.wapproj pipeline is kept in dotnet-desktop-winstore.yml as a
-# manual-only fallback. Only one of the two should be wired to tag pushes.
+# This is the only Store packaging pipeline: the legacy msbuild/.wapproj path
+# (dotnet-desktop-winstore.yml + Sources/Heads/Pix2d.Desktop.Wap) was deleted once a
+# submission built here had gone through Partner Center. Manifest + Store assets now
+# live in build/msix/.
 name: Windows Store MSIX Package
 
 on:

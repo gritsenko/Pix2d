@@ -27,9 +27,6 @@
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="Heads/Pix2d.Desktop.Wap/Pix2d.Desktop.Wap.wapproj" Type="c7167f0d-bc9f-4e6e-afe1-012c56b48db5">
-      <Deploy />
-    </Project>
     <Project Path="Heads/Pix2d.Desktop/Pix2d.Desktop.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
@@ -59,8 +56,8 @@
     </Project>
   </Folder>
   <Folder Name="/_GlobalItems/">
-    <File Path="../.github/workflows/dotnet-desktop-winstore.yml" />
     <File Path="../.github/workflows/release-publish.yml" />
+    <File Path="../.github/workflows/windows-store-msix.yml" />
     <File Path="Directory.Build.props" />
     <File Path="nuget.config" />
   </Folder>

@@ -1,19 +1,19 @@
 <#
 .SYNOPSIS
-    Builds the Microsoft Store MSIX bundle for Pix2d without a Windows Application
-    Packaging Project (.wapproj).
+    Builds the Microsoft Store MSIX bundle for Pix2d. This is the only Store packaging
+    path — the old Windows Application Packaging Project (.wapproj) has been removed.
 
 .DESCRIPTION
-    Replaces the msbuild/.wapproj packaging path with plain `dotnet publish` + the
-    Windows App Development CLI (`winapp package`, https://aka.ms/winappcli):
+    Plain `dotnet publish` + the Windows App Development CLI (`winapp package`,
+    https://aka.ms/winappcli), no msbuild and no Visual Studio:
 
         publish win-x64   -> staging/x64   (self-contained, single-file)
         publish win-arm64 -> staging/arm64
         winapp package staging/x64 staging/arm64 -> Pix2d_<ver>_x64_arm64.msixbundle
 
-    The package payload is deliberately kept identical in shape to what the .wapproj
-    produced (self-contained single-file exe + native side-by-side libs), with two
-    fixes: debug symbols (*.pdb) and linker imports (*.lib) are stripped, which the
+    The package payload is deliberately kept identical in shape to what the retired
+    .wapproj produced (self-contained single-file exe + native side-by-side libs), with
+    two fixes: debug symbols (*.pdb) and linker imports (*.lib) are stripped, which the
     .wapproj shipped inside the Store package.
 
     Store submissions do not need a signature (Microsoft re-signs). Pass -CertPath to
@@ -49,13 +49,13 @@ param(
     # Reuse an existing staging layout instead of re-publishing.
     [switch] $SkipPublish,
 
-    # Keep *.pdb / *.lib in the package (adds ~100 MB; the .wapproj used to do this).
+    # Keep *.pdb / *.lib in the package (adds ~100 MB; the old .wapproj used to do this).
     [switch] $IncludeSymbols,
 
-    # The .wapproj rewrote every TargetDeviceFamily in the manifest from its own
-    # TargetPlatformMinVersion / TargetPlatformVersion. The checked-in manifest still
-    # carries the pre-rewrite placeholders (MaxVersionTested="10.0.0.0"), which the
-    # Store rejects, so the same rewrite is reproduced here.
+    # The manifest is checked in with the placeholder values the old .wapproj rewrote at
+    # packaging time from its TargetPlatformMinVersion / TargetPlatformVersion
+    # (MaxVersionTested="10.0.0.0", MinVersion="10.0.0.0"), which the Store rejects — so
+    # the same rewrite is reproduced here.
     [string] $TargetPlatformMinVersion = '10.0.17763.0',
     [string] $MaxVersionTested = '10.0.26100.0'
 )
@@ -70,9 +70,9 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $desktopProj = Join-Path $repoRoot 'Sources\Heads\Pix2d.Desktop\Pix2d.Desktop.csproj'
 $propsFile = Join-Path $repoRoot 'Sources\Directory.Build.props'
 
-# Manifest + Store assets still live in the .wapproj folder so that project keeps
-# working as a fallback. They are plain files — nothing here invokes msbuild.
-$packagingDir = Join-Path $repoRoot 'Sources\Heads\Pix2d.Desktop.Wap'
+# Manifest + Store assets. Plain files, no project system behind them — they moved here
+# from the retired Sources\Heads\Pix2d.Desktop.Wap packaging project.
+$packagingDir = Join-Path $PSScriptRoot 'msix'
 $manifestSource = Join-Path $packagingDir 'Package.appxmanifest'
 $imagesSource = Join-Path $packagingDir 'Images'
 
@@ -136,13 +136,15 @@ function New-PackageManifest {
     # ProcessorArchitecture is intentionally not set: winapp stamps it per bundle slice
     # from each input folder's detected architecture. Verify-Bundle asserts it landed.
 
-    # The .wapproj resolved these MSBuild tokens for us; do it explicitly instead.
+    # The manifest is checked in with the MSBuild tokens the .wapproj used to resolve
+    # ($targetnametoken$.exe / $targetentrypoint$); resolve them explicitly instead.
     $app = $manifest.SelectSingleNode("//*[local-name()='Applications']/*[local-name()='Application']")
     if (-not $app) { throw "No <Application> element in $manifestSource" }
     $app.SetAttribute('Executable', 'Pix2d.exe')
     $app.SetAttribute('EntryPoint', 'Windows.FullTrustApplication')
 
-    # Same rewrite the .wapproj applied from TargetPlatformMinVersion/TargetPlatformVersion.
+    # Same rewrite the .wapproj applied from its TargetPlatformMinVersion /
+    # TargetPlatformVersion (10.0.17763.0 / 10.0.26100.0 — the defaults above).
     $families = $manifest.SelectNodes("//*[local-name()='Dependencies']/*[local-name()='TargetDeviceFamily']")
     foreach ($family in $families) {
         $family.SetAttribute('MinVersion', $TargetPlatformMinVersion)
@@ -171,8 +173,8 @@ foreach ($arch in $Architectures) {
         New-Item -ItemType Directory -Path $stage -Force | Out-Null
 
         Write-Host "==> dotnet publish $rid" -ForegroundColor Yellow
-        # --self-contained + PublishSingleFile match what the .wapproj's internal
-        # "msixpublish" step produced, so the Store payload does not change shape.
+        # --self-contained + PublishSingleFile match what the old .wapproj's internal
+        # "msixpublish" step produced, so the Store payload keeps its shape.
         # (Sources/Heads/Pix2d.Desktop/Pix2d.Desktop.csproj sets SelfContained=false
         # for the portable/zip builds, so it must be overridden here.)
         $publishArgs = @(
@@ -195,7 +197,7 @@ foreach ($arch in $Architectures) {
     }
 
     if (-not $IncludeSymbols) {
-        # The .wapproj shipped ~100 MB of .pdb (libSkiaSharp.pdb alone is 80 MB) plus
+        # The old .wapproj shipped ~100 MB of .pdb (libSkiaSharp.pdb alone is 80 MB) plus
         # unused import libraries inside the Store package. Drop them.
         $junk = Get-ChildItem $stage -Recurse -File -Include '*.pdb', '*.lib'
         if ($junk) {

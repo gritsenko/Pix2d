@@ -46,7 +46,8 @@
 	<PropertyGroup Condition="'$(IsWindows)'=='true'">
 		<DefineConstants>Windows</DefineConstants>
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
-		<!-- Keep the real minimum OS where it was (matches the WAP's TargetPlatformMinVersion). The pen
+		<!-- Keep the real minimum OS where it was; this is also the MinVersion build/pack-msix.ps1
+		     stamps into the Store manifest's TargetDeviceFamily, so the two must agree. The pen
 		     haptics code is gated at runtime with OperatingSystem.IsWindowsVersionAtLeast(10,0,22000), so
 		     it stays dormant below Win11 and the app still launches on Win10. -->
 		<SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>

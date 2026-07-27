@@ -67,8 +67,7 @@ Implemented across these files (see the feature commit for the diff):
 - [ProjectPacker.cs](../Sources/Core/Pix2d.Shared/Project/ProjectPacker.cs) — composite thumbnail across artboards via `RenderToBitmap`.
 - [NewSceneFactory.cs](../Sources/Core/Pix2d.Core/Services/Project/NewSceneFactory.cs) — robust `OfType<Pix2dSprite>().First()`.
 
-**Build:** Desktop head builds clean; app boots, recovers session, autosave runs. (The `Pix2d.Desktop.Wap`
-packaging project fails to build locally — missing DesktopBridge tooling in the SDK; environment-only.)
+**Build:** Desktop head builds clean; app boots, recovers session, autosave runs.
 
 **Interactive QA still needed:**
 1. "Artboard" button / Ctrl+Alt+N → new artboard appears to the right, becomes active (highlight border);
@@ -327,5 +326,4 @@ dotnet build Sources/Heads/Pix2d.Desktop          # Core + Shared + SkiaNodes + 
 dotnet run   --project Sources/Heads/Pix2d.Desktop
 ```
 
-There is no test project; QA is manual (sample files under `TestImages/`). The `Pix2d.Desktop.Wap`
-packaging project may fail locally without DesktopBridge tooling — build the `Pix2d.Desktop` head directly.
+There is no test project; QA is manual (sample files under `TestImages/`).
