@@ -38,8 +38,18 @@ on:
         type: boolean
         required: false
         default: false
+      include_store_msix:
+        description: 'Include Microsoft Store MSIX bundle build'
+        type: boolean
+        required: false
+        default: false
       deploy_to_play_store:
         description: 'Deploy Android .aab to Google Play (Release Track)'
+        type: boolean
+        required: false
+        default: false
+      submit_to_store:
+        description: 'Submit the MSIX bundle to the Microsoft Store (certification)'
         type: boolean
         required: false
         default: false
@@ -76,6 +86,7 @@ jobs:
           echo "Input include_wasm_deploy: ${{ github.event.inputs.include_wasm_deploy }}"
           echo "Input include_macos_intel: ${{ github.event.inputs.include_macos_intel }}"
           echo "Input include_macos_arm: ${{ github.event.inputs.include_macos_arm }}"
+          echo "Input include_store_msix: ${{ github.event.inputs.include_store_msix }}"
 
           # Calculate the boolean value for any_platform_included
           # Using bash logic for robustness in evaluating boolean inputs
@@ -85,7 +96,8 @@ jobs:
                 "${{ github.event.inputs.include_linux }}" == "true" || \
                 "${{ github.event.inputs.include_wasm_deploy }}" == "true" || \
                 "${{ github.event.inputs.include_macos_intel }}" == "true" || \
-                "${{ github.event.inputs.include_macos_arm }}" == "true" ]]; then
+                "${{ github.event.inputs.include_macos_arm }}" == "true" || \
+                "${{ github.event.inputs.include_store_msix }}" == "true" ]]; then
             ANY_INCLUDED=true
           fi
 
@@ -290,6 +302,133 @@ jobs:
       with:
         name: windows-desktop
         path: Pix2d_win-x64-${{ env.VERSION }}-portable.zip
+
+  # Microsoft Store channel: dotnet publish win-x64/win-arm64 -> winapp package -> .msixbundle,
+  # then (on a tag, or when submit_to_store is ticked) a submission through the Microsoft Store
+  # Developer CLI. Deliberately mirrors build_android: a tag push deploys, a manual run only
+  # builds unless you ask for the deploy.
+  #
+  # All packaging logic lives in build/pack-msix.ps1 so the identical command runs locally.
+  # The bundle is left unsigned on purpose — Partner Center accepts .msixbundle as-is and
+  # Microsoft re-signs on submission (verified through the API, not just the web upload).
+  build_store_msix:
+    needs: determine_build_scope
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_store_msix == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
+    # Not windows-latest: this job is pinned so a runner-image move can't silently change the
+    # SDK set that makeappx/winapp resolve against.
+    runs-on: windows-2025
+    timeout-minutes: 60
+
+    env:
+      # Pinned deliberately: winapp CLI is still in public preview, so CI must not silently
+      # move to a new packer. Bump together with the local install.
+      WINAPP_CLI_VERSION: '0.5.0'
+      WINAPP_CLI_TELEMETRY_OPTOUT: '1'
+      # Pix2d in the Store. Same constant as DesktopReviewService / download-store-msix.ps1;
+      # public (it's in the Store url), so it stays readable in the log.
+      STORE_PRODUCT_ID: '9NBLGGH1ZDFV'
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Install winapp CLI
+      shell: pwsh
+      run: npm install -g "@microsoft/winappcli@${env:WINAPP_CLI_VERSION}"
+
+    - name: Get Version
+      shell: pwsh
+      run: |
+        if ($env:GITHUB_EVENT_NAME -eq 'push') {
+            $version = $env:GITHUB_REF -replace 'refs/tags/v',''
+            Write-Host "Using version from git tag: $version"
+        } elseif ("${{ github.event.inputs.version }}") {
+            $version = "${{ github.event.inputs.version }}"
+            Write-Host "Using version from manual input: $version"
+        } else {
+            # Unlike the other heads, '0.0.0' is useless here: the Store rejects a package
+            # whose version is not higher than the published one, so fall back to the props
+            # value the way build/pack-msix.ps1 does on its own.
+            [xml]$props = Get-Content Sources/Directory.Build.props
+            $version = ($props.Project.PropertyGroup.Pix2dVersion | Where-Object { $_ }) -as [string]
+            Write-Host "No version supplied; using Pix2dVersion: $version"
+        }
+
+        $cleanVersion = $version -replace '[^\d.]', ''
+        if (-not ($cleanVersion -match '^\d+\.\d+\.\d+$')) {
+            Write-Error "Invalid version format: $cleanVersion"
+            exit 1
+        }
+
+        Write-Output "VERSION=$cleanVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        Write-Host "Using version: $cleanVersion"
+
+    - name: Build MSIX bundle
+      shell: pwsh
+      env:
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      run: ./build/pack-msix.ps1 -Version $env:VERSION
+
+    - name: Upload MSIX bundle
+      uses: actions/upload-artifact@v7
+      with:
+        name: windows-store-msix
+        path: artifacts/msix/*.msixbundle
+        if-no-files-found: error
+        retention-days: 14
+
+    - name: Setup Microsoft Store Developer CLI
+      if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || github.event.inputs.submit_to_store == 'true' }}
+      uses: microsoft/microsoft-store-apppublisher@v1.1
+
+    - name: Submit to the Microsoft Store
+      if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || github.event.inputs.submit_to_store == 'true' }}
+      shell: pwsh
+      env:
+        TENANT_ID: ${{ secrets.TENANT_ID }}
+        SELLER_ID: ${{ secrets.SELLER_ID }}
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      run: |
+        $missing = @('TENANT_ID', 'CLIENT_ID', 'CLIENT_SECRET') |
+          Where-Object { -not (Get-Item "env:$_" -ErrorAction SilentlyContinue).Value }
+        if ($missing) { throw "Missing repository secret(s): $($missing -join ', ')." }
+
+        # SELLER_ID lives in Partner Center > Account settings > Overview > Account details >
+        # Publisher IDs (NOT the Identifiers page). The fallback is deliberate: msstore
+        # reconfigure demands a numeric seller id, but the MSIX path never sends it — it only
+        # travels as the X-Seller-Account-Id header from MSStore.API/StoreAPI.cs, which serves
+        # the MSI/EXE API, while packaged submissions go through StorePackagedAPI.
+        $sellerId = if ($env:SELLER_ID) { $env:SELLER_ID } else { '0' }
+        msstore reconfigure `
+          --tenantId $env:TENANT_ID `
+          --sellerId $sellerId `
+          --clientId $env:CLIENT_ID `
+          --clientSecret $env:CLIENT_SECRET
+        if ($LASTEXITCODE -ne 0) { throw "msstore reconfigure failed ($LASTEXITCODE)" }
+
+        $bundle = Get-ChildItem artifacts/msix -Filter *.msixbundle -File | Select-Object -First 1
+        if (-not $bundle) { throw "No .msixbundle found in artifacts/msix" }
+
+        # One command, no -nc: it creates the submission, declares the new package (marking the
+        # superseded one PendingDelete), uploads the ZIP, commits, then polls until the
+        # submission leaves CommitStarted and returns non-zero on CommitFailed. Do NOT split it
+        # into `publish -nc` + `submission publish`: the latter returns 0 as soon as the commit
+        # is *accepted*, so a submission that fails ingestion minutes later reads as success.
+        #
+        # -id is required because the CLI can only sniff the app id out of a loose .msix, not a
+        # bundle (it looks for a top-level AppxManifest.xml).
+        #
+        # Keep the submission CLOSED in Partner Center while this runs: a commit racing an open
+        # dashboard page comes back CommitFailed / InvalidState, which msstore mistranslates as
+        # "active validation errors which cannot be exposed via API". Recovery is a plain re-run
+        # — msstore deletes a failed pending submission and creates a fresh one.
+        msstore publish $bundle.FullName -id $env:STORE_PRODUCT_ID -v
+        if ($LASTEXITCODE -ne 0) { throw "msstore publish failed ($LASTEXITCODE)" }
 
   build_linux:
     needs: determine_build_scope
