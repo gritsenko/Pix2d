@@ -58,7 +58,6 @@
   <Folder Name="/_GlobalItems/">
     <File Path="../.github/workflows/attach-store-msix.yml" />
     <File Path="../.github/workflows/release-publish.yml" />
-    <File Path="../.github/workflows/store-submission-inspect.yml" />
     <File Path="Directory.Build.props" />
     <File Path="nuget.config" />
   </Folder>
