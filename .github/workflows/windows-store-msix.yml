@@ -206,6 +206,14 @@ jobs:
         #
         # -id is required because the CLI can only sniff the app id out of a loose .msix, not a
         # bundle (it looks for a top-level AppxManifest.xml).
+        #
+        # Keep the submission CLOSED in Partner Center while this runs. A commit raced against
+        # an open dashboard page came back CommitFailed / InvalidState ("The requested action
+        # conflicts with an existing resource. Please refresh the page and try again"), which
+        # the CLI reports as "active validation errors which cannot be exposed via API" — a
+        # misleading message for what is really a concurrency conflict. The same submission
+        # then submitted fine. Recovery is just to re-run: msstore deletes a failed pending
+        # submission and creates a fresh one.
         $publishArgs = @('publish', '${{ steps.bundle.outputs.path }}', '-id', $env:STORE_PRODUCT_ID, '-v')
         if ($env:SUBMIT -ne 'true') { $publishArgs += '-nc' }
         Write-Host "msstore $($publishArgs -join ' ')"
