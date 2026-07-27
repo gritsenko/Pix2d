@@ -66,3 +66,20 @@ jobs:
         } else {
           Write-Host "::notice::$($pending.Count) package(s) staged for upload: $($pending.fileName -join ', ')"
         }
+
+        # statusDetails is where a CommitFailed says what actually went wrong — the single most
+        # useful field on the whole resource, and the one the Partner Center UI buries.
+        Write-Host ""
+        Write-Host "statusDetails:"
+        $details = $submission.statusDetails
+        if (-not $details) {
+          Write-Host "  (none)"
+        } else {
+          foreach ($bucket in 'errors', 'warnings', 'certificationReports') {
+            $items = @($details.$bucket)
+            Write-Host "  $bucket ($($items.Count)):"
+            foreach ($item in $items) {
+              Write-Host "    $($item | ConvertTo-Json -Compress -Depth 5)"
+            }
+          }
+        }
