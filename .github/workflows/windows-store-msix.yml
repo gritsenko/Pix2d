@@ -146,14 +146,15 @@ jobs:
         if ($missing) {
           throw "Missing repository secret(s): $($missing -join ', ')."
         }
-        # msstore reconfigure demands a numeric seller id, but the MSIX path never sends it:
-        # it only travels as the X-Seller-Account-Id header from MSStore.API/StoreAPI.cs, which
-        # is the MSI/EXE API. Packaged (MSIX) submissions go through StorePackagedAPI, which
-        # doesn't read it, and reconfigure itself doesn't validate it (its final "Testing
-        # configuration" step only acquires a token). Our Partner Center account exposes no
-        # Seller ID at all (Account settings > Identifiers shows Windows publisher IDs only,
-        # and Legal info has no MPN enrollment), so fall back to a placeholder rather than
-        # blocking the whole pipeline on a value nothing in this flow consumes.
+        # SELLER_ID is the secret the old StoreBroker job never needed (Partner Center >
+        # Account settings > Overview > Account details > Publisher IDs > Seller ID — it is
+        # NOT on the Identifiers page, which lists Windows publisher IDs only).
+        # The fallback below is deliberate: msstore reconfigure demands a numeric seller id,
+        # but the MSIX path never sends it. It only travels as the X-Seller-Account-Id header
+        # from MSStore.API/StoreAPI.cs, which serves the MSI/EXE API; packaged submissions go
+        # through StorePackagedAPI, which doesn't read it, and reconfigure doesn't validate it
+        # (its final "Testing configuration" step only acquires a token). So a missing secret
+        # must not block a Store submission on a value nothing in this flow consumes.
         if (-not $env:SELLER_ID) {
           Write-Host "::notice::SELLER_ID secret not set; using placeholder 0 (unused by the MSIX submission path)."
         }
