@@ -141,11 +141,21 @@ jobs:
         CLIENT_ID: ${{ secrets.CLIENT_ID }}
         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
       run: |
-        # SELLER_ID is the one the old StoreBroker job never needed; msstore requires it.
-        $missing = @('TENANT_ID', 'SELLER_ID', 'CLIENT_ID', 'CLIENT_SECRET') |
+        $missing = @('TENANT_ID', 'CLIENT_ID', 'CLIENT_SECRET') |
           Where-Object { -not (Get-Item "env:$_" -ErrorAction SilentlyContinue).Value }
         if ($missing) {
-          throw "Missing repository secret(s): $($missing -join ', '). Seller ID is Partner Center > Account settings > Identifiers > Publisher/Seller ID."
+          throw "Missing repository secret(s): $($missing -join ', ')."
+        }
+        # msstore reconfigure demands a numeric seller id, but the MSIX path never sends it:
+        # it only travels as the X-Seller-Account-Id header from MSStore.API/StoreAPI.cs, which
+        # is the MSI/EXE API. Packaged (MSIX) submissions go through StorePackagedAPI, which
+        # doesn't read it, and reconfigure itself doesn't validate it (its final "Testing
+        # configuration" step only acquires a token). Our Partner Center account exposes no
+        # Seller ID at all (Account settings > Identifiers shows Windows publisher IDs only,
+        # and Legal info has no MPN enrollment), so fall back to a placeholder rather than
+        # blocking the whole pipeline on a value nothing in this flow consumes.
+        if (-not $env:SELLER_ID) {
+          Write-Host "::notice::SELLER_ID secret not set; using placeholder 0 (unused by the MSIX submission path)."
         }
 
     - name: Resolve bundle path
@@ -168,9 +178,10 @@ jobs:
         CLIENT_ID: ${{ secrets.CLIENT_ID }}
         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
       run: |
+        $sellerId = if ($env:SELLER_ID) { $env:SELLER_ID } else { '0' }
         msstore reconfigure `
           --tenantId $env:TENANT_ID `
-          --sellerId $env:SELLER_ID `
+          --sellerId $sellerId `
           --clientId $env:CLIENT_ID `
           --clientSecret $env:CLIENT_SECRET
         if ($LASTEXITCODE -ne 0) { throw "msstore reconfigure failed ($LASTEXITCODE)" }
