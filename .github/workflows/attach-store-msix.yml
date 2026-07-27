@@ -1,0 +1,111 @@
+# Attaches the Microsoft-signed Store package to the matching GitHub release.
+#
+# Why this exists: the portable .zip ships an unsigned Pix2d.exe, so SmartScreen warns on
+# first run. The Store re-signs every submission with a certificate Windows already trusts,
+# and that package installs by double-click when downloaded outside the Store. So instead of
+# buying a code-signing certificate, we hand users the Store's own signed .msixbundle.
+#
+# It cannot run inside release-publish.yml: Store certification lags the tag by hours to
+# days, so at tag time the new version simply is not downloadable yet. Hence a separate
+# workflow that is safe to run repeatedly — the daily schedule keeps trying until the Store
+# catches up, then attaches the asset and does nothing on every later run.
+#
+# All of the download/verification logic lives in build/download-store-msix.ps1, so the
+# same command runs locally:  ./build/download-store-msix.ps1 -ExpectedVersion 3.11.2
+name: Attach Store MSIX to Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to attach to (e.g. v3.11.2). Default: latest release.'
+        required: false
+        default: ''
+      force:
+        description: 'Re-upload even if the release already has the asset.'
+        type: boolean
+        required: false
+        default: false
+  schedule:
+    # Daily at 05:20 UTC — picks up a submission that went live overnight.
+    - cron: '20 5 * * *'
+
+# Least privilege: the only write we need is uploading a release asset.
+permissions:
+  contents: write
+
+jobs:
+  attach:
+    # Windows: the Authenticode check in the script (Get-AuthenticodeSignature) needs it,
+    # and refusing to publish an unsigned package is the whole point of this workflow.
+    runs-on: windows-2025
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+
+    - name: Resolve target release
+      id: release
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $tag = '${{ github.event.inputs.tag }}'
+        if (-not $tag) {
+          # Latest published (non-draft, non-prerelease) release is the one users land on.
+          $tag = gh release view --json tagName --jq '.tagName'
+          if ($LASTEXITCODE -ne 0 -or -not $tag) { throw 'Could not determine the latest release tag.' }
+          Write-Host "No tag supplied; using latest release: $tag"
+        }
+        if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+          throw "Tag '$tag' does not look like vX.Y.Z."
+        }
+
+        $assets = gh release view $tag --json assets --jq '.assets[].name'
+        if ($LASTEXITCODE -ne 0) { throw "Release $tag not found." }
+
+        $hasAsset = @($assets) -match '-store-signed\.(msix|appx)bundle$'
+        "tag=$tag"                                   | Out-File $env:GITHUB_OUTPUT -Append
+        "version=$($tag.TrimStart('v'))"             | Out-File $env:GITHUB_OUTPUT -Append
+        "has-asset=$(([bool]$hasAsset).ToString().ToLower())" | Out-File $env:GITHUB_OUTPUT -Append
+        Write-Host "Target release : $tag (store asset already present: $([bool]$hasAsset))"
+
+    - name: Download signed package from the Store
+      id: store
+      # Skipped when the asset is already there, so the daily run costs ~nothing.
+      if: ${{ steps.release.outputs.has-asset != 'true' || github.event.inputs.force == 'true' }}
+      shell: pwsh
+      run: |
+        # Exits non-zero when the Store is still serving an older version — expected on a
+        # scheduled run right after a release, and handled by continue-on-error below.
+        ./build/download-store-msix.ps1 -ExpectedVersion '${{ steps.release.outputs.version }}'
+      continue-on-error: true
+
+    - name: Report that the Store has not caught up yet
+      if: ${{ steps.store.outcome == 'failure' }}
+      shell: pwsh
+      run: |
+        $msg = 'The Store is not serving ${{ steps.release.outputs.version }} yet ' +
+               '(certification pending, or the submission was never made). Nothing attached.'
+        Write-Host "::notice title=Store package unavailable::$msg"
+        # A scheduled probe finding nothing is not a failure; an explicit run is.
+        if ('${{ github.event_name }}' -ne 'schedule') { exit 1 }
+
+    - name: Attach package to the release
+      if: ${{ steps.store.outcome == 'success' }}
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release upload '${{ steps.release.outputs.tag }}' '${{ steps.store.outputs.path }}' --clobber
+        if ($LASTEXITCODE -ne 0) { throw 'gh release upload failed.' }
+        Write-Host "::notice title=Store package attached::${{ steps.store.outputs.file-name }} -> ${{ steps.release.outputs.tag }}"
+
+    - name: Upload package as workflow artifact
+      if: ${{ steps.store.outcome == 'success' }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: store-signed-msix
+        path: artifacts/store-msix/*
+        if-no-files-found: error
+        retention-days: 14
