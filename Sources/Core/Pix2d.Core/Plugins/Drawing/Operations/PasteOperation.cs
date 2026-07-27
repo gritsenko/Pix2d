@@ -66,7 +66,9 @@ public class PasteOperation : EditOperationBase, ISpriteEditorOperation, IToolAw
     public override void OnPerformUndo()
     {
         _drawingService.CancelCurrentOperation();
-        _drawingTarget.SetData(_initialTargetData);
+        // Skipped (not thrown) when a crop/resize after the paste changed the target's byte count —
+        // see DrawingTargetExtensions.TryRestoreData.
+        _drawingTarget.TryRestoreData(_initialTargetData, nameof(PasteOperation));
     }
 
     public override IEnumerable<SKNode> GetEditedNodes()

@@ -67,8 +67,9 @@ public class ApplyTransformOperation : EditOperationBase, ISpriteEditorOperation
     {
         // Redo: the canvas state right before this commit lives in the previous TransformSelectionOperation; what redo
         // adds is the stamp + marquee adjustment. Re-applying _targetDataAfter is enough because the lifted
-        // bitmap has already been baked into it.
-        _drawingTarget.SetData(_targetDataAfter);
+        // bitmap has already been baked into it. Skipped (not thrown) if a crop/resize since the commit
+        // changed how many bytes the target takes — see DrawingTargetExtensions.TryRestoreData.
+        _drawingTarget.TryRestoreData(_targetDataAfter, nameof(ApplyTransformOperation));
 
         if (_keepMarqueeInContour)
         {
@@ -88,7 +89,7 @@ public class ApplyTransformOperation : EditOperationBase, ISpriteEditorOperation
         // Undo: rewind the canvas and put the marquee back in transform mode at the same position so the user
         // can continue tweaking from where the commit left them. Tool restoration will bring PixelTransformTool
         // back too — together that fully reconstructs the pre-commit state.
-        _drawingTarget.SetData(_targetDataBefore);
+        _drawingTarget.TryRestoreData(_targetDataBefore, nameof(ApplyTransformOperation));
         _drawingLayer.SetSelection(_selectionLayer, _backgroundBitmap, contourOnly: false);
     }
 

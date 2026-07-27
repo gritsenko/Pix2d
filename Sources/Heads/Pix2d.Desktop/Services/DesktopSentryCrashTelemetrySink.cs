@@ -5,6 +5,7 @@ using System.Reflection;
 using Pix2d.Abstract.Services;
 using Pix2d.Primitives.Crash;
 using Sentry;
+using Sentry.Protocol;
 
 namespace Pix2d.Desktop.Services;
 
@@ -49,6 +50,7 @@ public sealed class DesktopSentryCrashTelemetrySink : ICrashTelemetrySink
                 // Offline cache: if the Sentry host is unreachable at crash time, the envelope is
                 // persisted locally and re-sent on the next launch instead of being lost.
                 o.CacheDirectoryPath = GetCacheDirectory();
+                o.SetBeforeSend(NormalizeMessagesForGrouping);
             });
             _sentryActive = true;
             Logger.Log("Sentry crash telemetry sink initialized.");
@@ -142,6 +144,52 @@ public sealed class DesktopSentryCrashTelemetrySink : ICrashTelemetrySink
         catch
         {
         }
+    }
+
+    /// <summary>
+    /// Rewrites the outgoing event's exception/message text through
+    /// <see cref="TelemetryMessageNormalizer"/> so one *kind* of failure maps to one signature instead
+    /// of one per byte count / path / GUID (aggregation keys on the message — see the normalizer's
+    /// docs). Mirrors <c>AndroidSentryCrashTelemetrySink</c>. The raw text is kept in
+    /// <c>original_message</c>, and <c>exception_chain</c>/<c>stack_trace_text</c> are left untouched,
+    /// so the concrete values are still one click away when triaging.
+    /// </summary>
+    private static SentryEvent NormalizeMessagesForGrouping(SentryEvent e)
+    {
+        try
+        {
+            var original = e.SentryExceptions?.FirstOrDefault()?.Value
+                           ?? e.Message?.Formatted ?? e.Message?.Message;
+            var changed = false;
+
+            foreach (var sentryException in e.SentryExceptions ?? Enumerable.Empty<SentryException>())
+            {
+                if (string.IsNullOrEmpty(sentryException.Value)) continue;
+                var normalized = TelemetryMessageNormalizer.Normalize(sentryException.Value);
+                if (normalized == sentryException.Value) continue;
+                sentryException.Value = normalized;
+                changed = true;
+            }
+
+            var messageText = e.Message?.Formatted ?? e.Message?.Message;
+            if (!string.IsNullOrEmpty(messageText))
+            {
+                var normalized = TelemetryMessageNormalizer.Normalize(messageText);
+                if (normalized != messageText)
+                {
+                    e.Message = normalized;
+                    changed = true;
+                }
+            }
+
+            if (changed && !string.IsNullOrEmpty(original))
+                e.SetExtra("original_message", original);
+        }
+        catch
+        {
+            // Never let signature shaping drop an event.
+        }
+        return e;
     }
 
     private static string Tail(string text, int maxChars) =>

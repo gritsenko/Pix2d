@@ -33,6 +33,7 @@ public class TransformSelectionOperation : EditOperationBase, IToolAwareOperatio
             BackgroundBitmap = drawingLayer.GetSelectionBackground(),
             DrawingTarget = drawingLayer.DrawingTarget ?? throw new InvalidOperationException("DrawingTarget cannot be null"),
             DrawingTargetData = drawingLayer.DrawingTarget?.GetData() ?? throw new InvalidOperationException("DrawingTargetData cannot be null"),
+            SnapshotSize = drawingLayer.DrawingTarget!.GetSize(),
         };
 
         _initialState = new SKNodeTransformState(_selectionData.SelectionLayer);
@@ -44,11 +45,58 @@ public class TransformSelectionOperation : EditOperationBase, IToolAwareOperatio
     public TransformSelectionOperation(TransformSelectionOperation previousOperation)
     {
         _drawingLayer = previousOperation._drawingLayer;
-        _selectionData = previousOperation._selectionData;
+        _selectionData = ResnapshotIfTargetResized(previousOperation);
         _initialState = new SKNodeTransformState(_selectionData.SelectionLayer);
         _wasContourOnly = previousOperation._wasContourOnly;
         ToolKeyBeforeOperation = previousOperation.ToolKeyAfterOperation;
         ToolKeyAfterOperation = previousOperation.ToolKeyAfterOperation;
+    }
+
+    /// <summary>
+    /// Chained transform steps deliberately share one snapshot of the drawing target — the pixels as they
+    /// were when the selection was lifted — so undoing any step in the chain rewinds to the same
+    /// pre-selection canvas. That sharing is only valid while the snapshot still fits the target: a
+    /// selection survives a canvas crop/resize, so cropping mid-selection leaves the shared buffer sized
+    /// for the *old* canvas, and every step chained after the crop then pushed a wrong-sized buffer into
+    /// <c>BitmapNode.SetData</c> — throwing <c>"Size of input data 1306260 is not equal to the size of
+    /// the bitmap 295200"</c> (885x369x4 vs 200x369x4) on the first undo (appstat, 3.11.2). Take a fresh
+    /// snapshot for the new step instead of inheriting the stale one; the earlier steps keep theirs,
+    /// which is still the correct baseline for their own position in the history (below the crop).
+    /// </summary>
+    private static SelectionData ResnapshotIfTargetResized(TransformSelectionOperation previousOperation)
+    {
+        var previous = previousOperation._selectionData;
+        var target = previous.DrawingTarget;
+        var currentSize = target.GetSize();
+        if (currentSize == previous.SnapshotSize)
+            return previous;
+
+        Logger.Trace($"Drawing target resized from {previous.SnapshotSize} to {currentSize} during a selection"
+                     + " — re-snapshotting the selection-transform baseline.");
+
+        return new SelectionData
+        {
+            SelectionLayer = previous.SelectionLayer,
+            // The background is the same era as the data snapshot, so it is stale too. It is only used to
+            // re-arm the marquee (never written back to the target), hence the fallback rather than a throw.
+            BackgroundBitmap = TryGetSelectionBackground(previousOperation._drawingLayer) ?? previous.BackgroundBitmap,
+            DrawingTarget = target,
+            DrawingTargetData = target.GetData(),
+            SnapshotSize = currentSize,
+        };
+    }
+
+    private static SKBitmap? TryGetSelectionBackground(DrawingLayerNode drawingLayer)
+    {
+        try
+        {
+            return drawingLayer.GetSelectionBackground();
+        }
+        catch (Exception ex)
+        {
+            Logger.Trace($"Could not re-capture the selection background: {ex.Message}");
+            return null;
+        }
     }
 
     public void SetFinalState(string? activeToolKey = null)
@@ -61,14 +109,14 @@ public class TransformSelectionOperation : EditOperationBase, IToolAwareOperatio
     public override void OnPerform()
     {
         _finalState?.ApplyTo(_selectionData.SelectionLayer);
-        _selectionData.DrawingTarget.SetData(_selectionData.DrawingTargetData);
+        _selectionData.DrawingTarget.TryRestoreData(_selectionData.DrawingTargetData, nameof(TransformSelectionOperation));
         _drawingLayer.SetSelection(_selectionData.SelectionLayer, _selectionData.BackgroundBitmap, contourOnly: _wasContourOnly);
     }
 
     public override void OnPerformUndo()
     {
         _initialState.ApplyTo(_selectionData.SelectionLayer);
-        _selectionData.DrawingTarget.SetData(_selectionData.DrawingTargetData);
+        _selectionData.DrawingTarget.TryRestoreData(_selectionData.DrawingTargetData, nameof(TransformSelectionOperation));
         _drawingLayer.SetSelection(_selectionData.SelectionLayer, _selectionData.BackgroundBitmap, contourOnly: _wasContourOnly);
     }
 
@@ -83,5 +131,12 @@ public class TransformSelectionOperation : EditOperationBase, IToolAwareOperatio
         public SKBitmap BackgroundBitmap { get; set; } = null!;
         public IDrawingTarget DrawingTarget { get; set; } = null!;
         public byte[] DrawingTargetData { get; set; } = null!;
+
+        /// <summary>
+        /// Size of <see cref="DrawingTarget"/> when <see cref="DrawingTargetData"/> was captured — the
+        /// validity condition for reusing this snapshot in a chained operation (see
+        /// <see cref="TransformSelectionOperation.ResnapshotIfTargetResized"/>).
+        /// </summary>
+        public SKSize SnapshotSize { get; set; }
     }
 }

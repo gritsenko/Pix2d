@@ -66,7 +66,7 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
         // Only restore if we have valid final data (null means no data captured)
         if (_finalPayload != null)
         {
-            _drawingTarget.SetData(_finalPayload.GetValue());
+            _drawingTarget.TryRestoreData(_finalPayload.GetValue(), nameof(DrawingOperationWithFullState));
         }
     }
 
@@ -81,7 +81,9 @@ public class DrawingOperationWithFullState : EditOperationBase, IDisposable, ISp
         // Only restore if we have valid initial data (null means no data captured)
         if (_initialPayload != null)
         {
-            _drawingTarget.SetData(_initialPayload.GetValue());
+            // Size-mismatched snapshots (crop/resize since capture) are skipped rather than thrown —
+            // the sibling guard in DrawingOperationWithDiffState.ApplyChanges does the same for run-length diffs.
+            _drawingTarget.TryRestoreData(_initialPayload.GetValue(), nameof(DrawingOperationWithFullState));
         }
     }
 

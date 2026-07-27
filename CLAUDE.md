@@ -65,6 +65,8 @@ Use it whenever you need to know **what's actually crashing/erroring in the wild
 - `get_issue` — full detail for one `key`, including the **stack trace of the most recent occurrence** plus OS, device and release. This is what you fix from. Default window 90 days; pass `release` to pin a version.
 - `resolve_issue` — mark a `key` resolved (or `resolved: false` to reopen). **Call it only after you've shipped a fix** — a resolved signature auto-reopens if the same signature recurs afterward, so resolving prematurely just hides a live bug.
 
+**Signature titles are normalized on the device.** Because aggregation keys on the exception message, the sinks run every outgoing message through `TelemetryMessageNormalizer` ([TelemetryMessageNormalizer.cs](Sources/Core/Pix2d.Shared/Primitives/Crash/TelemetryMessageNormalizer.cs), wired via `SentryOptions.SetBeforeSend`) — paths become `<path>`, GUIDs `<id>`, numbers `<n>` — so one *kind* of failure is one signature instead of one per byte count / file name / GUID. Expect placeholders in titles (`"Size of input data <n> is not equal to the size of the bitmap <n>"`); the concrete values for the latest occurrence are in the `original_message` extra and in `exception_chain`. Signatures first seen on 3.11.2 or earlier still carry their old un-normalized titles.
+
 **Triage loop:** `list_diagnostics` (rank by `count`/`users`) → `get_issue` on the worst `key` (read the stack, locate the code, fix) → ship → `resolve_issue`. The `key` format is `"<kind>|<title>"` (e.g. `"error|Bitmap is null"`) and is what both `get_issue` and `resolve_issue` accept. Weigh `users` alongside `count` — a high count from a single user (`users: 1`) is often one person hitting a loop, not a widespread bug.
 
 ## Architecture

@@ -69,6 +69,20 @@ internal class DrawingOperationFactory(IDrawingLayer drawingLayer, IOperationSer
         if (initialPixels.Length == 0 || finalPixels.Length == 0)
             return diffBlocks;
 
+        // The loop below walks `initialPixels` and indexes `finalPixels` with the same i, so a target that
+        // was resized mid-operation (crop/canvas-resize between StartNewDrawingOperation and this call —
+        // e.g. crop → transform selection → Clear layer) read past the end of the shorter buffer:
+        // IndexOutOfRangeException out of an otherwise ordinary Clear/stroke commit (appstat, 3.10.0).
+        // A pixel-by-pixel diff across a resize is meaningless anyway — the run-length cover no longer
+        // maps onto the canvas, and DrawingOperationWithDiffState.ApplyChanges would refuse to replay it —
+        // so record no diff instead. The resize operation itself carries the pixel state for that step.
+        if (initialPixels.Length != finalPixels.Length)
+        {
+            Logger.Trace($"Skipping drawing diff across a target resize: {initialPixels.Length} pixels before,"
+                         + $" {finalPixels.Length} after.");
+            return diffBlocks;
+        }
+
         var prevDiff = finalPixels[0] - initialPixels[0];
         var blockLen = 0;
         int _p0 = 0, _p1 = 0;
