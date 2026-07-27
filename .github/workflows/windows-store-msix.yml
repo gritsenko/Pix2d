@@ -11,6 +11,10 @@
 # (dotnet-desktop-winstore.yml + Sources/Heads/Pix2d.Desktop.Wap) was deleted once a
 # submission built here had gone through Partner Center. Manifest + Store assets now
 # live in build/msix/.
+#
+# The optional `publish` job below uploads that bundle to Partner Center through the
+# Microsoft Store Developer CLI. It is manual-only (workflow_dispatch) on purpose —
+# a tag push only ever builds the artifact.
 name: Windows Store MSIX Package
 
 on:
@@ -20,6 +24,16 @@ on:
         description: 'App version (X.Y.Z). Defaults to Pix2dVersion from Directory.Build.props.'
         required: false
         default: ''
+      publish_to_store:
+        description: 'Upload the bundle to Partner Center as a draft submission'
+        type: boolean
+        required: false
+        default: false
+      submit_for_certification:
+        description: 'Also commit the draft (sends it to certification). Needs publish_to_store.'
+        type: boolean
+        required: false
+        default: false
   push:
     tags:
       - 'v*'
@@ -85,3 +99,108 @@ jobs:
         path: artifacts/msix/*.msixbundle
         if-no-files-found: error
         retention-days: 14
+
+  # Uploads the bundle built above to Partner Center. Opt-in per run, and even then it
+  # stops at a draft submission unless submit_for_certification is also checked.
+  #
+  # Why the CLI and not the raw API: the retired StoreBroker job (dotnet-desktop-winstore.yml,
+  # deleted in f11409d) created a submission, PUT a .msixupload straight at the SAS url and
+  # committed — and the published update kept the PREVIOUS release's packages. Two reasons,
+  # both easy to reproduce by hand: (1) StoreBroker's Update-ApplicationSubmission leaves the
+  # cloned submission's packages untouched unless -AddPackages/-ReplacePackages is passed, so
+  # clearing ApplicationPackages in the JSON was a no-op; (2) the SAS url wants a ZIP whose
+  # entries match applicationPackages[].fileName with fileStatus=PendingUpload, not a bare
+  # package file. msstore does all of that (clone -> declare packages -> zip -> upload ->
+  # commit) in one command, and since Dec 2025 it also marks superseded packages PendingDelete.
+  #
+  # https://learn.microsoft.com/windows/apps/publish/msstore-dev-cli/github-actions
+  publish:
+    needs: build
+    if: ${{ inputs.publish_to_store }}
+    runs-on: windows-2025
+    # The CLI polls Partner Center after a commit; give it room but don't hang a runner all day.
+    timeout-minutes: 60
+
+    env:
+      # Pix2d in the Store. Same constant as DesktopReviewService / download-store-msix.ps1;
+      # not a secret (it's in the public Store url), so it stays readable in the log.
+      STORE_PRODUCT_ID: '9NBLGGH1ZDFV'
+
+    steps:
+    - name: Download MSIX bundle
+      uses: actions/download-artifact@v8
+      with:
+        name: msix-bundle
+        path: artifacts/msix
+
+    - name: Check Partner Center credentials
+      shell: pwsh
+      env:
+        TENANT_ID: ${{ secrets.TENANT_ID }}
+        SELLER_ID: ${{ secrets.SELLER_ID }}
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      run: |
+        # SELLER_ID is the one the old StoreBroker job never needed; msstore requires it.
+        $missing = @('TENANT_ID', 'SELLER_ID', 'CLIENT_ID', 'CLIENT_SECRET') |
+          Where-Object { -not (Get-Item "env:$_" -ErrorAction SilentlyContinue).Value }
+        if ($missing) {
+          throw "Missing repository secret(s): $($missing -join ', '). Seller ID is Partner Center > Account settings > Identifiers > Publisher/Seller ID."
+        }
+
+    - name: Resolve bundle path
+      id: bundle
+      shell: pwsh
+      run: |
+        $bundle = Get-ChildItem artifacts/msix -Filter *.msixbundle -File | Select-Object -First 1
+        if (-not $bundle) { throw "No .msixbundle found in artifacts/msix" }
+        Write-Host "Bundle: $($bundle.Name) ($([math]::Round($bundle.Length / 1MB, 1)) MB)"
+        "path=$($bundle.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+    - name: Setup Microsoft Store Developer CLI
+      uses: microsoft/microsoft-store-apppublisher@v1.1
+
+    - name: Configure Microsoft Store Developer CLI
+      shell: pwsh
+      env:
+        TENANT_ID: ${{ secrets.TENANT_ID }}
+        SELLER_ID: ${{ secrets.SELLER_ID }}
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      run: |
+        msstore reconfigure `
+          --tenantId $env:TENANT_ID `
+          --sellerId $env:SELLER_ID `
+          --clientId $env:CLIENT_ID `
+          --clientSecret $env:CLIENT_SECRET
+        if ($LASTEXITCODE -ne 0) { throw "msstore reconfigure failed ($LASTEXITCODE)" }
+
+    - name: Create draft submission with the bundle
+      shell: pwsh
+      run: |
+        # -nc keeps it a draft: the package is uploaded and the submission is fully staged,
+        # but nothing is sent to certification. That is the dry run — inspect it in Partner
+        # Center (Packages must list the new version) before ticking submit_for_certification.
+        # -id is required because the CLI can only sniff the app id out of a loose .msix,
+        # not a bundle (it looks for a top-level AppxManifest.xml).
+        msstore publish "${{ steps.bundle.outputs.path }}" -id $env:STORE_PRODUCT_ID -nc -v
+        if ($LASTEXITCODE -ne 0) { throw "msstore publish failed ($LASTEXITCODE)" }
+
+    - name: Submit for certification
+      if: ${{ inputs.submit_for_certification }}
+      shell: pwsh
+      run: |
+        # Commits the draft staged above (POST .../submissions/{id}/commit).
+        msstore submission publish $env:STORE_PRODUCT_ID -v
+        if ($LASTEXITCODE -ne 0) { throw "msstore submission publish failed ($LASTEXITCODE)" }
+
+    - name: Report submission status
+      if: ${{ always() }}
+      shell: pwsh
+      run: |
+        # Informational only — a failure here must not mask the real result above, and the
+        # step also runs when an earlier one failed before the CLI was even installed.
+        if (Get-Command msstore -ErrorAction SilentlyContinue) {
+          msstore submission status $env:STORE_PRODUCT_ID
+        }
+        exit 0
