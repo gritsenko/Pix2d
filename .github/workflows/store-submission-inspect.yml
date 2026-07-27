@@ -1,0 +1,68 @@
+# Read-only Partner Center probe. Prints the pending (or last published) submission for
+# Pix2d — status plus the applicationPackages array — without building or changing anything.
+#
+# Why it exists: a submission staged by `msstore publish -nc` sits in PendingCommit, and the
+# packages it declares carry fileStatus=PendingUpload with no version/architecture yet (those
+# are filled in when the commit ingests the uploaded ZIP). The Partner Center UI therefore
+# still shows the previously published package set, which looks identical to the failure mode
+# of the retired StoreBroker job — where a committed submission really did republish the old
+# packages. This workflow tells the two apart by reading the submission JSON directly.
+name: Store Submission Inspect
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: windows-2025
+    timeout-minutes: 15
+
+    env:
+      STORE_PRODUCT_ID: '9NBLGGH1ZDFV'
+
+    steps:
+    - name: Setup Microsoft Store Developer CLI
+      uses: microsoft/microsoft-store-apppublisher@v1.1
+
+    - name: Configure Microsoft Store Developer CLI
+      shell: pwsh
+      env:
+        TENANT_ID: ${{ secrets.TENANT_ID }}
+        SELLER_ID: ${{ secrets.SELLER_ID }}
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      run: |
+        $sellerId = if ($env:SELLER_ID) { $env:SELLER_ID } else { '0' }
+        msstore reconfigure `
+          --tenantId $env:TENANT_ID `
+          --sellerId $sellerId `
+          --clientId $env:CLIENT_ID `
+          --clientSecret $env:CLIENT_SECRET
+        if ($LASTEXITCODE -ne 0) { throw "msstore reconfigure failed ($LASTEXITCODE)" }
+
+    - name: Submission status
+      shell: pwsh
+      run: msstore submission status $env:STORE_PRODUCT_ID
+
+    - name: Packages declared on the submission
+      shell: pwsh
+      run: |
+        # `submission get` returns the whole submission JSON; the interesting part is which
+        # files it declares and with what fileStatus.
+        $raw = msstore submission get $env:STORE_PRODUCT_ID | Out-String
+        $json = $raw.Substring($raw.IndexOf('{'))
+        $submission = $json | ConvertFrom-Json
+
+        Write-Host "Status: $($submission.status)"
+        Write-Host ""
+        Write-Host "applicationPackages:"
+        $submission.applicationPackages |
+          Select-Object fileName, fileStatus, version, architecture |
+          Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+
+        $pending = @($submission.applicationPackages | Where-Object { $_.fileStatus -eq 'PendingUpload' })
+        if ($pending.Count -eq 0) {
+          Write-Host "::warning::No PendingUpload package on this submission — nothing new would be ingested by a commit."
+        } else {
+          Write-Host "::notice::$($pending.Count) package(s) staged for upload: $($pending.fileName -join ', ')"
+        }
