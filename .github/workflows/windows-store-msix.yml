@@ -187,24 +187,30 @@ jobs:
           --clientSecret $env:CLIENT_SECRET
         if ($LASTEXITCODE -ne 0) { throw "msstore reconfigure failed ($LASTEXITCODE)" }
 
-    - name: Create draft submission with the bundle
+    - name: Publish to Partner Center
       shell: pwsh
+      env:
+        SUBMIT: ${{ inputs.submit_for_certification }}
       run: |
-        # -nc keeps it a draft: the package is uploaded and the submission is fully staged,
-        # but nothing is sent to certification. That is the dry run — inspect it in Partner
-        # Center (Packages must list the new version) before ticking submit_for_certification.
-        # -id is required because the CLI can only sniff the app id out of a loose .msix,
-        # not a bundle (it looks for a top-level AppxManifest.xml).
-        msstore publish "${{ steps.bundle.outputs.path }}" -id $env:STORE_PRODUCT_ID -nc -v
+        # One command either way; -nc is what makes it a dry run.
+        #
+        # With -nc the package is uploaded and the submission fully staged, but not committed —
+        # inspect it via the Store Submission Inspect workflow (the Partner Center UI can't show
+        # a PendingUpload package, so it will still read "Packages: Unchanged").
+        #
+        # Without -nc the CLI commits and then polls until the submission leaves CommitStarted,
+        # prints the statusDetails tables and returns non-zero on CommitFailed. Do NOT split
+        # this into publish -nc + `msstore submission publish`: that command returns 0 as soon
+        # as the commit is *accepted*, so a submission that fails ingestion minutes later is
+        # reported here as a green run.
+        #
+        # -id is required because the CLI can only sniff the app id out of a loose .msix, not a
+        # bundle (it looks for a top-level AppxManifest.xml).
+        $publishArgs = @('publish', '${{ steps.bundle.outputs.path }}', '-id', $env:STORE_PRODUCT_ID, '-v')
+        if ($env:SUBMIT -ne 'true') { $publishArgs += '-nc' }
+        Write-Host "msstore $($publishArgs -join ' ')"
+        msstore @publishArgs
         if ($LASTEXITCODE -ne 0) { throw "msstore publish failed ($LASTEXITCODE)" }
-
-    - name: Submit for certification
-      if: ${{ inputs.submit_for_certification }}
-      shell: pwsh
-      run: |
-        # Commits the draft staged above (POST .../submissions/{id}/commit).
-        msstore submission publish $env:STORE_PRODUCT_ID -v
-        if ($LASTEXITCODE -ne 0) { throw "msstore submission publish failed ($LASTEXITCODE)" }
 
     - name: Report submission status
       if: ${{ always() }}
