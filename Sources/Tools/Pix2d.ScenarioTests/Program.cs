@@ -8,6 +8,7 @@ using Pix2d.UI;
 using Pix2d.Export.Sheet;
 using Pix2d.Export.Sheet.Metadata;
 using Pix2d.Primitives;
+using Pix2d.Primitives.ViewPort;
 using Pix2d.ScenarioTests;
 using SkiaNodes.Interactive;
 using SkiaSharp;
@@ -61,6 +62,7 @@ static class Runner
         ExportScenario(harness, t);
         SpriteSheetExportScenario(harness, t);
         ArtboardScenario(harness, t);
+        PrecisionScrollDetectorScenario(harness, t);
         PixelSelectionScenario(harness, t);
         GeneralContextObjectToolScenario(harness, t);
         GeneralContextObjectCommandsScenario(harness, t);
@@ -348,6 +350,66 @@ static class Runner
         {
             h.Exec("Sprite.Edit.AddArtboard");
             Assert.True(h.ArtboardCount == start + 1, $"artboards {start} -> {h.ArtboardCount}, expected +1");
+        });
+    }
+
+    // --- Scenario 7ba: wheel source detection (trackpad vs. mouse wheel) ----------------------------
+    // Pure logic, no app state: the classifier SkiaCanvas.OnPointerWheelChanged uses to decide whether the
+    // "mouse wheel behavior" setting applies. Deltas below are what the platforms actually report.
+    static void PrecisionScrollDetectorScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Wheel source detection scenario ===");
+
+        t.Check("a notched mouse wheel is never read as a trackpad", () =>
+        {
+            var d = new PrecisionScrollDetector();
+            ulong ts = 1000;
+            for (var i = 0; i < 5; i++, ts += 300) // one notch every 300 ms
+                Assert.True(!d.Observe(0, i % 2 == 0 ? 1 : -1, ts), $"notch #{i} was classified as precision");
+        });
+
+        t.Check("a high-resolution mouse wheel is not read as a trackpad either", () =>
+        {
+            // Logitech SmartShift & co: sub-notch fractions on a single axis, in fast bursts. Ambiguous by
+            // delta shape alone, so the detector deliberately requires two-axis movement — a fractional
+            // single-axis stream must NOT override the user's "wheel = zoom" setting.
+            var d = new PrecisionScrollDetector();
+            ulong ts = 1000;
+            for (var i = 0; i < 12; i++, ts += 8)
+                Assert.True(!d.Observe(0, 0.125, ts), $"high-res tick #{i} was classified as precision");
+        });
+
+        t.Check("a diagonal two-finger scroll latches to precision", () =>
+        {
+            var d = new PrecisionScrollDetector();
+            Assert.True(!d.Observe(0, 0.2, 1000), "a single vertical fraction should not be enough evidence");
+            Assert.True(d.Observe(0.05, 0.31, 1008), "diagonal delta was not recognized as precision");
+            // The latch holds through the perfectly-vertical part of the same gesture and its inertia tail.
+            Assert.True(d.Observe(0, 0.28, 1016), "latch dropped on a vertical delta inside the gesture");
+            Assert.True(d.Observe(0, 0.04, 1150), "latch dropped on the inertia tail");
+        });
+
+        t.Check("a touchpad pinch gesture also settles it", () =>
+        {
+            var d = new PrecisionScrollDetector();
+            d.NotifyTouchPadGesture();
+            Assert.True(d.IsPrecisionScrolling, "pinch gesture did not mark the source as precision");
+            Assert.True(d.Observe(0, 0.2, 1000), "latch dropped right after a pinch");
+        });
+
+        t.Check("plugging in a mouse after using the trackpad switches back", () =>
+        {
+            var d = new PrecisionScrollDetector();
+            Assert.True(d.Observe(0.1, 0.4, 1000), "precondition: not latched to precision");
+            // A whole step on one axis, after a pause no hand can beat: that is a real notch.
+            Assert.True(!d.Observe(0, 1, 1400), "a wheel notch after a pause did not release the latch");
+        });
+
+        t.Check("a whole-number delta inside a trackpad burst does not release the latch", () =>
+        {
+            var d = new PrecisionScrollDetector();
+            d.Observe(0.1, 0.4, 1000);
+            Assert.True(d.Observe(0, 1, 1012), "latch released mid-burst by a whole-number delta");
         });
     }
 

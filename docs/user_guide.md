@@ -28,6 +28,11 @@ Choose your platform:
 - Zoom: Mouse Wheel or Ctrl + Mouse Wheel, or pinch on a trackpad
 - Reset View: Press Home
 
+The **mouse wheel behavior** setting (Settings → Mouse wheel behavior) chooses what a bare wheel does —
+scroll or zoom. When it is set to *Zoom*, hold Shift (or Ctrl) to scroll instead; Ctrl+Shift scrolls
+sideways. The setting applies to a mouse wheel only: a trackpad's two-finger scroll always pans, and
+zooming there is pinch or Ctrl + two-finger scroll.
+
 ## Core Features
 
 ### Layer Management

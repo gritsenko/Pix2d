@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Services;
 using Pix2d.Plugins.Drawing.Tools;
+using Pix2d.Primitives.ViewPort;
 using Pix2d.UI.Resources;
 using SkiaNodes;
 using SkiaNodes.Extensions;
@@ -63,6 +64,11 @@ public class SkiaCanvas : Control
     private const double TouchPanActivationThresholdPx = 8;
     // TODO: 3-finger gesture doesn't work reliably on Android/Windows - need alternative approach
     //private readonly MultiFingerGestureRecognizer _redoGesture = new() { FingersCount = 3, TapCount = 2, RoutedEventToRaise = RedoGestureEvent };
+
+    // Tells a trackpad's two-finger scroll apart from a mouse wheel — see PrecisionScrollDetector for why
+    // this has to be inferred. Drives which of the two wheel semantics OnPointerWheelChanged applies.
+    private readonly PrecisionScrollDetector _precisionScroll = new();
+
     private double _oldScale;
     private SKPoint _oldVpPos;
     private readonly IViewPortService _viewPortService = null!;
@@ -445,7 +451,14 @@ public class SkiaCanvas : Control
 
         var isCtrlDown = (e.KeyModifiers & KeyModifiers.Control) != 0;
         var isShiftDown = (e.KeyModifiers & KeyModifiers.Shift) != 0;
-        var isZoomMode = _appState.MouseWheelBehavior == Pix2d.Primitives.ViewPort.MouseWheelBehavior.Zoom;
+
+        // A precision device (trackpad) always scrolls, whatever the setting says: two-finger scroll pans,
+        // and zooming is the pinch gesture (OnPointerTouchPadGestureMagnify) or Ctrl+scroll — the same
+        // contract every other app offers. The "mouse wheel behavior" setting therefore governs a notched
+        // wheel only, which is the device the user was thinking of when they set it.
+        var isPrecisionScrolling = _precisionScroll.Observe(e.Delta.X, e.Delta.Y, e.Timestamp);
+        var isZoomMode = !isPrecisionScrolling
+            && _appState.MouseWheelBehavior == MouseWheelBehavior.Zoom;
 
         // Zoom mode: either modifier temporarily turns the wheel back into scrolling, so the image can be
         // panned without leaving the mode — Ctrl and plain Shift scroll vertically, Ctrl+Shift horizontally.
@@ -481,6 +494,10 @@ public class SkiaCanvas : Control
         }
 
         CancelTouchOnlyGestureState();
+
+        // Only a touchpad produces this event, so it also settles the wheel-vs-trackpad question for the
+        // scroll events around it (a pinch is usually the first thing a trackpad user does on a canvas).
+        _precisionScroll.NotifyTouchPadGesture();
 
         var magnification = (float)e.Delta.Y;
         if (Math.Abs(magnification) < 0.0001f)
