@@ -90,9 +90,17 @@ internal sealed class HeadlessPlatformStuffService(string appFolder) : IPlatform
     public Task OpenAppDataFolder() => Task.CompletedTask;
 }
 
-/// <summary>No-op dialog surface: every prompt resolves to a safe default and no Avalonia view is built.</summary>
-internal sealed class HeadlessDialogService : IDialogService
+/// <summary>No-op dialog surface: every prompt resolves to a safe default and no Avalonia view is built.
+/// Yes/No prompts are scriptable so a scenario can drive a confirmation flow.</summary>
+public sealed class HeadlessDialogService : IDialogService
 {
+    /// <summary>Answer returned by the next <see cref="ShowYesNoDialog"/>. Defaults to <c>false</c> so the
+    /// command sweep declines destructive prompts; a scenario flips it to exercise the confirmed path.</summary>
+    public bool YesNoAnswer { get; set; }
+
+    /// <summary>Message of the most recent Yes/No prompt, so a scenario can assert what the user was asked.</summary>
+    public string? LastYesNoMessage { get; private set; }
+
     public void SetDialogContainer(object container) { }
     public void SetPanelsContainer(object container) { }
     public void Alert(string message, string title) { }
@@ -100,7 +108,10 @@ internal sealed class HeadlessDialogService : IDialogService
     public Task<string?> ShowInputDialogAsync(string message, string title, string defaultValue = "")
         => Task.FromResult<string?>(null);
     public Task<bool> ShowYesNoDialog(string message, string title, string okLabel = "Ok", string cancelLabel = "Cancel")
-        => Task.FromResult(false);
+    {
+        LastYesNoMessage = message;
+        return Task.FromResult(YesNoAnswer);
+    }
     public Task<UnsavedChangesDialogResult> ShowUnsavedChangesInProjectDialog()
         => Task.FromResult(UnsavedChangesDialogResult.No);
     public void ShowPanelView(IToolPanel panel) { }

@@ -143,6 +143,28 @@ public sealed class HeadlessHarness
             _selection.Select(artboard);
     }
 
+    /// <summary>Every artboard on the current scene, in scene order.</summary>
+    public Pix2dSprite[] Artboards =>
+        AppState.CurrentProject.SceneNode!.Nodes.OfType<Pix2dSprite>().ToArray();
+
+    /// <summary>The current object selection (General context).</summary>
+    public SKNode[] SelectedNodes => AppState.CurrentProject.Selection?.Nodes ?? [];
+
+    public void SelectNodes(params SKNode[] nodes) => _selection.Select(nodes);
+
+    /// <summary>The scriptable headless dialog surface — set <c>YesNoAnswer</c> to drive a confirmation.</summary>
+    public HeadlessDialogService Dialogs => (HeadlessDialogService)Services.GetRequiredService<IDialogService>();
+
+    public IArtboardObjectEditService CanvasEdit => Services.GetRequiredService<IArtboardObjectEditService>();
+
+    /// <summary>Clicks an artboard's always-on name label (the <see cref="ArtboardLabelsLayer"/> hit target),
+    /// which is how a user activates an artboard (single click) or edits it as an object (double click).</summary>
+    public void ClickArtboardLabel(Pix2dSprite sprite, int clickCount = 1)
+    {
+        var rect = Pix2d.InteractiveNodes.ArtboardLabelsLayer.GetLabelRect(_viewPort, sprite);
+        ClickWorld(rect.MidX, rect.MidY, clickCount: clickCount);
+    }
+
     // --- Structural counts, read straight off the model tree --------------------------------------
     public int LayerCount => ActiveSprite.Nodes.OfType<Pix2dSprite.Layer>().Count();
     public int FrameCount => ActiveSprite.GetFramesCount();
@@ -173,6 +195,32 @@ public sealed class HeadlessHarness
         var p = _viewPort.WorldToViewport(new SKPoint(x + 0.5f, y + 0.5f));
         _input.SetPointerPressed(p, KeyModifier.None, isTouch: false);
         _input.SetPointerReleased(p, KeyModifier.None, isTouch: false);
+    }
+
+    /// <summary>Pins the camera to an explicit zoom/pan. Adorner thumbs size themselves in *screen*
+    /// pixels (PixelsToWorld), so at the tiny 64px harness viewport a ShowAll zoom (~0.4) inflates
+    /// their world-space hit zones enough to blanket whole artboards — gesture scenarios pin 1:1
+    /// so hit zones stay proportionate, like on a real-sized viewport.</summary>
+    public void SetView(float zoom, float panX = 0, float panY = 0)
+    {
+        _viewPort.SetZoom(zoom);
+        _viewPort.SetPan(panX, panY);
+    }
+
+    // --- Raw pointer input at world coordinates (for tools that are driven by pointer gestures) ----
+    public void PressWorld(float x, float y, KeyModifier modifiers = KeyModifier.None, int clickCount = 1)
+        => _input.SetPointerPressed(_viewPort.WorldToViewport(new SKPoint(x, y)), modifiers, isTouch: false, clickCount);
+
+    public void MoveWorld(float x, float y, bool pressed, KeyModifier modifiers = KeyModifier.None)
+        => _input.SetPointerMoved(_viewPort.WorldToViewport(new SKPoint(x, y)), pressed, modifiers, isTouch: false);
+
+    public void ReleaseWorld(float x, float y, KeyModifier modifiers = KeyModifier.None)
+        => _input.SetPointerReleased(_viewPort.WorldToViewport(new SKPoint(x, y)), modifiers, isTouch: false);
+
+    public void ClickWorld(float x, float y, KeyModifier modifiers = KeyModifier.None, int clickCount = 1)
+    {
+        PressWorld(x, y, modifiers, clickCount);
+        ReleaseWorld(x, y, modifiers);
     }
 
     /// <summary>The active sprite (the artboard currently being edited).</summary>

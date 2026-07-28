@@ -6,7 +6,6 @@ using Pix2d.CommonNodes;
 using Pix2d.InteractiveNodes;
 using Pix2d.Messages;
 using Pix2d.Messages.ViewPort;
-using Pix2d.Operations;
 using Pix2d.Plugins.Sprite.Operations;
 using Pix2d.State;
 using SkiaNodes;
@@ -15,20 +14,21 @@ using SkiaSharp;
 namespace Pix2d.Services;
 
 /// <summary>
-/// Owns the artboard scene overlays and the "edit sprite as object" mode:
+/// Owns the artboard scene overlays and the two canvas-edit sub-modes of the General (objects) context:
 /// <list type="bullet">
-/// <item>Keeps the always-on <see cref="ArtboardLabelsLayer"/> attached to the current scene's adorner layer.</item>
-/// <item>On a label double-click (or <see cref="BeginArtboardObjectEditMessage"/>) enters object-edit mode in
-/// <see cref="ArtboardObjectEditMode.Move"/>: the artboard is selected, dragged only by its name label, and a
-/// <c>SpriteActionsView</c> toolbar offers Resize / Crop / Set name / Done.</item>
-/// <item>Resize and Crop are explicit sub-modes with handles; the user confirms (one undoable
-/// <see cref="ResizeArtboardScaleOperation"/> / <see cref="ResizeArtboardOperation"/>) or cancels from the
-/// toolbar. A label drag commits one <see cref="MoveOperation"/> per gesture. A press outside the artboard in
-/// Move mode (or the Done button) ends the session; Esc cancels the current sub-mode or exits.</item>
+/// <item>Keeps the always-on <see cref="ArtboardLabelsLayer"/> attached to the current scene's adorner layer.
+/// A single click on a label activates that artboard; a double-click hands it to
+/// <see cref="IEditService.EditArtboardAsObject"/>, i.e. enters the General context with it selected.</item>
+/// <item><see cref="Begin"/> opens a handle-driven frame over one artboard for a single Resize or Crop
+/// (invoked from the General action bar). The frame is a preview — the user confirms (one undoable
+/// <see cref="ResizeArtboardScaleOperation"/> / <see cref="ResizeArtboardOperation"/>) or cancels, and either
+/// way the session ends and control returns to the General context.</item>
 /// </list>
+/// Selecting, moving, deleting and arranging artboards are NOT here — they are plain General-context
+/// interactions (<c>ObjectManipulationTool</c> + the object selection frame + the object commands).
 /// The view layer is driven by <see cref="ArtboardObjectEditStateChangedMessage"/>.
 /// </summary>
-public class ArtboardObjectEditService
+public class ArtboardObjectEditService : IArtboardObjectEditService
 {
     private readonly AppState _appState;
     private readonly IMessenger _messenger;
@@ -44,7 +44,7 @@ public class ArtboardObjectEditService
     private Pix2dSprite? _sprite;
     private SKPoint _origPos;
     private SKSize _origSize;
-    private ArtboardObjectEditMode _mode = ArtboardObjectEditMode.Move;
+    private ArtboardObjectEditMode _mode = ArtboardObjectEditMode.Resize;
 
     public bool IsActive => _editor != null;
     public ArtboardObjectEditMode Mode => _mode;
@@ -64,11 +64,11 @@ public class ArtboardObjectEditService
         _labelsLayer = new ArtboardLabelsLayer(
             () => _appState.CurrentProject.SceneNode?.Nodes.OfType<Pix2dSprite>() ?? Enumerable.Empty<Pix2dSprite>(),
             _editService.ActivateArtboard,
-            Begin);
+            _editService.EditArtboardAsObject);
 
         messenger.Register<ProjectLoadedMessage>(this, m => AttachLabels(m.ActiveScene));
         messenger.Register<ViewPortInitializedMessage>(this, _ => AttachLabels(_appState.CurrentProject.SceneNode));
-        messenger.Register<BeginArtboardObjectEditMessage>(this, m => Begin(m.Sprite));
+        messenger.Register<BeginArtboardObjectEditMessage>(this, m => Begin(m.Sprite, m.Mode));
     }
 
     /// <summary>Resolved eagerly at startup (see SpritePlugin) so message subscriptions are live before a project loads.</summary>
@@ -83,31 +83,33 @@ public class ArtboardObjectEditService
         SkiaNodes.AdornerLayer.GetAdornerLayer(scene).Add(_labelsLayer);
     }
 
-    public void Begin(Pix2dSprite sprite)
+    public void Begin(Pix2dSprite sprite, ArtboardObjectEditMode mode)
     {
-        // Already editing — ignore. (The backdrop exits Move mode before another label is reachable.)
-        if (_editor != null)
+        // Already editing — ignore. (The action bar only offers Apply/Cancel while a session is open.)
+        if (_editor != null || sprite == null)
             return;
 
         var scene = _appState.CurrentProject.SceneNode;
         if (scene == null)
             return;
 
-        // Make it the active edit target so Layers/Timeline follow and the highlight border tracks it.
-        _editService.ActivateArtboard(sprite);
+        // Make it the active edit target *and* the General-context selection, so Layers/Timeline follow it
+        // and the session is entered from a consistent state however it was triggered (action bar, message).
+        _editService.EditArtboardAsObject(sprite);
+
+        // One frame on screen at a time: the General object-selection frame would otherwise sit under ours.
+        _editService.HideNodeEditor();
 
         _sprite = sprite;
         _origPos = sprite.Position;
         _origSize = sprite.Size;
-        _mode = ArtboardObjectEditMode.Move;
+        _mode = mode;
 
         var editor = new ArtboardObjectEditorNode
         {
             OnChanged = () => _viewPortRefreshService.Refresh(),
-            BackdropPressed = Exit,
-            MoveCompleted = CommitMove,
         };
-        editor.SetTarget(sprite);
+        editor.SetTarget(sprite, mode);
         _editor = editor;
 
         SkiaNodes.AdornerLayer.GetAdornerLayer(scene).Add(editor);
@@ -115,52 +117,17 @@ public class ArtboardObjectEditService
         RaiseStateChanged();
     }
 
-    public void EnterResizeMode() => SetMode(ArtboardObjectEditMode.Resize);
-    public void EnterCropMode() => SetMode(ArtboardObjectEditMode.Crop);
-
-    private void SetMode(ArtboardObjectEditMode mode)
-    {
-        if (_editor == null || _mode == mode)
-            return;
-
-        _mode = mode;
-        _editor.SetMode(mode);
-        RaiseStateChanged();
-    }
-
-    /// <summary>Commits one undoable move for a finished label-drag gesture and re-bases the origin.</summary>
-    private void CommitMove()
-    {
-        if (_sprite == null)
-            return;
-
-        var final = _sprite.Position;
-        if (final != _origPos)
-        {
-            _sprite.Position = _origPos; // rewind so the operation snapshots the pre-move state in its ctor
-            var op = new MoveOperation(new SKNode[] { _sprite });
-            _sprite.Position = final;
-            op.SetFinalData();
-            _operationService.PushOperations(op);
-
-            _origPos = final;
-            _drawingService.UpdateDrawingTarget();
-        }
-
-        _viewPortRefreshService.Refresh();
-    }
-
-    /// <summary>Applies the current Resize/Crop frame as a single undoable operation and returns to Move mode.</summary>
+    /// <summary>Applies the framed Resize/Crop as a single undoable operation and ends the session.</summary>
     public void ConfirmMode()
     {
-        if (_editor == null || _sprite == null || _mode == ArtboardObjectEditMode.Move)
+        if (_editor == null || _sprite == null)
             return;
 
         var target = _editor.FrameRect;
         var sprite = _sprite;
 
-        // Resize/Crop only previews the frame rect — the sprite is untouched until now. Defensive reset so the
-        // operation snapshots a clean original state in its ctor.
+        // The frame is preview-only — the sprite is untouched until now. Defensive reset so the operation
+        // snapshots a clean original state in its ctor.
         sprite.Position = _origPos;
         sprite.Size = _origSize;
 
@@ -183,59 +150,33 @@ public class ArtboardObjectEditService
             {
                 _operationService.InvokeAndPushOperations(new ResizeArtboardScaleOperation(sprite, target.Size, newPos));
             }
-
-            _origPos = sprite.Position;
-            _origSize = sprite.Size;
-            _drawingService.UpdateDrawingTarget();
         }
 
-        _mode = ArtboardObjectEditMode.Move;
-        _editor.SetMode(ArtboardObjectEditMode.Move);
-        _viewPortRefreshService.Refresh();
-        RaiseStateChanged();
+        Exit();
     }
 
-    /// <summary>Discards the current Resize/Crop preview (frame-only, nothing applied) and returns to Move mode.</summary>
-    public void CancelMode()
+    /// <summary>Discards the preview (frame-only, nothing applied) and ends the session.</summary>
+    public void CancelMode() => Exit();
+
+    /// <summary>Renames an artboard via an input dialog (label updates live; not undoable in v1).</summary>
+    public async Task RenameAsync(Pix2dSprite sprite)
     {
-        if (_editor == null || _mode == ArtboardObjectEditMode.Move)
+        if (sprite == null)
             return;
 
-        _mode = ArtboardObjectEditMode.Move;
-        _editor.SetMode(ArtboardObjectEditMode.Move); // re-syncs the frame to the sprite's current bounds
-        _viewPortRefreshService.Refresh();
-        RaiseStateChanged();
-    }
-
-    /// <summary>Renames the edited artboard via an input dialog (label updates live; not undoable in v1).</summary>
-    public async Task RenameAsync()
-    {
-        if (_sprite == null)
-            return;
-
-        var current = _sprite.Name ?? "";
+        var current = sprite.Name ?? "";
         var result = await _dialogService.ShowInputDialogAsync(
             Pix2d.UI.LocalizationHelper.L("Artboard name"), Pix2d.UI.LocalizationHelper.L("Set name"), current);
 
         if (!string.IsNullOrWhiteSpace(result) && result != current)
         {
-            _sprite.Name = result.Trim();
+            sprite.Name = result.Trim();
             _viewPortRefreshService.Refresh();
         }
     }
 
-    /// <summary>Esc: cancel the active Resize/Crop sub-mode, or exit the whole session from Move mode.</summary>
-    public void OnEscape()
-    {
-        if (_mode != ArtboardObjectEditMode.Move)
-            CancelMode();
-        else
-            Exit();
-    }
-
-    /// <summary>Ends the whole object-edit session. Moves are already committed per gesture, so there is
-    /// nothing left to apply here. Triggered by the Done button or a press outside the artboard.</summary>
-    public void Exit()
+    /// <summary>Ends the session and restores the General-context object frame.</summary>
+    private void Exit()
     {
         if (_editor == null)
             return;
@@ -243,10 +184,11 @@ public class ArtboardObjectEditService
         _editor.RemoveFromParent();
         _editor = null;
         _sprite = null;
-        _mode = ArtboardObjectEditMode.Move;
 
-        // Re-point the shared drawing layer to the (possibly moved/resized) active sprite so drawing stays aligned.
+        // Re-point the shared drawing layer to the (possibly resized/cropped) active sprite so drawing
+        // stays aligned, and bring the object selection frame back.
         _drawingService.UpdateDrawingTarget();
+        _editService.ShowNodeEditor();
         _viewPortRefreshService.Refresh();
         RaiseStateChanged();
     }

@@ -14,8 +14,12 @@ public class EditCommands : CommandsListBase
 {
     protected override string BaseName => "Edit";
 
-    public ArrangeCommands Arrange { get; } = new ArrangeCommands();
-    public ClipboardCommands Clipboard { get; } = new ClipboardCommands();
+    // No nested command-list properties here. CommandService only injects ICommandService/IServiceProvider
+    // into the lists it registers itself (see CommandService.Initialize), so a `new ArrangeCommands()` held
+    // as a property is a *second, uninitialized* instance whose first GetCommand call throws
+    // NullReferenceException. Reach a sibling list through ICommandService.GetCommandList<T>() instead.
+    // NOTE: ClipboardCommands is currently registered nowhere, so its General-context Ctrl+C/V/X
+    // placeholders are not live commands at all.
 
 
     //undo redo
@@ -29,10 +33,23 @@ public class EditCommands : CommandsListBase
 
     //edit selection
     public Pix2dCommand Delete
-        => GetCommand(() => ServiceProvider.GetRequiredService<ISelectionService>().Selection?.Delete(), "Delete", new CommandShortcut(VirtualKeys.Delete), EditContextType.General);
+        => GetCommand(() => ServiceProvider.GetRequiredService<IEditService>().DeleteSelectedObjectsAsync(),
+            "Delete objects", new CommandShortcut(VirtualKeys.Delete), EditContextType.General);
 
     public Pix2dCommand CancelSelection
-        => GetCommand(() => ServiceProvider.GetRequiredService<ISelectionService>(), "Cancel Selection", new CommandShortcut(VirtualKeys.Escape), EditContextType.General);
+        => GetCommand(() =>
+        {
+            // Esc while a canvas-edit (Resize/Crop) frame is open discards it; otherwise it drops the
+            // object selection. Sprite context has its own Esc (SpriteEditCommands.Cancel).
+            var canvasEdit = ServiceProvider.GetRequiredService<IArtboardObjectEditService>();
+            if (canvasEdit.IsActive)
+            {
+                canvasEdit.CancelMode();
+                return;
+            }
+
+            ServiceProvider.GetRequiredService<ISelectionService>().ClearSelection();
+        }, "Cancel Selection", new CommandShortcut(VirtualKeys.Escape), EditContextType.General);
 
     //public Pix2dCommand DuplicateSelection
     //    => GetCommand("Duplicate",

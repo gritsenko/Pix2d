@@ -113,7 +113,10 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
             .Rows("Auto, *")
             .Children(
 
+                // Whole panel is gated on the Sprite context, not just its two buttons: hiding only the
+                // children left an empty rounded box floating above the tools bar in the General context.
                 new BlurPanel().Row(0).Name("color-brush-panel")
+                    .IsVisible(state, x => x.IsSpriteEditMode)
                     .HorizontalAlignment(HorizontalAlignment.Left)
                     .Content(
                         new StackPanel()
@@ -121,7 +124,6 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
                             .Children(
                             new Button() //Color picker button
                                 .Classes("color-button")
-                                .IsVisible(state, x => x.IsSpriteEditMode)
                                 .Command(state.ViewCommands.ToggleColorEditorCommand)
                                 .CornerRadius(32)
                                 .BorderThickness(1)
@@ -132,7 +134,6 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
                             new Button() //Brush settings button
                                 .Classes("toolbar-button")
                                 .Classes("brush-button")
-                                .IsVisible(state, x => x.IsSpriteEditMode)
                                 .Padding(0)
                                 .Command(state.ViewCommands.ToggleBrushSettingsCommand)
                                 .Content(state, x => x.CurrentBrushSettings)
@@ -212,6 +213,31 @@ public partial class ToolBarView(AppState appState, ICommandService commandServi
         {
             SyncFromAppState();
             RebuildTools();
+            InvalidateLayoutChain();
+        }
+
+        /// <summary>
+        /// Re-runs measure AND arrange from the tools panel up to the top of the view.
+        /// A context switch changes this view's content in two ways at once (the color/brush panel
+        /// collapses, the tool list is replaced), and the implicit invalidation reached measure but not
+        /// arrange: the panels reported a fresh `DesiredSize` while keeping their old `Bounds`, so the
+        /// toolbar only snapped into shape on the next full layout pass — which in practice meant
+        /// resizing the window (`MainView.UpdateResponsiveLayout` re-applies the Narrow/Wide classes).
+        /// Invalidating both explicitly, for every ancestor, makes the switch take effect immediately.
+        /// </summary>
+        private void InvalidateLayoutChain()
+        {
+            Control? node = _toolsStackPanel;
+            while (node != null)
+            {
+                node.InvalidateMeasure();
+                node.InvalidateArrange();
+
+                if (node is ToolBarView)
+                    break;
+
+                node = node.Parent as Control;
+            }
         }
 
         private void RebuildTools()

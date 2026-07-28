@@ -25,7 +25,13 @@ public partial class InfoPanelView(AppState appState, IMessenger messenger, ISel
 
         // 0.5 on top of the 60% foreground ≈ the design's 30% muted tier.
         new Style<TextBlock>(s=>s.Class("info-label"))
-            .Opacity(0.5)
+            .Opacity(0.5),
+
+        // Mode chip: accent-filled pill, dark text (the accent is a light orange→amber gradient).
+        new Style<TextBlock>(s => s.Class("mode-chip-text"))
+            .FontSize(10)
+            .LineHeight(12)
+            .Foreground(StaticResources.Brushes.MainBackgroundBrush)
     ];
 
     protected override object Build(State state) =>
@@ -37,6 +43,22 @@ public partial class InfoPanelView(AppState appState, IMessenger messenger, ISel
                 new StackPanel()
                     .Orientation(Orientation.Horizontal)
                     .Children(
+
+                        // Edit-context indicator. Sprite is the default and stays unmarked; a non-default
+                        // context announces itself here (accent pill) so it is obvious why the toolbars and
+                        // the pointer behaviour changed. Collapses entirely in Sprite context.
+                        new Border()
+                            .IsVisible(state, x => x.ShowModeChip)
+                            .Background(StaticResources.Brushes.AccentBrush)
+                            .CornerRadius(StaticResources.Measures.SmallButtonCornerRadius / 2.0)
+                            .Padding(6, 1)
+                            .Margin(0, 0, 8, 0)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .Child(
+                                new TextBlock()
+                                    .Classes("mode-chip-text")
+                                    .VerticalAlignment(VerticalAlignment.Center)
+                                    .Text(state, x => x.ModeLabel)),
 
                         new TextBlock()
                             .VerticalAlignment(VerticalAlignment.Center)
@@ -85,6 +107,12 @@ public partial class InfoPanelView(AppState appState, IMessenger messenger, ISel
         [ObservableProperty]
         public partial string SizeHeight { get; set; } = "0";
 
+        [ObservableProperty]
+        public partial bool ShowModeChip { get; set; }
+
+        [ObservableProperty]
+        public partial string ModeLabel { get; set; } = "";
+
         private SelectionState SelectionState => _appState.SelectionState;
 
         public State(AppState appState, IMessenger messenger, ISelectionService selectionService)
@@ -101,8 +129,26 @@ public partial class InfoPanelView(AppState appState, IMessenger messenger, ISel
             _messenger.Register<CanvasSizeChangedMessage>(this, _ => UpdateSelectionInfo());
             _messenger.Register<DrawingTargetChangedMessage>(this, _ => UpdateSelectionInfo());
             _appState.WatchFor(x => x.CurrentProject, UpdateSelectionInfo);
+            // WatchForCurrentProject (not WatchFor) so the binding survives a project-tab switch.
+            _appState.WatchForCurrentProject(x => x.CurrentContextType, UpdateModeInfo);
 
             UpdateSelectionInfo();
+            UpdateModeInfo();
+        }
+
+        private void UpdateModeInfo()
+        {
+            var context = _appState.CurrentProject.CurrentContextType;
+
+            // Sprite is the default context — no chip, so the common case stays quiet.
+            ModeLabel = context switch
+            {
+                EditContextType.General => L("Layout mode").ToUpperInvariant(),
+                EditContextType.General3d => L("3D mode").ToUpperInvariant(),
+                EditContextType.Text => L("Text mode").ToUpperInvariant(),
+                _ => ""
+            };
+            ShowModeChip = ModeLabel.Length > 0;
         }
 
         private void CurrentOnPointerChanged(object? sender, SKInputPointer pointer)

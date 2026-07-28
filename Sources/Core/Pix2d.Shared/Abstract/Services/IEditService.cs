@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Pix2d.Abstract.Import;
 using Pix2d.CommonNodes;
 using SkiaNodes;
@@ -21,6 +22,29 @@ public interface IEditService
     /// No-op if it is already active. Used to switch between several artboards on one scene.
     /// </summary>
     void ActivateArtboard(Pix2dSprite sprite);
+
+    /// <summary>
+    /// Enters the General (objects) context with <paramref name="sprite"/> selected as a scene object:
+    /// it stays the active edit target (Layers / Timeline / drawing target follow it) but the interaction
+    /// is owned by the object tools instead of the drawing tools. This is what a double-click on an
+    /// artboard's name label does — <see cref="ActivateArtboard"/> alone always lands in the Sprite context.
+    /// </summary>
+    void EditArtboardAsObject(Pix2dSprite sprite);
+
+    /// <summary>
+    /// Asks the user to confirm, then deletes the currently selected scene objects as a single undoable
+    /// step. Re-targets a surviving artboard afterwards so the edit target / drawing target never dangle
+    /// on a detached node. No-op when nothing is selected or the user declines.
+    /// </summary>
+    Task DeleteSelectedObjectsAsync();
+
+    /// <summary>
+    /// Repacks the selected artboards into a dense near-square grid anchored at the selection's current
+    /// top-left. Artboards are grouped by the deepest name prefix they share ("icon-goal-*" stays together)
+    /// and each group gets its own row block, separated by a wider gutter; inside a group they follow
+    /// natural name order. One undo step. No-op for fewer than two artboards.
+    /// </summary>
+    void ArrangeSelectedObjects();
 
     /// <summary>
     /// Pure query (no side effects): returns the artboard whose bounds contain <paramref name="worldPos"/>

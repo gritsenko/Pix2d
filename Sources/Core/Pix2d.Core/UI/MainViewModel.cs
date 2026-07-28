@@ -22,7 +22,18 @@ public sealed partial class MainViewModel : ObservableObject
     public partial bool ShowRatePrompt { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowSpriteExtraTools))]
     public partial bool ShowExtraTools { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowSpriteExtraTools))]
+    public partial bool IsSpriteContext { get; set; }
+
+    /// <summary>
+    /// The extra-tools bar holds Sprite-context actions (rotate / flip / mirror / canvas size), so it is
+    /// gated on the context as well as the user's toggle — the General context has its own action bar.
+    /// </summary>
+    public bool ShowSpriteExtraTools => ShowExtraTools && IsSpriteContext;
 
     [ObservableProperty]
     public partial bool ShowTimeline { get; set; }
@@ -80,6 +91,8 @@ public sealed partial class MainViewModel : ObservableObject
 
         _appState.UiState.Watch(SyncFromAppState);
         _appState.WatchFor(x => x.IsBusy, SyncFromAppState);
+        // WatchForCurrentProject (not WatchFor) so the binding survives a project-tab switch.
+        _appState.WatchForCurrentProject(x => x.CurrentContextType, SyncFromAppState);
     }
 
     public ViewCommands ViewCommands { get; }
@@ -174,6 +187,7 @@ public sealed partial class MainViewModel : ObservableObject
         ShowCanvasResizePanel = _appState.UiState.ShowCanvasResizePanel;
         ShowLayerProperties = _appState.UiState.ShowLayerProperties;
         ShowRecoveryNotice = _appState.UiState.ShowRecoveryNotice;
+        IsSpriteContext = _appState.CurrentProject.CurrentContextType == EditContextType.Sprite;
         IsBusy = _appState.IsBusy;
 
         _isSyncing = false;

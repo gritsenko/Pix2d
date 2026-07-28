@@ -99,12 +99,26 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
                         new StackPanel()
                             .Orientation(Orientation.Horizontal)
                             .Children(
+                                // Clear (wipe the layer's pixels) and Delete (remove whole artboards) are
+                                // different destructive actions on different subjects, so each shows only in
+                                // its own context rather than sharing one slot.
                                 new AppButton()
+                                    .IsVisible(state, x => x.IsSpriteContext)
                                     .Command(state.SpriteEditCommands.Clear)
                                     .IconFontFamily(StaticResources.Fonts.Pix2dIconFontFamilyV3)
                                     .Label(L("Clear"))
                                     .Content("\xe90f")
                                     .ToolTip_Tip(L(state.SpriteEditCommands.Clear.Tooltip)),
+                                new AppButton()
+                                    .IsVisible(state, x => x.IsObjectContext)
+                                    .IsEnabled(state, x => x.HasObjectSelection)
+                                    .Command(state.EditCommands.Delete)
+                                    .Content(new PathIcon()
+                                        .Width(16).Height(16)
+                                        .Data(Geometry.Parse(
+                                            "M 6.496094 1 C 5.675781 1 5 1.675781 5 2.496094 L 5 3 L 2 3 L 2 4 L 3 4 L 3 12.5 C 3 13.324219 3.675781 14 4.5 14 L 10.5 14 C 11.324219 14 12 13.324219 12 12.5 L 12 4 L 13 4 L 13 3 L 10 3 L 10 2.496094 C 10 1.675781 9.324219 1 8.503906 1 Z M 6.496094 2 L 8.503906 2 C 8.785156 2 9 2.214844 9 2.496094 L 9 3 L 6 3 L 6 2.496094 C 6 2.214844 6.214844 2 6.496094 2 Z M 4 4 L 11 4 L 11 12.5 C 11 12.78125 10.78125 13 10.5 13 L 4.5 13 C 4.21875 13 4 12.78125 4 12.5 Z M 5 5 L 5 12 L 6 12 L 6 5 Z M 7 5 L 7 12 L 8 12 L 8 5 Z M 9 5 L 9 12 L 10 12 L 10 5 Z ")))
+                                    .Label(L("Delete"))
+                                    .ToolTip_Tip(L(state.EditCommands.Delete.Tooltip)),
                                 new AppButton()
                                     .Command(state.SpriteEditCommands.AddArtboard)
                                     .IconFontFamily(StaticResources.Fonts.IconFontSegoe)
@@ -179,6 +193,15 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
         [ObservableProperty]
         public partial bool ShowExtraTools { get; set; }
 
+        [ObservableProperty]
+        public partial bool IsSpriteContext { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsObjectContext { get; set; }
+
+        [ObservableProperty]
+        public partial bool HasObjectSelection { get; set; }
+
         public State(IOperationService operationService, IMessenger messenger, AppState appState, ICommandService commandService)
         {
             _appState = appState;
@@ -194,7 +217,11 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
             messenger.Register<ProjectLoadedMessage>(this, _ => UpdateUndoSteps());
             // Tab switches swap the whole undo history (per-project stacks).
             messenger.Register<ProjectActivatedMessage>(this, _ => UpdateUndoSteps());
+            // The General context swaps Clear for Delete, whose enabled state follows the object selection.
+            messenger.Register<NodesSelectedMessage>(this, _ => SyncFromAppState());
             _appState.UiState.WatchFor(x => x.ShowExtraTools, SyncFromAppState);
+            // WatchForCurrentProject (not WatchFor) so the binding survives a project-tab switch.
+            _appState.WatchForCurrentProject(x => x.CurrentContextType, SyncFromAppState);
         }
 
         public SpriteEditCommands SpriteEditCommands { get; }
@@ -217,6 +244,12 @@ public partial class TopBarView(IOperationService operationService, IMessenger m
         {
             _isSyncing = true;
             ShowExtraTools = _appState.UiState.ShowExtraTools;
+
+            var context = _appState.CurrentProject.CurrentContextType;
+            IsSpriteContext = context == EditContextType.Sprite;
+            IsObjectContext = context == EditContextType.General;
+            HasObjectSelection = (_appState.CurrentProject.Selection?.Nodes?.Length ?? 0) > 0;
+
             UpdateUndoSteps();
             _isSyncing = false;
         }

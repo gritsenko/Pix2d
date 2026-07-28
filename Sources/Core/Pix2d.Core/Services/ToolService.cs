@@ -70,9 +70,11 @@ public class ToolService : IToolService
     public void ActivateDefaultTool()
     {
         var context = _appState.CurrentProject.CurrentContextType;
-        if (!_defaultContextTool.TryGetValue(context, out var defaultTool))
+        if (!_defaultContextTool.TryGetValue(context, out var defaultTool) &&
+            !_defaultContextTool.TryGetValue(EditContextType.General, out defaultTool))
         {
-            defaultTool = _defaultContextTool[EditContextType.General];
+            // No tool registered for this context on this head — keep the current tool instead of throwing.
+            return;
         }
 
         ActivateTool(defaultTool);

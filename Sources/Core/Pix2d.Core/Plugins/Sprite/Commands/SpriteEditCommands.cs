@@ -133,14 +133,7 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 
     public Pix2dCommand Cancel => GetCommand(() =>
     {
-        // Esc inside object-edit mode cancels the active Resize/Crop sub-mode, or exits the whole session.
-        var artboardObjectEdit = ServiceProvider.GetRequiredService<Pix2d.Services.ArtboardObjectEditService>();
-        if (artboardObjectEdit.IsActive)
-        {
-            artboardObjectEdit.OnEscape();
-            return;
-        }
-
+        // Artboard Resize/Crop runs in the General context now, so its Esc lives in EditCommands.CancelSelection.
         if (IsTransformToolActive())
         {
             DrawingService.CancelCurrentOperation();

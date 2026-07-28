@@ -173,13 +173,19 @@ public partial class MainView : ViewBase<MainViewModel>
                             new Grid().Col(0).ColSpan(3).Row(1).Rows("auto,auto,auto")
                                 .Margin(StaticResources.Measures.PanelMargin)
                                 .Children(
+                                    // Three mutually exclusive bars share this slot, each self-gating:
+                                    // Sprite context extra tools, the General (objects) action bar, and the
+                                    // Apply/Cancel bar of an artboard canvas-edit session.
                                     ViewFactory.Create<ActionsBarView>()
-                                        .IsVisible(vm, x => x.ShowExtraTools)
+                                        .IsVisible(vm, x => x.ShowSpriteExtraTools)
                                         .HorizontalAlignment(HorizontalAlignment.Center)
                                         .VerticalAlignment(VerticalAlignment.Top),
 
-                                    // Contextual toolbar for "edit sprite as object" mode; self-hides when inactive.
-                                    ViewFactory.Create<SpriteActionsView>()
+                                    ViewFactory.Create<ObjectActionsBarView>()
+                                        .HorizontalAlignment(HorizontalAlignment.Center)
+                                        .VerticalAlignment(VerticalAlignment.Top),
+
+                                    ViewFactory.Create<ArtboardCanvasEditView>()
                                         .HorizontalAlignment(HorizontalAlignment.Center)
                                         .VerticalAlignment(VerticalAlignment.Top),
 

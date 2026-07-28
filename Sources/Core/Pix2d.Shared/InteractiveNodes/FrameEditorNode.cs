@@ -30,6 +30,7 @@ public class FrameEditorNode : SKNode
     private float _initialRotation;
     private bool _forceIsChanged = false;
     private bool _allowResize = true;
+    private bool _allowRotate = true;
     private RotateThumbNode _rotateThumb;
     private readonly LineHighlightNode _highlightNode;
     private bool _dragSessionActive;
@@ -46,6 +47,20 @@ public class FrameEditorNode : SKNode
         set
         {
             _allowResize = value;
+            UpdateThumbs();
+        }
+    }
+
+    /// <summary>
+    /// Whether the rotate manipulator is offered. Off for scene-object selections (a `Pix2dSprite`'s
+    /// canvas has no rotation in the pixel pipeline), on for pixel-selection transforms.
+    /// </summary>
+    public bool AllowRotate
+    {
+        get => _allowRotate;
+        set
+        {
+            _allowRotate = value;
             UpdateThumbs();
         }
     }
@@ -91,6 +106,14 @@ public class FrameEditorNode : SKNode
     }
 
     public SKRect SelectionBounds => _moveThumb.GetBoundingBox();
+
+    /// <summary>See <see cref="MoveThumbNode.PassShiftPressThrough"/> — enabled by the object-selection
+    /// editor (EditService) so Shift+click toggles selection membership instead of starting a drag.</summary>
+    public bool PassShiftPressThrough
+    {
+        get => _moveThumb.PassShiftPressThrough;
+        set => _moveThumb.PassShiftPressThrough = value;
+    }
 
     public bool EditStarted { get; set; }
     public bool IsChanged => _initialPos != _moveThumb.Position || _initialSize != _moveThumb.Size || _forceIsChanged || Math.Abs(_moveThumb.Rotation - _initialRotation) > 0.01;
@@ -290,7 +313,7 @@ public class FrameEditorNode : SKNode
             resizeThumbSingleNode.Opacity = 50;
         }
 
-        _rotateThumb.IsVisible = this.IsVisible && !_contourOnly;
+        _rotateThumb.IsVisible = _allowRotate && this.IsVisible && !_contourOnly;
 
         _moveThumb.ContourOnly = _contourOnly;
         _moveThumb.IsInteractive = true;
@@ -365,11 +388,17 @@ public class FrameEditorNode : SKNode
         return AspectSnapperProviderFunc?.Invoke()?.IsAspectLocked ?? false;
     }
 
+    /// <summary>
+    /// Forwards the current pointer press to the move thumb so a drag session starts immediately —
+    /// used by ObjectManipulationTool for Figma-style select-and-drag in one gesture. clickCount must
+    /// be 1: ThumbNode only captures the pointer and raises DragStarted (→ InitOperation&lt;MoveOperation&gt;)
+    /// for a single click.
+    /// </summary>
     public void ActivateMoveThumb()
     {
         _moveThumb.OnPointerPressed(
             new PointerActionEventArgs(PointerActionType.Pressed, SKInput.Current.Pointer!,
-                SKInput.Current.GetModifiers()!), 0);
+                SKInput.Current.GetModifiers()!), 1);
     }
 
     protected virtual void OnSelectionEditStarted()

@@ -43,6 +43,22 @@ public class MoveThumbNode : NodeManipulateThumbBase
     public Func<bool> AxisLockProviderFunc { get; set; } = null!;
     public AxisLockMode AxisLockMode { get; set; }
 
+    /// <summary>
+    /// When true, a single-click press with Shift held falls through (no capture, no drag session) so the
+    /// tool behind the frame receives it — the object-manipulation tool needs Shift+click on a selected
+    /// node to toggle it out of the selection (Figma-style). Kept false for pixel-selection marquees,
+    /// where Shift has its own meanings.
+    /// </summary>
+    public bool PassShiftPressThrough { get; set; }
+
+    public override void OnPointerPressed(PointerActionEventArgs eventArgs, int clickCount)
+    {
+        if (PassShiftPressThrough && clickCount == 1 && eventArgs.KeyModifiers.HasFlag(KeyModifier.Shift))
+            return;
+
+        base.OnPointerPressed(eventArgs, clickCount);
+    }
+
     public MoveThumbNode()
     {
         DragStarted += MoveNodeThumb_DragStarted;

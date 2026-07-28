@@ -12,6 +12,7 @@ namespace Pix2d.Plugins.Sprite;
 //prevent from being trimmed by AOT compiler
 [method: DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(SpritePlugin))]
 public class SpritePlugin(ICommandService commandService, IDrawingService drawingService,
+    IToolService toolService,
     Pix2d.Services.ArtboardObjectEditService artboardObjectEditService)
     : IPix2dPlugin
 {
@@ -23,6 +24,10 @@ public class SpritePlugin(ICommandService commandService, IDrawingService drawin
     {
         commandService.RegisterCommandList(EditCommands);
         commandService.RegisterCommandList(AnimationCommands);
+
+        // Default (and so far only) tool of the General/objects context: select, drag, band-select,
+        // double-click into an artboard. First registration for a context becomes its default tool.
+        toolService.RegisterTool<Pix2d.Tools.ObjectManipulationTool>(EditContextType.General);
 
         // Force-construct the artboard overlay / object-edit service so its message subscriptions are live
         // before the first project loads, and attach the always-on name labels to the current scene.

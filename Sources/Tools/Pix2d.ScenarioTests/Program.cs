@@ -1,11 +1,15 @@
 using Avalonia;
 using Avalonia.Themes.Simple;
+using Microsoft.Extensions.DependencyInjection;
+using Mvvm.Messaging;
 using Newtonsoft.Json.Linq;
 using Pix2d.Abstract;
+using Pix2d.UI;
 using Pix2d.Export.Sheet;
 using Pix2d.Export.Sheet.Metadata;
 using Pix2d.Primitives;
 using Pix2d.ScenarioTests;
+using SkiaNodes.Interactive;
 using SkiaSharp;
 
 // Headless scenario / integration harness. Boots the real Pix2d DI graph without a window and drives
@@ -57,6 +61,8 @@ static class Runner
         ExportScenario(harness, t);
         SpriteSheetExportScenario(harness, t);
         ArtboardScenario(harness, t);
+        GeneralContextObjectToolScenario(harness, t);
+        GeneralContextObjectCommandsScenario(harness, t);
         SafeSweep(harness);
 
         return t.Summarize();
@@ -342,6 +348,309 @@ static class Runner
             h.Exec("Sprite.Edit.AddArtboard");
             Assert.True(h.ArtboardCount == start + 1, $"artboards {start} -> {h.ArtboardCount}, expected +1");
         });
+    }
+
+    // --- Scenario 7b: General (objects) context + ObjectManipulationTool ----------------------------
+    // Covers: default-tool activation on context switch, click/Shift+click selection (incl. the
+    // MoveThumb Shift pass-through), select-and-drag in one gesture (one undoable MoveOperation),
+    // rubber-band selection, and double-click diving back into the Sprite context.
+    static void GeneralContextObjectToolScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== General context / ObjectManipulationTool scenario ===");
+
+        h.NewProject(64);
+        h.Exec("Sprite.Edit.AddArtboard"); // second artboard, laid out to the right of the first
+
+        var sprites = h.AppState.CurrentProject.SceneNode!.Nodes.OfType<Pix2d.CommonNodes.Pix2dSprite>().ToArray();
+        var a = sprites[0];
+        var b = sprites[1];
+        var aBox = a.GetBoundingBox();
+        var bBox = b.GetBoundingBox();
+
+        SkiaNodes.SKNode[] Sel() => h.AppState.CurrentProject.Selection?.Nodes ?? [];
+
+        h.AppState.CurrentProject.CurrentContextType = EditContextType.General;
+
+        // Pin the camera 1:1 — AddArtboard's ShowAll zooms far out to fit both artboards into the 64px
+        // harness viewport, which blows the screen-pixel-sized thumb hit zones up to artboard scale.
+        h.SetView(1);
+
+        t.Check("switching to General activates ObjectManipulationTool by default", () =>
+            Assert.True(h.AppState.ToolsState.CurrentToolKey == nameof(Pix2d.Tools.ObjectManipulationTool),
+                $"current tool = {h.AppState.ToolsState.CurrentToolKey}"));
+
+        t.Check("click selects the artboard under the cursor", () =>
+        {
+            h.ClickWorld(aBox.MidX, aBox.MidY);
+            Assert.True(Sel().Length == 1 && Sel()[0] == a,
+                $"selection = [{string.Join(", ", Sel().Select(n => n.Name))}]");
+        });
+
+        t.Check("Shift+click adds the second artboard to the selection", () =>
+        {
+            h.ClickWorld(bBox.MidX, bBox.MidY, KeyModifier.Shift);
+            Assert.True(Sel().Length == 2 && Sel().Contains(a) && Sel().Contains(b),
+                $"selection = [{string.Join(", ", Sel().Select(n => n.Name))}]");
+        });
+
+        t.Check("Shift+click on a selected artboard removes it (MoveThumb pass-through)", () =>
+        {
+            h.PressWorld(bBox.MidX, bBox.MidY, KeyModifier.Shift);
+            Console.WriteLine($"  [diag] after shift-press: captured={SKInput.Current.CapturedPointerBy?.GetType().Name ?? "null"}, sel=[{string.Join(", ", Sel().Select(n => n.Name))}]");
+            h.ReleaseWorld(bBox.MidX, bBox.MidY, KeyModifier.Shift);
+            Assert.True(Sel().Length == 1 && Sel()[0] == a,
+                $"selection = [{string.Join(", ", Sel().Select(n => n.Name))}]");
+        });
+
+        t.Check("click on empty canvas clears the selection", () =>
+        {
+            h.PressWorld(aBox.MidX, aBox.Bottom + 40);
+            Console.WriteLine($"  [diag] after empty-press: captured={SKInput.Current.CapturedPointerBy?.GetType().Name ?? "null"}, sel=[{string.Join(", ", Sel().Select(n => n.Name))}]");
+            h.ReleaseWorld(aBox.MidX, aBox.Bottom + 40);
+            Assert.True(Sel().Length == 0, $"selection = [{string.Join(", ", Sel().Select(n => n.Name))}]");
+        });
+
+        var posBefore = a.Position;
+        t.Check("press + drag on an unselected artboard selects and moves it in one gesture", () =>
+        {
+            var undoBefore = h.Operations.UndoOperationsCount;
+            // 10.4/5.4: the move thumb floors the world-space delta (SnapToPixels), so a fractional
+            // offset lands exactly on +10/+5 regardless of float noise in the viewport round-trip.
+            h.PressWorld(aBox.MidX, aBox.MidY);
+            h.MoveWorld(aBox.MidX + 10.4f, aBox.MidY + 5.4f, pressed: true);
+            h.ReleaseWorld(aBox.MidX + 10.4f, aBox.MidY + 5.4f);
+
+            Assert.True(Sel().Length == 1 && Sel()[0] == a, "artboard was not selected by the drag gesture");
+            Assert.True(a.Position == new SKPoint(posBefore.X + 10, posBefore.Y + 5),
+                $"position {posBefore} -> {a.Position}, expected +10/+5");
+            Assert.True(h.Operations.UndoOperationsCount == undoBefore + 1,
+                $"undo count {undoBefore} -> {h.Operations.UndoOperationsCount}, expected +1 (one MoveOperation)");
+        });
+
+        t.Check("undo restores the artboard position", () =>
+        {
+            h.Operations.Undo();
+            Assert.True(a.Position == posBefore, $"position after undo = {a.Position}, expected {posBefore}");
+        });
+
+        t.Check("rubber-band drag selects every artboard it touches", () =>
+        {
+            var left = aBox.Left - 10;
+            var top = aBox.Top - 40; // start above the artboards (also above their name labels)
+            h.PressWorld(left, top);
+            h.MoveWorld(bBox.Right + 10, bBox.Bottom + 10, pressed: true);
+            h.ReleaseWorld(bBox.Right + 10, bBox.Bottom + 10);
+            Assert.True(Sel().Length == 2 && Sel().Contains(a) && Sel().Contains(b),
+                $"selection = [{string.Join(", ", Sel().Select(n => n.Name))}]");
+        });
+
+        t.Check("double-click on an artboard dives back into the Sprite context for it", () =>
+        {
+            try
+            {
+                h.ClickWorld(bBox.MidX, bBox.MidY, clickCount: 2);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("  [diag] double-click threw:\n" + ex);
+                throw;
+            }
+            Assert.True(h.AppState.CurrentProject.CurrentContextType == EditContextType.Sprite,
+                $"context = {h.AppState.CurrentProject.CurrentContextType}");
+            Assert.True(ReferenceEquals(h.AppState.CurrentProject.CurrentEditedNode, b),
+                "CurrentEditedNode is not the double-clicked artboard");
+            Assert.True(h.AppState.ToolsState.CurrentToolKey == nameof(Pix2d.Plugins.Drawing.Tools.BrushTool),
+                $"current tool = {h.AppState.ToolsState.CurrentToolKey}");
+        });
+    }
+
+    // --- Scenario 7c: General-context object commands + canvas-edit sub-modes -----------------------
+    // Covers: entering General by double-clicking an artboard's name label, the confirmed + undoable
+    // delete (including the survivor re-target), the name-grouped Arrange packing, and the Resize / Crop
+    // sessions owned by IArtboardObjectEditService.
+    static void GeneralContextObjectCommandsScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== General context object commands scenario ===");
+
+        h.NewProject(64);
+        h.Exec("Sprite.Edit.AddArtboard");
+        h.Exec("Sprite.Edit.AddArtboard");
+        h.SetView(1); // AddArtboard's ShowAll zooms out; gestures need 1:1 (see the tool scenario)
+
+        var artboards = h.Artboards;
+        Console.WriteLine($"  [diag] artboards: {string.Join(", ", artboards.Select(a => $"{a.Name}@{a.Position}"))}");
+
+        t.Check("double-clicking an artboard's name label enters the General context", () =>
+        {
+            h.AppState.CurrentProject.CurrentContextType = EditContextType.Sprite;
+            h.ClickArtboardLabel(artboards[1], clickCount: 2);
+
+            Assert.True(h.AppState.CurrentProject.CurrentContextType == EditContextType.General,
+                $"context = {h.AppState.CurrentProject.CurrentContextType}");
+            Assert.True(h.SelectedNodes.Length == 1 && h.SelectedNodes[0] == artboards[1],
+                $"selection = [{string.Join(", ", h.SelectedNodes.Select(n => n.Name))}]");
+            Assert.True(ReferenceEquals(h.AppState.CurrentProject.CurrentEditedNode, artboards[1]),
+                "the label's artboard did not become the edit target");
+        });
+
+        // --- Delete: declined, then confirmed, then undone ----------------------------------------
+        t.Check("declining the delete confirmation leaves the scene untouched", () =>
+        {
+            h.Dialogs.YesNoAnswer = false;
+            h.SelectNodes(artboards[2]);
+            h.Exec("Edit.Delete");
+
+            Assert.True(h.Artboards.Length == 3, $"artboards = {h.Artboards.Length}, expected 3");
+            Assert.True(h.Dialogs.LastYesNoMessage?.Contains(artboards[2].Name!) == true,
+                $"confirmation did not name the object: {h.Dialogs.LastYesNoMessage}");
+        });
+
+        t.Check("confirmed delete removes the objects as one undoable step", () =>
+        {
+            h.Dialogs.YesNoAnswer = true;
+            var undoBefore = h.Operations.UndoOperationsCount;
+            h.SelectNodes(artboards[2]);
+            h.Exec("Edit.Delete");
+
+            Assert.True(h.Artboards.Length == 2, $"artboards = {h.Artboards.Length}, expected 2");
+            Assert.True(h.Operations.UndoOperationsCount == undoBefore + 1,
+                $"undo count {undoBefore} -> {h.Operations.UndoOperationsCount}, expected +1");
+            Assert.True(h.SelectedNodes.Length == 0, "selection should be cleared after a delete");
+        });
+
+        t.Check("undo restores the deleted object", () =>
+        {
+            h.Operations.Undo();
+            Assert.True(h.Artboards.Length == 3, $"artboards = {h.Artboards.Length}, expected 3");
+        });
+
+        t.Check("deleting the active artboard re-targets a survivor", () =>
+        {
+            var victim = (Pix2d.CommonNodes.Pix2dSprite)h.AppState.CurrentProject.CurrentEditedNode!;
+            h.SelectNodes(victim);
+            h.Exec("Edit.Delete");
+
+            var target = h.AppState.CurrentProject.CurrentEditedNode;
+            Assert.True(!ReferenceEquals(target, victim), "edit target still points at the deleted artboard");
+            Assert.True(target is Pix2d.CommonNodes.Pix2dSprite s && h.Artboards.Contains(s),
+                "edit target is not a surviving artboard");
+            h.Operations.Undo();
+        });
+
+        // --- Arrange (grid packing, grouped by shared name prefix) --------------------------------
+        t.Check("Arrange packs the selection into a dense grid grouped by name prefix, one undo step", () =>
+        {
+            h.NewProject(64);
+            h.Exec("Sprite.Edit.AddArtboard");
+            h.Exec("Sprite.Edit.AddArtboard");
+            h.Exec("Sprite.Edit.AddArtboard");
+            h.SetView(1);
+
+            var all = h.Artboards;
+            // AddArtboard lays them out in one row with a 16px gap: x = 0, 80, 160, 240.
+            // Names drive the grouping: "icon-goal" (2 members), "icon" (icon-star-empty alone — no other
+            // selected icon-star*), then the prefix-less bucket ("hero").
+            all[0].Name = "icon-star-empty";
+            all[1].Name = "hero";
+            all[2].Name = "icon-goal-ice";
+            all[3].Name = "icon-goal-gem";
+            h.SelectNodes(all.Cast<SkiaNodes.SKNode>().ToArray());
+
+            var undoBefore = h.Operations.UndoOperationsCount;
+            h.Exec("Edit.Arrange.Arrange");
+
+            // ceil(sqrt(4)) = 2 columns. Groups are ordered by their first member's name and stacked with a
+            // 48px gutter (3x the 16px in-group gap):
+            //   icon-goal: (0,0) gem, (80,0) ice   -> next y = 64 + 48
+            //   icon:      (0,112) icon-star-empty -> next y = 176 + 48
+            //   (none):    (0,224) hero
+            var expected = new[]
+            {
+                new SKPoint(0, 112),  // icon-star-empty
+                new SKPoint(0, 224),  // hero
+                new SKPoint(80, 0),   // icon-goal-ice
+                new SKPoint(0, 0),    // icon-goal-gem
+            };
+            for (var i = 0; i < all.Length; i++)
+            {
+                var actual = all[i].GetBoundingBox().Location;
+                Assert.True(actual == expected[i],
+                    $"artboard {i} ({all[i].Name}) at {actual}, expected {expected[i]}");
+            }
+
+            Assert.True(h.Operations.UndoOperationsCount == undoBefore + 1,
+                $"undo count {undoBefore} -> {h.Operations.UndoOperationsCount}, expected +1");
+        });
+
+        t.Check("undo restores the pre-arrange layout", () =>
+        {
+            h.Operations.Undo();
+            var xs = h.Artboards.Select(a => a.GetBoundingBox().Left).ToArray();
+            Assert.True(xs.SequenceEqual([0f, 80f, 160f, 240f]), $"x positions = [{string.Join(", ", xs)}]");
+        });
+
+        // --- Canvas-edit sub-modes (Resize / Crop) ------------------------------------------------
+        t.Check("cancelling a Resize session leaves the artboard untouched", () =>
+        {
+            var sprite = h.Artboards[0];
+            var size = sprite.Size;
+            h.SelectNodes(sprite);
+
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Resize);
+            Assert.True(h.CanvasEdit.IsActive, "session did not start");
+            Assert.True(h.CanvasEdit.Mode == ArtboardObjectEditMode.Resize, $"mode = {h.CanvasEdit.Mode}");
+
+            h.CanvasEdit.CancelMode();
+            Assert.True(!h.CanvasEdit.IsActive, "session did not end");
+            Assert.True(sprite.Size == size, $"size changed to {sprite.Size} on cancel (was {size})");
+        });
+
+        t.Check("a Resize session keeps the General context (it is a sub-mode, not a mode switch)", () =>
+        {
+            var sprite = h.Artboards[0];
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Crop);
+            Assert.True(h.AppState.CurrentProject.CurrentContextType == EditContextType.General,
+                $"context = {h.AppState.CurrentProject.CurrentContextType}");
+            h.CanvasEdit.CancelMode();
+        });
+
+        t.Check("confirming an untouched frame is a no-op (nothing to apply)", () =>
+        {
+            var sprite = h.Artboards[0];
+            var size = sprite.Size;
+            var undoBefore = h.Operations.UndoOperationsCount;
+
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Crop);
+            h.CanvasEdit.ConfirmMode();
+
+            Assert.True(!h.CanvasEdit.IsActive, "session did not end");
+            Assert.True(sprite.Size == size, $"size changed to {sprite.Size}");
+            Assert.True(h.Operations.UndoOperationsCount == undoBefore,
+                $"undo count {undoBefore} -> {h.Operations.UndoOperationsCount}, expected no new operation");
+        });
+
+        // --- Action bar visibility ----------------------------------------------------------------
+        // The General action bar is gated on the top bar's Tools toggle, exactly like the Sprite
+        // context's ActionsBarView (MainViewModel.ShowSpriteExtraTools). The view-model state is plain
+        // (no Avalonia types), so the gate is assertable headless.
+        t.Check("the General action bar follows the top bar's Tools toggle", () =>
+        {
+            h.AppState.CurrentProject.CurrentContextType = EditContextType.General;
+            h.AppState.UiState.ShowExtraTools = true;
+
+            var bar = new ObjectActionsBarView.State(h.AppState,
+                h.Services.GetRequiredService<IMessenger>(), h.Commands, h.CanvasEdit);
+            Assert.True(bar.IsVisible, "bar is hidden with Tools on in the General context");
+
+            h.AppState.UiState.ShowExtraTools = false;
+            Assert.True(!bar.IsVisible, "bar is still visible with Tools off");
+
+            h.AppState.UiState.ShowExtraTools = true;
+            Assert.True(bar.IsVisible, "bar did not come back when Tools was switched on again");
+        });
+
+        // Leave the safe default so the command sweep keeps declining destructive prompts.
+        h.Dialogs.YesNoAnswer = false;
     }
 
     // --- Scenario 8: curated safe-sweep over ALL commands -------------------------------------------

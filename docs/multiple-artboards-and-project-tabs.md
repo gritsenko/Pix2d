@@ -80,52 +80,107 @@ Implemented across these files (see the feature commit for the diff):
 
 ---
 
-## Part A — "edit sprite as object" mode + SpriteActionsView (DONE)
+## Part A — editing artboards as objects: the General context (DONE)
+
+> **Superseded design.** The first implementation was a self-contained "edit sprite as object" mode that ran
+> *inside* the Sprite context with its own Move / Resize / Crop state machine and a `SpriteActionsView`
+> toolbar. It has been folded into the real **General (objects) edit context** — the mode's Move half is now
+> ordinary General-context interaction, and only Resize / Crop remain as sub-modes. What follows describes
+> the shipped behaviour.
 
 Single-clicking an artboard's name label makes that artboard the active one (`IEditService.ActivateArtboard`,
-same as clicking the artboard body). Double-clicking the label enters **object-edit mode** for that sprite. The mode is a small
-state machine owned by [ArtboardObjectEditService.cs](../Sources/Core/Pix2d.Core/Services/ArtboardObjectEditService.cs)
-with three sub-modes ([ArtboardObjectEditMode.cs](../Sources/Core/Pix2d.Shared/Primitives/ArtboardObjectEditMode.cs)):
+same as clicking the artboard body). **Double-clicking the label enters the General context** with that
+artboard selected — `IEditService.EditArtboardAsObject`, which keeps the sprite as the edit target (Layers /
+Timeline / drawing target follow it) and only then flips `CurrentContextType`, because `ActivateArtboard`
+alone always lands in Sprite. Ctrl+F12 (`GlobalCommands.SwitchToFullMode`, DEBUG) routes through the same
+method. Going back is a double-click on an artboard's body (`RequestEdit`).
 
-- **Move** (default after selection) — the artboard is dragged **only by its name label** (no body drag);
-  the interior is covered by an invisible blocker so a click there can't start a stray brush stroke. A press
-  on the empty space outside the artboard ends the session (same as the toolbar's **Done** button). Each
-  finished label drag commits one undoable `MoveOperation`.
+**Selecting, moving, deleting and arranging** are plain General-context interactions:
+
+- [ObjectManipulationTool.cs](../Sources/Core/Pix2d.Core/Tools/ObjectManipulationTool.cs) — the context's
+  default tool (arrow cursor). Click selects the top-most artboard, Shift+click toggles selection membership,
+  press-and-drag selects *and* moves in one gesture, a drag on empty canvas rubber-band selects, hovering
+  outlines the artboard under the cursor, and a double-click dives back into Sprite.
+- The selection frame is the per-project `FrameEditorNode`, configured **move-only**
+  (`AllowResize = false`, `AllowRotate = false`) in `EditService`: its generic thumbs commit a plain
+  `TransformOperation`, which would change a `Pix2dSprite`'s `Size` without touching the layer bitmaps, and
+  the pixel pipeline has no rotated-canvas concept. Each drag is one undoable `MoveOperation`.
+  `PassShiftPressThrough = true` lets a Shift-press fall through the frame to the tool so Shift+click can
+  *de*select (pixel-selection marquees keep the flag off).
+- Commands: `Edit.Delete` (confirm dialog → one undoable `DeleteNodesOperation`, then re-targets a surviving
+  artboard), `Edit.Arrange.Arrange` (dense `ceil(sqrt(n))`-column grid anchored at the selection's top-left,
+  **grouped by shared name prefix**, one undo step — see below), `Edit.Arrange.BringForward` / `SendBackward`,
+  `Edit.CancelSelection` (Esc).
+
+**Arrange groups by name.** Asset sets are named in families ("icon-goal-gem", "icon-goal-ice",
+"icon-star-empty"), so `IEditService.ArrangeSelectedObjects` packs family by family instead of in blind
+reading order: [ArtboardNameGrouping.cs](../Sources/Core/Pix2d.Core/Services/ArtboardNameGrouping.cs) splits
+names on `- _ . / space` and puts each artboard in the group of the **deepest prefix it shares with at least
+one other selected artboard** (so "icon-goal" wins over the "icon" everything shares; an artboard whose
+family has no second member falls back to the shallower group, and names sharing nothing land in a trailing
+prefix-less bucket). Groups are laid out in alphabetical order of their first member — prefix-less bucket
+last — each as its own row block wrapping at `ceil(sqrt(n))` columns, separated by a `3×` gutter
+(`ArtboardGroupGap`) so the grouping reads on the canvas. Inside a group the order is natural name order
+("frame 2" before "frame 10"), with canvas reading order breaking ties for equal / missing names. Still one
+`MoveOperation` for the whole pass.
+
+**Resize / Crop** remain a dedicated sub-mode because they change the canvas, owned by
+[ArtboardObjectEditService.cs](../Sources/Core/Pix2d.Core/Services/ArtboardObjectEditService.cs)
+(`IArtboardObjectEditService`) with two modes
+([ArtboardObjectEditMode.cs](../Sources/Core/Pix2d.Shared/Primitives/ArtboardObjectEditMode.cs)):
+
 - **Resize** — frame handles scale the pixel content (nearest-neighbour) to the new size on **Apply**
   ([ResizeArtboardScaleOperation.cs](../Sources/Core/Pix2d.Core/Plugins/Sprite/Operations/ResizeArtboardScaleOperation.cs),
   uses `Pix2dSprite.ResizeImage` — the *scaling* path, despite the name).
 - **Crop** — frame handles change the canvas without scaling (trim / extend), committed on **Apply** via the
   existing `ResizeArtboardOperation` (`Pix2dSprite.Crop`).
 
-Resize/Crop only preview the working frame rect; the sprite pixels are untouched until Apply, so one Ctrl+Z
-reverts the whole gesture. **Cancel** (or Esc) discards the preview and returns to Move; **Esc** from Move
-exits the session. Resize/Crop ignore clicks outside the frame — they are confirmed only from the toolbar.
+A session is opened from the General action bar for the single selected artboard, previews the working frame
+rect only (the pixels are untouched until Apply, so one Ctrl+Z reverts the whole gesture), and **ends** on
+either Apply or Cancel — there is no lingering "Move" state to return to. Esc cancels
+(`EditCommands.CancelSelection` checks `IArtboardObjectEditService.IsActive` first; Sprite context keeps its
+own Esc in `SpriteEditCommands.Cancel`). Presses outside the frame are swallowed, so the session is left only
+through the bar or Esc.
 
 UI / wiring:
-- [SpriteActionsView.cs](../Sources/Core/Pix2d.Core/UI/SpriteActionsView.cs) — contextual toolbar floating
-  top-center of the canvas, placed in `MainView`'s overlay grid next to `ActionsBarView`. Self-hides when the
-  session is inactive. Move mode shows **Resize / Crop / Set name / Done**; Resize&Crop show the mode title +
-  **Apply / Cancel**. **Set name** opens `IDialogService.ShowInputDialogAsync` and renames the artboard
-  (label updates live; not undoable in v1).
+- [ObjectActionsBarView.cs](../Sources/Core/Pix2d.Core/UI/ObjectActionsBarView.cs) — the General action bar
+  (Resize / Crop / Rename / Arrange / Up / Down / Delete), the artboard-level counterpart of the Sprite
+  context's `ActionsBarView`. Buttons self-disable by selection shape: any selection for Delete and z-order,
+  ≥2 artboards for Arrange, exactly one for Resize / Crop / Rename — `ExecuteCommandAsync` does **not** gate
+  on `EditContextType`, so the view is the guardrail for click-invoked commands. Visibility follows the top
+  bar's **Tools** toggle (`UiState.ShowExtraTools`) as well as the context, so one switch dismisses whichever
+  action bar the current context shows.
+- [ArtboardCanvasEditView.cs](../Sources/Core/Pix2d.Core/UI/ArtboardCanvasEditView.cs) — mode title +
+  **Apply / Cancel** while a Resize/Crop session is open (replaces the old `SpriteActionsView`). The General
+  action bar hides itself for the duration.
+- All three top-center bars (`ActionsBarView`, `ObjectActionsBarView`, `ArtboardCanvasEditView`) share one
+  slot in `MainView`'s overlay grid and are mutually exclusive; `ActionsBarView` is gated on
+  `MainViewModel.ShowSpriteExtraTools` (the user's toggle **and** Sprite context) and `ObjectActionsBarView`
+  on the same toggle **and** General context. `ArtboardCanvasEditView` deliberately ignores the toggle — its
+  Apply / Cancel is the only way out of a canvas-edit session. The top bar swaps **Clear** (Sprite) for
+  **Delete** (General), and that Delete stays available with the toggle off (context-gated only).
 - View ↔ service is driven by [ArtboardObjectEditStateChangedMessage.cs](../Sources/Core/Pix2d.Shared/Messages/ArtboardObjectEditStateChangedMessage.cs)
-  (raised on begin / mode switch / end).
+  (raised on begin / end).
 - [ArtboardObjectEditorNode.cs](../Sources/Core/Pix2d.Shared/InteractiveNodes/ArtboardObjectEditorNode.cs) —
-  mode-aware overlay: a label-drag thumb positioned over the name label via the new
-  `ArtboardLabelsLayer.GetLabelRect(vp, sprite)` helper (Move only), a body blocker (all modes), and the
-  corner/edge handles + size badge (Resize/Crop only).
-- `ArtboardObjectEditService` now also depends on `IDialogService` (DI comment updated at
-  `Pix2dBootstrapperDI.cs`). Esc routing lives in `SpriteEditCommands.Cancel` → `service.OnEscape()`.
+  the frame overlay: corner/edge handles + size badge, a body blocker and a full-viewport backdrop that
+  swallow presses so they never reach a drawing tool or the object tool. The old label-drag thumb is gone
+  (moving is the General context's job); `ArtboardLabelsLayer.GetLabelRect(vp, sprite)` survives as the
+  labels layer's own hit-test helper.
 
-**Interactive QA still needed (object-edit):**
-1. Single-click a label → that artboard becomes active (highlight border + Layers/Timeline follow), no toolbar.
-   Double-click a label → toolbar appears (Resize / Crop / Set name / Done); the artboard highlights.
-2. Move mode: drag the **label** moves the artboard; dragging the body does nothing; clicking outside (or
-   Done) exits; the move is a single undo step.
-3. Resize: drag a corner, Apply → content scales to the new size, anchored at the opposite corner; Undo
-   reverts in one step. Cancel/Esc discards.
-4. Crop: drag handles, Apply → canvas trims/extends with no scaling; kept content stays anchored. Undo reverts.
-5. Set name → dialog renames the artboard; the label updates.
-6. Esc from Resize/Crop returns to Move; Esc from Move exits.
+**Interactive QA (General context):**
+1. Single-click a label → that artboard becomes active (highlight border + Layers/Timeline follow), context
+   stays Sprite. Double-click a label → General context, artboard selected, object action bar appears, the
+   toolbar shows only the arrow tool and no color/brush buttons.
+2. Click / Shift+click / rubber-band select artboards; drag one → moves in the same gesture, one undo step.
+3. Delete (key or button) → confirmation naming the object(s); confirm removes them, Ctrl+Z restores;
+   deleting the active artboard re-targets a survivor.
+4. Arrange → selection repacks into a dense grid with same-prefix artboards ("icon-goal-*") grouped into
+   their own row blocks, one undo step. Toggling **Tools** off in the top bar hides the whole action bar.
+5. Resize: drag a corner, Apply → content scales to the new size, anchored at the opposite corner; Undo
+   reverts in one step. Cancel/Esc discards and ends the session.
+6. Crop: drag handles, Apply → canvas trims/extends with no scaling; kept content stays anchored. Undo reverts.
+7. Rename → dialog renames the artboard; the label updates.
+8. Double-click an artboard body → back to Sprite context for it, brush tool active.
 
 ---
 

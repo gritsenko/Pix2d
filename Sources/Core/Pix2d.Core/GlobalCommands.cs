@@ -19,8 +19,16 @@ public class GlobalCommands : CommandsListBase
     public Pix2dCommand SwitchToFullMode
         => GetCommand(() =>
         {
-            ServiceProvider.GetRequiredService<IEditService>().ApplyCurrentEdit();
-            AppState.CurrentProject.CurrentContextType = EditContextType.General;
+            // Reach the General (objects) context the same way a double-click on an artboard label does, so
+            // the artboard stays the edit target and arrives selected. The old ApplyCurrentEdit() path
+            // detached CurrentEditedNode, which left General with nothing to act on.
+            var sprite = AppState.CurrentProject.CurrentEditedNode as Pix2dSprite
+                         ?? AppState.CurrentProject.SceneNode?.Nodes.OfType<Pix2dSprite>().FirstOrDefault();
+
+            if (sprite != null)
+                ServiceProvider.GetRequiredService<IEditService>().EditArtboardAsObject(sprite);
+            else
+                AppState.CurrentProject.CurrentContextType = EditContextType.General;
         }, "SwitchToFullMode", new CommandShortcut(VirtualKeys.F12, KeyModifier.Ctrl), EditContextType.Sprite);
 
     public Pix2dCommand SwitchTo3dMode

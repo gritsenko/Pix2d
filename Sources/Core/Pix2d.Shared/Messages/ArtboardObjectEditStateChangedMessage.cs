@@ -4,9 +4,9 @@ using Pix2d.CommonNodes;
 namespace Pix2d.Messages;
 
 /// <summary>
-/// Raised by ArtboardObjectEditService whenever the "edit sprite as object" session starts, ends, or
-/// switches sub-mode. SpriteActionsView listens to this to show/hide itself and swap its button set
-/// (Move: Resize / Crop / Set name / Done — Resize&amp;Crop: Apply / Cancel).
+/// Raised by ArtboardObjectEditService whenever an artboard canvas-edit (Resize / Crop) session starts or
+/// ends. <c>ArtboardCanvasEditView</c> listens to this to show its Apply / Cancel bar, and the General
+/// action bar hides itself while a session is open.
 /// </summary>
 public class ArtboardObjectEditStateChangedMessage(bool isActive, ArtboardObjectEditMode mode, Pix2dSprite? sprite)
 {
