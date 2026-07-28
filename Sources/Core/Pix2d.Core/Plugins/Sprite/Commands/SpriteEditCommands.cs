@@ -25,18 +25,7 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 
     private bool IsTransformToolActive() => AppState.ToolsState.CurrentToolKey == nameof(PixelTransformTool);
 
-    private void ActivateReturnSelectionTool()
-    {
-        var toolKey = AppState.SelectionState.ReturnSelectionToolKey;
-        if (!ToolService.IsSelectionTool(toolKey) || toolKey == nameof(PixelTransformTool))
-            toolKey = nameof(PixelSelectRectTool);
-
-        var toolType = AppState.ToolsState.Tools.FirstOrDefault(x => x.Name == toolKey)?.ToolType;
-        if (toolType != null)
-            ToolService.ActivateTool(toolType);
-        else
-            ToolService.ActivateTool<PixelSelectRectTool>();
-    }
+    private void ActivateReturnSelectionTool() => ToolService.ActivateReturnSelectionTool(AppState);
 
     public Pix2dCommand CopyPixels =>
         GetCommand(() =>

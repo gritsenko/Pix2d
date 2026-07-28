@@ -1242,4 +1242,12 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     void IPointerInputRouterHost.DrawStroke(SKPoint pos) => DrawStroke(pos);
     void IPointerInputRouterHost.SetSelectionRect(SKPoint startPos, SKPoint endPos) => SetSelectionRect(startPos, endPos);
     void IPointerInputRouterHost.FinishReleasedDrawing() => FinishReleasedDrawing();
+    void IPointerInputRouterHost.CancelMarquee()
+    {
+        // Drops the in-flight selector + dashed overlay and returns the layer to Ready. Used when a marquee
+        // gesture turns out to be a plain click, which must leave nothing selected.
+        _selection.CancelMarqueeDrag();
+        State = DrawingLayerState.Ready;
+        Refresh();
+    }
 }

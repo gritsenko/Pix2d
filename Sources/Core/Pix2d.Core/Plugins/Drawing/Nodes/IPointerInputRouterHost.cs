@@ -28,6 +28,7 @@ internal interface IPointerInputRouterHost
     void BeginDrawing();
     void DrawStroke(SKPoint pos);
     void FinishSelection();
+    void CancelMarquee();
     void FillRegion(SKPoint origin, SKColor fillColor, float tolerance = 0, SKBlendMode blendMode = SKBlendMode.SrcOver);
     void FinishReleasedDrawing();
 }

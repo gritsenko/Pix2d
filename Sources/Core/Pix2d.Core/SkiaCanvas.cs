@@ -200,7 +200,7 @@ public class SkiaCanvas : Control
             SetColorPickerMode(IsBrushFamilyToolActive());
         }
 
-        Input.SetKeyPressed(key, ToModifiers(e.KeyModifiers));
+        Input.SetKeyPressed(key, ToKeyboardModifiers(e.KeyModifiers));
     }
 
     private void OnKeyUp(object? sender, KeyEventArgs e)
@@ -221,7 +221,7 @@ public class SkiaCanvas : Control
                 SetColorPickerMode(false);
         }
 
-        Input.SetKeyReleased(key, ToModifiers(e.KeyModifiers));
+        Input.SetKeyReleased(key, ToKeyboardModifiers(e.KeyModifiers));
     }
 
     // Holding Alt over a brush-family tool (Brush/Eraser/pixel Shape) makes it pick a color instead of
@@ -257,6 +257,25 @@ public class SkiaCanvas : Control
     }
 
     private static KeyModifier ToModifiers(KeyModifiers keyModifiers) => (KeyModifier)keyModifiers;
+
+    /// <summary>
+    /// Modifiers for the keyboard path. Every shortcut in the app is declared with <see cref="KeyModifier.Ctrl"/>,
+    /// but on macOS the platform's shortcut modifier is Cmd — which Avalonia reports as
+    /// <see cref="KeyModifiers.Meta"/> and the plain cast turns into <see cref="KeyModifier.Win"/>, matching no
+    /// declaration. Folding Cmd into Ctrl there makes Cmd+D / Cmd+S / Cmd+Z work without duplicating every
+    /// binding (Ctrl keeps working too). Pointer modifiers stay unmapped on purpose: there Ctrl means
+    /// aspect-lock / invert-the-wheel, not "the menu key".
+    /// </summary>
+    private static KeyModifier ToKeyboardModifiers(KeyModifiers keyModifiers)
+    {
+        var modifiers = ToModifiers(keyModifiers);
+
+        if (OperatingSystem.IsMacOS() && (modifiers & KeyModifier.Win) != 0)
+            modifiers = (modifiers & ~KeyModifier.Win) | KeyModifier.Ctrl;
+
+        return modifiers;
+    }
+
     private static VirtualKeys ToVirtualKeys(Key key) => (VirtualKeys)KeyInterop.VirtualKeyFromKey(key);
 
     /// <summary>
@@ -424,15 +443,15 @@ public class SkiaCanvas : Control
         var scroll = e.Delta * 30f * ViewPort.ScaleFactor;
         var zoomOrigin = ToSKPoint(e.GetPosition(this));
 
-        bool shouldZoom;
-        if (_appState.MouseWheelBehavior == Pix2d.Primitives.ViewPort.MouseWheelBehavior.Zoom)
-        {
-            shouldZoom = (e.KeyModifiers & KeyModifiers.Control) == 0;
-        }
-        else
-        {
-            shouldZoom = (e.KeyModifiers & KeyModifiers.Control) > 0;
-        }
+        var isCtrlDown = (e.KeyModifiers & KeyModifiers.Control) != 0;
+        var isShiftDown = (e.KeyModifiers & KeyModifiers.Shift) != 0;
+        var isZoomMode = _appState.MouseWheelBehavior == Pix2d.Primitives.ViewPort.MouseWheelBehavior.Zoom;
+
+        // Zoom mode: either modifier temporarily turns the wheel back into scrolling, so the image can be
+        // panned without leaving the mode — Ctrl and plain Shift scroll vertically, Ctrl+Shift horizontally.
+        // Scroll mode is unchanged: Ctrl is the zoom modifier and Shift the horizontal-scroll one.
+        var shouldZoom = isZoomMode ? !isCtrlDown && !isShiftDown : isCtrlDown;
+        var shouldScrollHorizontally = isShiftDown && (!isZoomMode || isCtrlDown);
 
         if (shouldZoom)
         {
@@ -441,7 +460,7 @@ public class SkiaCanvas : Control
             else if (e.Delta.Y < 0)
                 ViewPort.ZoomOut(zoomOrigin);
         }
-        else if ((e.KeyModifiers & KeyModifiers.Shift) > 0 && scroll.Y != 0 && scroll.X == 0)
+        else if (shouldScrollHorizontally && scroll.Y != 0 && scroll.X == 0)
         {
             ViewPort.ChangePan(-(float)scroll.Y, 0);
         }

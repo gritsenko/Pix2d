@@ -61,6 +61,7 @@ static class Runner
         ExportScenario(harness, t);
         SpriteSheetExportScenario(harness, t);
         ArtboardScenario(harness, t);
+        PixelSelectionScenario(harness, t);
         GeneralContextObjectToolScenario(harness, t);
         GeneralContextObjectCommandsScenario(harness, t);
         SafeSweep(harness);
@@ -348,6 +349,119 @@ static class Runner
             h.Exec("Sprite.Edit.AddArtboard");
             Assert.True(h.ArtboardCount == start + 1, $"artboards {start} -> {h.ArtboardCount}, expected +1");
         });
+    }
+
+    // --- Scenario 7bb: pixel selection — marquee drag vs. click, and the Deselect command -----------
+    // Runs on a *second* artboard on purpose: the active sprite then sits away from the scene origin,
+    // which is what exposed the world-vs-layer-local mix-up in SelectionController.BeginSelection (magic
+    // wand sampled the wrong pixel, lasso/click dragged a stray line into the selection).
+    static void PixelSelectionScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Pixel selection scenario (click = deselect) ===");
+
+        h.NewProject(64);
+        h.Exec("Sprite.Edit.AddArtboard");
+        h.SetView(1);
+
+        // Keep the marquee tool active after a selection — the auto-open transform editor would hand the
+        // gesture to PixelTransformTool, and these checks are about the selection tool's own click path.
+        var autoTransform = h.AppState.IsAutoOpenTransformEditorAfterSelectionEnabled;
+        h.AppState.IsAutoOpenTransformEditorAfterSelectionEnabled = false;
+
+        var sprite = h.ActiveSprite;
+        var box = sprite.GetBoundingBox();
+        Console.WriteLine($"  [diag] active artboard bounds: {box}");
+
+        t.Check("premise: the active artboard is not at the scene origin", () =>
+            Assert.True(box.Left > 0, $"expected an offset artboard, bounds = {box}"));
+
+        h.ActivateTool<Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelSelectRectTool>();
+
+        t.Check("rect drag creates a marquee inside the artboard", () =>
+        {
+            h.DragWorld(box.Left + 4, box.Top + 4, box.Left + 20, box.Top + 20);
+            Assert.True(h.HasPixelSelection, "no selection after the drag");
+            var sel = h.PixelSelectionBounds;
+            Console.WriteLine($"  [diag] marquee bounds: {sel}");
+            Assert.True(box.Contains(sel), $"marquee {sel} is not inside the artboard {box}");
+        });
+
+        t.Check("click outside the marquee clears the selection", () =>
+        {
+            h.ClickWorld(box.Left + 40, box.Top + 40);
+            Assert.True(!h.HasPixelSelection, "selection survived a click outside it");
+        });
+
+        t.Check("click inside the marquee keeps the selection", () =>
+        {
+            h.DragWorld(box.Left + 4, box.Top + 4, box.Left + 20, box.Top + 20);
+            var sel = h.PixelSelectionBounds;
+            h.ClickWorld(sel.MidX, sel.MidY);
+            Assert.True(h.HasPixelSelection, "clicking the selected area dropped the selection");
+        });
+
+        t.Check("click outside the canvas clears the selection", () =>
+        {
+            h.ClickWorld(box.MidX, box.Bottom + 30);
+            Assert.True(!h.HasPixelSelection, "selection survived a click off-canvas");
+        });
+
+        t.Check("Deselect command (Ctrl+D) drops a marquee", () =>
+        {
+            h.DragWorld(box.Left + 4, box.Top + 4, box.Left + 20, box.Top + 20);
+            Assert.True(h.HasPixelSelection, "precondition: no marquee to deselect");
+            h.Exec("Edit.Selection.Deselect");
+            Assert.True(!h.HasPixelSelection, "Deselect left the marquee in place");
+        });
+
+        t.Check("lasso drag stays inside the artboard", () =>
+        {
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelSelectLassoTool>();
+            h.PressWorld(box.Left + 6, box.Top + 6);
+            h.MoveWorld(box.Left + 24, box.Top + 8, pressed: true);
+            h.MoveWorld(box.Left + 20, box.Top + 26, pressed: true);
+            h.ReleaseWorld(box.Left + 20, box.Top + 26);
+            Assert.True(h.HasPixelSelection, "no selection after the lasso drag");
+            var sel = h.PixelSelectionBounds;
+            Console.WriteLine($"  [diag] lasso bounds: {sel}");
+            Assert.True(box.Contains(sel), $"lasso selection {sel} is not inside the artboard {box}");
+        });
+
+        t.Check("magic wand still selects on a single click", () =>
+        {
+            h.Exec("Edit.Selection.Deselect");
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelSelectColorTool>();
+            h.ClickWorld(box.MidX, box.MidY);
+            Assert.True(h.HasPixelSelection, "magic-wand click produced no selection");
+            var sel = h.PixelSelectionBounds;
+            Console.WriteLine($"  [diag] wand bounds: {sel}");
+            Assert.True(box.Contains(sel), $"wand selection {sel} is not inside the artboard {box}");
+        });
+
+        t.Check("magic-wand click off-canvas clears the selection", () =>
+        {
+            h.ClickWorld(box.MidX, box.Bottom + 30);
+            Assert.True(!h.HasPixelSelection, "selection survived an off-canvas wand click");
+        });
+
+        // Ctrl+D on lifted pixels: the transform must be committed (via the hand-off back to the marquee
+        // tool) rather than silently dropped, and the user must not be left in a tool with nothing to do.
+        h.AppState.IsAutoOpenTransformEditorAfterSelectionEnabled = true;
+        t.Check("Deselect on a live transform commits and leaves the transform tool", () =>
+        {
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelSelectRectTool>();
+            h.DragWorld(box.Left + 4, box.Left + 4, box.Left + 20, box.Top + 20);
+            Console.WriteLine($"  [diag] after drag: tool={h.AppState.ToolsState.CurrentToolKey}, phase={h.PixelSelectionPhase}");
+            Assert.True(h.PixelSelectionPhase == Pix2d.Primitives.Drawing.SelectionPhase.Transforming,
+                $"precondition: expected lifted pixels, phase = {h.PixelSelectionPhase}");
+
+            h.Exec("Edit.Selection.Deselect");
+            Assert.True(!h.HasPixelSelection, "Deselect left the marquee in place");
+            Assert.True(h.AppState.ToolsState.CurrentToolKey != nameof(Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelTransformTool),
+                "still on PixelTransformTool after Deselect");
+        });
+
+        h.AppState.IsAutoOpenTransformEditorAfterSelectionEnabled = autoTransform;
     }
 
     // --- Scenario 7b: General (objects) context + ObjectManipulationTool ----------------------------

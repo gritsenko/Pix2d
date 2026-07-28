@@ -134,6 +134,25 @@ public sealed class HeadlessHarness
         _drawing.SelectAll();
     }
 
+    /// <summary>True while a pixel-selection marquee exists on the drawing layer.</summary>
+    public bool HasPixelSelection => _drawing.DrawingLayer.HasSelection;
+
+    /// <summary>Marquee lifecycle phase (none / marquee ready / pixels lifted for transform).</summary>
+    public Pix2d.Primitives.Drawing.SelectionPhase PixelSelectionPhase => _drawing.DrawingLayer.SelectionPhase;
+
+    /// <summary>Bounding box of the current marquee in world coordinates (empty when there is none).</summary>
+    public SKRect PixelSelectionBounds =>
+        _drawing.DrawingLayer.HasSelection ? _drawing.DrawingLayer.GetSelectionLayer().GetBoundingBox() : SKRect.Empty;
+
+    /// <summary>Drags a marquee with the active selection tool, from world (x0, y0) to world (x1, y1).</summary>
+    public void DragWorld(float x0, float y0, float x1, float y1, KeyModifier modifiers = KeyModifier.None)
+    {
+        PressWorld(x0, y0, modifiers);
+        MoveWorld((x0 + x1) / 2, (y0 + y1) / 2, pressed: true, modifiers);
+        MoveWorld(x1, y1, pressed: true, modifiers);
+        ReleaseWorld(x1, y1, modifiers);
+    }
+
     /// <summary>Selects the first artboard as a scene-level node so object/General-context commands
     /// (arrange z-order) have a non-null <see cref="ISelectionService.Selection"/> to act on.</summary>
     public void EnsureNodeSelection()

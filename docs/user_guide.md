@@ -71,7 +71,11 @@ Choose your platform:
 - Ctrl+N: New Project
 - Ctrl+O: Open Project
 - Ctrl+C/V: Copy/Paste
+- Ctrl+A: Select all pixels
+- Ctrl+D: Deselect (clicking outside a selection also clears it)
 - [ ]: Decrease/Increase brush size
+
+On macOS use Cmd instead of Ctrl (Ctrl also still works).
 
 ### Grid and Guides
 - Toggle grid: Ctrl+G

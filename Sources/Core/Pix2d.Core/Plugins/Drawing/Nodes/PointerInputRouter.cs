@@ -8,8 +8,17 @@ namespace Pix2d.Plugins.Drawing.Nodes;
 
 internal sealed class PointerInputRouter
 {
+    /// <summary>
+    /// Below this much pointer travel (viewport pixels) a marquee gesture counts as a click, i.e. "deselect",
+    /// not "select a 1-pixel area". Deliberately much smaller than
+    /// <c>DeferredTouchSelection.DragThresholdViewportPixels</c> — this only has to absorb mouse jitter, not
+    /// tell a tap apart from a pan.
+    /// </summary>
+    private const float MarqueeClickThresholdViewportPixels = 4f;
+
     private readonly IPointerInputRouterHost _host;
     private readonly DeferredTouchSelection _deferredTouchSelection = new();
+    private SKPoint _marqueeStartViewportPosition;
 
     public PointerInputRouter(IPointerInputRouterHost host)
     {
@@ -90,7 +99,7 @@ internal sealed class PointerInputRouter
             return;
         }
 
-        if (TryFinishSelectionArea())
+        if (TryFinishSelectionArea(eventArgs))
             return;
 
         if (TryApplyFillOnRelease())
@@ -124,6 +133,7 @@ internal sealed class PointerInputRouter
             return;
         }
 
+        _marqueeStartViewportPosition = eventArgs.Pointer.ViewportPosition;
         _host.CapturePointer();
         _host.BeginSelection(_host.StartPosI);
         _host.AddSelectionPoint(_host.StartPosI);
@@ -142,14 +152,40 @@ internal sealed class PointerInputRouter
         }
     }
 
-    private bool TryFinishSelectionArea()
+    private bool TryFinishSelectionArea(PointerActionEventArgs eventArgs)
     {
         if (_host.State != DrawingLayerState.DrawingSelectionArea || _host.GetDrawingMode() != BrushDrawingMode.Select)
             return false;
 
+        if (IsMarqueeClick(eventArgs))
+        {
+            // A click with a selection tool means "deselect", not "select a single pixel": the press already
+            // dropped the previous marquee (BeginSelection → ApplySelection), so all that's left is to throw
+            // away the degenerate one this gesture would otherwise produce. A click *inside* a live marquee
+            // never reaches here — the frame's move thumb captures the pointer first — so "click the selected
+            // area to keep it" still holds.
+            _host.CancelMarquee();
+            return true;
+        }
+
         _host.AddSelectionPoint(_host.StartPosI);
         _host.FinishSelection();
         return true;
+    }
+
+    /// <summary>
+    /// True when the finished gesture was a click rather than a marquee drag. The magic wand is exempt: for
+    /// <see cref="PixelSelectionMode.SameColor"/> a single click *is* the whole selection gesture.
+    /// </summary>
+    private bool IsMarqueeClick(PointerActionEventArgs eventArgs)
+    {
+        if (_host.SelectionMode == PixelSelectionMode.SameColor)
+            return false;
+
+        var dx = eventArgs.Pointer.ViewportPosition.X - _marqueeStartViewportPosition.X;
+        var dy = eventArgs.Pointer.ViewportPosition.Y - _marqueeStartViewportPosition.Y;
+        return dx * dx + dy * dy
+            < MarqueeClickThresholdViewportPixels * MarqueeClickThresholdViewportPixels;
     }
 
     private bool TryApplyFillOnRelease()
@@ -179,6 +215,7 @@ internal sealed class PointerInputRouter
             return true;
         }
 
+        _marqueeStartViewportPosition = eventArgs.Pointer.ViewportPosition;
         _host.CapturePointer();
         _host.BeginSelection(_host.StartPosI);
         _host.AddSelectionPoint(_host.StartPosI);

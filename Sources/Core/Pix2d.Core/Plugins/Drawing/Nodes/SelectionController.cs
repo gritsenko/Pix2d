@@ -273,7 +273,16 @@ internal sealed class SelectionController
         // SelectionMarqueeOverlayNode draws those as vectors). Keep UseSwapBitmap false so
         // OnDraw doesn't show stale swap content during the drag.
         _host.UseSwapBitmap = false;
-        _pixelSelector.BeginSelection(new SKPointI((int)pos.X, (int)pos.Y));
+
+        // pos arrives in world space (the router hands over the pointer's press position), while the
+        // selectors work in layer-local pixels — the same mapping AddSelectionPoint/SetSelectionRect do.
+        // Without it an artboard that isn't at the scene origin seeded the selector with an off-canvas
+        // point: the magic wand sampled the wrong pixel, and PixelSelector ran its first LineDda from
+        // there, dragging a stray line into the selection (which is how a plain click could come out as a
+        // wide rectangle).
+        _host.GetGlobalTransform().TryInvert(out var invertedTransform);
+        var localStart = invertedTransform.MapPoint(pos);
+        _pixelSelector.BeginSelection(new SKPointI((int)localStart.X, (int)localStart.Y));
 
         ShowMarqueeOverlay();
 
@@ -281,9 +290,6 @@ internal sealed class SelectionController
         {
             // Freeform marquee: seed the visual path with the starting point so the first move-event
             // already produces a visible line segment, matching the pointer trace.
-            var pivot = SKPoint.Empty;
-            _host.GetGlobalTransform().TryInvert(out var invertedTransform);
-            var localStart = invertedTransform.MapPoint(pos + pivot);
             _marqueeOverlay.BeginFreeformPath(localStart);
         }
     }
@@ -423,9 +429,9 @@ internal sealed class SelectionController
     public void CancelSelect() => DeactivateSelectionEditor();
 
     /// <summary>
-    /// Called by <see cref="DrawingLayerNode.CancelActiveDrawing"/> when a marquee drag is interrupted (pinch,
-    /// escape, etc.). Drops the in-progress pixel selector and removes the vector marquee overlay so nothing
-    /// stale stays on screen. No-op when no marquee is in flight.
+    /// Called when a marquee gesture ends without producing a selection — interrupted (pinch, escape) or
+    /// resolved as a plain click. Drops the in-progress pixel selector and removes the vector marquee overlay
+    /// so nothing stale stays on screen. No-op when no marquee is in flight.
     /// </summary>
     public void CancelMarqueeDrag()
     {
@@ -433,6 +439,11 @@ internal sealed class SelectionController
             return;
         _pixelSelector = null;
         HideMarqueeOverlay();
+
+        // BeginSelection announced the gesture with SelectionStarted; without the matching event the
+        // consumers that track "is the user selecting right now" (selection-size readout in the info panel,
+        // tool settings enable-state, clipboard command behaviours) would stay stuck in selecting state.
+        OnSelectionRemoved();
     }
 
     public void DeactivateSelectionEditor()

@@ -109,19 +109,6 @@ public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
                 : nameof(PixelSelectRectTool);
     }
 
-    private void ActivateReturnSelectionTool()
-    {
-        var toolKey = SelectionState.ReturnSelectionToolKey;
-        if (!_toolService.IsSelectionTool(toolKey) || toolKey == nameof(PixelTransformTool))
-            toolKey = nameof(PixelSelectRectTool);
-
-        var toolType = _appState.ToolsState.Tools.FirstOrDefault(x => x.Name == toolKey)?.ToolType;
-        if (toolType != null)
-            _toolService.ActivateTool(toolType);
-        else
-            _toolService.ActivateTool<PixelSelectRectTool>();
-    }
-
     protected override void OnPointerPressed(object? sender, PointerActionEventArgs e)
     {
         base.OnPointerPressed(sender, e);
@@ -135,6 +122,6 @@ public class PixelTransformTool : BaseTool, IDrawingTool, IPixelSelectionTool
         // Hand off to the selection tool the user came from. That triggers our own Deactivate →
         // CommitTransformWithUndo case-A path (marquee preserved in contour mode, ApplyTransformOp pushed).
         // Matches the Apply command/button so every "commit transform" affordance exits the same way.
-        ActivateReturnSelectionTool();
+        _toolService.ActivateReturnSelectionTool(_appState);
     }
 }
