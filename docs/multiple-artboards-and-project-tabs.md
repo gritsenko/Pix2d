@@ -106,10 +106,37 @@ exporters** — that inversion is what lets one exporter serve both a Save dialo
   Naming: artboard name whenever the scene has >1 artboard; a single-artboard project uses the saved
   project's file name (the project *is* the artwork), then the artboard name, then `untitled`.
 - [ExportView.cs](../Sources/Core/Pix2d.Core/UI/Export/ExportView.cs) — **Sprites to export** dropdown
-  (`Selected sprites (n)` / `All sprites (n)`, hidden for a single-artboard scene). Preview shows the
-  artboard being edited (or the first in the batch); Output reports `n sprites · n files · ~total` with the
-  size estimate capped at 12 artboards. The "selected frame will be exported" hint hides in batch mode —
-  the scrub only moves the previewed artboard, so **every other artboard exports at its own current frame**.
+  (`Selected sprites (n)` / `All sprites (n)`, hidden for a single-artboard scene), plus a **master/detail
+  artboard list** for batches (below). Output reports `n sprites · n files · ~total`. The "selected frame
+  will be exported" hint hides in batch mode, and the playback bar hides whenever a *non-active* artboard is
+  previewed — the scrub drives `SpriteEditor`, which only ever points at the edited artboard, so **every
+  other artboard exports at its own current frame**.
+- [ExportListItem.cs](../Sources/Core/Pix2d.Core/UI/Export/ExportListItem.cs) — one list row: thumbnail, the
+  base name the output will be written under, and `w × h px · n files · ~size`.
+
+### Batch preview: master/detail, same rule as the app menu
+
+A batch has no single output to preview, so the preview pane becomes a master/detail pair modelled on
+[`MainMenuView`](../Sources/Core/Pix2d.Core/UI/MainMenu/MainMenuView.cs):
+
+- **Wide** — preview left, artboard list right (240 px); both always visible, no Back button. Clicking a row
+  just re-targets the preview.
+- **Narrow** — the list is the landing view and spans the pane; picking an artboard covers it with the
+  preview plus a **← Back** button. The list is declared *first* in the grid so the (opaque) preview covers
+  it when they share the cell.
+- Column placement comes from `Style<T>` blocks keyed on `VisualStates.Narrow()` (`PreviewDetailName` /
+  `PreviewListName`); **visibility is computed in the view-model**, not in styles — a style setter loses to a
+  binding, so mixing the two silently breaks. `UpdateMasterDetailVisibility()` reads
+  `UiState.VisualState` (watched, so a resize re-evaluates it) together with `IsBatchExport` and whether the
+  user has drilled in.
+
+Row metrics are the **real** exporter output, which means rendering every artboard — so `MeasureItemsAsync`
+walks the rows one at a time, yielding to the dispatcher (`DispatcherPriority.Background`) between them: rows
+fill in progressively, the dialog stays responsive on a 23-artboard scene, and the Output line carries `n/N
+… ` until the last one lands. A new schedule (scale, exporter option, scope) cancels the run in flight, and
+closing the dialog cancels it too. Thumbnails are scale-independent and rendered at most 64 px, so changing
+the export scale re-measures without re-rendering them. This measurement path is shared by the single-item
+case, so the one-artboard Output string is produced by the same code as the batch summary.
 - [AvaloniaFolder.cs](../Sources/Core/Pix2d.Core/Common/FileSystem/AvaloniaFolder.cs) —
   `GetSubfolder`/`GetSubfolderAsync` implemented (were `NotImplementedException`); the async form goes
   through the storage provider so it also works where the picked folder has no filesystem path.
