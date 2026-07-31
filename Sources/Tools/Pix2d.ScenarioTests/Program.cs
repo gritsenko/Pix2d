@@ -4,8 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Mvvm.Messaging;
 using Newtonsoft.Json.Linq;
 using Pix2d.Abstract;
+using Pix2d.Abstract.Export;
+using Pix2d.Abstract.Platform;
+using Pix2d.Abstract.Services;
 using Pix2d.UI;
+using Pix2d.Export;
 using Pix2d.Export.Sheet;
+using Pix2d.Plugins.PngFormat.Exporters;
 using Pix2d.Export.Sheet.Metadata;
 using Pix2d.Primitives;
 using Pix2d.Primitives.ViewPort;
@@ -62,6 +67,7 @@ static class Runner
         ExportScenario(harness, t);
         SpriteSheetExportScenario(harness, t);
         ArtboardScenario(harness, t);
+        BatchExportScenario(harness, t);
         PrecisionScrollDetectorScenario(harness, t);
         PixelSelectionScenario(harness, t);
         GeneralContextObjectToolScenario(harness, t);
@@ -350,6 +356,191 @@ static class Runner
         {
             h.Exec("Sprite.Edit.AddArtboard");
             Assert.True(h.ArtboardCount == start + 1, $"artboards {start} -> {h.ArtboardCount}, expected +1");
+        });
+    }
+
+    /// <summary>
+    /// Runs an async export off the UI thread and waits with a deadline. `SetupWithoutStarting` installs a
+    /// Dispatcher SynchronizationContext on the main thread, so blocking it on a task whose continuations
+    /// post back to the dispatcher deadlocks; `Task.Run` starts without that context. The deadline turns a
+    /// future hang into a failed check instead of a wedged harness.
+    /// </summary>
+    static void RunExport(Func<Task> action)
+    {
+        var task = Task.Run(action);
+        Assert.True(task.Wait(TimeSpan.FromSeconds(60)), "export did not finish within 60s");
+    }
+
+    // --- Scenario 7a: batch export — scope resolution, artboard naming, real files on disk -----------
+    // The Export dialog's destination rule lives in ExportService: one artboard through a single-file
+    // exporter gets a Save dialog seeded with the artboard's name, everything else gets ONE folder picker
+    // and every item is written into it. HeadlessFileService answers both pickers from a temp folder, so
+    // this drives the real ExportItemsAsync — including the names that reach the filesystem.
+    static void BatchExportScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Batch export scenario ===");
+
+        h.NewProject(16);
+        h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+        h.SetColor(SKColors.Magenta);
+        h.DrawPixel(2, 2);
+
+        var exportService = h.Services.GetRequiredService<IExportService>();
+        var files = (HeadlessFileService)h.Services.GetRequiredService<IFileService>();
+
+        // Three artboards with deliberately awkward names: a plain one, one with characters no filesystem
+        // accepts, and one whose name is only whitespace (must fall back rather than produce ".png").
+        var first = h.Artboards[0];
+        first.Name = "hero";
+        h.Exec("Sprite.Edit.AddArtboard");
+        var second = h.Artboards[1];
+        second.Name = "boss: phase 2/final";
+        h.Exec("Sprite.Edit.AddArtboard");
+        var third = h.Artboards[2];
+        third.Name = "   ";
+
+        t.Check("ExportFileNames.Sanitize strips invalid characters and collapses whitespace", () =>
+        {
+            Assert.True(ExportFileNames.Sanitize("boss: phase 2/final") == "boss phase 2final",
+                $"got '{ExportFileNames.Sanitize("boss: phase 2/final")}'");
+            Assert.True(ExportFileNames.Sanitize("a\\b*c?") == "abc", $"got '{ExportFileNames.Sanitize("a\\b*c?")}'");
+            Assert.True(ExportFileNames.Sanitize("trailing dot.") == "trailing dot", "trailing dot must be trimmed");
+            Assert.True(ExportFileNames.Sanitize("   ") == "", "whitespace-only must sanitize to empty");
+            Assert.True(ExportFileNames.SanitizeOrFallback(null) == ExportFileNames.Fallback,
+                "null must fall back");
+        });
+
+        t.Check("AllSprites scope yields one item per artboard, in scene order, named after it", () =>
+        {
+            var items = exportService.GetExportItems(ExportScope.AllSprites);
+            Assert.True(items.Count == 3, $"expected 3 items, got {items.Count}");
+            Assert.True(items[0].Name == "hero", $"item 0 named '{items[0].Name}'");
+            Assert.True(items[1].Name == "boss phase 2final", $"item 1 named '{items[1].Name}'");
+            Assert.True(items[2].Name == ExportFileNames.Fallback,
+                $"blank artboard name must fall back to '{ExportFileNames.Fallback}', got '{items[2].Name}'");
+        });
+
+        t.Check("SelectedSprites scope follows the node selection, in scene order", () =>
+        {
+            h.SelectNodes(third, first); // click order deliberately reversed
+            var items = exportService.GetExportItems(ExportScope.SelectedSprites);
+            Assert.True(items.Count == 2, $"expected 2 items, got {items.Count}");
+            Assert.True(items[0].Name == "hero" && items[1].Name == ExportFileNames.Fallback,
+                $"expected scene order [hero, {ExportFileNames.Fallback}], got [{items[0].Name}, {items[1].Name}]");
+        });
+
+        t.Check("SelectedSprites falls back to the edited artboard when nothing is node-selected", () =>
+        {
+            h.SelectNodes();
+            var items = exportService.GetExportItems(ExportScope.SelectedSprites);
+            Assert.True(items.Count == 1, $"expected 1 item, got {items.Count}");
+        });
+
+        t.Check("single-artboard export suggests the artboard name, not 'untitled'", () =>
+        {
+            var single = exportService.GetExportItems(ExportScope.AllSprites).Take(1).ToList();
+            var before = files.FolderPickerCalls;
+            RunExport(() => exportService.ExportItemsAsync(single, 1, new PngImageExporter(files)));
+
+            Assert.True(files.LastSuggestedFileName == "hero",
+                $"expected suggested name 'hero', got '{files.LastSuggestedFileName ?? "<null>"}'");
+            Assert.True(files.FolderPickerCalls == before,
+                "a single-file export must use the Save dialog, not the folder picker");
+            Assert.True(File.Exists(Path.Combine(files.RootPath, "hero.png")), "hero.png was not written");
+        });
+
+        t.Check("batch PNG export asks for one folder and writes one file per artboard", () =>
+        {
+            var items = exportService.GetExportItems(ExportScope.AllSprites);
+            var before = files.FolderPickerCalls;
+            h.Dialogs.YesNoAnswer = true; // the folder already holds hero.png from the previous check
+            RunExport(() => exportService.ExportItemsAsync(items, 1, new PngImageExporter(files)));
+
+            Assert.True(files.FolderPickerCalls == before + 1,
+                $"expected exactly one folder prompt, got {files.FolderPickerCalls - before}");
+            foreach (var item in items)
+            {
+                var path = Path.Combine(files.RootPath, item.Name + ".png");
+                Assert.True(File.Exists(path), $"missing {item.Name}.png");
+                Assert.True(new FileInfo(path).Length > 0, $"{item.Name}.png is empty");
+            }
+        });
+
+        t.Check("declining the overwrite prompt leaves existing files untouched", () =>
+        {
+            // Replace a real export with a sentinel: if the declined export still ran, it would be gone.
+            var heroPath = Path.Combine(files.RootPath, "hero.png");
+            const string sentinel = "not-a-png";
+            File.WriteAllText(heroPath, sentinel);
+
+            h.Dialogs.YesNoAnswer = false;
+            var items = exportService.GetExportItems(ExportScope.AllSprites);
+            RunExport(() => exportService.ExportItemsAsync(items, 1, new PngImageExporter(files)));
+
+            Assert.True(File.ReadAllText(heroPath) == sentinel,
+                "the declined export must not overwrite anything");
+        });
+
+        t.Check("batch sheet export writes a PNG + JSON sidecar per artboard, both name-derived", () =>
+        {
+            var sheetDir = Path.Combine(files.RootPath, "sheets");
+            var folder = new Pix2d.Common.FileSystem.NetFolder(sheetDir);
+            var exporter = new SpriteSheetExporter(files, h.Services.GetRequiredService<IPlatformStuffService>());
+
+            Assert.True(!exporter.NeedsOwnFolderPerItem, "a sheet's files are name-derived — no subfolder needed");
+
+            foreach (var item in exportService.GetExportItems(ExportScope.AllSprites))
+            {
+                var it = item;
+                RunExport(() => exporter.ExportToFolderAsync(it.Nodes, 1, folder, it.Name));
+            }
+
+            foreach (var item in exportService.GetExportItems(ExportScope.AllSprites))
+            {
+                Assert.True(File.Exists(Path.Combine(sheetDir, item.Name + ".png")), $"missing sheet {item.Name}.png");
+                var json = Path.Combine(sheetDir, item.Name + ".json");
+                Assert.True(File.Exists(json), $"missing sidecar {item.Name}.json");
+                var meta = JObject.Parse(File.ReadAllText(json));
+                Assert.True((string?)meta["meta"]?["image"] == item.Name + ".png",
+                    $"sidecar meta.image should name the sheet next to it, got '{(string?)meta["meta"]?["image"]}'");
+            }
+        });
+
+        t.Check("batch PNG-sequence export isolates each artboard in its own subfolder", () =>
+        {
+            var seqRoot = Path.Combine(files.RootPath, "sequence");
+            var folder = new Pix2d.Common.FileSystem.NetFolder(seqRoot);
+            var exporter = new SpritePngSequenceExporter();
+
+            Assert.True(exporter.NeedsOwnFolderPerItem,
+                "a sequence names its own frame files — the service must give it a folder per artboard");
+
+            foreach (var item in exportService.GetExportItems(ExportScope.AllSprites))
+            {
+                var target = folder.GetSubfolder(item.Name);
+                var it = item;
+                RunExport(() => exporter.ExportToFolderAsync(it.Nodes, 1, target, it.Name));
+            }
+
+            foreach (var item in exportService.GetExportItems(ExportScope.AllSprites))
+            {
+                var frame = Path.Combine(seqRoot, item.Name, "frame_0000.png");
+                Assert.True(File.Exists(frame), $"missing {item.Name}/frame_0000.png");
+            }
+        });
+
+        t.Check("a cancelled picker neither throws nor reports success", () =>
+        {
+            files.PickerSucceeds = false;
+            try
+            {
+                var items = exportService.GetExportItems(ExportScope.AllSprites);
+                RunExport(() => exportService.ExportItemsAsync(items, 1, new PngImageExporter(files)));
+            }
+            finally
+            {
+                files.PickerSucceeds = true;
+            }
         });
     }
 

@@ -9,14 +9,13 @@ public class PngFormatPlugin(
     IExportService exportService,
     IImportService importService,
     IFileService fileService,
-    IDialogService dialogService,
     IPlatformStuffService platformStuffService) : IPix2dPlugin
 {
     public void Initialize()
     {
         exportService.RegisterExporter<PngImageExporter>("Single Png image", () => new PngImageExporter(fileService));
         exportService.RegisterExporter<SpritePngSequenceExporter>("Png sequence",
-            () => new SpritePngSequenceExporter(fileService, dialogService));
+            () => new SpritePngSequenceExporter());
         exportService.RegisterExporter<SpriteSheetExporter>("Sprite sheet (PNG + JSON)",
             () => new SpriteSheetExporter(fileService, platformStuffService));
 

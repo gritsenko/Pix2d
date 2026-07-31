@@ -133,6 +133,7 @@ public partial class ExportView : ViewBase<ExportView.State>
                                         new StackPanel()
                                             .Spacing(8)
                                             .Children(
+                                                BuildScopeSelector(state),
                                                 new TextBlock().Text(L("Export type")),
                                                 new ComboBox()
                                                     .ItemTemplate<ExporterInfo>(item =>
@@ -193,6 +194,23 @@ public partial class ExportView : ViewBase<ExportView.State>
 
         return root;
     }
+
+    /// <summary>Which artboards the export covers. Hidden for a single-artboard project, where both
+    /// options mean the same thing.</summary>
+    private static Control BuildScopeSelector(State state) =>
+        new StackPanel()
+            .Spacing(8)
+            .IsVisible(state, x => x.ShowScopeSelector)
+            .Children(
+                new TextBlock().Text(L("Sprites to export")),
+                new ComboBox()
+                    .HorizontalAlignment(HorizontalAlignment.Stretch)
+                    .Items(
+                        new ComboBoxItem().Content(state, x => x.SelectedScopeLabel),
+                        new ComboBoxItem().Content(state, x => x.AllScopeLabel)
+                    )
+                    .SelectedIndex(state, x => x.ScopeIndex, BindingMode.TwoWay)
+            );
 
     private static Control BuildPreviewZoomControls(State state) =>
         new Border()
@@ -351,6 +369,26 @@ public partial class ExportView : ViewBase<ExportView.State>
         [ObservableProperty]
         public partial string OutputInfoText { get; set; } = string.Empty;
 
+        // Export scope: 0 = the selected artboards, 1 = every artboard in the scene. Only offered when the
+        // scene actually holds more than one artboard.
+        [ObservableProperty]
+        public partial int ScopeIndex { get; set; }
+
+        [ObservableProperty]
+        public partial bool ShowScopeSelector { get; set; }
+
+        [ObservableProperty]
+        public partial string SelectedScopeLabel { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial string AllScopeLabel { get; set; } = string.Empty;
+
+        /// <summary>More than one artboard is being exported, so there is no single output: the destination is
+        /// a folder, the preview shows one representative artboard, and the frame scrub applies only to it.</summary>
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ShowFrameSelectHint))]
+        public partial bool IsBatchExport { get; set; }
+
         // Preview zoom: the SKImageView is sized to (source px × zoom); the ScrollViewer pans when it
         // exceeds the pane. "Fit" recomputes the zoom to fill the pane uniformly on every pane/image change.
         [ObservableProperty]
@@ -361,6 +399,8 @@ public partial class ExportView : ViewBase<ExportView.State>
 
         [ObservableProperty]
         public partial string PreviewZoomText { get; set; } = string.Empty;
+
+        private ExportItem[] _items = [];
 
         private int _srcWidth;
         private int _srcHeight;
@@ -407,7 +447,21 @@ public partial class ExportView : ViewBase<ExportView.State>
 
         public string FrameCounterText => $"{SelectedFrameIndex + 1}/{FramesCount}";
 
-        public bool ShowFrameSelectHint => IsAnimated && IsSingleFrameExport;
+        public bool ShowFrameSelectHint => IsAnimated && IsSingleFrameExport && !IsBatchExport;
+
+        private ExportScope CurrentScope => ScopeIndex == 1 ? ExportScope.AllSprites : ExportScope.SelectedSprites;
+
+        /// <summary>The artboard shown in the preview pane: the one being edited when it's part of the export,
+        /// otherwise the first — a batch has no single output to preview.</summary>
+        private ExportItem? PreviewItem
+        {
+            get
+            {
+                var current = _appState.CurrentProject.CurrentEditedNode;
+                return _items.FirstOrDefault(x => current != null && x.Nodes.Contains(current))
+                       ?? _items.FirstOrDefault();
+            }
+        }
 
         public bool ShowPlaybackBar => IsAnimated && !IsSheetExport;
 
@@ -449,9 +503,41 @@ public partial class ExportView : ViewBase<ExportView.State>
                 ScheduleOutputInfoUpdate();
         }
 
+        partial void OnScopeIndexChanged(int value)
+        {
+            RefreshItems();
+            UpdatePreview();
+            ScheduleOutputInfoUpdate();
+        }
+
+        /// <summary>Re-resolves what will be exported. Cheap, and the single source of truth for the Export
+        /// button, the preview and the output summary — so they can never disagree.</summary>
+        private void RefreshItems()
+        {
+            _items = _exportService.GetExportItems(CurrentScope).ToArray();
+            IsBatchExport = _items.Length > 1;
+        }
+
+        private void RefreshScope()
+        {
+            var artboardsCount = _exportService.GetArtboardsCount();
+            var selectedCount = _exportService.GetExportItems(ExportScope.SelectedSprites).Count;
+
+            // A single-artboard project has nothing to choose between.
+            ShowScopeSelector = artboardsCount > 1;
+            SelectedScopeLabel = $"{L("Selected sprites")} ({selectedCount})";
+            AllScopeLabel = $"{L("All sprites")} ({artboardsCount})";
+
+            if (!ShowScopeSelector)
+                ScopeIndex = 0;
+
+            RefreshItems();
+        }
+
         private void OnDialogOpened()
         {
             _spriteEditor = _appState.CurrentProject.CurrentNodeEditor as SpriteEditor;
+            RefreshScope();
 
             // Take over playback so the editor's own timer doesn't fight the preview timer.
             if (_spriteEditor is { IsPlaying: true })
@@ -544,22 +630,20 @@ public partial class ExportView : ViewBase<ExportView.State>
                 _playTimer.Stop();
                 IsPlaying = false;
 
+                RefreshItems();
+
                 using var uiBlocker = new UiBlocker("Exporting...");
                 Logger.LogEventWithParams("Exporting image", new Dictionary<string, string?>
                 {
-                    { "Exporter", SelectedExporterInfo.Name }
+                    { "Exporter", SelectedExporterInfo.Name },
+                    { "Scope", CurrentScope.ToString() },
+                    { "Sprites", _items.Length.ToString() }
                 });
 
-                var nodesToExport = _exportService.GetNodesToExport(Scale);
-
-                if (_configuredExporter != null)
-                {
-                    await _exportService.ExportNodesAsync(nodesToExport, Scale, _configuredExporter);
-                }
-                else
-                {
-                    await _exportService.ExportNodesAsync(nodesToExport, Scale, SelectedExporterInfo);
-                }
+                // The service picks the destination from the item count (one file dialog vs one folder) and
+                // names every output after its artboard.
+                await _exportService.ExportItemsAsync(_items, Scale,
+                    _configuredExporter ?? SelectedExporterInfo.CreateInstanceFunc());
 
                 _viewCommands.HideExportDialogCommand.Execute();
             }
@@ -631,7 +715,9 @@ public partial class ExportView : ViewBase<ExportView.State>
             if (_appState.CurrentProject.CurrentNodeEditor is not SpriteEditor spriteEditor)
                 return;
 
-            var nodes = _exportService.GetNodesToExport(Scale).ToArray();
+            var nodes = PreviewItem?.Nodes.ToArray() ?? [];
+            if (nodes.Length == 0)
+                return;
 
             // Sprite sheet: preview the actual packed sheet (all frames laid out), not just the active frame.
             if (_configuredExporter is SpriteSheetExporter sheetExporter)
@@ -769,12 +855,20 @@ public partial class ExportView : ViewBase<ExportView.State>
                 }
 
                 var exporter = _configuredExporter ?? info.CreateInstanceFunc();
-                var nodes = _exportService.GetNodesToExport(Scale).ToArray();
-                if (nodes.Length == 0)
+
+                if (_items.Length == 0)
                 {
                     OutputInfoText = string.Empty;
                     return;
                 }
+
+                if (_items.Length > 1)
+                {
+                    OutputInfoText = await ComputeBatchOutputInfoAsync(exporter);
+                    return;
+                }
+
+                var nodes = _items[0].Nodes.ToArray();
 
                 // PNG sequence: one file per frame — report count + summed size.
                 if (exporter is SpritePngSequenceExporter && nodes[0] is Pix2dSprite seqSprite)
@@ -828,6 +922,41 @@ public partial class ExportView : ViewBase<ExportView.State>
                 Logger.Log("Export output-info failed: " + ex.Message);
                 OutputInfoText = string.Empty;
             }
+        }
+
+        /// <summary>
+        /// Batch summary. Sizes come from the real exporters, which means rendering every artboard — capped,
+        /// so a scene with dozens of them doesn't stall the dialog on every option change; past the cap we
+        /// report the file count only rather than a made-up size.
+        /// </summary>
+        private async Task<string> ComputeBatchOutputInfoAsync(IExporter exporter)
+        {
+            const int maxItemsForSizeEstimate = 12;
+
+            var sprites = $"{_items.Length} {L("sprites")}";
+
+            // Frame sequence: each artboard gets its own subfolder, so the count is frames, not artboards.
+            if (exporter is SpritePngSequenceExporter)
+            {
+                var frames = _items.Sum(item => item.Nodes.OfType<Pix2dSprite>().Sum(s => s.GetFramesCount()));
+                return $"{sprites} · {frames} {L("files")} · {L("one folder per sprite")}";
+            }
+
+            var hasSidecar = exporter is SpriteSheetExporter sheet
+                             && !string.Equals(sheet.MetadataFormat, "none", StringComparison.OrdinalIgnoreCase);
+            var suffix = hasSidecar ? " " + L("+ metadata") : string.Empty;
+
+            if (exporter is not IStreamExporter streamExporter || _items.Length > maxItemsForSizeEstimate)
+                return $"{sprites} · {_items.Length} {L("files")}{suffix}";
+
+            long total = 0;
+            foreach (var item in _items)
+            {
+                await using var stream = await streamExporter.ExportToStreamAsync(item.Nodes, Scale);
+                total += stream.Length;
+            }
+
+            return $"{sprites} · {_items.Length} {L("files")} · ~{FormatSize(total)} {L("total")}{suffix}";
         }
 
         private (int Width, int Height) GetNodeSize(SkiaNodes.SKNode[] nodes)

@@ -36,14 +36,28 @@ public class AvaloniaFolder(IStorageFolder folder) : IWriteDestinationFolder
         return Task.FromResult<IFileContentSource>(null!);
     }
 
+    // Batch export needs real subfolders (one per artboard for a frame sequence), so these are no longer
+    // NotImplementedException stubs. Prefer the async form: it goes through the storage provider and so also
+    // works where the picked folder has no usable filesystem path (Android SAF, browser).
     public IWriteDestinationFolder GetSubfolder(string folderName)
     {
-        throw new NotImplementedException();
+        var path = System.IO.Path.Combine(Path, folderName);
+        if (!Directory.Exists(path))
+            Directory.CreateDirectory(path);
+
+        return new NetFolder(path);
     }
 
-    public Task<IWriteDestinationFolder> GetSubfolderAsync(string folderName)
+    public async Task<IWriteDestinationFolder> GetSubfolderAsync(string folderName)
     {
-        return Task.FromResult(GetSubfolder(folderName));
+        await foreach (var item in folder.GetItemsAsync())
+        {
+            if (item is IStorageFolder existing && string.Equals(item.Name, folderName, StringComparison.OrdinalIgnoreCase))
+                return new AvaloniaFolder(existing);
+        }
+
+        var created = await folder.CreateFolderAsync(folderName);
+        return created != null ? new AvaloniaFolder(created) : GetSubfolder(folderName);
     }
 
 

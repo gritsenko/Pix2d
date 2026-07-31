@@ -1,8 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
+using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Abstract.Services;
 using Pix2d.Abstract.UI;
+using Pix2d.Common.FileSystem;
+using Pix2d.Infrastructure;
 using Pix2d.Infrastructure.Logger;
 using Pix2d.Plugins.Drawing;
 using Pix2d.Plugins.ImageFormats.PngFormat;
@@ -21,9 +24,11 @@ namespace Pix2d.ScenarioTests;
 ///   - uses the in-process <see cref="InternalClipboardService"/> (the head normally supplies a
 ///     platform clipboard),
 ///   - points the app data folder at a throwaway temp dir so settings / crash markers don't touch
-///     the developer's real Pix2d profile.
-/// The four Avalonia-flavoured base services (font / dialog / file / ui-scale) are construct-safe;
-/// they only touch Avalonia on method use, which the boot + draw path never triggers.
+///     the developer's real Pix2d profile,
+///   - answers every file/folder picker from a temp folder via <see cref="HeadlessFileService"/>, so the
+///     export destination logic (Save dialog vs. folder) is exercisable without a TopLevel.
+/// The remaining Avalonia-flavoured base services (font / ui-scale) are construct-safe; they only touch
+/// Avalonia on method use, which the boot + draw path never triggers.
 /// </summary>
 public sealed class HeadlessBootstrapper : Pix2dBootstrapperDI
 {
@@ -50,6 +55,10 @@ public sealed class HeadlessBootstrapper : Pix2dBootstrapperDI
         // Replace the Avalonia dialog service: a swept command that pops a dialog would otherwise try
         // to build an Avalonia view with no TopLevel. All calls become deterministic no-ops.
         services.AddSingleton<IDialogService, HeadlessDialogService>();
+        // Replace the Avalonia file service: every picker needs a TopLevel. This one answers each picker
+        // from a temp folder and records what was asked for, which is what makes export destinations and
+        // suggested file names assertable headlessly.
+        services.AddSingleton<IFileService>(new HeadlessFileService(Path.Combine(_appFolder, "pickers")));
     }
 
     protected override void LoadPlugins()
@@ -92,6 +101,96 @@ internal sealed class HeadlessPlatformStuffService(string appFolder) : IPlatform
 
 /// <summary>No-op dialog surface: every prompt resolves to a safe default and no Avalonia view is built.
 /// Yes/No prompts are scriptable so a scenario can drive a confirmation flow.</summary>
+/// <summary>
+/// Stands in for the Avalonia file service. Every picker resolves against one throwaway folder, and what
+/// the caller asked for is recorded — <see cref="LastSuggestedFileName"/> is how a scenario asserts that an
+/// export suggests the artboard's name instead of the old hardcoded "untitled".
+/// </summary>
+public sealed class HeadlessFileService(string rootPath) : IFileService
+{
+    /// <summary>Folder every picker resolves to.</summary>
+    public string RootPath { get; } = rootPath;
+
+    /// <summary>Suggested name passed to the most recent save picker (null when the caller passed none).</summary>
+    public string? LastSuggestedFileName { get; private set; }
+
+    /// <summary>Set false to make the next save/folder picker behave as if the user cancelled.</summary>
+    public bool PickerSucceeds { get; set; } = true;
+
+    /// <summary>Number of times a folder picker was shown — a batch export must only ever ask once.</summary>
+    public int FolderPickerCalls { get; private set; }
+
+    private IWriteDestinationFolder Root()
+    {
+        Directory.CreateDirectory(RootPath);
+        return new NetFolder(RootPath);
+    }
+
+    public Task<IEnumerable<IFileContentSource>> OpenFileWithDialogAsync(string[] fileTypeFilter,
+        bool allowMultiplyFiles = false, string? contextKey = null)
+        => Task.FromResult(Enumerable.Empty<IFileContentSource>());
+
+    public Task<Result<IFileContentSource, FileDialogResultError>> GetFileToSaveWithDialogAsync(
+        string[] fileTypeFilter, string? contextKey = null, string? defaultFileName = null)
+    {
+        LastSuggestedFileName = defaultFileName;
+        if (!PickerSucceeds)
+            return Task.FromResult<Result<IFileContentSource, FileDialogResultError>>(FileDialogResultError.NoFileSelected);
+
+        var ext = fileTypeFilter.FirstOrDefault() ?? ".png";
+        var file = Root().GetFileSource(defaultFileName ?? "untitled", ext, true);
+        return Task.FromResult(Result<IFileContentSource, FileDialogResultError>.FromNullable(
+            file, FileDialogResultError.FileSourceNotCreated));
+    }
+
+    public async Task<bool> SaveTextToFileWithDialogAsync(string text, string[] fileTypeFilter,
+        string? contextKey = null, string? defaultFileName = null)
+    {
+        LastSuggestedFileName = defaultFileName;
+        if (!PickerSucceeds)
+            return false;
+
+        var file = Root().GetFileSource(defaultFileName ?? "untitled", fileTypeFilter.FirstOrDefault() ?? ".txt", true);
+        await file.SaveAsync(text);
+        return true;
+    }
+
+    public async Task<bool> SaveStreamToFileWithDialogAsync(Func<Task<Stream>> streamProvider,
+        string[] fileTypeFilter, string? contextKey = null, string? defaultFileName = null)
+    {
+        LastSuggestedFileName = defaultFileName;
+        if (!PickerSucceeds)
+            return false;
+
+        var file = Root().GetFileSource(defaultFileName ?? "untitled", fileTypeFilter.FirstOrDefault() ?? ".png", true);
+        await using var stream = await streamProvider();
+        await file.SaveAsync(stream);
+        return true;
+    }
+
+    public Task<IWriteDestinationFolder?> GetFolderToExportWithDialogAsync(string? contextKey = null)
+    {
+        FolderPickerCalls++;
+        return Task.FromResult(PickerSucceeds ? Root() : null);
+    }
+
+    public Task<IWriteDestinationFolder> GetLocalFolderAsync(string name, bool deleteIfExist = false)
+    {
+        var path = Path.Combine(RootPath, name);
+        if (deleteIfExist && Directory.Exists(path))
+            Directory.Delete(path, true);
+        Directory.CreateDirectory(path);
+        return Task.FromResult<IWriteDestinationFolder>(new NetFolder(path));
+    }
+
+    public Task<IFileContentSource> GetFileContentSourceAsync(string fileName)
+        => Task.FromResult<IFileContentSource>(new NetFileSource(fileName));
+
+    public void AddToMru(IFileContentSource fileSource) { }
+    public Task<List<IFileContentSource>> GetMruFilesAsync() => Task.FromResult(new List<IFileContentSource>());
+    public void RemoveFromMru(string sourcePath) { }
+}
+
 public sealed class HeadlessDialogService : IDialogService
 {
     /// <summary>Answer returned by the next <see cref="ShowYesNoDialog"/>. Defaults to <c>false</c> so the

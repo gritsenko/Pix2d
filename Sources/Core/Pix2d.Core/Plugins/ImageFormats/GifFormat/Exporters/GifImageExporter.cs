@@ -28,14 +28,9 @@ public class GifImageExporter(IFileService fileService) : SKNodeExporterBase, IF
         return e.GetResultStream();
     }
 
-    public override Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1)
+    public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1, string? defaultFileName = null)
     {
-        return ExportToFileAsync(nodes, scale);
-    }
-
-    public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1)
-    {
-        var result = await fileService.SaveStreamToFileWithDialogAsync(() => ExportToStreamAsync(nodes, scale), [".gif"], "export");
+        var result = await fileService.SaveStreamToFileWithDialogAsync(() => ExportToStreamAsync(nodes, scale), [".gif"], "export", defaultFileName);
 
         if (!result)
             throw new OperationCanceledException("Selection file canceled");

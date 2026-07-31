@@ -11,11 +11,6 @@ public class PngImageExporter(IFileService fileService) : IStreamExporter, IFile
 {
     public string? Title => "PNG image";
 
-    public Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1)
-    {
-        return ExportToFileAsync(nodes, scale);
-    }
-
     public string[] SupportedExtensions => new[] { ".png" };
     public string MimeType => "image/png";
 
@@ -25,11 +20,13 @@ public class PngImageExporter(IFileService fileService) : IStreamExporter, IFile
         return Task.FromResult(skBitmap.ToPngStream());
     }
 
-    public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1)
+    public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1, string? defaultFileName = null)
     {
+        // "export" context, like every other exporter — the old "project" key made a PNG export reopen the
+        // folder the .pix2d was last saved to instead of the one the user exports images into.
         var result =
             await fileService.SaveStreamToFileWithDialogAsync(() => ExportToStreamAsync(nodes, scale), [".png"],
-                "project");
+                "export", defaultFileName);
 
         if (!result)
             throw new OperationCanceledException("Selection file canceled");

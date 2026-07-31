@@ -337,7 +337,15 @@
       "Artboard name": "Artboard name",
       "Layout mode": "Layout mode",
       "3D mode": "3D mode",
-      "Text mode": "Text mode"
+      "Text mode": "Text mode",
+      "Sprites to export": "Sprites to export",
+      "Selected sprites": "Selected sprites",
+      "All sprites": "All sprites",
+      "sprites": "sprites",
+      "one folder per sprite": "one folder per sprite",
+      "There's nothing to Export!": "There's nothing to Export!",
+      "Folder is not empty — files with the same names will be overwritten.": "Folder is not empty — files with the same names will be overwritten.",
+      "{0} file(s) in this folder will be overwritten. Continue?": "{0} file(s) in this folder will be overwritten. Continue?"
     },
     "Locale": "en",
     "LocaleTitle": "English",
@@ -670,7 +678,15 @@
       "Artboard name": "Имя артборда",
       "Layout mode": "Режим компоновки",
       "3D mode": "Режим 3D",
-      "Text mode": "Режим текста"
+      "Text mode": "Режим текста",
+      "Sprites to export": "Спрайты для экспорта",
+      "Selected sprites": "Выбранные спрайты",
+      "All sprites": "Все спрайты",
+      "sprites": "спрайтов",
+      "one folder per sprite": "по папке на спрайт",
+      "There's nothing to Export!": "Нечего экспортировать!",
+      "Folder is not empty — files with the same names will be overwritten.": "Папка не пуста — файлы с такими же именами будут перезаписаны.",
+      "{0} file(s) in this folder will be overwritten. Continue?": "В этой папке будет перезаписано файлов: {0}. Продолжить?"
     },
     "Locale": "ru",
     "LocaleTitle": "Russian",

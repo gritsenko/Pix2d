@@ -20,11 +20,6 @@ public abstract class SKNodeExporterBase : IStreamExporter
     public abstract string[] SupportedExtensions { get; }
     public abstract string MimeType { get; }
 
-    public virtual Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1)
-    {
-        throw new NotImplementedException();
-    }
-
     public Task<Stream> ExportToStreamAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {
         var frameRate = 0.0001f;

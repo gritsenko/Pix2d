@@ -7,27 +7,27 @@ using SkiaSharp;
 
 namespace Pix2d.Plugins.ImageFormats.SvgFormat.Exporters;
 
-public class SvgImageExporter(IFileService fileService) : IFilePickerExporter
+public class SvgImageExporter(IFileService fileService) : IStreamExporter, IFilePickerExporter
 {
     public string? Title => "SVG image";
-
-    public Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1)
-    {
-        return ExportToFileAsync(nodes, scale);
-    }
 
     public string[] SupportedExtensions => new[] { ".svg" };
     public string MimeType => "image/svg+xml";
 
-    public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1)
+    public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1, string? defaultFileName = null)
     {
         var result =
-            await fileService.SaveStreamToFileWithDialogAsync(() => Task.FromResult(Export(nodes, scale)), [".svg"],
-                "export");
+            await fileService.SaveStreamToFileWithDialogAsync(() => ExportToStreamAsync(nodes, scale), [".svg"],
+                "export", defaultFileName);
 
         if (!result)
             throw new OperationCanceledException("Selection file canceled");
     }
+
+    /// <summary>Same output as <see cref="Export"/>, exposed through the interface so batch export and
+    /// Share can write SVG through the generic stream path instead of special-casing this exporter.</summary>
+    public Task<Stream> ExportToStreamAsync(IEnumerable<SKNode> nodes, double scale = 1)
+        => Task.FromResult(Export(nodes, scale));
 
     public Stream Export(IEnumerable<SKNode> nodesToExport, double scale = 1)
     {

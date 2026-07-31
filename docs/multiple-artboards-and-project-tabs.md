@@ -80,6 +80,66 @@ Implemented across these files (see the feature commit for the diff):
 
 ---
 
+## Part A — batch export (DONE)
+
+Multiple artboards make single-artboard export the wrong default, so the Export dialog gained a scope and
+`IExportService` gained a destination rule. **Destination selection now lives in the service, not in the
+exporters** — that inversion is what lets one exporter serve both a Save dialog and an N-artboard batch.
+
+- [ExportItem.cs](../Sources/Core/Pix2d.Shared/Abstract/Export/ExportItem.cs) — `ExportItem(Name, Nodes)`
+  (one per artboard) + `ExportScope { SelectedSprites, AllSprites }`.
+- [ExportFileNames.cs](../Sources/Core/Pix2d.Shared/Export/ExportFileNames.cs) — the only place a
+  user-typed artboard name is turned into a file name (invalid chars, whitespace runs, trailing dots that
+  Windows silently strips, 96-char cap).
+- [IExporter.cs](../Sources/Core/Pix2d.Shared/Abstract/Export/IExporter.cs) — `IExporter` is now pure
+  identity (`Title`/`SupportedExtensions`/`MimeType`); the destination-blind `ExportAsync` is gone. Three
+  capability interfaces say how an exporter can *write*: `IStreamExporter` (the service writes the stream),
+  `IFilePickerExporter` (owns a Save dialog — **not** implemented by the PNG sequence, which is exactly what
+  keeps it on the folder path), and the new **`IBatchExporter`** (receives a folder;
+  `NeedsOwnFolderPerItem` = true for the frame sequence, whose own file names would collide, false for the
+  sheet, whose PNG + sidecar are both derived from the base name). The dead `IFolderPickerExporter` is gone.
+- [ExportService.cs](../Sources/Core/Pix2d.Core/Services/ExportService.cs) — `GetExportItems(scope)`
+  (General-context node selection → artboards in **scene** order, falling back to `CurrentEditedNode`, so
+  Sprite-context export is unchanged) and `ExportItemsAsync(items, scale, exporter)`, which routes: **one
+  item + `IFilePickerExporter` → Save dialog seeded with the artboard's name; otherwise → one folder
+  picker**, then writes each item (`IBatchExporter` if implemented, else the `IStreamExporter` output).
+  Naming: artboard name whenever the scene has >1 artboard; a single-artboard project uses the saved
+  project's file name (the project *is* the artwork), then the artboard name, then `untitled`.
+- [ExportView.cs](../Sources/Core/Pix2d.Core/UI/Export/ExportView.cs) — **Sprites to export** dropdown
+  (`Selected sprites (n)` / `All sprites (n)`, hidden for a single-artboard scene). Preview shows the
+  artboard being edited (or the first in the batch); Output reports `n sprites · n files · ~total` with the
+  size estimate capped at 12 artboards. The "selected frame will be exported" hint hides in batch mode —
+  the scrub only moves the previewed artboard, so **every other artboard exports at its own current frame**.
+- [AvaloniaFolder.cs](../Sources/Core/Pix2d.Core/Common/FileSystem/AvaloniaFolder.cs) —
+  `GetSubfolder`/`GetSubfolderAsync` implemented (were `NotImplementedException`); the async form goes
+  through the storage provider so it also works where the picked folder has no filesystem path.
+
+Re-export into the same folder **overwrites** — that's what makes it re-runnable — but confirms first:
+exactly ("*n* file(s) will be overwritten") when the produced names are known up front, conservatively on a
+non-empty folder for exporters that name their own files (`Yes/No` via `IDialogService`).
+
+Fixed alongside: `SpritePngSequenceExporter.Export` was `async void` and called un-awaited (a failed
+sequence export reported success and swallowed the error) — now an awaited `Task` that renders frames
+lazily; `SvgImageExporter` became an `IStreamExporter`; `PngImageExporter` moved off the `"project"`
+folder-memory context onto `"export"` like every other exporter.
+
+**Covered by the headless harness** ([Pix2d.ScenarioTests](../Sources/Tools/Pix2d.ScenarioTests)) — a
+`BatchExportScenario` drives the real `ExportItemsAsync` through a `HeadlessFileService` that answers both
+pickers from a temp folder and records the suggested file name, so scope resolution, artboard naming, the
+one-folder-prompt invariant, the declined-overwrite path, the sheet's per-artboard PNG+JSON and the
+sequence's per-artboard subfolders are all asserted against files on disk.
+
+**Interactive QA still needed:**
+1. General context, Shift-click 2 of 3 artboards → Ctrl+E shows `Selected sprites (2)`; Save asks for a
+   folder once and writes `<name>.png` per artboard.
+2. Sprite context, 3 artboards → `Selected sprites (1)`; Save shows the **file** dialog pre-filled with the
+   artboard name.
+3. Single-artboard project → the scope dropdown is hidden; a saved project suggests its own file name.
+4. `All sprites` + Png sequence → one subfolder per artboard, frames inside.
+5. Re-export into the same folder → overwrite prompt; declining leaves the folder untouched.
+
+---
+
 ## Part A — editing artboards as objects: the General context (DONE)
 
 > **Superseded design.** The first implementation was a self-contained "edit sprite as object" mode that ran

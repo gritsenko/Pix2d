@@ -19,7 +19,7 @@ namespace Pix2d.Plugins.PngFormat.Exporters;
 /// engine lives in <see cref="SpriteSheetBuilder"/> (Pix2d.Shared), so the headless CLI shares it.
 /// </summary>
 public class SpriteSheetExporter(IFileService fileService, IPlatformStuffService platformStuff)
-    : IStreamExporter, IFilePickerExporter
+    : IStreamExporter, IFilePickerExporter, IBatchExporter
 {
     public string? Title => "Sprite sheet (PNG + JSON)";
 
@@ -36,7 +36,8 @@ public class SpriteSheetExporter(IFileService fileService, IPlatformStuffService
     public string[] SupportedExtensions => [".png"];
     public string MimeType => "image/png";
 
-    public Task ExportAsync(IEnumerable<SKNode> nodes, double scale = 1) => ExportToFileAsync(nodes, scale);
+    /// <summary>Sheet PNG + sidecar are both named after the base name, so a batch can share one folder.</summary>
+    public bool NeedsOwnFolderPerItem => false;
 
     public Task<Stream> ExportToStreamAsync(IEnumerable<SKNode> nodes, double scale = 1)
     {
@@ -45,9 +46,10 @@ public class SpriteSheetExporter(IFileService fileService, IPlatformStuffService
         return Task.FromResult(sheet.Image.ToPngStream());
     }
 
-    public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1)
+    public async Task ExportToFileAsync(IEnumerable<SKNode> nodes, double scale = 1, string? defaultFileName = null)
     {
-        var pickResult = await fileService.GetFileToSaveWithDialogAsync([".png"], "export", "spritesheet");
+        var pickResult = await fileService.GetFileToSaveWithDialogAsync([".png"], "export",
+            string.IsNullOrWhiteSpace(defaultFileName) ? "spritesheet" : defaultFileName);
 
         var saved = await pickResult.MatchAsync(async pngFile =>
         {
@@ -77,6 +79,32 @@ public class SpriteSheetExporter(IFileService fileService, IPlatformStuffService
 
         if (!saved)
             throw new OperationCanceledException("Sprite sheet export canceled");
+    }
+
+    /// <summary>
+    /// Batch destination: the caller already picked (and confirmed) the folder, so write
+    /// <c>{baseName}.png</c> + <c>{baseName}.{sidecar}</c> straight into it — no second prompt, and the
+    /// sidecar always lands beside its image on every head (the file-picker path has to fall back to a
+    /// second dialog on mobile/web because a picked file has no usable sibling path there).
+    /// </summary>
+    public async Task ExportToFolderAsync(IEnumerable<SKNode> nodes, double scale, IWriteDestinationFolder folder,
+        string baseName)
+    {
+        using var sheet = BuildSheet(nodes, scale, baseName + ".png", baseName);
+
+        var pngFile = await folder.GetFileSourceAsync(baseName, "png", overwrite: true);
+        await using (var png = sheet.Image.ToPngStream())
+        {
+            await pngFile.SaveAsync(png);
+        }
+
+        var emitter = SheetMetadataEmitters.TryGet(MetadataFormat);
+        if (emitter == null)
+            return;
+
+        var json = emitter.Emit(sheet, new SheetMetadataOptions { AppVersion = platformStuff.GetAppVersion() });
+        var sidecar = await folder.GetFileSourceAsync(baseName, emitter.FileExtension, overwrite: true);
+        await sidecar.SaveAsync(json);
     }
 
     private PackedSheet BuildSheet(IEnumerable<SKNode> nodes, double scale, string imageFileName, string spriteName)
