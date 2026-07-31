@@ -102,7 +102,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
 
         services.AddSingleton<SpriteEditor>(); //Depends on: IDrawingService, IViewPortRefreshService, IMessenger, AppState, IOperationService
         services.AddSingleton<IEditService, EditService>(); // Depends on: IViewPortRefreshService, IViewPortService, ISelectionService, AppState, IMessenger, SpriteEditor, IOperationService, IDialogService
-        services.AddSingleton<ArtboardObjectEditService>(); // Depends on: AppState, IMessenger, IOperationService, IViewPortRefreshService, IEditService, IDrawingService, IDialogService. Eagerly resolved in SpritePlugin.
+        services.AddSingleton<ArtboardObjectEditService>(); // Depends on: AppState, IMessenger, IOperationService, IViewPortRefreshService, IEditService, IDrawingService, IDialogService, ISelectionService. Eagerly resolved in SpritePlugin.
         services.AddSingleton<IArtboardObjectEditService>(sp => sp.GetRequiredService<ArtboardObjectEditService>()); // same instance: the concrete type is also resolved directly (SpritePlugin.Initialize)
 
         services.AddSingleton<IExportService, ExportService>(); // Depends on: AppState, IMessenger, IPlatformStuffService

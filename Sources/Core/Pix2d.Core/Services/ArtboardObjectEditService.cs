@@ -51,7 +51,7 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
 
     public ArtboardObjectEditService(AppState appState, IMessenger messenger, IOperationService operationService,
         IViewPortRefreshService viewPortRefreshService, IEditService editService, IDrawingService drawingService,
-        IDialogService dialogService)
+        IDialogService dialogService, ISelectionService selectionService)
     {
         _appState = appState;
         _messenger = messenger;
@@ -64,7 +64,10 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
         _labelsLayer = new ArtboardLabelsLayer(
             () => _appState.CurrentProject.SceneNode?.Nodes.OfType<Pix2dSprite>() ?? Enumerable.Empty<Pix2dSprite>(),
             _editService.ActivateArtboard,
-            _editService.EditArtboardAsObject);
+            _editService.EditArtboardAsObject,
+            // Pinned against the layer's zoom-out declutter pass: a selected object keeps its name on screen.
+            sprite => selectionService.Selection?.Nodes.Contains(sprite) == true,
+            () => _viewPortRefreshService.Refresh());
 
         messenger.Register<ProjectLoadedMessage>(this, m => AttachLabels(m.ActiveScene));
         messenger.Register<ViewPortInitializedMessage>(this, _ => AttachLabels(_appState.CurrentProject.SceneNode));

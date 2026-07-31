@@ -860,6 +860,25 @@ static class Runner
                 "the label's artboard did not become the edit target");
         });
 
+        // Labels are drawn at a fixed *on-screen* size, so zooming out inflates them in world space until
+        // they bury each other and the artboards. ArtboardLabelsLayer then declutters: everything that is
+        // not pinned (active / selected / hovered) drops out — and since hit-testing runs through the same
+        // pass, a dropped label is not a hidden click target either.
+        t.Check("zoomed out, an unpinned artboard's label is dropped — click target included", () =>
+        {
+            h.SetView(0.1f); // 64px artboards -> ~6px on screen, well under the 24px cutoff
+            h.ClickArtboardLabel(artboards[2]);
+            Assert.True(!ReferenceEquals(h.AppState.CurrentProject.CurrentEditedNode, artboards[2]),
+                "a label hidden by the declutter pass is still clickable");
+
+            h.SetView(1);
+            h.ClickArtboardLabel(artboards[2]);
+            Assert.True(ReferenceEquals(h.AppState.CurrentProject.CurrentEditedNode, artboards[2]),
+                "at 1:1 the label should activate its artboard");
+
+            h.ClickArtboardLabel(artboards[1], clickCount: 2); // back to the state the previous check left
+        });
+
         // --- Delete: declined, then confirmed, then undone ----------------------------------------
         t.Check("declining the delete confirmation leaves the scene untouched", () =>
         {

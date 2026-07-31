@@ -182,6 +182,30 @@ Timeline / drawing target follow it) and only then flips `CurrentContextType`, b
 alone always lands in Sprite. Ctrl+F12 (`GlobalCommands.SwitchToFullMode`, DEBUG) routes through the same
 method. Going back is a double-click on an artboard's body (`RequestEdit`).
 
+**Label decluttering.** Labels are drawn at a fixed *on-screen* size, so in world space they grow as the view
+zooms out while the artboards do not — past some zoom the plaques bury each other and the artboards
+themselves. [ArtboardLabelsLayer.cs](../Sources/Core/Pix2d.Shared/InteractiveNodes/ArtboardLabelsLayer.cs)
+therefore re-runs a declutter pass every frame, in world units (the thresholds are *ratios*, so they hold at
+any zoom):
+
+- **Pinned labels always win** — the active artboard (`EditMode`), anything selected in General, and the
+  artboard under the pointer. They are laid out first, so the survivor of a collision is the relevant one.
+  Hover is fed from `SKInput.Current.PointerChanged` (the layer only receives pointer events over a *visible*
+  label), and pinning by hover is what makes a hidden label reachable again: point at the artboard, its name
+  reappears, click it.
+- Any other label drops out once more than `MaxLabelOverlapShare` (15%) of **its own area** is covered by an
+  already-placed label, or more than `MaxBodyIntrusionShare` (10%) of it lands on another artboard's body.
+  Both shares are measured against the label, never against what it lands on — a plaque lying across the
+  bottom edge of the row above reads as a mess whether that row is 16 px tall or 512, so a body-relative
+  threshold silently let dense grids stay cluttered. In effect a label shows only while it (nearly) fits in
+  the empty space above its own artboard: with the 16 px `ArtboardGap` that Arrange uses, a grid's lower rows
+  lose their names until the zoom is high enough (~150%) for the gutter to hold the plaque, while the top row
+  — which has nothing above it — keeps them at any zoom. The small tolerances keep a corner graze alive.
+- Below `MinArtboardPx` (24 px on screen, either dimension) **nothing** is drawn for that artboard, pinned or
+  not: the plaque is ~25 px tall, so at that zoom every label is bigger than the thing it names.
+- Hit-testing goes through the same pass, so a hidden label is never a hidden click target
+  (regression-covered in ScenarioTests: *"zoomed out, an unpinned artboard's label is dropped"*).
+
 **Selecting, moving, deleting and arranging** are plain General-context interactions:
 
 - [ObjectManipulationTool.cs](../Sources/Core/Pix2d.Core/Tools/ObjectManipulationTool.cs) — the context's
