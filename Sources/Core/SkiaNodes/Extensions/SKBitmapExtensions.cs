@@ -121,6 +121,12 @@ public static class SKBitmapExtensions
 
     private static SKBitmap ProcessBitmap(SKSizeI newSize, Action<SKCanvas> processAction)
     {
+        // Last line of defence against a 0x0 bitmap entering the model: every crop/resize/rotate lands
+        // here, and a sub-pixel crop rect truncates to 0 in ToSizeI(). A zero-sized bitmap allocates
+        // fine and then fails much later and far away — GetPixels() is null, so the drawing pipeline
+        // throws on the next stroke instead of at the point that produced it.
+        newSize = new SKSizeI(Math.Max(1, newSize.Width), Math.Max(1, newSize.Height));
+
         var newBm = new SKBitmap(new SKImageInfo(newSize.Width, newSize.Height, SKColorType.Rgba8888));
         newBm.Erase(SKColor.Empty);
         using (var canvas = newBm.GetSKSurface().Canvas)

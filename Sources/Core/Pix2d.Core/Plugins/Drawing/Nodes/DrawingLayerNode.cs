@@ -7,6 +7,7 @@ using Pix2d.Plugins.Drawing.Common;
 using Pix2d.Plugins.Drawing.Common.Drawing;
 using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Plugins.Drawing.PixelSelectors;
+using Pix2d.Primitives;
 using Pix2d.Primitives.Drawing;
 using Pix2d.Primitives.Edit;
 using Pix2d.Selection;
@@ -719,9 +720,12 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         DrawingTarget = target;
         DrawingTarget.FlushRequestedAction = FlushCurrentEditing;
 
-        var newSize = DrawingTarget.GetSize();// new SKSizeI(bm.Width, bm.Height);
+        // Clamped, not asserted: a degenerate target must not produce 0x0 working/background bitmaps —
+        // WorkingBitmap is non-nullable to every consumer, so refusing to allocate would only move the
+        // failure. BeginDrawing is what actually refuses to start a stroke on such a target.
+        var newSize = CanvasSize.Sanitize(DrawingTarget.GetSize());
 
-        Debug.Assert(newSize.GetSpace() > 0, "Size must not be 0");
+        Debug.Assert(DrawingTarget.GetSize().GetSpace() > 0, "Size must not be 0");
         //if size changed, create new working bitmap
         if (Math.Abs(newSize.Width - Size.Width) > 0.01 || Math.Abs(newSize.Height - Size.Height) > 0.01)
         {
@@ -763,6 +767,19 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
 
     public void BeginDrawing()
     {
+        // A zero-sized drawing target has no pixel buffer to snapshot, and DrawingStarted is what makes
+        // DrawingService open an undo operation (target.GetData() -> BitmapNode.EnsureBitmap -> throw).
+        // Pointer-down on such a sprite therefore used to fail on *every* stroke attempt rather than
+        // degrade — appstat 3.10.0, `app_context: canvas=0x0`. The size itself is repaired upstream
+        // (CanvasSize clamps at creation/mutation, SceneIntegrity on load); this keeps the stroke path
+        // inert instead of fatal if one still slips through.
+        if (DrawingTarget != null && CanvasSize.IsDegenerate(DrawingTarget.GetSize()))
+        {
+            Logger.Trace("BeginDrawing skipped: the drawing target has a degenerate canvas size "
+                         + $"({DrawingTarget.GetSize().Width}x{DrawingTarget.GetSize().Height}).");
+            return;
+        }
+
         _strokePoints.Clear();
         _pixelPerfectPreviewPoints.Clear();
         ClearPixelPerfectPreviewTail();

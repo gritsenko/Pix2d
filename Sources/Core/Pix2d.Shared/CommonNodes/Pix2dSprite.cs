@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
+using Pix2d.Primitives;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -351,9 +352,13 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
 
     public static Pix2dSprite CreateEmpty(SKSize size)
     {
+        // Every "new artboard" path funnels through here (File > New, Ctrl+T, add artboard, import as
+        // artboards), and a caller-supplied size can be degenerate — a failed/degenerate image decode
+        // reports Size 0x0. A 0x0 sprite reaches the editor as a canvas nothing can draw on, so clamp
+        // at the single creation choke point. See CanvasSize.
         var sprite = new Pix2dSprite();
-        sprite.Size = size;
-        sprite.AddLayer(size);
+        sprite.Size = CanvasSize.Sanitize(size);
+        sprite.AddLayer(sprite.Size);
         return sprite;
     }
     public static Pix2dSprite CreateFromBitmap(SKBitmap source)
@@ -442,8 +447,12 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
 
     }
 
+    // The three canvas-geometry mutators below all clamp through CanvasSize: they are reachable from
+    // undo/redo replay and from the artboard Resize/Crop sub-mode, which build bounds from a drag and
+    // bypass the min-size guard SpriteEditor.Crop applies to the interactive path.
     public override void Resize(SKSize newSize, float horizontalAnchor = 0f, float verticalAnchor = 0f)
     {
+        newSize = CanvasSize.Sanitize(newSize);
         this.Size = newSize;
         foreach (var layer in Layers)
         {
@@ -453,6 +462,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
 
     public void ResizeImage(SKSize newSize)
     {
+        newSize = CanvasSize.Sanitize(newSize);
         this.Size = newSize;
         foreach (var layer in Layers)
         {
@@ -462,6 +472,7 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
 
     public override void Crop(SKRect targetBounds)
     {
+        targetBounds = CanvasSize.Sanitize(targetBounds);
         this.Size = targetBounds.Size;
         foreach (var layer in Layers) layer.Crop(targetBounds);
     }

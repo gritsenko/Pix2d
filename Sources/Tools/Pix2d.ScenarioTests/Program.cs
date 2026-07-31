@@ -7,6 +7,8 @@ using Pix2d.Abstract;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
+using Pix2d.CommonNodes;
+using Pix2d.Project;
 using Pix2d.UI;
 using Pix2d.Export;
 using Pix2d.Export.Sheet;
@@ -15,6 +17,7 @@ using Pix2d.Export.Sheet.Metadata;
 using Pix2d.Primitives;
 using Pix2d.Primitives.ViewPort;
 using Pix2d.ScenarioTests;
+using SkiaNodes;
 using SkiaNodes.Interactive;
 using SkiaSharp;
 
@@ -67,6 +70,7 @@ static class Runner
         ExportScenario(harness, t);
         SpriteSheetExportScenario(harness, t);
         ArtboardScenario(harness, t);
+        DegenerateCanvasScenario(harness, t);
         BatchExportScenario(harness, t);
         PrecisionScrollDetectorScenario(harness, t);
         PixelSelectionScenario(harness, t);
@@ -542,6 +546,121 @@ static class Runner
                 files.PickerSucceeds = true;
             }
         });
+    }
+
+    // --- Scenario 7ab: degenerate (0x0) canvases can neither be created nor drawn on -----------------
+    // A sprite that reaches the editor at 0x0 made *every* stroke attempt throw "Bitmap is null"
+    // (appstat 3.10.0, `app_context: canvas=0x0`) — the user faced an editor they could not draw in at
+    // all. The defence is layered: CanvasSize clamps at creation and at every canvas mutation,
+    // SceneIntegrity repairs a document that already carries one, and DrawingLayerNode.BeginDrawing
+    // refuses to open a drawing operation on a degenerate target instead of throwing mid-stroke.
+    static void DegenerateCanvasScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Degenerate canvas scenario ===");
+
+        t.Check("CreateEmpty clamps a 0x0 request to a drawable canvas", () =>
+        {
+            var sprite = Pix2dSprite.CreateEmpty(SKSize.Empty);
+            Assert.True(!CanvasSize.IsDegenerate(sprite.Size), $"sprite size is {sprite.Size}");
+            Assert.True(!CanvasSize.IsDegenerate(sprite.Layers.First().Size),
+                $"layer size is {sprite.Layers.First().Size}");
+        });
+
+        t.Check("a sub-pixel crop leaves a drawable canvas", () =>
+        {
+            // Frame bitmaps materialise lazily, so go through CreateFromBitmap to get real pixels to crop.
+            var sprite = Pix2dSprite.CreateFromBitmap(new SKBitmap(16, 16));
+
+            // Crop bounds come from a selection or a resize drag and can be sub-pixel; ToSizeI() then
+            // truncates to 0. The interactive path guards this, the artboard Resize/Crop sub-mode and
+            // undo replay do not — so the model layer has to.
+            sprite.Crop(SKRect.Create(0, 0, 0.4f, 0.4f));
+
+            Assert.True(!CanvasSize.IsDegenerate(sprite.Size), $"sprite size is {sprite.Size}");
+            var frame = sprite.Layers.First().Nodes.OfType<SpriteNode>().First();
+            Assert.True(frame.Bitmap is { Width: > 0, Height: > 0 }, "crop produced a zero-sized bitmap");
+        });
+
+        t.Check("SceneIntegrity recovers a lost canvas size from the frame pixels", () =>
+        {
+            var scene = new SKNode { Name = "Scene" };
+            var sprite = Pix2dSprite.CreateFromBitmap(new SKBitmap(24, 12));
+            scene.Nodes.Add(sprite);
+
+            // What a damaged/partially-restored document looks like: pixels intact, container size gone.
+            sprite.Size = SKSize.Empty;
+            sprite.Layers.First().Size = SKSize.Empty;
+
+            SceneIntegrity.Repair(scene);
+
+            Assert.True(sprite.Size == new SKSize(24, 12),
+                $"expected the size to be recovered as 24x12, got {sprite.Size}");
+            Assert.True(!CanvasSize.IsDegenerate(sprite.Layers.First().Size), "the layer size was not repaired");
+        });
+
+        t.Check("SceneIntegrity falls back to the layer size when no pixels survive", () =>
+        {
+            var scene = new SKNode { Name = "Scene" };
+            var sprite = Pix2dSprite.CreateEmpty(new SKSize(48, 20));   // empty frames — no bitmaps yet
+            scene.Nodes.Add(sprite);
+            sprite.Size = SKSize.Empty;
+
+            SceneIntegrity.Repair(scene);
+
+            Assert.True(sprite.Size == new SKSize(48, 20),
+                $"expected the size to be recovered as 48x20, got {sprite.Size}");
+        });
+
+        t.Check("a sprite with no recoverable pixels falls back to a usable canvas", () =>
+        {
+            var scene = new SKNode { Name = "Scene" };
+            var sprite = new Pix2dSprite { Size = SKSize.Empty };
+            scene.Nodes.Add(sprite);
+
+            SceneIntegrity.Repair(scene);
+
+            Assert.True(!CanvasSize.IsDegenerate(sprite.Size), $"sprite size is still {sprite.Size}");
+        });
+
+        // End-to-end: poison the *live* editing target the way the crash reports describe (canvas size
+        // gone, frame pixels released) and drive a real pointer gesture through SKInput.
+        h.NewProject();
+        h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+        h.SetColor(SKColors.Red);
+        h.DrawPixel(2, 2);   // materialises the frame's SpriteNode — an empty frame has no bitmap at all
+
+        var active = h.ActiveSprite;
+        var activeFrame = active.Layers.First().Nodes.OfType<SpriteNode>().First();
+        var originalSize = active.Size;
+
+        activeFrame.Size = SKSize.Empty;
+        activeFrame.Bitmap = null;   // pixels disposed on unload / image missing from a restored session
+        active.Size = SKSize.Empty;
+
+        t.Check("pointer-down on a 0x0 canvas does not throw", () =>
+        {
+            h.PressWorld(4, 4);
+            h.MoveWorld(5, 5, pressed: true);
+            h.ReleaseWorld(5, 5);
+        });
+
+        t.Check("the editor still draws once the canvas size is restored", () =>
+        {
+            // What SceneIntegrity does on load, applied live: restoring the size re-materialises the
+            // frame's bitmap through BitmapNode.OnSizeChanged.
+            activeFrame.Size = originalSize;
+            active.Size = originalSize;
+
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Lime);
+            h.DrawPixel(3, 3);
+
+            Assert.True(h.GetPixel(3, 3).Alpha > 0, "the pixel did not land after the canvas was restored");
+        });
+
+        // Leave a clean project behind — the poisoned frame above is not worth threading through the
+        // scenarios that follow.
+        h.NewProject();
     }
 
     // --- Scenario 7ba: wheel source detection (trackpad vs. mouse wheel) ----------------------------

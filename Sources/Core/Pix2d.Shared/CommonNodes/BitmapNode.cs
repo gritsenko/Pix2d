@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.NodeTypes;
+using Pix2d.Primitives;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaSharp;
@@ -193,7 +194,11 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     {
         if (Bitmap == null)
         {
-            Bitmap = new SKBitmap((int)Size.Width, (int)Size.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+            // Never allocate a 0x0 buffer here: SKBitmap accepts one, but its GetPixels() is null and the
+            // failure then surfaces far from its cause (first stroke, or an undo diff replay). Clamping to
+            // 1x1 keeps the node usable; SceneIntegrity repairs the real size on load. See CanvasSize.
+            var allocSize = CanvasSize.Sanitize(Size);
+            Bitmap = new SKBitmap((int)allocSize.Width, (int)allocSize.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
             Bitmap.Erase(SKColor.Empty);
         }
         Bitmap.NotifyPixelsChanged();
@@ -308,22 +313,27 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     {
         return EnsureBitmap().Bytes;
     }
+    // The canvas mutators below all go through EnsureBitmap() rather than `Bitmap!`. A frame node can
+    // legitimately reach them with no bitmap (pixels disposed on unload, an image key missing from a
+    // restored session) — same state GetData/SetData already tolerate — and `Bitmap!` turned that into a
+    // bare NullReferenceException from deep inside an undo replay. EnsureBitmap re-materialises a blank
+    // buffer of the node's known size, or throws a named error when even the size is gone.
     public void RotateSourceBitmap(bool resize = false)
-        => ReplaceBitmap(Bitmap!.Rotate90(), resize);
+        => ReplaceBitmap(EnsureBitmap().Rotate90(), resize);
 
     public void FlipHorizontal()
-        => ReplaceBitmap(Bitmap!.FlipHorizontal());
+        => ReplaceBitmap(EnsureBitmap().FlipHorizontal());
 
     public void FlipVertical()
-        => ReplaceBitmap(Bitmap!.FlipVertical());
+        => ReplaceBitmap(EnsureBitmap().FlipVertical());
 
     public void Resize(SKSize newSize)
-        => ReplaceBitmap(Bitmap!.Resize(newSize.ToSizeI(), new SKSamplingOptions(SKFilterMode.Nearest)), true);
+        => ReplaceBitmap(EnsureBitmap().Resize(newSize.ToSizeI(), new SKSamplingOptions(SKFilterMode.Nearest)), true);
     public void Resize(SKSize newSize, float horizontalAnchor, float verticalAnchor)
-        => ReplaceBitmap(Bitmap!.CropByAnchor(newSize.ToSizeI(), horizontalAnchor, verticalAnchor), true);
+        => ReplaceBitmap(EnsureBitmap().CropByAnchor(newSize.ToSizeI(), horizontalAnchor, verticalAnchor), true);
 
     public void Crop(SKRect targetBounds)
-        => ReplaceBitmap(Bitmap!.Crop(targetBounds), true);
+        => ReplaceBitmap(EnsureBitmap().Crop(targetBounds), true);
 
     // Runtime callback wired up by the editor — a delegate has no meaningful serialized form.
     [JsonIgnore]

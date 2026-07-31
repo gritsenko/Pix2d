@@ -86,8 +86,9 @@ public static class ProjectFormat
 
     /// <summary>
     /// Deserializes a scene document, first upgrading it from <paramref name="fileVersion"/> to
-    /// <see cref="CurrentVersion"/> through the migration pipeline. A version newer than supported is
-    /// loaded best-effort (unknown fields are ignored; unknown node types are skipped by the binder).
+    /// <see cref="CurrentVersion"/> through the migration pipeline, then running the
+    /// <see cref="SceneIntegrity"/> repair pass. A version newer than supported is loaded best-effort
+    /// (unknown fields are ignored; unknown node types are skipped by the binder).
     /// </summary>
     public static SKNode DeserializeScene(string projectJson, int fileVersion, IDictionary<string, SKBitmap> images)
     {
@@ -97,7 +98,12 @@ public static class ProjectFormat
         else if (fileVersion < CurrentVersion)
             projectJson = ApplyMigrations(projectJson, fileVersion);
 
-        return NodeSerializer.Deserialize<SKNode>(projectJson, images);
+        var scene = NodeSerializer.Deserialize<SKNode>(projectJson, images);
+
+        // Migrations fix known *shapes*; this fixes values the editor cannot work with regardless of
+        // version (today: a degenerate canvas size, which makes every stroke throw). Runs on every load
+        // path — project file, autosave restore, CLI, format tests — because they all come through here.
+        return SceneIntegrity.Repair(scene);
     }
 
     private static string ApplyMigrations(string projectJson, int fileVersion)
