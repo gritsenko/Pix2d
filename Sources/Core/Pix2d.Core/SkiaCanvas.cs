@@ -1208,10 +1208,35 @@ public class SkiaCanvas : Control
                 if (leaseFeature == null)
                     return null;
                 using var lease = leaseFeature.Lease();
+#if DEBUG
+                LogRenderBackendOnce(lease);
+#endif
                 var canvas = lease.SkCanvas;
                 return canvas;
             }
         }
 
+#if DEBUG
+        private static bool _renderBackendLogged;
+
+        /// <summary>
+        /// Reports, once per session, whether the canvas is drawn by the GPU and through which Skia
+        /// backend. A null <see cref="ISkiaSharpApiLease.GrContext"/> means Avalonia fell all the way
+        /// back to CPU rasterization; OpenGl here on Windows-on-ARM means the ANGLE path won, which
+        /// is the one Avalonia's Adreno blocklist redirects to the software adapter (see
+        /// Pix2d.Desktop's ConfigureWindowsRendering).
+        /// </summary>
+        private static void LogRenderBackendOnce(ISkiaSharpApiLease lease)
+        {
+            if (_renderBackendLogged)
+                return;
+
+            _renderBackendLogged = true;
+            var grContext = lease.GrContext;
+            Console.WriteLine(grContext == null
+                ? "[Pix2d] Canvas render backend: CPU (no GrContext)"
+                : $"[Pix2d] Canvas render backend: GPU / {grContext.Backend}");
+        }
+#endif
     }
 }

@@ -9,6 +9,8 @@ using Pix2d.Desktop.Services;
 using Pix2d.Services;
 using Pix2d.UI;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -29,6 +31,14 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
+#if DEBUG
+        // LogToTrace() writes Avalonia's warnings (backend selection, GPU blocklists, binding errors)
+        // to Trace, which without a listener is only visible under a debugger — mirror it to the
+        // console so `dotnet run` shows the same diagnostics as an IDE session.
+        Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
+        Trace.AutoFlush = true;
+#endif
+
         if (!OperatingSystem.IsMacOS())
             SingleInstancePipeService.CheckSingleInstance();
 
@@ -78,26 +88,83 @@ class Program
         builder = builder.UseAgentInspector(o => o.EnableInteraction = true);
 #endif
 
-        // Проверяем, запущено ли приложение на Windows и архитектуре ARM64
-        /*if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
-            RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+        return ConfigureWindowsRendering(builder);
+    }
+
+    /// <summary>
+    /// Picks the Win32 GPU backend order. Avalonia's default is [AngleEgl, Software], which is right
+    /// on x64 — but on Windows-on-ARM (Snapdragon X / Adreno) Avalonia's ANGLE-D3D11 path hits its
+    /// Adreno driver blocklist and logs
+    /// <c>"ARM64 Adreno GPU detected; the Adreno rendering blocklist is forcing a fallback to
+    /// 'microsoft basic render driver'"</c>, i.e. the editor silently renders on the WARP software
+    /// adapter. Vulkan is the Adreno driver's native, non-blocklisted API, so ask for it first and
+    /// keep Wgl / AngleEgl / Software behind it as fallbacks.
+    /// <para>
+    /// Composition mode is deliberately left at Avalonia's default: WinUIComposition and
+    /// DirectComposition only apply to AngleEgl, and the default list already ends with
+    /// RedirectionSurface, which is what Vulkan and Wgl land on.
+    /// </para>
+    /// <para>
+    /// <c>PIX2D_RENDERING_MODE</c> (comma-separated <c>vulkan,wgl,angle,software</c>) overrides the
+    /// order on any Windows machine — an escape hatch for a driver that renders wrong on the backend
+    /// chosen here, without needing a patched build.
+    /// </para>
+    /// </summary>
+    private static AppBuilder ConfigureWindowsRendering(AppBuilder builder)
+    {
+        if (!OperatingSystem.IsWindows())
+            return builder;
+
+        var modes = ParseRenderingModes(Environment.GetEnvironmentVariable("PIX2D_RENDERING_MODE"));
+
+        if (modes == null)
         {
-            builder.With(new Win32PlatformOptions
-            {
-                RenderingMode = [
-                    Win32RenderingMode.Wgl,
-                    Win32RenderingMode.AngleEgl,
-                    Win32RenderingMode.Vulkan,
-                    Win32RenderingMode.Software
-                ],
-                CompositionMode = [
-                    Win32CompositionMode.WinUIComposition,
-                    Win32CompositionMode.DirectComposition
-                ]
-            });
+            // Note: OSArchitecture, not ProcessArchitecture — an x64 build running under ARM64
+            // emulation talks to the same Adreno driver and gets blocklisted the same way.
+            if (RuntimeInformation.OSArchitecture != Architecture.Arm64)
+                return builder;
+
+            modes =
+            [
+                Win32RenderingMode.Vulkan,
+                Win32RenderingMode.Wgl,
+                Win32RenderingMode.AngleEgl,
+                Win32RenderingMode.Software
+            ];
         }
-*/
-        return builder;
+
+        return builder.With(new Win32PlatformOptions { RenderingMode = modes });
+    }
+
+    private static IReadOnlyList<Win32RenderingMode>? ParseRenderingModes(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var modes = new List<Win32RenderingMode>();
+        foreach (var token in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            Win32RenderingMode? mode = token.ToLowerInvariant() switch
+            {
+                "vulkan" => Win32RenderingMode.Vulkan,
+                "wgl" or "opengl" => Win32RenderingMode.Wgl,
+                "angle" or "angleegl" or "egl" => Win32RenderingMode.AngleEgl,
+                "software" or "cpu" => Win32RenderingMode.Software,
+                _ => null
+            };
+
+            if (mode is { } m && !modes.Contains(m))
+                modes.Add(m);
+        }
+
+        if (modes.Count == 0)
+            return null;
+
+        // Never let a typo in the variable leave the app with no backend it can start on.
+        if (!modes.Contains(Win32RenderingMode.Software))
+            modes.Add(Win32RenderingMode.Software);
+
+        return modes;
     }
 
     static void OnAppStarted(object root)
