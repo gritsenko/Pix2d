@@ -10,7 +10,8 @@ using Colors = Avalonia.Media.Colors;
 
 namespace Pix2d.UI.BrushSettings;
 
-public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettingsView.State>(new State(appState))
+public partial class BrushSettingsView(AppState appState, IDrawingService drawingService, IDialogService dialogService)
+    : ViewBase<BrushSettingsView.State>(new State(appState, drawingService, dialogService))
 {
     protected override StyleGroup? BuildStyles() => [
         new Style<ListBoxItem>(s => s.OfType<ListBoxItem>())
@@ -75,11 +76,17 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
                                             .Foreground(Avalonia.Media.Brushes.White)
                                             .Data(StaticResources.Icons.GridIcon)))),
 
-                        new TextBlock()
-                            .Classes("body11")
-                            .Padding(4, 12, 0, 4)
+                        // Caption row doubles as the preset-library menu host, so the actions cost no extra
+                        // height in an already-dense popup.
+                        new Grid()
+                            .Cols("*,Auto")
                             .Row(1)
-                            .Text(L("Presets").ToUpperInvariant()),
+                            .Children(
+                                new TextBlock()
+                                    .Classes("body11")
+                                    .Padding(4, 12, 0, 4)
+                                    .Text(L("Presets").ToUpperInvariant()),
+                                BuildPresetMenuButton(state).Col(1)),
 
                         new ListBox()
                             .Background(Avalonia.Media.Brushes.Transparent)
@@ -91,7 +98,10 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
                             // Cap to two rows of 44px items (+2px margins); a third row scrolls within the list.
                             .MaxHeight(96)
                             .BorderThickness(0)
-                            .ItemsSource(state.BrushPresets)
+                            // Bound, not a plain value: the presets list is REPLACED (not mutated) whenever a
+                            // user preset is saved or deleted, and a static ItemsSource would keep showing the
+                            // list instance captured when the view was first built.
+                            .ItemsSource(state, x => x.BrushPresets)
                             .SelectedItem(state, x => x.CurrentPixelBrushPreset, BindingMode.TwoWay)
                             .ItemsPanel(StaticResources.Templates.WrapPanelTemplate)
                             .ItemTemplate((Primitives.Drawing.BrushSettings itemVm) =>
@@ -139,6 +149,43 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
                             .Row(6)
                     ));
 
+    /// <summary>
+    /// The preset-library actions, behind one compact <c>⋯</c> button — the same pattern the palette library
+    /// uses in <c>ColorPickerView</c>, and for the same reason: the popup has no room for a button row.
+    ///
+    /// <para>Only two items, because the preset row already *is* the library: loading a preset is tapping its
+    /// tile, so there is nothing to name and nothing to browse. Delete is gated on the selected preset being a
+    /// user one — the service refuses built-ins regardless, this just makes it visible.</para>
+    /// </summary>
+    private static Control BuildPresetMenuButton(State state) =>
+        new Button()
+            .HorizontalAlignment(HorizontalAlignment.Right)
+            .VerticalAlignment(VerticalAlignment.Center)
+            .Margin(0, 8, 0, 0)
+            .Width(28)
+            .Height(28)
+            .Padding(0)
+            .CornerRadius(StaticResources.Measures.SmallButtonCornerRadius)
+            .Background(StaticResources.Brushes.ButtonBackgroundBrush)
+            .ToolTip_Tip(L("Brush presets"))
+            .Content(new TextBlock()
+                .Text("⋯")
+                .FontSize(18)
+                .HorizontalAlignment(HorizontalAlignment.Center)
+                .VerticalAlignment(VerticalAlignment.Center)
+                .Foreground(StaticResources.Brushes.IconForegroundBrush))
+            .Flyout(
+                new MenuFlyout()
+                    .Placement(PlacementMode.Bottom)
+                    .ItemsSource(new Control[]
+                    {
+                        new MenuItem().Header(L("Save current brush as preset"))
+                            .OnClick(_ => state.SaveCurrentBrushAsPreset()),
+                        new MenuItem().Header(L("Delete selected preset"))
+                            .IsEnabled(state, x => x.CanDeleteSelectedPreset)
+                            .OnClick(e => _ = state.DeleteSelectedPresetAsync()),
+                    }));
+
     // Compact toggle placed next to the Size / Opacity sliders. When on, stylus pen pressure scales that
     // property while drawing. The pen glyph (Segoe MDL2) reads as "responds to the stylus".
     private static ToggleButton BuildPressureToggle() =>
@@ -160,6 +207,8 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
     public sealed partial class State : ObservableObject
     {
         private readonly SpriteEditorState _drawingState;
+        private readonly IDrawingService _drawingService;
+        private readonly IDialogService _dialogService;
         private bool _isSyncing;
 
         // Preview render size, taken from the preview box's actual measured bounds.
@@ -196,9 +245,15 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
         [ObservableProperty]
         public partial bool IsOpacityPressureEnabled { get; set; }
 
-        public State(AppState appState)
+        /// <summary>Gates the Delete menu item: built-in presets are not the user's to remove.</summary>
+        [ObservableProperty]
+        public partial bool CanDeleteSelectedPreset { get; set; }
+
+        public State(AppState appState, IDrawingService drawingService, IDialogService dialogService)
         {
             _drawingState = appState.SpriteEditorState;
+            _drawingService = drawingService;
+            _dialogService = dialogService;
 
             SyncFromDrawingState();
 
@@ -208,6 +263,36 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
             _drawingState.WatchFor(x => x.CurrentBrushSettings, SyncFromDrawingState);
             _drawingState.WatchFor(x => x.CurrentPixelBrushPreset, SyncFromDrawingState);
             _drawingState.WatchFor(x => x.CurrentColor, UpdateStrokePreview);
+        }
+
+        /// <summary>
+        /// Stores the live brush settings as a new preset tile and selects it, so the tile the user just
+        /// created is the one highlighted (and therefore the one Delete would act on). Saving settings that
+        /// already exist as a preset selects that preset instead of adding a duplicate.
+        /// </summary>
+        public void SaveCurrentBrushAsPreset()
+        {
+            var preset = _drawingService.SaveCurrentBrushAsPreset();
+            if (preset == null)
+                return;
+
+            _drawingState.CurrentPixelBrushPreset = preset;
+            SyncFromDrawingState();
+        }
+
+        /// <summary>Deletes the selected user preset after a confirmation — deleting is not undoable.</summary>
+        public async Task DeleteSelectedPresetAsync()
+        {
+            var preset = _drawingState.CurrentPixelBrushPreset;
+            if (preset is not { IsUserPreset: true })
+                return;
+
+            if (!await _dialogService.ShowYesNoDialog(
+                    L("Delete this brush preset?"), L("Delete preset"), L("Delete"), L("Cancel")))
+                return;
+
+            _drawingService.DeleteBrushPreset(preset);
+            SyncFromDrawingState();
         }
 
         /// <summary>Tracks the preview box's measured size so the sample stroke renders at 100% (1:1) scale.</summary>
@@ -331,6 +416,7 @@ public partial class BrushSettingsView(AppState appState) : ViewBase<BrushSettin
             IsSizePressureEnabled = _drawingState.CurrentBrushSettings.PressureAffectsSize;
             IsOpacityPressureEnabled = _drawingState.CurrentBrushSettings.PressureAffectsOpacity;
             IsPixelPerfectDrawingModeEnabled = _drawingState.IsPixelPerfectDrawingModeEnabled;
+            CanDeleteSelectedPreset = _drawingState.CurrentPixelBrushPreset?.IsUserPreset == true;
 
             _isSyncing = false;
 

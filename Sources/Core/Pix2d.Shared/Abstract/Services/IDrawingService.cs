@@ -49,6 +49,20 @@ public interface IDrawingService
     void InitBrushSettings();
 
     /// <summary>
+    /// Adds the current brush settings to the preset row as a user preset and persists it. Returns the stored
+    /// preset, or the existing one when an identical preset is already present (saving never duplicates), or
+    /// null when the current brush has no stable key to store it under.
+    /// </summary>
+    BrushSettings? SaveCurrentBrushAsPreset();
+
+    /// <summary>
+    /// Removes a user preset and persists the change. Built-in presets are refused — they have no stored
+    /// representation, so "deleting" one would silently come back on the next launch.
+    /// </summary>
+    /// <returns>True when the preset was removed.</returns>
+    bool DeleteBrushPreset(BrushSettings preset);
+
+    /// <summary>
     /// Clears the entire content of the current drawing layer.
     /// </summary>
     void ClearCurrentLayer();

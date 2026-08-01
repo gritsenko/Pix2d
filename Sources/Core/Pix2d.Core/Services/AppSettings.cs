@@ -1,3 +1,4 @@
+using Pix2d.Primitives.Drawing;
 using Pix2d.Primitives.Palette;
 
 namespace Pix2d.Services;
@@ -11,6 +12,13 @@ public class AppSettings
 
     /// <summary>User's named-palette library (see <see cref="PaletteData"/>). Persisted by <c>PaletteService</c>.</summary>
     public List<PaletteData>? SavedPalettes { get; set; }
+
+    /// <summary>
+    /// Brush presets the user saved (see <see cref="Pix2d.Primitives.Drawing.BrushPresetData"/>). Persisted by
+    /// <c>DrawingService</c> and appended after the built-in presets on startup. Built-ins are never stored, so
+    /// they stay free to evolve between releases.
+    /// </summary>
+    public List<BrushPresetData>? UserBrushPresets { get; set; }
     public double UiScale { get; set; } = 1.0;
     public int MouseWheelBehavior { get; set; } = 1;
     public bool IsTwoFingerDoubleTapUndoEnabled { get; set; } = true;

@@ -15,7 +15,9 @@ using Pix2d.Export.Sheet;
 using Pix2d.Plugins.PngFormat.Exporters;
 using Pix2d.Export.Sheet.Metadata;
 using Pix2d.Primitives;
+using Pix2d.Primitives.Drawing;
 using Pix2d.Primitives.ViewPort;
+using Pix2d.Services;
 using Pix2d.ScenarioTests;
 using SkiaNodes;
 using SkiaNodes.Interactive;
@@ -73,6 +75,7 @@ static class Runner
         ArtboardScenario(harness, t);
         DegenerateCanvasScenario(harness, t);
         AnimationMetaScenario(harness, t);
+        BrushPresetScenario(harness, t);
         BatchExportScenario(harness, t);
         PrecisionScrollDetectorScenario(harness, t);
         PixelSelectionScenario(harness, t);
@@ -966,6 +969,149 @@ static class Runner
                 $"durations were not trimmed to the frame count: [{string.Join(",", damaged.FrameDurations ?? [])}]");
         });
 
+        h.NewProject();
+    }
+
+    // --- Scenario 7ad: user brush presets — save, delete, persist -----------------------------------
+    // Modeled on the palette library: a settings-backed list appended after the built-in presets. The
+    // parts worth asserting are the ones that fail silently: the AppSettings-property requirement (an
+    // undeclared settings key is a dropped write), value-vs-reference identity when deleting (
+    // BrushSettings has value equality, so List.Remove would happily take out a built-in twin), and
+    // tolerance of a settings file written by another build.
+    static void BrushPresetScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Brush preset scenario ===");
+
+        var drawing = h.Services.GetRequiredService<IDrawingService>();
+        var settings = h.Services.GetRequiredService<ISettingsService>();
+        var state = h.AppState.SpriteEditorState;
+
+        var builtInCount = state.BrushPresets.Count;
+        t.Check("the shipped presets are all built-ins", () =>
+        {
+            Assert.True(builtInCount > 0, "no presets at all");
+            Assert.True(state.BrushPresets.All(p => !p.IsUserPreset),
+                "a built-in preset is flagged as a user preset");
+        });
+
+        t.Check("saving the current brush appends a user preset", () =>
+        {
+            // A distinctive setting no built-in has, so the dedupe path can't swallow it.
+            state.CurrentBrushSettings = new Pix2d.Primitives.Drawing.BrushSettings
+            {
+                Brush = state.BrushPresets[0].Brush,
+                Scale = 37,
+                Opacity = 0.42f,
+                Spacing = 2.5f,
+                PressureAffectsSize = true
+            };
+
+            var saved = drawing.SaveCurrentBrushAsPreset();
+
+            Assert.True(saved is { IsUserPreset: true }, "the returned preset is missing or not flagged");
+            Assert.True(state.BrushPresets.Count == builtInCount + 1,
+                $"presets {builtInCount} -> {state.BrushPresets.Count}, expected +1");
+            Assert.True(ReferenceEquals(state.BrushPresets[^1], saved), "the preset was not appended last");
+            Assert.True(Math.Abs(saved!.Scale - 37) < 0.001 && saved.PressureAffectsSize,
+                "the saved preset did not carry the current settings");
+        });
+
+        t.Check("saving the same brush twice does not duplicate it", () =>
+        {
+            var again = drawing.SaveCurrentBrushAsPreset();
+            Assert.True(state.BrushPresets.Count == builtInCount + 1,
+                $"a duplicate was added: {state.BrushPresets.Count} presets");
+            Assert.True(ReferenceEquals(again, state.BrushPresets[^1]),
+                "saving an existing preset should return that preset");
+        });
+
+        t.Check("the preset reaches the settings file, not just memory", () =>
+        {
+            // A FRESH service reading the real file — this is what proves AppSettings.UserBrushPresets
+            // exists. Without the property, SettingsService.Set is a logged no-op and everything above
+            // would still pass while nothing survived a restart.
+            var reader = new SettingsService(h.Services.GetRequiredService<IPlatformStuffService>());
+            Assert.True(reader.TryGet<List<BrushPresetData>>("UserBrushPresets", out var stored) && stored != null,
+                "nothing was persisted under UserBrushPresets");
+            Assert.True(stored!.Count == 1, $"expected 1 stored preset, got {stored.Count}");
+            Assert.True(!string.IsNullOrEmpty(stored[0].Brush) && Math.Abs(stored[0].Scale - 37) < 0.001,
+                $"the stored DTO is wrong: brush='{stored[0].Brush}' scale={stored[0].Scale}");
+        });
+
+        t.Check("a built-in preset cannot be deleted", () =>
+        {
+            var builtIn = state.BrushPresets[0];
+            Assert.True(!drawing.DeleteBrushPreset(builtIn), "deleting a built-in was allowed");
+            Assert.True(state.BrushPresets.Count == builtInCount + 1, "the list changed anyway");
+        });
+
+        t.Check("deleting a user preset that is a value-twin of a built-in removes the right one", () =>
+        {
+            // BrushSettings has value equality, so List.Remove(twin) would take out the built-in. Save a
+            // deliberate twin of built-in #1 by hand (SaveCurrentBrushAsPreset would dedupe it away).
+            var twin = state.BrushPresets[1].Clone();
+            twin.IsUserPreset = true;
+            state.BrushPresets = [.. state.BrushPresets, twin];
+
+            var before = state.BrushPresets.Count;
+            Assert.True(drawing.DeleteBrushPreset(twin), "the twin was not deleted");
+            Assert.True(state.BrushPresets.Count == before - 1, "the count did not drop by one");
+            Assert.True(state.BrushPresets.Take(builtInCount).All(p => !p.IsUserPreset)
+                        && state.BrushPresets.Count(p => !p.IsUserPreset) == builtInCount,
+                "a built-in preset was removed instead of the user twin");
+        });
+
+        t.Check("deleting a user preset persists and clears its selection", () =>
+        {
+            var preset = state.BrushPresets.Last(p => p.IsUserPreset);
+            state.CurrentPixelBrushPreset = preset;
+
+            Assert.True(drawing.DeleteBrushPreset(preset), "the preset was not deleted");
+            Assert.True(state.BrushPresets.Count == builtInCount, "the user preset is still in the row");
+            Assert.True(state.CurrentPixelBrushPreset == null, "the deleted preset is still selected");
+
+            var reader = new SettingsService(h.Services.GetRequiredService<IPlatformStuffService>());
+            reader.TryGet<List<BrushPresetData>>("UserBrushPresets", out var stored);
+            Assert.True((stored?.Count ?? 0) == 0, $"the deletion was not persisted ({stored?.Count} left)");
+        });
+
+        t.Check("a preset stored by another build is skipped, not fatal", () =>
+        {
+            settings.Set("UserBrushPresets", new List<BrushPresetData>
+            {
+                new() { Brush = "square", Scale = 9999, Opacity = 5, Spacing = 3 },   // out-of-range values
+                new() { Brush = "no-such-brush", Scale = 4 }                          // unknown brush key
+            });
+
+            drawing.InitBrushSettings();
+
+            var user = state.BrushPresets.Where(p => p.IsUserPreset).ToArray();
+            Assert.True(user.Length == 1, $"expected the unknown brush to be skipped, got {user.Length} presets");
+            Assert.True(user[0].Scale <= 512 && user[0].Opacity <= 1f,
+                $"out-of-range values were not clamped: scale={user[0].Scale} opacity={user[0].Opacity}");
+        });
+
+        t.Check("a restored preset actually draws at its own size", () =>
+        {
+            h.NewProject(64);
+            var preset = state.BrushPresets.First(p => p.IsUserPreset);
+
+            // Apply it the way the UI does — a clone, never the shared instance.
+            var applied = preset.Clone();
+            applied.Scale = 4;
+            state.CurrentBrushSettings = applied;
+
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(20, 20);
+
+            var painted = h.NonEmptyPixels().Count();
+            Assert.True(painted > 1, $"a 4px preset should cover more than one pixel, painted {painted}");
+        });
+
+        // Leave no user presets behind for the command sweep / later scenarios.
+        settings.Set("UserBrushPresets", new List<BrushPresetData>());
+        drawing.InitBrushSettings();
         h.NewProject();
     }
 

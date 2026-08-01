@@ -15,6 +15,16 @@ public class BrushSettings
     /// <summary>When enabled, stylus pen pressure scales the brush opacity while drawing.</summary>
     public bool PressureAffectsOpacity { get; set; }
 
+    /// <summary>
+    /// True for a preset the user saved (persisted in <c>AppSettings.UserBrushPresets</c>), false for one of
+    /// the built-ins <c>DrawingService.InitBrushSettings</c> creates. Only user presets can be deleted.
+    ///
+    /// <para>Deliberately excluded from <see cref="Equals(object?)"/>/<see cref="GetHashCode"/>: equality here
+    /// means "draws identically", which is what the settings view's no-op check and the save-time dedupe both
+    /// rely on. Where the preset came from is not part of that.</para>
+    /// </summary>
+    public bool IsUserPreset { get; set; }
+
     public BrushSettings Clone()
     {
             return new BrushSettings()
@@ -25,6 +35,7 @@ public class BrushSettings
                 Spacing = this.Spacing,
                 PressureAffectsSize = this.PressureAffectsSize,
                 PressureAffectsOpacity = this.PressureAffectsOpacity,
+                IsUserPreset = this.IsUserPreset,
             };
         }
 
