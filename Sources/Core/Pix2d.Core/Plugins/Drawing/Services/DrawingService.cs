@@ -401,6 +401,13 @@ public class DrawingService : IDrawingService
             return null;
         }
 
+        // SKBitmap.Decode lands in the platform's native N32 color type (Bgra8888 on Windows/Android), not
+        // the Rgba8888 every bitmap the app allocates uses. Skia itself is color-type aware, so the stamp
+        // still PAINTS correctly either way — but the preview tile hands its raw bytes to Avalonia, and
+        // anything else downstream that assumes the app-wide type would read this one's channels swapped.
+        // Normalize once, here, so a restored stamp is indistinguishable from a freshly captured one.
+        source = NormalizeColorType(source);
+
         return new BrushSettings
         {
             Brush = new ImageStampBrush(source, data.StampUseOriginalColors),
@@ -411,6 +418,23 @@ public class DrawingService : IDrawingService
             PressureAffectsOpacity = data.PressureAffectsOpacity,
             IsUserPreset = true
         };
+    }
+
+    /// <summary>Returns <paramref name="source"/> unchanged when it already is in
+    /// <see cref="Pix2DAppSettings.ColorType"/>, otherwise a converted copy (the original is disposed).
+    /// A failed conversion falls back to the original — a stamp with swapped channels still beats no stamp.
+    /// </summary>
+    private static SKBitmap NormalizeColorType(SKBitmap source)
+    {
+        if (source.ColorType == Pix2DAppSettings.ColorType)
+            return source;
+
+        var converted = source.Copy(Pix2DAppSettings.ColorType);
+        if (converted == null)
+            return source;
+
+        source.Dispose();
+        return converted;
     }
 
     public BrushSettings? SaveCurrentBrushAsPreset()

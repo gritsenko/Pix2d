@@ -1180,6 +1180,19 @@ static class Runner
             var painted = h.NonEmptyPixels().ToArray();
             Assert.True(painted.Any(p => p.Color.Red > 200 && p.Color.Blue < 50),
                 "an original-colors stamp should paint its own captured red, not the current draw color");
+
+            // The preset tile hands GetPreviewBitmap's RAW pixel buffer to Avalonia (BitmapExtensions.ToBitmap),
+            // so the restored stamp must be in the app's own color type — SKBitmap.Decode returns the platform's
+            // native N32 (Bgra8888 on Windows/Android), which previewed red pixels as blue.
+            var restoredBrush = (Pix2d.Plugins.Drawing.Brushes.ImageStampBrush)restored!.Brush!;
+            Assert.True(restoredBrush.SourceBitmap.ColorType == Pix2d.Pix2DAppSettings.ColorType,
+                $"a restored stamp is {restoredBrush.SourceBitmap.ColorType}, expected {Pix2d.Pix2DAppSettings.ColorType}");
+
+            var tilePreview = restoredBrush.GetPreviewBitmap(restored.Scale);
+            Assert.True(tilePreview.ColorType == Pix2d.Pix2DAppSettings.ColorType,
+                $"the preset tile's preview is {tilePreview.ColorType}, expected {Pix2d.Pix2DAppSettings.ColorType}");
+            Assert.True(tilePreview.Pixels.Any(p => p.Red > 200 && p.Blue < 50),
+                "the preset tile previews the captured red as some other color");
         });
 
         t.Check("a recolorable stamp paints the current draw color, not the captured one", () =>
