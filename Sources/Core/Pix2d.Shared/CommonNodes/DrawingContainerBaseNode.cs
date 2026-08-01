@@ -7,17 +7,6 @@ namespace Pix2d.CommonNodes;
 
 public class DrawingContainerBaseNode : SKNode, IContainerNode, IClippingSource
 {
-    private static readonly SKColor Dark = new(0xffd2d2d2);
-    private static readonly SKColor Bright = new(0xffffffff);
-    private static readonly SKBitmap CheckerPattern = new(2, 2, Pix2DAppSettings.ColorType, SKAlphaType.Premul)
-    {
-        Pixels = [Bright, Dark, Dark, Bright]
-    };
-
-    static DrawingContainerBaseNode()
-    {
-    }
-
     private GridNode _grid;
     private bool _showGrid;
 
@@ -64,29 +53,13 @@ public class DrawingContainerBaseNode : SKNode, IContainerNode, IClippingSource
     {
         if (vp.Settings.RenderAdorners && !UseBackgroundColor)
         {
-            DrawDynamicCheckerboard(canvas, vp);
+            CanvasCheckerboard.Draw(canvas, vp, LocalBounds);
         }
         else if (UseBackgroundColor && BackgroundColor != default)
         {
             using var paint = canvas.GetSolidFillPaint(BackgroundColor);
             canvas.DrawRect(LocalBounds, paint);
         }
-    }
-
-    private void DrawDynamicCheckerboard(SKCanvas canvas, ViewPort vp)
-    {
-        var cellSize = GridUtils.CalculateAdaptiveStep(vp.DpiEffectiveZoom);
-        using var paint = new SKPaint
-        {
-            Shader = SKShader.CreateBitmap(
-                CheckerPattern,
-                SKShaderTileMode.Repeat,
-                SKShaderTileMode.Repeat,
-                SKMatrix.CreateScale(cellSize, cellSize)
-            )
-        };
-
-        canvas.DrawRect(LocalBounds, paint);
     }
 
     public virtual void Resize(SKSize newSize, float horizontalAnchor, float verticalAnchor)

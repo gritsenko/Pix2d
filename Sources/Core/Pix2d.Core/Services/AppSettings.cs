@@ -19,6 +19,13 @@ public class AppSettings
     /// they stay free to evolve between releases.
     /// </summary>
     public List<BrushPresetData>? UserBrushPresets { get; set; }
+
+    /// <summary>
+    /// <see cref="Pix2d.Primitives.Drawing.BrushSettings.BuiltInId"/> values the user removed from the built-in
+    /// preset row via Delete. Restored (list cleared) by "Reset presets to defaults", which never touches
+    /// <see cref="UserBrushPresets"/>.
+    /// </summary>
+    public List<string>? HiddenBuiltInPresetIds { get; set; }
     public double UiScale { get; set; } = 1.0;
     public int MouseWheelBehavior { get; set; } = 1;
     public bool IsTwoFingerDoubleTapUndoEnabled { get; set; } = true;

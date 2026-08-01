@@ -154,6 +154,14 @@ public partial class SKNode
 
     public bool IsVisible { get; set; } = true;
 
+    // Runtime render-suppression flag: something else is painting this node's pixels for now — e.g. the
+    // artboard Resize session, where an adorner overlay draws a scaled snapshot in the node's place, so the
+    // node itself must not also paint underneath it. Unlike IsVisible this is NOT document state (never
+    // persisted, so a mid-session autosave can't record a hidden artboard) and it deliberately does not
+    // affect hit-testing, bounds or GetVisibleDescendants — only the compositor skips the node.
+    [JsonIgnore]
+    public bool IsRenderSuppressed { get; set; }
+
     public NodeDesignerState DesignerState { get; set; } = new();
 
     public virtual bool IsAdorner => this is AdornerLayer || CheckIsOnAdornerLayer();

@@ -25,6 +25,19 @@ public class BrushSettings
     /// </summary>
     public bool IsUserPreset { get; set; }
 
+    /// <summary>
+    /// Stable identity of a shipped built-in preset row (e.g. <c>"circle-6"</c>), assigned once in
+    /// <c>DrawingService.BuildBuiltInPresets</c> and never reused or renumbered — a later release retuning that
+    /// row's scale/opacity must not orphan a user's "I hid this one" choice, which is exactly what deriving the
+    /// id from scale/opacity would risk. Null for anything the user saved (a plain preset or an image stamp).
+    ///
+    /// <para>Used only to persist <c>AppSettings.HiddenBuiltInPresetIds</c> when a built-in is removed from the
+    /// row; deliberately excluded from <see cref="Equals(object?)"/>/<see cref="GetHashCode"/> for the same
+    /// reason <see cref="IsUserPreset"/> is — it is provenance, not something that changes how the brush
+    /// draws.</para>
+    /// </summary>
+    public string? BuiltInId { get; set; }
+
     public BrushSettings Clone()
     {
             return new BrushSettings()
@@ -36,6 +49,7 @@ public class BrushSettings
                 PressureAffectsSize = this.PressureAffectsSize,
                 PressureAffectsOpacity = this.PressureAffectsOpacity,
                 IsUserPreset = this.IsUserPreset,
+                BuiltInId = this.BuiltInId,
             };
         }
 

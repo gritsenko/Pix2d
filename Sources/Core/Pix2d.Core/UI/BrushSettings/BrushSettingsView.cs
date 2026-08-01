@@ -153,9 +153,11 @@ public partial class BrushSettingsView(AppState appState, IDrawingService drawin
     /// The preset-library actions, behind one compact <c>⋯</c> button — the same pattern the palette library
     /// uses in <c>ColorPickerView</c>, and for the same reason: the popup has no room for a button row.
     ///
-    /// <para>Only two items, because the preset row already *is* the library: loading a preset is tapping its
-    /// tile, so there is nothing to name and nothing to browse. Delete is gated on the selected preset being a
-    /// user one — the service refuses built-ins regardless, this just makes it visible.</para>
+    /// <para>Loading a preset is tapping its tile, so there is nothing to name and nothing to browse — the
+    /// preset row already *is* the library. Delete now acts on ANY selected preset: a user preset is dropped
+    /// for good, a built-in one is only hidden (and comes back via Reset). The two "save selection" items
+    /// capture the current pixel selection as a new stamp preset — colors keeps the selection's own pixels,
+    /// mask/recolorable treats it as a shape tinted by the paint color like every other brush.</para>
     /// </summary>
     private static Control BuildPresetMenuButton(State state) =>
         new Button()
@@ -181,9 +183,19 @@ public partial class BrushSettingsView(AppState appState, IDrawingService drawin
                     {
                         new MenuItem().Header(L("Save current brush as preset"))
                             .OnClick(_ => state.SaveCurrentBrushAsPreset()),
+                        new Separator(),
+                        new MenuItem().Header(L("Save selection as brush (colors)"))
+                            .IsEnabled(state, x => x.HasSelection)
+                            .OnClick(_ => state.SaveSelectionAsBrushPreset(useOriginalColors: true)),
+                        new MenuItem().Header(L("Save selection as brush (recolorable)"))
+                            .IsEnabled(state, x => x.HasSelection)
+                            .OnClick(_ => state.SaveSelectionAsBrushPreset(useOriginalColors: false)),
+                        new Separator(),
                         new MenuItem().Header(L("Delete selected preset"))
                             .IsEnabled(state, x => x.CanDeleteSelectedPreset)
                             .OnClick(e => _ = state.DeleteSelectedPresetAsync()),
+                        new MenuItem().Header(L("Reset presets to defaults"))
+                            .OnClick(e => _ = state.ResetPresetsToDefaultsAsync()),
                     }));
 
     // Compact toggle placed next to the Size / Opacity sliders. When on, stylus pen pressure scales that
@@ -245,9 +257,15 @@ public partial class BrushSettingsView(AppState appState, IDrawingService drawin
         [ObservableProperty]
         public partial bool IsOpacityPressureEnabled { get; set; }
 
-        /// <summary>Gates the Delete menu item: built-in presets are not the user's to remove.</summary>
+        /// <summary>Gates the Delete menu item: nothing is selected to delete otherwise.</summary>
         [ObservableProperty]
         public partial bool CanDeleteSelectedPreset { get; set; }
+
+        /// <summary>Gates the two "save selection as brush" menu items. The popup outlives any one tool
+        /// activation, so this is kept live via <see cref="IDrawingLayer"/>'s selection events rather than
+        /// read once at construction.</summary>
+        [ObservableProperty]
+        public partial bool HasSelection { get; set; }
 
         public State(AppState appState, IDrawingService drawingService, IDialogService dialogService)
         {
@@ -263,6 +281,13 @@ public partial class BrushSettingsView(AppState appState, IDrawingService drawin
             _drawingState.WatchFor(x => x.CurrentBrushSettings, SyncFromDrawingState);
             _drawingState.WatchFor(x => x.CurrentPixelBrushPreset, SyncFromDrawingState);
             _drawingState.WatchFor(x => x.CurrentColor, UpdateStrokePreview);
+
+            // This view is created once and toggled via PopupView.IsOpen (never re-created), and
+            // IDrawingService keeps one drawing layer for the app's lifetime (retargeted across project tabs,
+            // not replaced) — so a single subscription here needs no matching Unsubscribe.
+            HasSelection = _drawingService.DrawingLayer.HasSelection;
+            _drawingService.DrawingLayer.PixelsSelected += (_, _) => HasSelection = _drawingService.DrawingLayer.HasSelection;
+            _drawingService.DrawingLayer.SelectionRemoved += (_, _) => HasSelection = _drawingService.DrawingLayer.HasSelection;
         }
 
         /// <summary>
@@ -280,18 +305,50 @@ public partial class BrushSettingsView(AppState appState, IDrawingService drawin
             SyncFromDrawingState();
         }
 
-        /// <summary>Deletes the selected user preset after a confirmation — deleting is not undoable.</summary>
+        /// <summary>
+        /// Captures the current pixel selection as a new preset and selects it. No-op (and the menu item is
+        /// disabled) when there is no active selection.
+        /// </summary>
+        public void SaveSelectionAsBrushPreset(bool useOriginalColors)
+        {
+            var preset = _drawingService.CreateBrushPresetFromSelection(useOriginalColors);
+            if (preset == null)
+                return;
+
+            _drawingState.CurrentPixelBrushPreset = preset;
+            SyncFromDrawingState();
+        }
+
+        /// <summary>
+        /// Deletes the selected preset after a confirmation. A user preset is gone for good; a built-in one is
+        /// only hidden, which the confirmation wording makes clear since "Reset to defaults" brings it back.
+        /// </summary>
         public async Task DeleteSelectedPresetAsync()
         {
             var preset = _drawingState.CurrentPixelBrushPreset;
-            if (preset is not { IsUserPreset: true })
+            if (preset == null)
                 return;
 
-            if (!await _dialogService.ShowYesNoDialog(
-                    L("Delete this brush preset?"), L("Delete preset"), L("Delete"), L("Cancel")))
+            var message = preset.IsUserPreset
+                ? L("Delete this brush preset?")
+                : L("Remove this built-in preset? You can restore it later via Reset presets to defaults.");
+
+            if (!await _dialogService.ShowYesNoDialog(message, L("Delete preset"), L("Delete"), L("Cancel")))
                 return;
 
             _drawingService.DeleteBrushPreset(preset);
+            SyncFromDrawingState();
+        }
+
+        /// <summary>Restores any built-in presets the user has removed. Saved presets are never touched.</summary>
+        public async Task ResetPresetsToDefaultsAsync()
+        {
+            if (!await _dialogService.ShowYesNoDialog(
+                    L("This restores any built-in presets you removed. Your saved presets are kept."),
+                    L("Reset presets to defaults"), L("Reset"), L("Cancel")))
+                return;
+
+            _drawingService.ResetBrushPresetsToDefaults();
             SyncFromDrawingState();
         }
 
@@ -326,15 +383,14 @@ public partial class BrushSettingsView(AppState appState, IDrawingService drawin
                 return;
 
             var settings = _drawingState.CurrentBrushSettings;
-            if (settings.Brush is not { } liveBrush)
+            if (settings.Brush is not BasePixelBrush liveBrush)
                 return;
 
             // Render on a throwaway brush: RenderStrokePreview mutates pressure + stamp cache, and preset
-            // brushes are the same singletons the canvas draws with. Disposed after use so its stamp bitmap
-            // isn't left for the finalizer.
-            using var previewBrush = Activator.CreateInstance(liveBrush.GetType()) as BasePixelBrush;
-            if (previewBrush is null)
-                return;
+            // brushes are the same singletons the canvas draws with. The brush makes its own copy — an image
+            // stamp has to carry its captured bitmap across, which reflecting on the type cannot do. Disposed
+            // after use so its stamp bitmap isn't left for the finalizer.
+            using var previewBrush = liveBrush.CreatePreviewInstance();
 
             previewBrush.PressureAffectsSize = settings.PressureAffectsSize;
             previewBrush.PressureAffectsOpacity = settings.PressureAffectsOpacity;
@@ -416,7 +472,7 @@ public partial class BrushSettingsView(AppState appState, IDrawingService drawin
             IsSizePressureEnabled = _drawingState.CurrentBrushSettings.PressureAffectsSize;
             IsOpacityPressureEnabled = _drawingState.CurrentBrushSettings.PressureAffectsOpacity;
             IsPixelPerfectDrawingModeEnabled = _drawingState.IsPixelPerfectDrawingModeEnabled;
-            CanDeleteSelectedPreset = _drawingState.CurrentPixelBrushPreset?.IsUserPreset == true;
+            CanDeleteSelectedPreset = _drawingState.CurrentPixelBrushPreset != null;
 
             _isSyncing = false;
 

@@ -246,12 +246,37 @@ last — each as its own row block wrapping at `ceil(sqrt(n))` columns, separate
 - **Crop** — frame handles change the canvas without scaling (trim / extend), committed on **Apply** via the
   existing `ResizeArtboardOperation` (`Pix2dSprite.Crop`).
 
-A session is opened from the General action bar for the single selected artboard, previews the working frame
-rect only (the pixels are untouched until Apply, so one Ctrl+Z reverts the whole gesture), and **ends** on
+A session is opened from the General action bar for the single selected artboard, **previews its result live**
+while changing nothing until Apply (so one Ctrl+Z still reverts the whole gesture), and **ends** on
 either Apply or Cancel — there is no lingering "Move" state to return to. Esc cancels
 (`EditCommands.CancelSelection` checks `IArtboardObjectEditService.IsActive` first; Sprite context keeps its
 own Esc in `SpriteEditCommands.Cancel`). Presses outside the frame are swallowed, so the session is left only
 through the bar or Esc.
+
+**Live result preview.** A moving rectangle says nothing about what the pixels will do, so each sub-mode draws
+its own outcome (both are pure adorner painting — the document is written only by the Apply operation):
+
+- **Resize** — a 1:1 snapshot of the artboard (`RenderToBitmap`, taken once at `Begin`) drawn stretched into
+  the frame with nearest-neighbour sampling, over the same zoom-adaptive checkerboard the canvas paints
+  ([CanvasCheckerboard.cs](../Sources/Core/Pix2d.Shared/CommonNodes/CanvasCheckerboard.cs), extracted from
+  `DrawingContainerBaseNode` so preview and canvas can never drift apart). The overlay *replaces* the artboard
+  for the session — otherwise a shrinking frame would leave the original showing around the preview — via
+  `SKNode.IsRenderSuppressed`, a `[JsonIgnore]` runtime flag honoured by `SKNodeRenderer.RenderChildren`.
+  Deliberately not `IsVisible`: that is document state, and a mid-session autosave would record an artboard
+  that never paints. The flag is cleared in a `finally` around the Apply operation, on Cancel, and by the
+  `ProjectLoadedMessage` / `ProjectActivatedMessage` guard that ends a session before the scene swaps under it.
+  If the snapshot cannot be allocated (oversized canvas), it is logged and the session degrades to an
+  outline-only frame instead of blanking the artboard.
+- **Crop** — the sprite keeps painting itself and everything outside the frame is dimmed by a Photoshop-style
+  crop shield, so the frame reads as "the part that survives".
+
+`IArtboardObjectEditService.FrameRect` exposes the live world-space frame (what Apply would commit).
+
+**The object frame after Apply.** Ending a session runs `ResetFrame()` + `Invalidate()` on the selection: the
+visible object frame is `MoveThumbNode`, which sizes itself from `NodesSelection.Frame` — a node kept across
+`Invalidate()` calls because it carries a rotation that recomputed bounds cannot restore — so without the
+reset a 64 px frame stayed around a 96 px artboard. `SelectionService` does the same on undo/redo; an applied
+operation needed it too.
 
 UI / wiring:
 - [ObjectActionsBarView.cs](../Sources/Core/Pix2d.Core/UI/ObjectActionsBarView.cs) — the General action bar
@@ -273,8 +298,9 @@ UI / wiring:
 - View ↔ service is driven by [ArtboardObjectEditStateChangedMessage.cs](../Sources/Core/Pix2d.Shared/Messages/ArtboardObjectEditStateChangedMessage.cs)
   (raised on begin / end).
 - [ArtboardObjectEditorNode.cs](../Sources/Core/Pix2d.Shared/InteractiveNodes/ArtboardObjectEditorNode.cs) —
-  the frame overlay: corner/edge handles + size badge, a body blocker and a full-viewport backdrop that
-  swallow presses so they never reach a drawing tool or the object tool. The old label-drag thumb is gone
+  the frame overlay: corner/edge handles + size badge, the live result preview (stretched snapshot / crop
+  shield, drawn under the chrome so handles and badge stay readable), a body blocker and a full-viewport
+  backdrop that swallow presses so they never reach a drawing tool or the object tool. The old label-drag thumb is gone
   (moving is the General context's job); `ArtboardLabelsLayer.GetLabelRect(vp, sprite)` survives as the
   labels layer's own hit-test helper.
 
@@ -287,9 +313,14 @@ UI / wiring:
    deleting the active artboard re-targets a survivor.
 4. Arrange → selection repacks into a dense grid with same-prefix artboards ("icon-goal-*") grouped into
    their own row blocks, one undo step. Toggling **Tools** off in the top bar hides the whole action bar.
-5. Resize: drag a corner, Apply → content scales to the new size, anchored at the opposite corner; Undo
-   reverts in one step. Cancel/Esc discards and ends the session.
-6. Crop: drag handles, Apply → canvas trims/extends with no scaling; kept content stays anchored. Undo reverts.
+5. Resize: drag a corner → the artboard itself stretches/squashes live (nearest-neighbour, on the checkerboard;
+   shrinking vacates scene background, no ghost of the original left behind). Apply → content scales to the
+   framed size, anchored at the opposite corner, and the object frame snaps to the new canvas; Undo reverts in
+   one step and the frame follows back. Cancel/Esc discards, ends the session, and the artboard paints itself
+   again.
+6. Crop: drag handles → everything outside the frame dims (content still visible, so you can see what is being
+   trimmed). Apply → canvas trims/extends with no scaling; kept content stays anchored and the object frame
+   matches the new canvas. Undo reverts.
 7. Rename → dialog renames the artboard; the label updates.
 8. Double-click an artboard body → back to Sprite context for it, brush tool active.
 

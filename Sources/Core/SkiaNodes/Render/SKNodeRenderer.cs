@@ -86,7 +86,7 @@ public class SKNodeRenderer
     private static void RenderChildren(SKNode parent, in RenderContext rc)
     {
         foreach (var child in parent.Nodes.AsSpan())
-            if (child is { IsVisible: true })
+            if (child is { IsVisible: true, IsRenderSuppressed: false })
                 _render(child, rc);
     }
 

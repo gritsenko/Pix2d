@@ -2,6 +2,7 @@
 using Pix2d.Abstract;
 using Pix2d.CommonNodes;
 using SkiaNodes;
+using SkiaNodes.Extensions;
 using SkiaNodes.Interactive;
 using SkiaSharp;
 
@@ -15,10 +16,21 @@ namespace Pix2d.InteractiveNodes;
 /// (inside the artboard body and across the rest of the viewport) so they never reach a drawing tool or the
 /// object-selection tool underneath; the user confirms or cancels from the action bar (or with Esc).
 ///
+/// The frame is not the only feedback: each sub-mode previews its *result* live while the handles are
+/// dragged, Photoshop-style, because a moving rectangle alone says nothing about what the pixels will do.
+/// <list type="bullet">
+/// <item><b>Resize</b> — a snapshot of the artboard is drawn stretched into the frame (nearest-neighbour, on
+/// the same checkerboard the canvas uses). The real sprite is render-suppressed for the session by the
+/// service, so the stand-in *is* the artboard on screen: shrinking the frame vacates scene background
+/// instead of leaving the original showing around the preview. See <see cref="PreviewsTargetContent"/>.</item>
+/// <item><b>Crop</b> — the sprite keeps painting itself and everything outside the frame is dimmed by a crop
+/// shield, so the frame reads as "the part that survives".</item>
+/// </list>
+///
 /// Moving an artboard is deliberately not handled here — that is a plain drag in the General context
 /// (<c>ObjectManipulationTool</c> + the object selection frame).
 /// </summary>
-public class ArtboardObjectEditorNode : SKNode, IViewPortBindable
+public class ArtboardObjectEditorNode : SKNode, IViewPortBindable, IDisposable
 {
     private enum Corner { LeftTop, RightTop, RightBottom, LeftBottom }
     private enum Edge { Top, Right, Bottom, Left }
@@ -26,6 +38,13 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable
     private const float HandleHitPx = 22f;     // grab area
     private const float HandleVisualPx = 11f;  // drawn square
     private static readonly SKColor Accent = new(0x29, 0xB0, 0xF3);
+
+    /// <summary>Dim applied outside a Crop frame. Dark enough to read as "this goes away", light enough that
+    /// the content being trimmed stays recognizable.</summary>
+    private static readonly SKColor CropShieldColor = new(0x00, 0x00, 0x00, 0x99);
+
+    /// <summary>Pixel art must stay pixel art while it is being stretched — no smoothing, no mip chain.</summary>
+    private static readonly SKSamplingOptions PreviewSampling = new(SKFilterMode.Nearest, SKMipmapMode.None);
 
     private readonly BackdropNode _backdrop;
     private readonly BlockerNode _interiorBlocker;
@@ -39,12 +58,26 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable
     private float _handleWorldSize;
     private ViewPort? _vp;
 
+    // Resize preview: a 1:1 snapshot of the artboard taken once, when the session opens. The bitmap is kept
+    // alive next to the image because SKImage.FromBitmap shares its pixel ref (see BitmapNode's mip cache).
+    private SKBitmap? _previewBitmap;
+    private SKImage? _previewImage;
+    private SKColor? _previewBackground;
+
     /// <summary>Called on every live change so the host can refresh the viewport.</summary>
     public Action? OnChanged { get; set; }
 
     public ArtboardObjectEditMode Mode { get; private set; } = ArtboardObjectEditMode.Resize;
 
     public SKRect FrameRect => _frameRect;
+
+    /// <summary>
+    /// True when this overlay draws the target artboard's content itself (Resize, snapshot captured OK) and
+    /// the real node must therefore be render-suppressed while the session is open. False for Crop, and for a
+    /// Resize whose snapshot could not be taken — in which case the frame degrades to outline-only rather
+    /// than blanking the artboard.
+    /// </summary>
+    public bool PreviewsTargetContent => _previewImage != null;
 
     public ArtboardObjectEditorNode()
     {
@@ -86,8 +119,47 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable
         _sprite = sprite;
         Mode = mode;
         _frameRect = sprite.GetBoundingBox();
+
+        if (mode == ArtboardObjectEditMode.Resize)
+            CapturePreview(sprite);
+
         Layout();
     }
+
+    /// <summary>
+    /// Grabs the artboard's current pixels once, at 1:1, as the source of the stretched Resize preview
+    /// (RenderToBitmap runs with RenderAdorners off, so no checkerboard / highlight / onion skin leaks in).
+    /// A failure here is not fatal: the session simply keeps the old outline-only behaviour.
+    /// </summary>
+    private void CapturePreview(Pix2dSprite sprite)
+    {
+        try
+        {
+            _previewBitmap = new SKNode[] { sprite }.RenderToBitmap();
+            _previewImage = SKImage.FromBitmap(_previewBitmap);
+            _previewBackground = sprite.UseBackgroundColor && sprite.BackgroundColor != default
+                ? sprite.BackgroundColor
+                : null;
+        }
+        catch (Exception ex)
+        {
+            // Oversized canvas / out of memory — RenderToBitmap reports both as InvalidOperationException.
+            Logger.LogException(ex);
+            Logger.Trace($"Artboard resize preview unavailable ({ex.Message}) — frame-only fallback");
+            ReleasePreview();
+        }
+    }
+
+    private void ReleasePreview()
+    {
+        _previewImage?.Dispose();
+        _previewImage = null;
+        _previewBitmap?.Dispose();
+        _previewBitmap = null;
+        _previewBackground = null;
+    }
+
+    public void Dispose() => ReleasePreview();
 
     public void OnViewChanged(ViewPort vp)
     {
@@ -218,6 +290,10 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable
         canvas.Save();
         canvas.SetMatrix(vp.ResultTransformMatrix);
 
+        // The result preview goes under the frame chrome — handles and the info badge must stay readable
+        // on top of a stretched image / a dimmed background.
+        DrawResultPreview(canvas, vp);
+
         using var border = new SKPaint { IsStroke = true, IsAntialias = true, StrokeWidth = stroke, Color = Accent };
         canvas.DrawRect(_frameRect, border);
 
@@ -235,6 +311,49 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable
         DrawHandle(canvas, new SKPoint(_frameRect.Left, _frameRect.MidY), visual, fill, handleStroke);
 
         canvas.Restore();
+    }
+
+    /// <summary>
+    /// Draws what the frame will actually produce: the stretched artboard for Resize, the crop shield for
+    /// Crop. Nothing is committed — this is the same <see cref="FrameRect"/> the service later applies.
+    /// </summary>
+    private void DrawResultPreview(SKCanvas canvas, ViewPort vp)
+    {
+        if (_frameRect.Width <= 0 || _frameRect.Height <= 0)
+            return;
+
+        if (Mode == ArtboardObjectEditMode.Crop)
+        {
+            // Photoshop's crop shield: dim everything on screen except the region that survives the crop.
+            // Union with the frame so a frame dragged past the visible area still carves its hole cleanly.
+            var shielded = vp.GetVisibleArea();
+            shielded.Union(_frameRect);
+
+            using var shield = new SKPaint { Color = CropShieldColor };
+            canvas.Save();
+            canvas.ClipRect(_frameRect, SKClipOperation.Difference);
+            canvas.DrawRect(shielded, shield);
+            canvas.Restore();
+            return;
+        }
+
+        if (_previewImage == null)
+            return;
+
+        // The sprite is render-suppressed for the session (PreviewsTargetContent), so the canvas background
+        // it would have painted has to come from here too — otherwise transparent pixels would show the
+        // scene background instead of the checkerboard.
+        if (_previewBackground is { } background)
+        {
+            using var fill = new SKPaint { Color = background };
+            canvas.DrawRect(_frameRect, fill);
+        }
+        else
+        {
+            CanvasCheckerboard.Draw(canvas, vp, _frameRect);
+        }
+
+        canvas.DrawImage(_previewImage, _frameRect, PreviewSampling);
     }
 
     private static void DrawHandle(SKCanvas canvas, SKPoint p, float size, SKPaint fill, SKPaint stroke)

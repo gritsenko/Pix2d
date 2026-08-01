@@ -171,6 +171,14 @@ public sealed class HeadlessHarness
 
     public void SelectNodes(params SKNode[] nodes) => _selection.Select(nodes);
 
+    /// <summary>World bounds of the General-context object frame as it is actually drawn — the move thumb,
+    /// which sizes itself from <c>NodesSelection.Frame</c> (a cached node), not from the live selection
+    /// bounds. This is what goes stale when a selected artboard's canvas changes under it.</summary>
+    public SKRect ObjectFrameBounds =>
+        AppState.CurrentProject.FrameEditorNode is Pix2d.InteractiveNodes.FrameEditorNode frame
+            ? frame.SelectionBounds
+            : SKRect.Empty;
+
     /// <summary>The scriptable headless dialog surface — set <c>YesNoAnswer</c> to drive a confirmation.</summary>
     public HeadlessDialogService Dialogs => (HeadlessDialogService)Services.GetRequiredService<IDialogService>();
 

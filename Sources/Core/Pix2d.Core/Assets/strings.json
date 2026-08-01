@@ -376,9 +376,14 @@
       "Clear 9-slice": "Clear 9-slice",
       "Brush presets": "Brush presets",
       "Save current brush as preset": "Save current brush as preset",
+      "Save selection as brush (colors)": "Save selection as brush (colors)",
+      "Save selection as brush (recolorable)": "Save selection as brush (recolorable)",
       "Delete selected preset": "Delete selected preset",
       "Delete preset": "Delete preset",
-      "Delete this brush preset?": "Delete this brush preset?"
+      "Delete this brush preset?": "Delete this brush preset?",
+      "Remove this built-in preset? You can restore it later via Reset presets to defaults.": "Remove this built-in preset? You can restore it later via Reset presets to defaults.",
+      "Reset presets to defaults": "Reset presets to defaults",
+      "This restores any built-in presets you removed. Your saved presets are kept.": "This restores any built-in presets you removed. Your saved presets are kept."
     },
     "Locale": "en",
     "LocaleTitle": "English",
@@ -750,9 +755,14 @@
       "Clear 9-slice": "Убрать 9-slice",
       "Brush presets": "Пресеты кистей",
       "Save current brush as preset": "Сохранить кисть как пресет",
+      "Save selection as brush (colors)": "Сохранить выделение как кисть (цвета)",
+      "Save selection as brush (recolorable)": "Сохранить выделение как кисть (перекрашиваемая)",
       "Delete selected preset": "Удалить выбранный пресет",
       "Delete preset": "Удалить пресет",
-      "Delete this brush preset?": "Удалить этот пресет кисти?"
+      "Delete this brush preset?": "Удалить этот пресет кисти?",
+      "Remove this built-in preset? You can restore it later via Reset presets to defaults.": "Удалить этот встроенный пресет? Его можно вернуть позже через «Сбросить пресеты к исходным».",
+      "Reset presets to defaults": "Сбросить пресеты к исходным",
+      "This restores any built-in presets you removed. Your saved presets are kept.": "Это вернёт все удалённые встроенные пресеты. Ваши сохранённые пресеты не затрагиваются."
     },
     "Locale": "ru",
     "LocaleTitle": "Russian",

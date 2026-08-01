@@ -20,8 +20,10 @@ namespace Pix2d.Services;
 /// A single click on a label activates that artboard; a double-click hands it to
 /// <see cref="IEditService.EditArtboardAsObject"/>, i.e. enters the General context with it selected.</item>
 /// <item><see cref="Begin"/> opens a handle-driven frame over one artboard for a single Resize or Crop
-/// (invoked from the General action bar). The frame is a preview — the user confirms (one undoable
-/// <see cref="ResizeArtboardScaleOperation"/> / <see cref="ResizeArtboardOperation"/>) or cancels, and either
+/// (invoked from the General action bar). The frame previews the result live — Resize replaces the artboard
+/// on screen with a stretched snapshot (the sprite is render-suppressed for the session), Crop dims
+/// everything outside the frame — but the document is untouched until the user confirms (one undoable
+/// <see cref="ResizeArtboardScaleOperation"/> / <see cref="ResizeArtboardOperation"/>) or cancels; either
 /// way the session ends and control returns to the General context.</item>
 /// </list>
 /// Selecting, moving, deleting and arranging artboards are NOT here — they are plain General-context
@@ -37,6 +39,7 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
     private readonly IEditService _editService;
     private readonly IDrawingService _drawingService;
     private readonly IDialogService _dialogService;
+    private readonly ISelectionService _selectionService;
 
     private readonly ArtboardLabelsLayer _labelsLayer;
 
@@ -48,6 +51,7 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
 
     public bool IsActive => _editor != null;
     public ArtboardObjectEditMode Mode => _mode;
+    public SKRect FrameRect => _editor?.FrameRect ?? SKRect.Empty;
 
     public ArtboardObjectEditService(AppState appState, IMessenger messenger, IOperationService operationService,
         IViewPortRefreshService viewPortRefreshService, IEditService editService, IDrawingService drawingService,
@@ -60,6 +64,7 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
         _editService = editService;
         _drawingService = drawingService;
         _dialogService = dialogService;
+        _selectionService = selectionService;
 
         _labelsLayer = new ArtboardLabelsLayer(
             () => _appState.CurrentProject.SceneNode?.Nodes.OfType<Pix2dSprite>() ?? Enumerable.Empty<Pix2dSprite>(),
@@ -69,7 +74,11 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
             sprite => selectionService.Selection?.Nodes.Contains(sprite) == true,
             () => _viewPortRefreshService.Refresh());
 
-        messenger.Register<ProjectLoadedMessage>(this, m => AttachLabels(m.ActiveScene));
+        // A session belongs to one scene: it holds a sprite, an overlay on that scene's adorner layer and a
+        // render-suppression flag on the target. Any scene swap under our feet ends it first, so none of the
+        // three can leak into the new project (a leaked suppression flag = an artboard that never paints).
+        messenger.Register<ProjectLoadedMessage>(this, m => { CancelMode(); AttachLabels(m.ActiveScene); });
+        messenger.Register<ProjectActivatedMessage>(this, m => { CancelMode(); AttachLabels(m.Project.SceneNode); });
         messenger.Register<ViewPortInitializedMessage>(this, _ => AttachLabels(_appState.CurrentProject.SceneNode));
         messenger.Register<BeginArtboardObjectEditMessage>(this, m => Begin(m.Sprite, m.Mode));
     }
@@ -115,6 +124,12 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
         editor.SetTarget(sprite, mode);
         _editor = editor;
 
+        // Resize draws a stretched stand-in for the artboard, so the real node must stop painting for the
+        // duration — otherwise a shrinking frame leaves the original showing around the preview. Crop keeps
+        // the sprite on screen (its shield dims what will be trimmed), and so does a Resize whose snapshot
+        // failed. Runtime-only flag, never serialized (see SKNode.IsRenderSuppressed).
+        sprite.IsRenderSuppressed = editor.PreviewsTargetContent;
+
         SkiaNodes.AdornerLayer.GetAdornerLayer(scene).Add(editor);
         _viewPortRefreshService.Refresh();
         RaiseStateChanged();
@@ -139,23 +154,30 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
                           || Math.Abs(target.Height - _origSize.Height) > 0.5f;
         var moved = newPos != _origPos;
 
-        if (sizeChanged || moved)
+        // Exit() unconditionally: it clears the render-suppression flag the Resize preview set, and an
+        // artboard that stopped painting must not survive a failed operation.
+        try
         {
-            if (_mode == ArtboardObjectEditMode.Crop)
+            if (sizeChanged || moved)
             {
-                // Crop semantics: keep pixel scale, change the canvas; reposition so kept content stays anchored.
-                var localBounds = new SKRect(
-                    target.Left - _origPos.X, target.Top - _origPos.Y,
-                    target.Right - _origPos.X, target.Bottom - _origPos.Y);
-                _operationService.InvokeAndPushOperations(new ResizeArtboardOperation(sprite, localBounds, newPos));
-            }
-            else // Resize: scale the pixel content to the new size.
-            {
-                _operationService.InvokeAndPushOperations(new ResizeArtboardScaleOperation(sprite, target.Size, newPos));
+                if (_mode == ArtboardObjectEditMode.Crop)
+                {
+                    // Crop semantics: keep pixel scale, change the canvas; reposition so kept content stays anchored.
+                    var localBounds = new SKRect(
+                        target.Left - _origPos.X, target.Top - _origPos.Y,
+                        target.Right - _origPos.X, target.Bottom - _origPos.Y);
+                    _operationService.InvokeAndPushOperations(new ResizeArtboardOperation(sprite, localBounds, newPos));
+                }
+                else // Resize: scale the pixel content to the new size.
+                {
+                    _operationService.InvokeAndPushOperations(new ResizeArtboardScaleOperation(sprite, target.Size, newPos));
+                }
             }
         }
-
-        Exit();
+        finally
+        {
+            Exit();
+        }
     }
 
     /// <summary>Discards the preview (frame-only, nothing applied) and ends the session.</summary>
@@ -184,16 +206,38 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
         if (_editor == null)
             return;
 
+        if (_sprite != null)
+            _sprite.IsRenderSuppressed = false; // the stand-in is going away — the artboard paints itself again
+
         _editor.RemoveFromParent();
+        _editor.Dispose();                      // frees the Resize preview snapshot
         _editor = null;
         _sprite = null;
 
         // Re-point the shared drawing layer to the (possibly resized/cropped) active sprite so drawing
         // stays aligned, and bring the object selection frame back.
         _drawingService.UpdateDrawingTarget();
+        ResyncObjectSelectionFrame();
         _editService.ShowNodeEditor();
         _viewPortRefreshService.Refresh();
         RaiseStateChanged();
+    }
+
+    /// <summary>
+    /// Rebuilds the General-context selection frame from the artboard's *current* bounds. Needed because
+    /// <c>NodesSelection.Invalidate</c> only recomputes bounds and keeps an existing frame node (the frame
+    /// carries a rotation that bounds cannot restore), so after an applied Resize / Crop the object frame —
+    /// and the size readout in its info badge — would still show the pre-edit canvas. Undo/redo already gets
+    /// this treatment in <c>SelectionService</c>; an applied operation did not.
+    /// </summary>
+    private void ResyncObjectSelectionFrame()
+    {
+        var selection = _selectionService.Selection;
+        if (selection == null)
+            return;
+
+        selection.ResetFrame();
+        selection.Invalidate(); // → NodesSelectedMessage → EditService re-points the frame editor's thumbs
     }
 
     private void RaiseStateChanged() =>

@@ -56,11 +56,25 @@ public interface IDrawingService
     BrushSettings? SaveCurrentBrushAsPreset();
 
     /// <summary>
-    /// Removes a user preset and persists the change. Built-in presets are refused — they have no stored
-    /// representation, so "deleting" one would silently come back on the next launch.
+    /// Removes a preset from the row and persists the change. A user preset is dropped for good; a built-in
+    /// preset is only hidden (its stable id is remembered) so <see cref="ResetBrushPresetsToDefaults"/> can
+    /// bring it back later.
     /// </summary>
     /// <returns>True when the preset was removed.</returns>
     bool DeleteBrushPreset(BrushSettings preset);
+
+    /// <summary>
+    /// Captures the current pixel selection as a new preset and appends it to the row, persisting the change.
+    /// <paramref name="useOriginalColors"/> true reproduces the selection's own colors (a decal); false treats
+    /// it as a recolorable shape mask, like every other brush. Returns null when there is no active selection.
+    /// </summary>
+    BrushSettings? CreateBrushPresetFromSelection(bool useOriginalColors);
+
+    /// <summary>
+    /// Restores every built-in preset the user has removed via <see cref="DeleteBrushPreset"/>. Presets the
+    /// user actually saved (plain or captured from a selection) are left untouched.
+    /// </summary>
+    void ResetBrushPresetsToDefaults();
 
     /// <summary>
     /// Clears the entire content of the current drawing layer.

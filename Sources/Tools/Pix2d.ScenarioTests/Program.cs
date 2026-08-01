@@ -1038,11 +1038,33 @@ static class Runner
                 $"the stored DTO is wrong: brush='{stored[0].Brush}' scale={stored[0].Scale}");
         });
 
-        t.Check("a built-in preset cannot be deleted", () =>
+        t.Check("deleting a built-in preset hides it, and Reset restores it without touching user presets", () =>
         {
             var builtIn = state.BrushPresets[0];
-            Assert.True(!drawing.DeleteBrushPreset(builtIn), "deleting a built-in was allowed");
-            Assert.True(state.BrushPresets.Count == builtInCount + 1, "the list changed anyway");
+            var builtInId = builtIn.BuiltInId;
+            Assert.True(builtInId != null, "the first built-in has no BuiltInId");
+
+            Assert.True(drawing.DeleteBrushPreset(builtIn), "deleting a built-in was refused");
+            Assert.True(state.BrushPresets.Count == builtInCount, "the row did not shrink by one");
+            Assert.True(state.BrushPresets.All(p => p.BuiltInId != builtInId), "the hidden built-in is still in the row");
+
+            var reader = new SettingsService(h.Services.GetRequiredService<IPlatformStuffService>());
+            Assert.True(reader.TryGet<List<string>>("HiddenBuiltInPresetIds", out var hiddenIds)
+                        && hiddenIds != null && hiddenIds.Contains(builtInId!),
+                "the hidden id was not persisted under HiddenBuiltInPresetIds");
+
+            drawing.ResetBrushPresetsToDefaults();
+            Assert.True(state.BrushPresets.Count(p => !p.IsUserPreset) == builtInCount,
+                "reset did not restore the full built-in row");
+            Assert.True(state.BrushPresets.Any(p => p.BuiltInId == builtInId), "the built-in did not come back");
+            Assert.True(state.BrushPresets.Count(p => p.IsUserPreset) == 1,
+                "reset touched a preset the user actually saved");
+
+            // A second fresh reader: SettingsService loads its file once and caches it, so re-using `reader`
+            // here would just replay its first (pre-reset) snapshot instead of proving the write landed.
+            var reader2 = new SettingsService(h.Services.GetRequiredService<IPlatformStuffService>());
+            reader2.TryGet<List<string>>("HiddenBuiltInPresetIds", out var clearedIds);
+            Assert.True((clearedIds?.Count ?? 0) == 0, "reset did not clear the hidden-ids list");
         });
 
         t.Check("deleting a user preset that is a value-twin of a built-in removes the right one", () =>
@@ -1109,8 +1131,134 @@ static class Runner
             Assert.True(painted > 1, $"a 4px preset should cover more than one pixel, painted {painted}");
         });
 
-        // Leave no user presets behind for the command sweep / later scenarios.
+        t.Check("no active selection yields no stamp preset", () =>
+        {
+            h.NewProject(8);
+            Assert.True(!h.HasPixelSelection, "a fresh project should start without a selection");
+            Assert.True(drawing.CreateBrushPresetFromSelection(useOriginalColors: true) == null,
+                "a stamp preset was created without a selection");
+        });
+
+        t.Check("an original-colors stamp reproduces the captured pixels, ignoring the paint color", () =>
+        {
+            h.NewProject(8);
+            state.CurrentBrushSettings = state.BrushPresets.First(p => p.BuiltInId == "square-1").Clone();
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(3, 3);
+            h.EnsurePixelSelection();
+
+            var before = state.BrushPresets.Count;
+            var stamp = drawing.CreateBrushPresetFromSelection(useOriginalColors: true);
+
+            Assert.True(stamp is { IsUserPreset: true } &&
+                        stamp.Brush is Pix2d.Plugins.Drawing.Brushes.ImageStampBrush { UseOriginalColors: true },
+                "the returned preset is missing or not an original-colors image stamp");
+            Assert.True(state.BrushPresets.Count == before + 1, "the stamp preset was not appended");
+
+            var reader = new SettingsService(h.Services.GetRequiredService<IPlatformStuffService>());
+            Assert.True(reader.TryGet<List<BrushPresetData>>("UserBrushPresets", out var stored) && stored != null,
+                "the stamp preset was not persisted");
+            var stampData = stored!.FirstOrDefault(d => d.Brush == Pix2d.Plugins.Drawing.Brushes.BrushKeys.StampKey);
+            Assert.True(stampData != null && !string.IsNullOrEmpty(stampData.StampImagePng) && stampData.StampUseOriginalColors,
+                "the persisted DTO is missing its stamp image or the color-mode flag");
+
+            // Round-trip through a fresh load, the way a restart would.
+            drawing.InitBrushSettings();
+            var restored = state.BrushPresets.LastOrDefault(p =>
+                p.Brush is Pix2d.Plugins.Drawing.Brushes.ImageStampBrush { UseOriginalColors: true });
+            Assert.True(restored != null, "the stamp preset did not survive InitBrushSettings");
+
+            h.NewProject(16);
+            var applied = restored!.Clone();
+            applied.Scale = 8;
+            state.CurrentBrushSettings = applied;
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Blue); // an original-colors stamp must ignore the current draw color
+            h.DrawPixel(8, 8);
+
+            var painted = h.NonEmptyPixels().ToArray();
+            Assert.True(painted.Any(p => p.Color.Red > 200 && p.Color.Blue < 50),
+                "an original-colors stamp should paint its own captured red, not the current draw color");
+        });
+
+        t.Check("a recolorable stamp paints the current draw color, not the captured one", () =>
+        {
+            h.NewProject(8);
+            state.CurrentBrushSettings = state.BrushPresets.First(p => p.BuiltInId == "square-1").Clone();
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(3, 3);
+            h.EnsurePixelSelection();
+
+            var stamp = drawing.CreateBrushPresetFromSelection(useOriginalColors: false);
+            Assert.True(stamp?.Brush is Pix2d.Plugins.Drawing.Brushes.ImageStampBrush { UseOriginalColors: false },
+                "the recolorable stamp was not created as expected");
+
+            h.NewProject(16);
+            var applied = stamp!.Clone();
+            applied.Scale = 8;
+            state.CurrentBrushSettings = applied;
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Blue);
+            h.DrawPixel(8, 8);
+
+            var painted = h.NonEmptyPixels().ToArray();
+            Assert.True(painted.Length > 0, "the recolorable stamp painted nothing");
+            Assert.True(painted.All(p => p.Color.Blue > 200 && p.Color.Red < 50),
+                "a recolorable stamp should paint the current draw color, not the captured one");
+        });
+
+        t.Check("every preset kind can render the settings panel's stroke preview", () =>
+        {
+            // The preview runs on a throwaway copy of the live brush (RenderStrokePreview mutates pressure and
+            // the stamp cache). That copy used to come from Activator.CreateInstance(brush.GetType()), which
+            // threw MissingMethodException the moment a stamp preset was selected — a stamp has no parameterless
+            // ctor. Cover every preset the row can hold, stamps included.
+            h.NewProject(8);
+            state.CurrentBrushSettings = state.BrushPresets.First(p => p.BuiltInId == "square-1").Clone();
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(3, 3);
+            h.EnsurePixelSelection();
+
+            var stamp = drawing.CreateBrushPresetFromSelection(useOriginalColors: false);
+            Assert.True(stamp?.Brush is Pix2d.Plugins.Drawing.Brushes.ImageStampBrush,
+                "precondition: no stamp preset to preview");
+
+            foreach (var preset in state.BrushPresets)
+            {
+                var live = preset.Brush as Pix2d.Plugins.Drawing.Brushes.BasePixelBrush;
+                Assert.True(live != null, $"preset '{preset.BuiltInId ?? "user"}' has no BasePixelBrush");
+
+                using var previewBrush = live!.CreatePreviewInstance();
+                Assert.True(!ReferenceEquals(previewBrush, live),
+                    "the preview must not run on the instance the canvas draws with");
+
+                previewBrush.InitBrush(preset.Scale, preset.Opacity, preset.Spacing);
+                using var preview = previewBrush.RenderStrokePreview(64, 24, SKColors.Blue,
+                    Pix2d.Plugins.Drawing.Brushes.BrushPreviewBackground.White);
+                Assert.True(preview.Width == 64 && preview.Height == 24,
+                    $"preview came back {preview.Width}x{preview.Height}");
+            }
+
+            // The stamp's copy shares the captured bitmap without owning it, so disposing the copies above must
+            // leave the preset able to paint.
+            h.NewProject(16);
+            var applied = stamp!.Clone();
+            applied.Scale = 8;
+            state.CurrentBrushSettings = applied;
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Blue);
+            h.DrawPixel(8, 8);
+
+            Assert.True(h.NonEmptyPixels().Any(),
+                "the stamp preset stopped painting after its preview copy was disposed");
+        });
+
+        // Leave no user presets and no hidden built-ins behind for the command sweep / later scenarios.
         settings.Set("UserBrushPresets", new List<BrushPresetData>());
+        settings.Set("HiddenBuiltInPresetIds", new List<string>());
         drawing.InitBrushSettings();
         h.NewProject();
     }
@@ -1584,6 +1732,101 @@ static class Runner
             Assert.True(sprite.Size == size, $"size changed to {sprite.Size}");
             Assert.True(h.Operations.UndoOperationsCount == undoBefore,
                 $"undo count {undoBefore} -> {h.Operations.UndoOperationsCount}, expected no new operation");
+        });
+
+        // --- Live result preview -------------------------------------------------------------------
+        // Dragging the handles used to move the outline and nothing else, so neither sub-mode showed what
+        // it was about to do. Resize now hands the artboard's on-screen pixels to the overlay (a stretched
+        // snapshot) and render-suppresses the real node; Crop keeps the node painting and dims what will be
+        // trimmed. Both stay preview-only: the document changes on Apply, never during the drag.
+        t.Check("a Resize session previews the scaled artboard in place of the real node", () =>
+        {
+            var sprite = h.Artboards[0];
+            var bounds = sprite.GetBoundingBox();
+            h.SelectNodes(sprite);
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Resize);
+
+            Assert.True(sprite.IsRenderSuppressed,
+                "the artboard still paints itself — the stretched preview would be drawn on top of it");
+            Assert.True(h.CanvasEdit.FrameRect == bounds,
+                $"frame started at {h.CanvasEdit.FrameRect}, expected the artboard bounds {bounds}");
+
+            // Drag the bottom-right corner handle +32,+32 (world units at the pinned 1:1 zoom).
+            h.PressWorld(bounds.Right, bounds.Bottom);
+            h.MoveWorld(bounds.Right + 16, bounds.Bottom + 16, pressed: true);
+            h.MoveWorld(bounds.Right + 32, bounds.Bottom + 32, pressed: true);
+            h.ReleaseWorld(bounds.Right + 32, bounds.Bottom + 32);
+
+            Assert.True(h.CanvasEdit.FrameRect.Width == bounds.Width + 32
+                        && h.CanvasEdit.FrameRect.Height == bounds.Height + 32,
+                $"frame is {h.CanvasEdit.FrameRect.Size}, expected {bounds.Width + 32}x{bounds.Height + 32}");
+            Assert.True(sprite.Size == bounds.Size,
+                $"the drag changed the canvas ({sprite.Size}) — it must stay a preview until Apply");
+        });
+
+        t.Check("applying the Resize scales the canvas and hands rendering back to the artboard", () =>
+        {
+            var sprite = h.Artboards[0];
+            var expected = h.CanvasEdit.FrameRect.Size;
+            h.CanvasEdit.ConfirmMode();
+
+            Assert.True(sprite.Size == expected, $"size = {sprite.Size}, expected {expected}");
+            Assert.True(!sprite.IsRenderSuppressed,
+                "render suppression outlived the session — the artboard would never paint again");
+        });
+
+        // The object frame is drawn from NodesSelection.Frame — a node kept across Invalidate() calls so a
+        // rotation survives them — so an applied Resize/Crop used to leave it framing the pre-edit canvas.
+        t.Check("the object selection frame follows the artboard after an applied Resize", () =>
+        {
+            var sprite = h.Artboards[0];
+            Assert.True(h.ObjectFrameBounds.Size == sprite.Size,
+                $"frame is {h.ObjectFrameBounds.Size}, artboard is {sprite.Size}");
+        });
+
+        t.Check("undo restores the pre-resize canvas and the frame follows it back", () =>
+        {
+            var sprite = h.Artboards[0];
+            h.Operations.Undo();
+
+            Assert.True(sprite.Size.Width == 64 && sprite.Size.Height == 64,
+                $"size after undo = {sprite.Size}, expected 64x64");
+            Assert.True(h.ObjectFrameBounds.Size == sprite.Size,
+                $"frame after undo is {h.ObjectFrameBounds.Size}, expected {sprite.Size}");
+        });
+
+        t.Check("a Crop session keeps the artboard painting itself (shield only, no stand-in)", () =>
+        {
+            var sprite = h.Artboards[0];
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Crop);
+
+            Assert.True(!sprite.IsRenderSuppressed,
+                "Crop suppressed the artboard — the dimmed content it trims must stay visible");
+
+            h.CanvasEdit.CancelMode();
+            Assert.True(!sprite.IsRenderSuppressed, "cancel left the artboard suppressed");
+        });
+
+        t.Check("applying a Crop resizes the canvas and the frame follows", () =>
+        {
+            var sprite = h.Artboards[0];
+            var bounds = sprite.GetBoundingBox();
+            h.SelectNodes(sprite);
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Crop);
+
+            // Pull the right edge 24px in: crop keeps pixel scale, so the canvas just gets narrower.
+            h.PressWorld(bounds.Right, bounds.MidY);
+            h.MoveWorld(bounds.Right - 12, bounds.MidY, pressed: true);
+            h.MoveWorld(bounds.Right - 24, bounds.MidY, pressed: true);
+            h.ReleaseWorld(bounds.Right - 24, bounds.MidY);
+            h.CanvasEdit.ConfirmMode();
+
+            Assert.True(sprite.Size.Width == bounds.Width - 24 && sprite.Size.Height == bounds.Height,
+                $"size = {sprite.Size}, expected {bounds.Width - 24}x{bounds.Height}");
+            Assert.True(h.ObjectFrameBounds.Size == sprite.Size,
+                $"frame is {h.ObjectFrameBounds.Size}, artboard is {sprite.Size}");
+
+            h.Operations.Undo();
         });
 
         // --- Action bar visibility ----------------------------------------------------------------

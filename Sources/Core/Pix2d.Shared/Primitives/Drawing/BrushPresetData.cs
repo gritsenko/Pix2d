@@ -16,7 +16,10 @@ namespace Pix2d.Primitives.Drawing;
 /// </summary>
 public class BrushPresetData
 {
-    /// <summary>Stable brush-type key (<c>square</c>, <c>circle</c>, <c>spray</c>, <c>marker</c>).</summary>
+    /// <summary>
+    /// Stable brush-type key (<c>square</c>, <c>circle</c>, <c>spray</c>, <c>marker</c>, or
+    /// <c>BrushKeys.StampKey</c> for a preset captured from a canvas selection).
+    /// </summary>
     public string Brush { get; set; } = "";
 
     public float Scale { get; set; } = 1;
@@ -24,4 +27,16 @@ public class BrushPresetData
     public float Spacing { get; set; } = 1;
     public bool PressureAffectsSize { get; set; }
     public bool PressureAffectsOpacity { get; set; }
+
+    /// <summary>
+    /// Base64 PNG of the captured selection bitmap. Only set when <see cref="Brush"/> is
+    /// <c>BrushKeys.StampKey</c> — every procedural brush leaves this null since its shape is code, not data.
+    /// </summary>
+    public string? StampImagePng { get; set; }
+
+    /// <summary>
+    /// Stamp-only: true reproduces the captured pixels as-is (a decal); false treats the capture as an alpha
+    /// mask recolored with the paint color, like every procedural brush already behaves.
+    /// </summary>
+    public bool StampUseOriginalColors { get; set; }
 }

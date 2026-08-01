@@ -278,23 +278,31 @@ public class DrawingService : IDrawingService
     }
 
     /// <summary>
-    /// The shipped preset row. Deliberately not persisted: keeping built-ins in code means a later release can
-    /// change them, and it makes "delete a built-in" unrepresentable rather than merely blocked.
+    /// The shipped preset row, minus whatever the user has removed (see <see cref="DeleteBrushPreset"/> and
+    /// <see cref="ResetBrushPresetsToDefaults"/>). Deliberately not persisted itself: keeping built-ins in code
+    /// means a later release can change their scale/opacity freely — only the stable <see cref="BrushSettings.BuiltInId"/>
+    /// of a removed row is ever written to disk.
     /// </summary>
-    private List<BrushSettings> BuildBuiltInPresets() =>
-    [
-        new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 1, Opacity = 1f },
-        new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 2, Opacity = 1f },
-        new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 3, Opacity = 1f },
-        new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 4, Opacity = 1f },
-        new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 5, Opacity = 1f },
-        new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 4, Opacity = 1f },
-        new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 6, Opacity = 1f },
-        new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 8, Opacity = 1f },
-        new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 10, Opacity = 1f },
-        new() { Brush = GetBrush<SprayBrush>(), Scale = 16, Opacity = 0.1f },
-        new() { Brush = GetBrush<MarkerBrush>(), Scale = 16, Opacity = 0.5f }
-    ];
+    private List<BrushSettings> BuildBuiltInPresets()
+    {
+        var all = new List<BrushSettings>
+        {
+            new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 1, Opacity = 1f, BuiltInId = "square-1" },
+            new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 2, Opacity = 1f, BuiltInId = "square-2" },
+            new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 3, Opacity = 1f, BuiltInId = "square-3" },
+            new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 4, Opacity = 1f, BuiltInId = "square-4" },
+            new() { Brush = GetBrush<SquareSolidBrush>(), Scale = 5, Opacity = 1f, BuiltInId = "square-5" },
+            new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 4, Opacity = 1f, BuiltInId = "circle-4" },
+            new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 6, Opacity = 1f, BuiltInId = "circle-6" },
+            new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 8, Opacity = 1f, BuiltInId = "circle-8" },
+            new() { Brush = GetBrush<CircleSolidBrush>(), Scale = 10, Opacity = 1f, BuiltInId = "circle-10" },
+            new() { Brush = GetBrush<SprayBrush>(), Scale = 16, Opacity = 0.1f, BuiltInId = "spray-16" },
+            new() { Brush = GetBrush<MarkerBrush>(), Scale = 16, Opacity = 0.5f, BuiltInId = "marker-16" }
+        };
+
+        var hidden = GetHiddenBuiltInIds();
+        return hidden.Count == 0 ? all : all.Where(p => !hidden.Contains(p.BuiltInId!)).ToList();
+    }
 
     #region user brush presets
 
@@ -302,6 +310,25 @@ public class DrawingService : IDrawingService
     // reflection and an undeclared key is a silently-dropped write, so this string and that property must
     // stay in lockstep (the trap that cost a release in the rate-prompt funnel).
     private const string UserBrushPresetsSettingKey = "UserBrushPresets";
+
+    // = nameof(AppSettings.HiddenBuiltInPresetIds). Same lockstep requirement as above.
+    private const string HiddenBuiltInPresetIdsSettingKey = "HiddenBuiltInPresetIds";
+
+    // A captured selection this big already covers any pixel-art motif worth stamping; capping it keeps
+    // AppSettings.UserBrushPresets (re-serialized as a whole file on every write, see SettingsService.Set)
+    // from ballooning on a large marquee.
+    private const int MaxStampSourceDimension = 128;
+
+    private HashSet<string> GetHiddenBuiltInIds()
+    {
+        if (_settingsService.TryGet<List<string>>(HiddenBuiltInPresetIdsSettingKey, out var stored) && stored != null)
+            return new HashSet<string>(stored, StringComparer.Ordinal);
+
+        return [];
+    }
+
+    private void PersistHiddenBuiltInIds(HashSet<string> ids) =>
+        _settingsService.Set(HiddenBuiltInPresetIdsSettingKey, ids.ToList());
 
     /// <summary>
     /// Reads the stored user presets, skipping anything that no longer resolves. Tolerant by design: a preset
@@ -318,6 +345,16 @@ public class DrawingService : IDrawingService
 
         foreach (var data in stored)
         {
+            if (data.Brush == BrushKeys.StampKey)
+            {
+                var stampPreset = TryLoadStampPreset(data);
+                if (stampPreset == null)
+                    Logger.Trace("Skipping a saved brush preset with a missing or corrupt stamp image.");
+                else
+                    result.Add(stampPreset);
+                continue;
+            }
+
             var brush = BrushKeys.Resolve(data.Brush, Brushes);
             if (brush == null)
             {
@@ -342,10 +379,46 @@ public class DrawingService : IDrawingService
         return result;
     }
 
+    private static BrushSettings? TryLoadStampPreset(BrushPresetData data)
+    {
+        if (string.IsNullOrEmpty(data.StampImagePng))
+            return null;
+
+        SKBitmap? source;
+        try
+        {
+            source = SKBitmap.Decode(Convert.FromBase64String(data.StampImagePng));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogException(ex);
+            return null;
+        }
+
+        if (source is not { Width: > 0, Height: > 0 })
+        {
+            source?.Dispose();
+            return null;
+        }
+
+        return new BrushSettings
+        {
+            Brush = new ImageStampBrush(source, data.StampUseOriginalColors),
+            Scale = Math.Clamp(data.Scale, 1f, 512f),
+            Opacity = Math.Clamp(data.Opacity, 0f, 1f),
+            Spacing = Math.Clamp(data.Spacing, 0.01f, 10f),
+            PressureAffectsSize = data.PressureAffectsSize,
+            PressureAffectsOpacity = data.PressureAffectsOpacity,
+            IsUserPreset = true
+        };
+    }
+
     public BrushSettings? SaveCurrentBrushAsPreset()
     {
         var current = SpriteEditorState.CurrentBrushSettings;
-        if (current?.Brush == null || BrushKeys.GetKey(current.Brush) == null)
+        if (current?.Brush == null)
+            return null;
+        if (current.Brush is not ImageStampBrush && BrushKeys.GetKey(current.Brush) == null)
             return null;
 
         var presets = SpriteEditorState.BrushPresets;
@@ -367,15 +440,63 @@ public class DrawingService : IDrawingService
         return preset;
     }
 
+    /// <summary>
+    /// Captures the current pixel selection into a brand-new preset (an <see cref="ImageStampBrush"/> owning a
+    /// copy of the selected pixels) and appends it to the row. Returns null when there is no active selection,
+    /// or the selection has no pixels to capture.
+    /// </summary>
+    public BrushSettings? CreateBrushPresetFromSelection(bool useOriginalColors)
+    {
+        if (!DrawingLayer.HasSelection)
+            return null;
+
+        if (DrawingLayer.GetSelectionLayer() is not BitmapNode selectionNode ||
+            selectionNode.Bitmap is not { Width: > 0, Height: > 0 } sourceBitmap)
+            return null;
+
+        var captured = sourceBitmap.Copy();
+
+        var longSide = Math.Max(captured.Width, captured.Height);
+        if (longSide > MaxStampSourceDimension)
+        {
+            var factor = MaxStampSourceDimension / (float)longSide;
+            var w = Math.Max(1, (int)Math.Round(captured.Width * factor));
+            var h = Math.Max(1, (int)Math.Round(captured.Height * factor));
+
+            var downscaled = captured.Resize(new SKSizeI(w, h), new SKSamplingOptions(SKFilterMode.Nearest));
+            if (downscaled != null)
+            {
+                captured.Dispose();
+                captured = downscaled;
+            }
+        }
+
+        var preset = new BrushSettings
+        {
+            Brush = new ImageStampBrush(captured, useOriginalColors),
+            Scale = Math.Clamp(Math.Max(captured.Width, captured.Height), 1, 512),
+            Opacity = 1f,
+            Spacing = 1f,
+            IsUserPreset = true
+        };
+
+        SpriteEditorState.BrushPresets = [.. SpriteEditorState.BrushPresets, preset];
+        PersistUserPresets();
+
+        return preset;
+    }
+
+    /// <summary>
+    /// Removes a preset from the row and persists that removal. A user preset is dropped outright; a built-in
+    /// is only hidden (its <see cref="BrushSettings.BuiltInId"/> is remembered in
+    /// <c>AppSettings.HiddenBuiltInPresetIds</c>) so <see cref="ResetBrushPresetsToDefaults"/> can bring it back.
+    /// </summary>
     public bool DeleteBrushPreset(BrushSettings preset)
     {
-        if (preset is not { IsUserPreset: true })
-            return false;
-
         var presets = SpriteEditorState.BrushPresets;
 
         // By reference, NOT by value: BrushSettings has value equality, so List.Remove would happily delete a
-        // built-in that happens to have identical settings.
+        // built-in that happens to have identical settings to some other preset.
         var index = presets.FindIndex(p => ReferenceEquals(p, preset));
         if (index < 0)
             return false;
@@ -383,7 +504,17 @@ public class DrawingService : IDrawingService
         var updated = new List<BrushSettings>(presets);
         updated.RemoveAt(index);
         SpriteEditorState.BrushPresets = updated;
-        PersistUserPresets();
+
+        if (preset.IsUserPreset)
+        {
+            PersistUserPresets();
+        }
+        else if (preset.BuiltInId != null)
+        {
+            var hidden = GetHiddenBuiltInIds();
+            hidden.Add(preset.BuiltInId);
+            PersistHiddenBuiltInIds(hidden);
+        }
 
         // CurrentBrushSettings is a clone, so the user keeps drawing with the same brush; only the row's
         // highlight needs clearing when the deleted tile was the selected one.
@@ -393,23 +524,71 @@ public class DrawingService : IDrawingService
         return true;
     }
 
+    /// <summary>
+    /// Restores every built-in preset the user has removed. Never touches <c>AppSettings.UserBrushPresets</c> —
+    /// presets the user actually saved (plain or stamp) are kept, in place, by reference, so a currently
+    /// selected one stays selected.
+    /// </summary>
+    public void ResetBrushPresetsToDefaults()
+    {
+        PersistHiddenBuiltInIds([]);
+
+        var existingUserPresets = SpriteEditorState.BrushPresets.Where(p => p.IsUserPreset).ToList();
+        SpriteEditorState.BrushPresets = [.. BuildBuiltInPresets(), .. existingUserPresets];
+
+        if (SpriteEditorState.CurrentPixelBrushPreset != null &&
+            !SpriteEditorState.BrushPresets.Any(p => ReferenceEquals(p, SpriteEditorState.CurrentPixelBrushPreset)))
+        {
+            SpriteEditorState.CurrentPixelBrushPreset = null!;
+        }
+    }
+
     private void PersistUserPresets()
     {
         var data = SpriteEditorState.BrushPresets
             .Where(p => p.IsUserPreset)
-            .Select(p => new BrushPresetData
+            .Select(ToPresetData)
+            .Where(d => d != null)
+            .Select(d => d!)
+            .ToList();
+
+        _settingsService.Set(UserBrushPresetsSettingKey, data);
+    }
+
+    private static BrushPresetData? ToPresetData(BrushSettings p)
+    {
+        if (p.Brush is ImageStampBrush stamp)
+        {
+            using var encoded = stamp.SourceBitmap.Encode(SKEncodedImageFormat.Png, 100);
+            if (encoded == null)
+                return null;
+
+            return new BrushPresetData
             {
-                Brush = BrushKeys.GetKey(p.Brush) ?? "",
+                Brush = BrushKeys.StampKey,
                 Scale = p.Scale,
                 Opacity = p.Opacity,
                 Spacing = p.Spacing,
                 PressureAffectsSize = p.PressureAffectsSize,
-                PressureAffectsOpacity = p.PressureAffectsOpacity
-            })
-            .Where(d => !string.IsNullOrEmpty(d.Brush))
-            .ToList();
+                PressureAffectsOpacity = p.PressureAffectsOpacity,
+                StampImagePng = Convert.ToBase64String(encoded.ToArray()),
+                StampUseOriginalColors = stamp.UseOriginalColors
+            };
+        }
 
-        _settingsService.Set(UserBrushPresetsSettingKey, data);
+        var key = BrushKeys.GetKey(p.Brush);
+        if (string.IsNullOrEmpty(key))
+            return null;
+
+        return new BrushPresetData
+        {
+            Brush = key,
+            Scale = p.Scale,
+            Opacity = p.Opacity,
+            Spacing = p.Spacing,
+            PressureAffectsSize = p.PressureAffectsSize,
+            PressureAffectsOpacity = p.PressureAffectsOpacity
+        };
     }
 
     #endregion

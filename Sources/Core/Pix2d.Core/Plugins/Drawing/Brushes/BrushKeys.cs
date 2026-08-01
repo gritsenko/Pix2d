@@ -13,6 +13,15 @@ namespace Pix2d.Plugins.Drawing.Brushes;
 /// </summary>
 public static class BrushKeys
 {
+    /// <summary>
+    /// On-disk brush key for an <see cref="ImageStampBrush"/> preset. Unlike every key in <see cref="Map"/>,
+    /// a stamp is never resolved through <see cref="Resolve"/> against a shared singleton — each stamp preset
+    /// owns its own captured bitmap, so <c>DrawingService</c> reconstructs a fresh instance from the persisted
+    /// image data instead. Kept here anyway because it is still "the on-disk identity of a brush type", just
+    /// with a different reconstruction path.
+    /// </summary>
+    public const string StampKey = "stamp";
+
     private static readonly (string Key, Type Type)[] Map =
     [
         ("square", typeof(SquareSolidBrush)),

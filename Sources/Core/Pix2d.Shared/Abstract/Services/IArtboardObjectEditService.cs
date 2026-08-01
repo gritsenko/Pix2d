@@ -1,6 +1,7 @@
 #nullable enable
 using System.Threading.Tasks;
 using Pix2d.CommonNodes;
+using SkiaSharp;
 
 namespace Pix2d.Abstract.Services;
 
@@ -18,9 +19,14 @@ public interface IArtboardObjectEditService
     /// <summary>The sub-mode of the open session; meaningless when <see cref="IsActive"/> is false.</summary>
     ArtboardObjectEditMode Mode { get; }
 
+    /// <summary>The live working frame in world coordinates — what <see cref="ConfirmMode"/> would apply.
+    /// Empty while no session is open.</summary>
+    SKRect FrameRect { get; }
+
     /// <summary>
-    /// Opens a handle-driven frame over <paramref name="sprite"/> for a single Resize or Crop. The frame is
-    /// a preview only — nothing is applied until <see cref="ConfirmMode"/>. No-op if a session is already open.
+    /// Opens a handle-driven frame over <paramref name="sprite"/> for a single Resize or Crop. The frame
+    /// previews the result live (stretched content for Resize, a dimming crop shield for Crop) but changes
+    /// nothing until <see cref="ConfirmMode"/>. No-op if a session is already open.
     /// </summary>
     void Begin(Pix2dSprite sprite, ArtboardObjectEditMode mode);
 

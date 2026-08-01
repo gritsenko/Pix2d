@@ -101,6 +101,19 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
 
     public abstract SKBitmap GetPreviewBitmap(float scale);
 
+    /// <summary>
+    /// A fresh, independent brush of this kind for throwaway rendering — see
+    /// <see cref="RenderStrokePreview"/>, which mutates pressure and the stamp cache and therefore must never
+    /// run on the singleton the canvas draws with. The caller owns the result and disposes it.
+    ///
+    /// <para>A procedural brush is fully described by its type, so the default reflects one up. A brush
+    /// carrying per-instance data (<see cref="ImageStampBrush"/> and its captured bitmap) has no parameterless
+    /// constructor and <b>must</b> override this — reflection on such a type throws
+    /// <see cref="MissingMethodException"/>. Overrides must not hand ownership of shared state to the copy,
+    /// since the caller disposes it.</para>
+    /// </summary>
+    public virtual BasePixelBrush CreatePreviewInstance() => (BasePixelBrush)Activator.CreateInstance(GetType())!;
+
     public SKSurface? GetPreviewSurface(SKColor color, float scale)
     {
         var bm = GetBrushBitmap(color, scale);
@@ -242,7 +255,8 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
     /// <see cref="PressureAffectsSize"/> / <see cref="PressureAffectsOpacity"/> toggles gate whether that
     /// pressure varies the width / opacity, so the preview reacts to them just like a real stylus stroke.
     /// <para>Mutates <see cref="CurrentPressure"/> and the stamp cache, so call it on a throwaway brush
-    /// instance — never the brush the canvas is currently drawing with.</para>
+    /// instance — never the brush the canvas is currently drawing with. <see cref="CreatePreviewInstance"/>
+    /// is how you get that instance.</para>
     /// </summary>
     public SKBitmap RenderStrokePreview(int width, int height, SKColor color, BrushPreviewBackground background)
     {
@@ -386,7 +400,7 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
         canvas.DrawRect(rect, paint);
     }
 
-    public void Dispose()
+    public virtual void Dispose()
     {
         _brushBitmap?.Dispose();
         _brushBitmap = null;
