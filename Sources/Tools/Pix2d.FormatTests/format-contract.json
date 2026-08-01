@@ -120,15 +120,19 @@
     "size"
   ],
   "Sprite": [
+    "animationTags",
     "backgroundColor",
     "blendMode",
     "designerState",
     "effects",
+    "exportPivot",
+    "frameDurations",
     "frameRate",
     "gridCellSize",
     "id",
     "isVisible",
     "name",
+    "nineSlice",
     "nodes",
     "onionSkinSettings",
     "opacity",
@@ -180,6 +184,12 @@
     "size",
     "text"
   ],
+  "~AnimationTag": [
+    "direction",
+    "from",
+    "name",
+    "to"
+  ],
   "~DesignerState": [
     "exportSettings",
     "isLocked",
@@ -193,6 +203,12 @@
     "exportScale",
     "onClickHandlerName",
     "textureKey"
+  ],
+  "~NineSliceMargins": [
+    "bottom",
+    "left",
+    "right",
+    "top"
   ],
   "~OnionSkinSettings": [
     "isEnabled"

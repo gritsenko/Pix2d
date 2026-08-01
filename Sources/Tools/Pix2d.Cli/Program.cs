@@ -74,6 +74,24 @@ async Task<int> RunExport(string[] a)
         var bad => throw new ArgumentException($"--sheet-type must be 'grid' or 'tight', got '{bad}'.")
     };
 
+    // Resolve --tag here rather than letting the builder throw: a mistyped tag name is a usage error
+    // (exit 2) and deserves the list of what the sprite actually has.
+    var tag = flags.Get("tag");
+    if (!string.IsNullOrWhiteSpace(tag))
+    {
+        var match = sprite.AnimationTags?
+            .FirstOrDefault(t => string.Equals(t.Name, tag, StringComparison.OrdinalIgnoreCase));
+        if (match is null)
+        {
+            var available = sprite.AnimationTags is { Count: > 0 } tags
+                ? string.Join(", ", tags.Select(t => $"'{t.Name}'"))
+                : "(this artboard has no animation tags)";
+            return Fail($"export: --tag '{tag}' not found in artboard '{sprite.Name}'. Available: {available}.");
+        }
+
+        tag = match.Name; // adopt the tag's own casing for the message below
+    }
+
     var options = new SpriteSheetOptions
     {
         PackMode = packMode,
@@ -81,6 +99,7 @@ async Task<int> RunExport(string[] a)
         Padding = flags.GetInt("padding") ?? 0,
         Trim = flags.Has("trim"),
         PowerOfTwo = flags.Has("pot"),
+        TagFilter = string.IsNullOrWhiteSpace(tag) ? null : tag,
         SpriteName = Path.GetFileNameWithoutExtension(sheetPath),
         ImageFileName = Path.GetFileName(sheetPath)
     };
@@ -92,7 +111,7 @@ async Task<int> RunExport(string[] a)
     await using (var png = sheet.Image.ToPngStream())
     await using (var fs = File.Create(sheetPath))
         await png.CopyToAsync(fs);
-    Console.WriteLine($"wrote {sheetPath}  ({sheet.Image.Width}x{sheet.Image.Height}, {sheet.Frames.Count} frame(s), {options.PackMode.ToString().ToLowerInvariant()} pack{(options.Trim ? ", trimmed" : "")})");
+    Console.WriteLine($"wrote {sheetPath}  ({sheet.Image.Width}x{sheet.Image.Height}, {sheet.Frames.Count} frame(s), {options.PackMode.ToString().ToLowerInvariant()} pack{(options.Trim ? ", trimmed" : "")}{(options.TagFilter is null ? "" : $", tag '{options.TagFilter}'")})");
 
     var dataPath = flags.Get("data");
     if (!string.IsNullOrWhiteSpace(dataPath))
@@ -132,7 +151,13 @@ async Task<int> RunList(string[] a)
             height = (int)s.Size.Height,
             layers = s.Layers.Count(),
             frames = s.GetFramesCount(),
-            fps = s.FrameRate
+            fps = s.FrameRate,
+            // Tag names are what `export --tag` takes, so they have to be discoverable without opening
+            // the project in the app — this is the lookup step of an agent/CI pipeline.
+            defaultFrameDurationMs = s.DefaultFrameDurationMs,
+            tags = (s.AnimationTags ?? [])
+                .Select(t => new { name = t.Name, from = t.From, to = t.To, direction = t.GetDirectionKey() })
+                .ToArray()
         }).ToArray()
     };
 
@@ -225,10 +250,13 @@ export options:
   --pot                  Round the sheet size up to a power of two.
   --scale <n>            Render scale, 1..N (default: 1).
   --artboard <name|idx>  Which artboard to export (default: the first).
+  --tag <name>           Export only this animation tag's frame range. The sheet is re-based to
+                         frame 0 (as Aseprite's own --tag does). `list` prints the tag names.
 
 Examples:
   pix2d export hero.pix2d --spritesheet hero.png --data hero.json
   pix2d export hero.pix2d --spritesheet hero.png --sheet-type tight --trim --pot
+  pix2d export hero.pix2d --spritesheet run.png --data run.json --tag run
   pix2d list hero.pix2d
 """);
 }

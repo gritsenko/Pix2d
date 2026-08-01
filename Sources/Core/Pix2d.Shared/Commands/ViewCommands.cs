@@ -71,6 +71,14 @@ public class ViewCommands : CommandsListBase
     }, "Brush settings", null, EditContextType.All);
 
 
+    public Pix2dCommand ToggleAnimationPropertiesCommand => GetCommand(() =>
+    {
+        var uiState = AppState.UiState;
+        var isOpen = uiState.ShowAnimationProperties;
+        Messenger.Default.Send(new CloseUnpinnedPopups());
+        uiState.ShowAnimationProperties = !isOpen;
+    }, "Animation properties", null, EditContextType.Sprite);
+
     public Pix2dCommand ShowLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = true, "Show layer options");
     public Pix2dCommand HideLayerOptionsCommand => GetCommand(() => AppState.UiState.ShowLayerProperties = false, "Hide layer options");
 

@@ -81,7 +81,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
                 CurrentSprite.FrameRate = _editorState.FrameRate;
 
                 if (IsPlaying)
-                    _timer.Change(1000 / FrameRate, 1000 / FrameRate);
+                    ArmFrameTimer();
 
                 _viewPortRefreshService.Refresh();
             }
@@ -147,7 +147,15 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
         // Changing frames modifies the node structure. If this is done not in the UI thread, it can result
         // in race conditions with processing user input.
-        Dispatcher.UIThread.Invoke(() => SetFrameIndex(CurrentSprite?.NextFrameIndex ?? 0));
+        Dispatcher.UIThread.Invoke(() =>
+        {
+            SetFrameIndex(CurrentSprite?.NextFrameIndex ?? 0);
+
+            // One-shot chain: the next interval is the *new* frame's duration. Re-check IsPlaying —
+            // SetFrameIndex can run a pending operation, and Stop may have fired in between.
+            if (IsPlaying)
+                ArmFrameTimer();
+        });
     }
 
 
@@ -553,7 +561,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
         if (IsPlaying)
         {
-            _timer.Change(1000 / FrameRate, 1000 / FrameRate);
+            ArmFrameTimer();
         }
         else
         {
@@ -563,6 +571,19 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         if (CurrentSprite != null)
             CurrentSprite.IsPlaying = IsPlaying;
         OnPlaybackStateChanged();
+    }
+
+    /// <summary>
+    /// Arms the playback timer for the frame currently showing. Frames can carry individual durations
+    /// (<see cref="Pix2dSprite.GetFrameDurationMs"/>), so playback is a chain of one-shots re-armed after
+    /// each advance rather than one fixed-period timer — otherwise the in-app preview would disagree
+    /// with the exported metadata. With no overrides every interval is 1000/FrameRate, i.e. exactly the
+    /// previous behaviour.
+    /// </summary>
+    private void ArmFrameTimer()
+    {
+        var due = CurrentSprite?.GetFrameDurationMs(CurrentFrameIndex) ?? (int)(1000 / Math.Max(1f, FrameRate));
+        _timer.Change(Math.Max(1, due), Timeout.Infinite);
     }
 
     public void Stop()
@@ -600,6 +621,97 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
         PlaybackStateChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    #region animation metadata (tags, frame durations, export anchors)
+
+    // Every method here is one undoable gesture: capture, mutate, commit. They all run through
+    // EditAnimationMetaOperation so the whole metadata block is restored as a unit — see that class for
+    // why the edits are snapshotted rather than inverted.
+
+    /// <summary>Sets (or with null clears) the current sprite's override duration for one frame.</summary>
+    public void SetFrameDuration(int frameIndex, int? milliseconds)
+        => EditAnimationMeta(sprite => sprite.SetFrameDurationMs(frameIndex, milliseconds));
+
+    /// <summary>
+    /// Creates a tag covering the current frame, with a name that doesn't collide with an existing one.
+    /// Widening the range afterwards is the user's next move — deliberately cheaper than requiring a
+    /// range selection up front.
+    /// </summary>
+    public SpriteAnimationTag? AddAnimationTag(string? name = null)
+    {
+        SpriteAnimationTag? created = null;
+
+        EditAnimationMeta(sprite =>
+        {
+            var frame = Math.Max(0, Math.Min(CurrentFrameIndex, sprite.GetFramesCount() - 1));
+            created = new SpriteAnimationTag
+            {
+                Name = string.IsNullOrWhiteSpace(name) ? GetUniqueTagName(sprite) : name.Trim(),
+                From = frame,
+                To = frame
+            };
+
+            sprite.AnimationTags ??= [];
+            sprite.AnimationTags.Add(created);
+        });
+
+        return created;
+    }
+
+    public void RemoveAnimationTag(SpriteAnimationTag tag)
+        => EditAnimationMeta(sprite => sprite.AnimationTags?.Remove(tag));
+
+    /// <summary>
+    /// Applies an edited tag. The range is clamped into the sprite and ordered, so the UI can bind two
+    /// independent numeric fields without having to police From &lt;= To itself.
+    /// </summary>
+    public void UpdateAnimationTag(
+        SpriteAnimationTag tag, string name, int from, int to, SpriteAnimationDirection direction)
+        => EditAnimationMeta(sprite =>
+        {
+            var target = sprite.AnimationTags?.FirstOrDefault(t => ReferenceEquals(t, tag));
+            if (target == null)
+                return;
+
+            var lastFrame = Math.Max(0, sprite.GetFramesCount() - 1);
+            target.Name = string.IsNullOrWhiteSpace(name) ? target.Name : name.Trim();
+            target.From = Math.Clamp(Math.Min(from, to), 0, lastFrame);
+            target.To = Math.Clamp(Math.Max(from, to), 0, lastFrame);
+            target.Direction = direction;
+        });
+
+    public void SetExportPivot(SKPoint? pivot)
+        => EditAnimationMeta(sprite => sprite.ExportPivot = pivot);
+
+    public void SetNineSlice(NineSliceMargins? margins)
+        => EditAnimationMeta(sprite => sprite.NineSlice = margins);
+
+    private void EditAnimationMeta(Action<Pix2dSprite> edit)
+    {
+        if (CurrentSprite is not { } sprite)
+            return;
+
+        var operation = new EditAnimationMetaOperation(sprite);
+        edit(sprite);
+        sprite.NormalizeAnimationTags();
+        operation.SetFinalData();
+        _operationService.PushOperations(operation);
+
+        _viewPortRefreshService?.Refresh();
+    }
+
+    private static string GetUniqueTagName(Pix2dSprite sprite)
+    {
+        var existing = sprite.AnimationTags?.Select(t => t.Name).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+        for (var i = 1; ; i++)
+        {
+            var candidate = $"Tag {i}";
+            if (existing.Add(candidate))
+                return candidate;
+        }
+    }
+
+    #endregion
 
     public void PrevFrame()
     {

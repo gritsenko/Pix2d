@@ -19,6 +19,7 @@ using Pix2d.Primitives.ViewPort;
 using Pix2d.ScenarioTests;
 using SkiaNodes;
 using SkiaNodes.Interactive;
+using SkiaNodes.Serialization;
 using SkiaSharp;
 
 // Headless scenario / integration harness. Boots the real Pix2d DI graph without a window and drives
@@ -71,6 +72,7 @@ static class Runner
         SpriteSheetExportScenario(harness, t);
         ArtboardScenario(harness, t);
         DegenerateCanvasScenario(harness, t);
+        AnimationMetaScenario(harness, t);
         BatchExportScenario(harness, t);
         PrecisionScrollDetectorScenario(harness, t);
         PixelSelectionScenario(harness, t);
@@ -349,6 +351,104 @@ static class Runner
         t.Check("tight+trim sheet is smaller than the untrimmed grid", () =>
             Assert.True(tight.Image.Width * tight.Image.Height < grid.Image.Width * grid.Image.Height,
                 $"tight {tight.Image.Width}x{tight.Image.Height} not smaller than grid {grid.Image.Width}x{grid.Image.Height}"));
+
+        // --- PR-3: the animation metadata model reaches the emitted JSON --------------------------
+        sprite.AnimationTags =
+        [
+            new SpriteAnimationTag { Name = "intro", From = 0, To = 0 },
+            new SpriteAnimationTag { Name = "loop", From = 1, To = 2, Direction = SpriteAnimationDirection.PingPong }
+        ];
+        sprite.SetFrameDurationMs(1, 400);
+        sprite.ExportPivot = new SKPoint(32, 60);
+        sprite.NineSlice = new NineSliceMargins { Left = 8, Top = 6, Right = 8, Bottom = 6 };
+
+        using var tagged = SpriteSheetBuilder.Build(sprite, 1, new SpriteSheetOptions
+        {
+            PackMode = SheetPackMode.Grid,
+            MaxColumns = 4,
+            SpriteName = "test",
+            ImageFileName = "test.png"
+        });
+        var taggedJson = new AsepriteJsonEmitter().Emit(tagged, new SheetMetadataOptions { AppVersion = "9.9.9" });
+
+        t.Check("meta.frameTags carries every tag with its range and direction", () =>
+        {
+            var tags = (JArray)JObject.Parse(taggedJson)["meta"]!["frameTags"]!;
+            Assert.True(tags.Count == 2, $"expected 2 frameTags, got {tags.Count}");
+            Assert.True((string?)tags[1]["name"] == "loop" && (int)tags[1]["from"]! == 1 && (int)tags[1]["to"]! == 2,
+                $"loop tag came out as {tags[1]}");
+            Assert.True((string?)tags[1]["direction"] == "pingpong",
+                $"direction should use Aseprite's spelling, got {tags[1]["direction"]}");
+        });
+
+        t.Check("a per-frame duration override reaches the JSON, others keep the default", () =>
+        {
+            var frames = (JObject)JObject.Parse(taggedJson)["frames"]!;
+            Assert.True((int)frames["test 1"]!["duration"]! == 400,
+                $"frame 1 duration {frames["test 1"]!["duration"]}, expected 400");
+            Assert.True((int)frames["test 0"]!["duration"]! == expectedDuration,
+                $"frame 0 should keep the {expectedDuration} ms default");
+        });
+
+        t.Check("pivot + 9-slice become an Aseprite slice with a centre rect", () =>
+        {
+            var slices = (JArray)JObject.Parse(taggedJson)["meta"]!["slices"]!;
+            Assert.True(slices.Count == 1, $"expected one slice, got {slices.Count}");
+
+            var key = slices[0]["keys"]![0]!;
+            Assert.True((int)key["pivot"]!["x"]! == 32 && (int)key["pivot"]!["y"]! == 60, $"pivot came out as {key["pivot"]}");
+            // center = (Left, Top, W-L-R, H-T-B) — the shape engine importers read as the 9-slice inner rect.
+            Assert.True((int)key["center"]!["x"]! == 8 && (int)key["center"]!["y"]! == 6
+                        && (int)key["center"]!["w"]! == canvasW - 16 && (int)key["center"]!["h"]! == canvasH - 12,
+                $"center came out as {key["center"]}");
+        });
+
+        t.Check("an --tag export packs only that range and re-bases it to frame 0", () =>
+        {
+            using var filtered = SpriteSheetBuilder.Build(sprite, 1, new SpriteSheetOptions
+            {
+                PackMode = SheetPackMode.Grid,
+                MaxColumns = 4,
+                TagFilter = "loop",
+                SpriteName = "test",
+                ImageFileName = "test.png"
+            });
+
+            Assert.True(filtered.Frames.Count == 2, $"'loop' covers 2 frames, packed {filtered.Frames.Count}");
+
+            var doc = JObject.Parse(new AsepriteJsonEmitter().Emit(filtered, new SheetMetadataOptions()));
+            var tags = (JArray)doc["meta"]!["frameTags"]!;
+            Assert.True(tags.Count == 1 && (string?)tags[0]["name"] == "loop",
+                "a filtered export should carry only the filtered tag");
+            Assert.True((int)tags[0]["from"]! == 0 && (int)tags[0]["to"]! == 1,
+                $"the tag must be re-based onto the exported sheet, got {tags[0]["from"]}..{tags[0]["to"]}");
+
+            // Frame keys are re-based too, and the animations map has to resolve against them.
+            var frames = (JObject)doc["frames"]!;
+            Assert.True(frames.ContainsKey("test 0") && frames.ContainsKey("test 1"),
+                $"expected re-based frame keys, got [{string.Join(", ", frames.Properties().Select(p => p.Name))}]");
+            Assert.True(((JArray)doc["animations"]!["loop"]!).Count == 2,
+                "the animations map should list both frames of the filtered tag");
+
+            // The 400 ms override lives on source frame 1 = first frame of this range.
+            Assert.True((int)frames["test 0"]!["duration"]! == 400,
+                $"durations must follow the SOURCE frame, got {frames["test 0"]!["duration"]}");
+        });
+
+        t.Check("an unknown --tag is a named error, not an empty sheet", () =>
+        {
+            var threw = false;
+            try
+            {
+                using var _ = SpriteSheetBuilder.Build(sprite, 1, new SpriteSheetOptions { TagFilter = "nope" });
+            }
+            catch (ArgumentException e) when (e.Message.Contains("nope") && e.Message.Contains("loop"))
+            {
+                threw = true;
+            }
+
+            Assert.True(threw, "expected an ArgumentException naming the missing tag and listing the available ones");
+        });
     }
 
     // --- Scenario 7: artboards (multiple sprites in one scene) --------------------------------------
@@ -660,6 +760,212 @@ static class Runner
 
         // Leave a clean project behind — the poisoned frame above is not worth threading through the
         // scenarios that follow.
+        h.NewProject();
+    }
+
+    // --- Scenario 7ac: animation metadata — tags, per-frame durations, index shifting ---------------
+    // The metadata is index-keyed over a timeline the user constantly mutates, so the risky part isn't
+    // storing it, it's keeping it aligned while frames are inserted/deleted/reordered — the same class
+    // of index bug that produced the timeline crash signatures on 3.11.1. Every rule below is asserted
+    // through the *real* operations (via the command service) and each is re-asserted after undo AND
+    // after redo, because redo re-runs OnPerform on state the undo just restored.
+    static void AnimationMetaScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Animation metadata scenario ===");
+
+        // A 5-frame sprite: frames 0..4.
+        h.NewProject();
+        for (var i = 0; i < 4; i++)
+            h.Exec("Sprite.Animation.AddFrame");
+
+        var sprite = h.ActiveSprite;
+        t.Check("harness built a 5-frame sprite", () =>
+            Assert.True(sprite.GetFramesCount() == 5, $"expected 5 frames, got {sprite.GetFramesCount()}"));
+
+        t.Check("a frame duration override wins over the frame rate", () =>
+        {
+            sprite.FrameRate = 10;                       // default 100 ms
+            sprite.SetFrameDurationMs(2, 250);
+
+            Assert.True(sprite.GetFrameDurationMs(2) == 250, $"frame 2: {sprite.GetFrameDurationMs(2)} ms");
+            Assert.True(sprite.GetFrameDurationMs(1) == 100, $"frame 1: {sprite.GetFrameDurationMs(1)} ms");
+            Assert.True(sprite.HasFrameDurationOverride(2) && !sprite.HasFrameDurationOverride(1),
+                "override flags disagree with the values");
+        });
+
+        t.Check("clearing the only override leaves no duration list at all", () =>
+        {
+            sprite.SetFrameDurationMs(2, null);
+            Assert.True(sprite.FrameDurations == null,
+                $"expected the list to be dropped, got [{string.Join(",", sprite.FrameDurations ?? [])}]");
+            sprite.SetFrameDurationMs(2, 250);           // restore for the shift checks below
+        });
+
+        // "run" spans 1..3; the insert/delete rules are all expressed relative to it.
+        sprite.AnimationTags = [new SpriteAnimationTag { Name = "run", From = 1, To = 3 }];
+
+        t.Check("inserting inside a tag extends it and shifts the durations", () =>
+        {
+            h.SetFrameIndex(1);
+            h.Exec("Sprite.Animation.AddFrame");         // inserts at 2
+
+            var tag = sprite.AnimationTags!.Single();
+            Assert.True(tag is { From: 1, To: 4 }, $"expected run=1..4, got {tag.From}..{tag.To}");
+            Assert.True(sprite.GetFrameDurationMs(3) == 250,
+                $"the 250 ms frame should have slid 2 -> 3, reads {sprite.GetFrameDurationMs(3)} ms at 3");
+            Assert.True(!sprite.HasFrameDurationOverride(2), "the inserted frame should be default-timed");
+        });
+
+        t.Check("undo puts the tag range and the durations back", () =>
+        {
+            h.Exec("Edit.Undo");
+
+            var tag = sprite.AnimationTags!.Single();
+            Assert.True(tag is { From: 1, To: 3 }, $"expected run=1..3 after undo, got {tag.From}..{tag.To}");
+            Assert.True(sprite.GetFrameDurationMs(2) == 250,
+                $"the override should be back on frame 2, reads {sprite.GetFrameDurationMs(2)} ms");
+        });
+
+        t.Check("redo re-applies the same shift (no drift on the second run)", () =>
+        {
+            h.Exec("Edit.Redo");
+
+            var tag = sprite.AnimationTags!.Single();
+            Assert.True(tag is { From: 1, To: 4 }, $"expected run=1..4 after redo, got {tag.From}..{tag.To}");
+            Assert.True(sprite.GetFrameDurationMs(3) == 250, "the duration did not follow its frame on redo");
+
+            h.Exec("Edit.Undo");   // back to the 5-frame / run=1..3 baseline
+        });
+
+        t.Check("deleting a frame before a tag slides the whole range left", () =>
+        {
+            h.SetFrameIndex(0);
+            h.Exec("Sprite.Animation.DeleteFrame");
+
+            var tag = sprite.AnimationTags!.Single();
+            Assert.True(tag is { From: 0, To: 2 }, $"expected run=0..2, got {tag.From}..{tag.To}");
+            Assert.True(sprite.GetFrameDurationMs(1) == 250,
+                $"the override should have slid 2 -> 1, reads {sprite.GetFrameDurationMs(1)} ms at 1");
+
+            h.Exec("Edit.Undo");
+        });
+
+        t.Check("a tag whose only frame is deleted is dropped, and undo brings it back", () =>
+        {
+            sprite.AnimationTags!.Add(new SpriteAnimationTag { Name = "hit", From = 4, To = 4 });
+
+            h.SetFrameIndex(4);
+            h.Exec("Sprite.Animation.DeleteFrame");
+            Assert.True(sprite.AnimationTags?.Any(x => x.Name == "hit") != true,
+                "the single-frame tag should be gone with its frame");
+
+            h.Exec("Edit.Undo");
+            var restored = sprite.AnimationTags?.FirstOrDefault(x => x.Name == "hit");
+            Assert.True(restored is { From: 4, To: 4 },
+                "undo did not restore the dropped tag — this is exactly what the snapshot exists for");
+
+            sprite.AnimationTags!.RemoveAll(x => x.Name == "hit");
+        });
+
+        t.Check("a single-frame tag follows its frame across a reorder", () =>
+        {
+            sprite.AnimationTags!.Add(new SpriteAnimationTag { Name = "hit", From = 4, To = 4 });
+
+            h.ReorderFrames(4, 0);
+
+            var hit = sprite.AnimationTags?.FirstOrDefault(x => x.Name == "hit");
+            Assert.True(hit is { From: 0, To: 0 },
+                $"expected hit=0..0 after the move, got {(hit == null ? "dropped" : $"{hit.From}..{hit.To}")}");
+
+            h.Exec("Edit.Undo");
+            hit = sprite.AnimationTags?.FirstOrDefault(x => x.Name == "hit");
+            Assert.True(hit is { From: 4, To: 4 }, "undo did not restore the tag's original range");
+            sprite.AnimationTags!.RemoveAll(x => x.Name == "hit");
+        });
+
+        t.Check("a duplicated frame inherits the source frame's duration", () =>
+        {
+            h.SetFrameIndex(2);                          // the 250 ms frame
+            h.Exec("Sprite.Animation.DuplicateFrame");
+
+            Assert.True(sprite.GetFrameDurationMs(3) == 250,
+                $"the duplicate should also run 250 ms, reads {sprite.GetFrameDurationMs(3)} ms");
+
+            h.Exec("Edit.Undo");
+        });
+
+        t.Check("editing metadata through the editor is one undoable step", () =>
+        {
+            var before = h.UndoStackSize;
+            var tag = h.SpriteEditor.AddAnimationTag("idle");
+
+            Assert.True(tag != null && sprite.AnimationTags!.Any(x => x.Name == "idle"), "the tag was not added");
+            Assert.True(h.UndoStackSize == before + 1,
+                $"expected exactly one new undo step, stack went {before} -> {h.UndoStackSize}");
+
+            h.Exec("Edit.Undo");
+            Assert.True(sprite.AnimationTags?.Any(x => x.Name == "idle") != true, "undo did not remove the tag");
+        });
+
+        t.Check("export anchors round-trip through the editor and undo", () =>
+        {
+            h.SpriteEditor.SetExportPivot(new SKPoint(12, 30));
+            h.SpriteEditor.SetNineSlice(new NineSliceMargins { Left = 4, Top = 4, Right = 4, Bottom = 4 });
+
+            Assert.True(sprite.ExportPivot == new SKPoint(12, 30), $"pivot is {sprite.ExportPivot}");
+            Assert.True(sprite.NineSlice is { Left: 4, Bottom: 4 }, "9-slice margins did not stick");
+
+            h.Exec("Edit.Undo");
+            Assert.True(sprite.NineSlice == null, "undo did not clear the 9-slice");
+            h.Exec("Edit.Undo");
+            Assert.True(sprite.ExportPivot == null, "undo did not clear the pivot");
+        });
+
+        t.Check("animation metadata survives a save/load round-trip", () =>
+        {
+            sprite.AnimationTags = [new SpriteAnimationTag
+            {
+                Name = "run", From = 1, To = 3, Direction = SpriteAnimationDirection.PingPong
+            }];
+            sprite.SetFrameDurationMs(1, 320);
+            sprite.ExportPivot = new SKPoint(8, 15);
+            sprite.NineSlice = new NineSliceMargins { Left = 2, Top = 3, Right = 4, Bottom = 5 };
+
+            var scene = h.AppState.CurrentProject.SceneNode!;
+            using var serializer = new NodeSerializer();
+            var json = serializer.Serialize(scene);
+            var reloaded = ProjectFormat.DeserializeScene(json, ProjectFormat.CurrentVersion, serializer.GetDataEntries());
+
+            var loaded = reloaded.Nodes.OfType<Pix2dSprite>().First();
+            var tag = loaded.AnimationTags?.SingleOrDefault();
+            Assert.True(tag is { Name: "run", From: 1, To: 3, Direction: SpriteAnimationDirection.PingPong },
+                "the tag did not survive the round-trip");
+            Assert.True(loaded.GetFrameDurationMs(1) == 320, $"duration is {loaded.GetFrameDurationMs(1)} ms");
+            Assert.True(loaded.ExportPivot == new SKPoint(8, 15), $"pivot is {loaded.ExportPivot}");
+            Assert.True(loaded.NineSlice is { Left: 2, Top: 3, Right: 4, Bottom: 5 }, "9-slice did not survive");
+        });
+
+        t.Check("SceneIntegrity drops tags that no longer address a frame", () =>
+        {
+            var scene = new SKNode { Name = "Scene" };
+            var damaged = Pix2dSprite.CreateFromBitmap(new SKBitmap(8, 8));   // exactly 1 frame
+            damaged.AnimationTags =
+            [
+                new SpriteAnimationTag { Name = "ok", From = 0, To = 0 },
+                new SpriteAnimationTag { Name = "stale", From = 7, To = 9 },
+                new SpriteAnimationTag { Name = "", From = 0, To = 0 }
+            ];
+            damaged.FrameDurations = [40, 80, 120];   // longer than the frame list
+            scene.Nodes.Add(damaged);
+
+            SceneIntegrity.Repair(scene);
+
+            Assert.True(damaged.AnimationTags?.Count == 1 && damaged.AnimationTags[0].Name == "ok",
+                $"expected only 'ok' to survive, got [{string.Join(",", damaged.AnimationTags?.Select(x => x.Name) ?? [])}]");
+            Assert.True((damaged.FrameDurations?.Count ?? 0) <= 1,
+                $"durations were not trimmed to the frame count: [{string.Join(",", damaged.FrameDurations ?? [])}]");
+        });
+
         h.NewProject();
     }
 

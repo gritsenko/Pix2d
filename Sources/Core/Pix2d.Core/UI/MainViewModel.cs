@@ -60,6 +60,9 @@ public sealed partial class MainViewModel : ObservableObject
     public partial bool ShowBrushSettings { get; set; }
 
     [ObservableProperty]
+    public partial bool ShowAnimationProperties { get; set; }
+
+    [ObservableProperty]
     public partial bool ShowPreviewPanel { get; set; }
 
     [ObservableProperty]
@@ -146,6 +149,14 @@ public sealed partial class MainViewModel : ObservableObject
         _appState.UiState.ShowBrushSettings = value;
     }
 
+    partial void OnShowAnimationPropertiesChanged(bool value)
+    {
+        if (_isSyncing)
+            return;
+
+        _appState.UiState.ShowAnimationProperties = value;
+    }
+
     partial void OnShowPreviewPanelChanged(bool value)
     {
         if (_isSyncing)
@@ -183,6 +194,7 @@ public sealed partial class MainViewModel : ObservableObject
         ShowMenu = _appState.UiState.ShowMenu;
         ShowColorEditor = _appState.UiState.ShowColorEditor;
         ShowBrushSettings = _appState.UiState.ShowBrushSettings;
+        ShowAnimationProperties = _appState.UiState.ShowAnimationProperties;
         ShowPreviewPanel = _appState.UiState.ShowPreviewPanel;
         ShowCanvasResizePanel = _appState.UiState.ShowCanvasResizePanel;
         ShowLayerProperties = _appState.UiState.ShowLayerProperties;

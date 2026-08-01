@@ -120,10 +120,34 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
                                         .CornerRadius(4)
                                         .ClipToBounds(true)
                                         .Child(
-                                            new Rectangle()
+                                            // Z-stack: preview, then the animation-metadata markers on top.
+                                            // Both are inside the clipped border so they follow the tile's
+                                            // rounded corners and cost no extra layout width.
+                                            new Panel()
                                                 .Width(52)
                                                 .Height(52)
-                                                .Fill(itemVm, vm => vm.PreviewBrush))
+                                                .Children(
+                                                    new Rectangle()
+                                                        .Width(52)
+                                                        .Height(52)
+                                                        .Fill(itemVm, vm => vm.PreviewBrush),
+
+                                                    // Tag band along the bottom edge.
+                                                    new Rectangle()
+                                                        .Height(3)
+                                                        .VerticalAlignment(VerticalAlignment.Bottom)
+                                                        .IsVisible(itemVm, vm => vm.HasTag)
+                                                        .Fill(itemVm, vm => vm.TagBrush),
+
+                                                    // Corner dot: this frame has its own duration.
+                                                    new Ellipse()
+                                                        .Width(5)
+                                                        .Height(5)
+                                                        .Margin(0, 3, 3, 0)
+                                                        .HorizontalAlignment(HorizontalAlignment.Right)
+                                                        .VerticalAlignment(VerticalAlignment.Top)
+                                                        .IsVisible(itemVm, vm => vm.HasDurationOverride)
+                                                        .Fill(StaticResources.Brushes.ForegroundBrush)))
                                         .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })))
             ]);
 
@@ -193,9 +217,15 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
             if (editor != null)
             {
                 var count = _editor?.FramesCount ?? 1;
+                var sprite = _appState.CurrentProject.CurrentEditedNode as Pix2dSprite;
                 var frames = Enumerable
                     .Range(0, count)
-                    .Select(_ => new AnimationFrameViewModel { PreviewProvider = PreviewProvider })
+                    .Select(i => new AnimationFrameViewModel
+                    {
+                        PreviewProvider = PreviewProvider,
+                        TagColor = GetTagColor(sprite, i),
+                        HasDurationOverride = sprite?.HasFrameDurationOverride(i) ?? false
+                    })
                     .Append(new AnimationFrameViewModel { IsAddFrame = true });
 
                 Frames.ReloadItems(frames, silent: isReordering);
@@ -203,6 +233,26 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
             }
 
             SyncSelectedIndex();
+        }
+
+        /// <summary>
+        /// Colour of the first tag covering <paramref name="frameIndex"/>, transparent when none does.
+        /// Ranges may overlap; the first match wins so the band stays stable while a tag is being
+        /// widened over another. The palette is index-derived and shared with the tag editor.
+        /// </summary>
+        private static Color GetTagColor(Pix2dSprite? sprite, int frameIndex)
+        {
+            var tags = sprite?.AnimationTags;
+            if (tags == null)
+                return Colors.Transparent;
+
+            for (var i = 0; i < tags.Count; i++)
+            {
+                if (tags[i].Covers(frameIndex))
+                    return AnimationPropertiesView.TagRow.GetTagColor(i);
+            }
+
+            return Colors.Transparent;
         }
 
         private void SyncSelectedIndex()
@@ -223,7 +273,10 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
             if (operation.Operation is AddAnimationFrameOperation
                 || operation.Operation is DuplicateAnimationFrameOperation
                 || operation.Operation is DeleteAnimationFrameOperation
-                || operation.Operation is ReorderAnimationFramesOperation)
+                || operation.Operation is ReorderAnimationFramesOperation
+                // Tag ranges and duration markers are rendered per tile, so a metadata edit (or its
+                // undo) has to rebuild them too.
+                || operation.Operation is EditAnimationMetaOperation)
             {
                 ReloadFrames(_editor, operation.Operation is ReorderAnimationFramesOperation);
                 return;
@@ -332,6 +385,28 @@ public class AnimationFrameViewModel : LegacyObservableObject
         get => Get<bool>();
         set => Set(value);
     }
+
+    /// <summary>
+    /// Colour of the animation tag covering this frame, or transparent when none does. Drawn as a thin
+    /// underline inside the tile — the read-only counterpart to the tag editor in
+    /// <c>AnimationPropertiesView</c>, chosen over a scroll-synced tag lane above the virtualized list.
+    /// </summary>
+    public Color TagColor
+    {
+        get => Get<Color>();
+        set => Set(value);
+    }
+
+    public bool HasTag => TagColor.A > 0;
+
+    /// <summary>True when this frame overrides the sprite's frame rate with its own duration.</summary>
+    public bool HasDurationOverride
+    {
+        get => Get<bool>();
+        set => Set(value);
+    }
+
+    public object TagBrush => new SolidColorBrush(TagColor);
 
     public SKBitmap? Preview
     {

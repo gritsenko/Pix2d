@@ -16,6 +16,10 @@ public class DeleteAnimationFrameOperation : EditOperationBase, ISpriteEditorOpe
     private readonly int _newFrameIndex;
     private Guid _deletedFrameNodeId;
 
+    // Deleting a frame drops any tag that covered only it and discards that frame's duration override;
+    // neither is recomputable, so undo restores a pre-edit snapshot instead of inverting the shift.
+    private SpriteAnimationMetaSnapshot? _metaSnapshot;
+
     public override bool AffectsNodeStructure => true;
 
     public int FrameIndex => _deletedFrameIndex;
@@ -57,6 +61,11 @@ public class DeleteAnimationFrameOperation : EditOperationBase, ISpriteEditorOpe
      layer.DeleteFrame(_deletedFrameIndex, s => _deletedNodes[i1] = s, f => _deletedFrameNodeId = f);
             }
 
+            // Only after the validation above let the frames actually go: shifting the metadata on a
+            // run that bailed out would desync tags/durations from frames that never moved.
+            _metaSnapshot ??= SpriteAnimationMetaSnapshot.Capture(_sprite);
+            _sprite.ShiftAnimationMetaOnDelete(_deletedFrameIndex);
+
             _sprite.SetFrameIndex(_newFrameIndex);
         }
 
@@ -73,6 +82,8 @@ public class DeleteAnimationFrameOperation : EditOperationBase, ISpriteEditorOpe
                 else
                     layer.InsertFrameFromNodeId(_deletedFrameIndex, _deletedFrameNodeId);
             }
+
+            _metaSnapshot?.Restore(_sprite);
 
             _sprite.SetFrameIndex(_deletedFrameIndex);
         }

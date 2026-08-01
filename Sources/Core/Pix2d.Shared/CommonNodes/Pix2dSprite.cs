@@ -38,6 +38,235 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
     public float FrameRate { get; set; } = 15;
 
     public OnionSkinSettings OnionSkinSettings { get; set; } = new OnionSkinSettings();
+
+    #region Animation metadata (tags, per-frame durations, export anchors)
+
+    // All four are optional and null by default, so an untouched sprite serializes exactly as before
+    // (NodeSerializer uses NullValueHandling.Ignore) and an old file simply leaves them unset. That is
+    // also why PR-3 needs no format-version bump: the additions are reader-tolerant both ways.
+
+    /// <summary>
+    /// Named animation ranges ("idle", "run", …) over this sprite's shared timeline. Null or empty when
+    /// the sprite has none. Kept consistent with the frame list by the <c>ShiftAnimationMetaOn*</c>
+    /// helpers below — every frame add/duplicate/delete/reorder operation calls one of them.
+    /// </summary>
+    public List<SpriteAnimationTag>? AnimationTags { get; set; }
+
+    /// <summary>
+    /// Per-frame duration overrides in milliseconds, indexed by frame. <c>0</c> — or any index past the
+    /// end of the list — means "use <see cref="DefaultFrameDurationMs"/>", so the list is sparse by
+    /// convention: it is trimmed of trailing zeros and nulled when everything is default. This lives on
+    /// the sprite, not on <see cref="Layer.Frames"/>: the timeline is shared by every layer, and storing
+    /// a duration per layer would both duplicate it N times and desync on layer merge/duplicate.
+    /// </summary>
+    public List<int>? FrameDurations { get; set; }
+
+    /// <summary>
+    /// Export anchor in unscaled canvas pixels (origin = the artboard's top-left). Null = unset.
+    /// Distinct from <see cref="SKNode.PivotPosition"/>, which is the transform/rotation origin —
+    /// this one is document metadata and only ever affects exported <c>meta.slices</c>.
+    /// </summary>
+    public SKPoint? ExportPivot { get; set; }
+
+    /// <summary>9-slice margins in unscaled canvas pixels. Null = unset.</summary>
+    public NineSliceMargins? NineSlice { get; set; }
+
+    /// <summary>
+    /// Duration of a frame that carries no override, derived from <see cref="FrameRate"/>. Changing the
+    /// frame rate therefore re-times every non-overridden frame and leaves overrides alone.
+    /// </summary>
+    [JsonIgnore]
+    public int DefaultFrameDurationMs => (int)Math.Round(1000f / Math.Max(1f, FrameRate));
+
+    /// <summary>Effective duration of <paramref name="frameIndex"/>: its override, else the default.</summary>
+    public int GetFrameDurationMs(int frameIndex)
+    {
+        if (FrameDurations == null || frameIndex < 0 || frameIndex >= FrameDurations.Count)
+            return DefaultFrameDurationMs;
+
+        var value = FrameDurations[frameIndex];
+        return value > 0 ? value : DefaultFrameDurationMs;
+    }
+
+    /// <summary>True when <paramref name="frameIndex"/> has an explicit duration rather than the default.</summary>
+    public bool HasFrameDurationOverride(int frameIndex)
+        => FrameDurations != null && frameIndex >= 0 && frameIndex < FrameDurations.Count
+                                  && FrameDurations[frameIndex] > 0;
+
+    /// <summary>
+    /// Sets (or with null/0 clears) a frame's duration override. Values are clamped to a sane 1..60000 ms
+    /// so a stray input can't stall playback, and the backing list is re-trimmed so clearing the last
+    /// override leaves the sprite byte-identical to one that never had any.
+    /// </summary>
+    public void SetFrameDurationMs(int frameIndex, int? milliseconds)
+    {
+        if (frameIndex < 0)
+            return;
+
+        var value = milliseconds is > 0 ? Math.Clamp(milliseconds.Value, 1, 60000) : 0;
+
+        if (value == 0 && (FrameDurations == null || frameIndex >= FrameDurations.Count))
+            return; // clearing something that is already default
+
+        FrameDurations ??= [];
+        while (FrameDurations.Count <= frameIndex)
+            FrameDurations.Add(0);
+
+        FrameDurations[frameIndex] = value;
+        TrimFrameDurations();
+    }
+
+    private void TrimFrameDurations()
+    {
+        if (FrameDurations == null)
+            return;
+
+        var last = FrameDurations.FindLastIndex(d => d > 0);
+        if (last < 0)
+        {
+            FrameDurations = null;
+            return;
+        }
+
+        if (last < FrameDurations.Count - 1)
+            FrameDurations.RemoveRange(last + 1, FrameDurations.Count - 1 - last);
+    }
+
+    /// <summary>
+    /// Re-indexes the animation metadata after a frame was inserted at <paramref name="index"/>.
+    ///
+    /// <para>Tag rule: an endpoint at or after the insertion point moves right. The consequence is that
+    /// inserting <i>inside</i> a range extends it (the new frame belongs to the animation the user was
+    /// working in) while inserting at or before <c>From</c> shifts the whole range. Appending past the
+    /// last frame (<c>AddFrameAtEnd</c>) touches nothing.</para>
+    ///
+    /// <para><paramref name="inheritDurationFromIndex"/> copies an existing frame's override onto the new
+    /// frame — a duplicated slow frame stays slow.</para>
+    /// </summary>
+    public void ShiftAnimationMetaOnInsert(int index, int? inheritDurationFromIndex = null)
+    {
+        if (index < 0)
+            return;
+
+        if (AnimationTags != null)
+        {
+            foreach (var tag in AnimationTags)
+            {
+                if (tag.From >= index) tag.From++;
+                if (tag.To >= index) tag.To++;
+            }
+        }
+
+        var inherited = inheritDurationFromIndex is { } src && HasFrameDurationOverride(src)
+            ? FrameDurations![src]
+            : 0;
+
+        if (FrameDurations != null && index <= FrameDurations.Count)
+            FrameDurations.Insert(index, inherited);
+        else if (inherited > 0)
+            SetFrameDurationMs(index, inherited);
+
+        TrimFrameDurations();
+        NormalizeAnimationTags();
+    }
+
+    /// <summary>
+    /// Re-indexes the animation metadata after the frame at <paramref name="index"/> was deleted.
+    /// A range that covered only that frame is dropped — this is the step that makes the metadata
+    /// non-invertible, which is why the operations snapshot rather than try to undo it arithmetically.
+    /// </summary>
+    public void ShiftAnimationMetaOnDelete(int index)
+    {
+        if (index < 0)
+            return;
+
+        if (AnimationTags != null)
+        {
+            foreach (var tag in AnimationTags)
+            {
+                if (tag.From > index) tag.From--;
+                if (tag.To >= index) tag.To--;
+            }
+        }
+
+        if (FrameDurations != null && index < FrameDurations.Count)
+            FrameDurations.RemoveAt(index);
+
+        TrimFrameDurations();
+        NormalizeAnimationTags();
+    }
+
+    /// <summary>
+    /// Re-indexes the animation metadata after a frame moved from one index to another. Expressed as a
+    /// delete followed by an insert, which is exactly how the frames themselves slid, so a move entirely
+    /// inside one tag leaves that tag alone.
+    /// </summary>
+    public void ShiftAnimationMetaOnMove(int fromIndex, int toIndex)
+    {
+        if (fromIndex == toIndex || fromIndex < 0 || toIndex < 0)
+            return;
+
+        var moved = HasFrameDurationOverride(fromIndex) ? FrameDurations![fromIndex] : 0;
+
+        // A tag covering only the moved frame has to follow it. The delete-then-insert composition
+        // below collapses such a tag to zero length and drops it, so carry those across by hand.
+        var followers = AnimationTags?.Where(t => t.From == fromIndex && t.To == fromIndex).ToList();
+
+        ShiftAnimationMetaOnDelete(fromIndex);
+        ShiftAnimationMetaOnInsert(toIndex);
+
+        if (followers is { Count: > 0 })
+        {
+            AnimationTags ??= [];
+            foreach (var tag in followers)
+            {
+                tag.From = tag.To = toIndex;
+                if (!AnimationTags.Contains(tag))
+                    AnimationTags.Add(tag);
+            }
+
+            NormalizeAnimationTags();
+        }
+
+        if (moved > 0)
+            SetFrameDurationMs(toIndex, moved);
+    }
+
+    /// <summary>
+    /// Clamps every tag into the current frame range and drops the ones that no longer address any
+    /// frame. Called after each shift, and by <c>SceneIntegrity</c> on load so the editor and the
+    /// exporter can trust the invariant instead of each re-deriving it.
+    /// </summary>
+    public void NormalizeAnimationTags()
+    {
+        if (AnimationTags == null)
+            return;
+
+        var lastFrame = GetFramesCount() - 1;
+        if (lastFrame < 0)
+        {
+            AnimationTags = null;
+            return;
+        }
+
+        // Order matters: drop first, clamp second. Clamping first would resurrect the very tags that
+        // must die — a range collapsed to zero length by a delete (To == From - 1) clamps back to a
+        // valid single frame, and a range that fell entirely off the end (7..9 on a 1-frame sprite)
+        // clamps onto frame 0, silently re-tagging content it never covered.
+        AnimationTags.RemoveAll(t => t.To < t.From || t.From > lastFrame || t.To < 0);
+
+        foreach (var tag in AnimationTags)
+        {
+            tag.From = Math.Clamp(tag.From, 0, lastFrame);
+            tag.To = Math.Clamp(tag.To, 0, lastFrame);
+        }
+
+        if (AnimationTags.Count == 0)
+            AnimationTags = null;
+    }
+
+    #endregion
+
     public Pix2dSprite()
     {
         DesignerState.ShowChildrenInTree = false;

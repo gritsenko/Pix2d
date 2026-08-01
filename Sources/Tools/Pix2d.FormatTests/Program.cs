@@ -135,6 +135,8 @@ static SortedDictionary<string, string[]> ComputeContract()
     AddContractEntry(contract, resolver, "~DesignerState", typeof(NodeDesignerState));
     AddContractEntry(contract, resolver, "~ExportSettings", typeof(NodeExportSettings));
     AddContractEntry(contract, resolver, "~OnionSkinSettings", typeof(OnionSkinSettings));
+    AddContractEntry(contract, resolver, "~AnimationTag", typeof(SpriteAnimationTag));
+    AddContractEntry(contract, resolver, "~NineSliceMargins", typeof(NineSliceMargins));
 
     return contract;
 }

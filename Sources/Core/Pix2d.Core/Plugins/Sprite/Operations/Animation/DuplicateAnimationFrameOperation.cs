@@ -14,6 +14,9 @@ public class DuplicateAnimationFrameOperation : EditOperationBase, ISpriteEditor
     private readonly int _previousIndex;
     private readonly int _newFrameIndex;
 
+    // See AddAnimationFrameOperation: index-keyed animation metadata is snapshotted, not inverted.
+    private SpriteAnimationMetaSnapshot? _metaSnapshot;
+
     public override bool AffectsNodeStructure => false;
 
     public int FrameIndex => _newFrameIndex;
@@ -35,12 +38,18 @@ public class DuplicateAnimationFrameOperation : EditOperationBase, ISpriteEditor
 
     public override void OnPerform()
     {
+        _metaSnapshot ??= SpriteAnimationMetaSnapshot.Capture(_sprite);
+
         var layers = _sprite.Layers.ToArray();
 
         for (var i = 0; i < layers.Length; i++)
         {
             layers[i].DuplicateFrame(_previousIndex);
         }
+
+        // A duplicated frame inherits the source frame's duration override — duplicating a deliberately
+        // slow frame and getting a default-speed copy would be a surprise.
+        _sprite.ShiftAnimationMetaOnInsert(_newFrameIndex, inheritDurationFromIndex: _previousIndex);
 
         _sprite.SetFrameIndex(_newFrameIndex);
     }
@@ -56,6 +65,7 @@ public class DuplicateAnimationFrameOperation : EditOperationBase, ISpriteEditor
             layers[i].DeleteFrame(_newFrameIndex);
         }
 
+        _metaSnapshot?.Restore(_sprite);
     }
 
     public override IEnumerable<SKNode> GetEditedNodes()

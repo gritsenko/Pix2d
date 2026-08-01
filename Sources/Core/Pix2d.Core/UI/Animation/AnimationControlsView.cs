@@ -94,6 +94,20 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
                                         .Text("\xe92b")
                                         .Padding(4)),
 
+                                // Animation metadata (per-frame duration, tags, export anchors). A popup
+                                // rather than an inline lane — see AnimationPropertiesView for why.
+                                new ToggleButton()
+                                    .Classes("anim-btn")
+                                    .VerticalContentAlignment(VerticalAlignment.Center)
+                                    .HorizontalAlignment(HorizontalAlignment.Center)
+                                    .IsChecked(state, x => x.ShowAnimationProperties, BindingMode.TwoWay)
+                                    .ToolTip_Tip(L("Animation properties"))
+                                    .Content(new TextBlock()
+                                        .FontSize(14)
+                                        .FontFamily(StaticResources.Fonts.IconFontSegoe)
+                                        .Text("\xE713")
+                                        .Padding(4)),
+
                                 new TextBlock()
                                     .Margin(8, 0, 0, 0)
                                     .Text("Fps")
@@ -129,6 +143,9 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
         [ObservableProperty]
         public partial int FrameRate { get; set; }
 
+        [ObservableProperty]
+        public partial bool ShowAnimationProperties { get; set; }
+
         public object PlayIcon => IsPlayingAnimation ?? false ? "\xe92c" : "\xe92d";
 
         public State(ICommandService commandService, AppState appState, IMessenger messenger)
@@ -145,6 +162,7 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
             _appState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, SyncFromSpriteEditorState);
             _appState.SpriteEditorState.WatchFor(x => x.ShowOnionSkin, SyncFromSpriteEditorState);
             _appState.SpriteEditorState.WatchFor(x => x.FrameRate, SyncFromSpriteEditorState);
+            _appState.UiState.WatchFor(x => x.ShowAnimationProperties, SyncFromSpriteEditorState);
 
             messenger.Register<ProjectLoadedMessage>(this, _ => SyncFromCurrentProject());
             // Tab switches change the edited sprite without a fresh load.
@@ -183,6 +201,14 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
             _appState.SpriteEditorState.FrameRate = value;
         }
 
+        partial void OnShowAnimationPropertiesChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            _appState.UiState.ShowAnimationProperties = value;
+        }
+
         private void SyncFromSpriteEditorState()
         {
             _isSyncing = true;
@@ -191,6 +217,7 @@ public partial class AnimationControlsView : ViewBase<AnimationControlsView.Stat
             IsPlayingAnimation = _appState.SpriteEditorState.IsPlayingAnimation;
             ShowOnionSkin = _appState.SpriteEditorState.ShowOnionSkin;
             FrameRate = _appState.SpriteEditorState.FrameRate;
+            ShowAnimationProperties = _appState.UiState.ShowAnimationProperties;
             _isSyncing = false;
         }
     }

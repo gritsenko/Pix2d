@@ -143,20 +143,38 @@ The tool is currently built on demand (`dotnet run --project Sources/Tools/Pix2d
 yet in `Pix2d.slnx`; publishing it as a release artifact is a later increment (roadmap **H2.2 PR-5**).
 It is also the foundation for the MCP server (roadmap **E.3**).
 
-## Not yet populated (animation-metadata model)
+## Animation metadata
 
-`frameTags`, per-frame `duration`, `slices` (pivot / 9-slice) and the `animations` map are already in
-the schema but currently emit their empty/uniform defaults, because the underlying document model does
-not carry named tags, per-frame durations, or an export pivot yet. That model work is the next
-increment of H2.2; when it lands, every emitter picks up the richer values automatically with **no
-schema change** — a sheet exported today stays forward-compatible.
+`frameTags`, per-frame `duration`, `slices` (pivot / 9-slice) and the `animations` map carry real
+document data as of H2.2 PR-3. All of it is optional — a sprite that has none exports exactly the
+empty/uniform defaults it always did.
+
+| JSON | Model | Authored in |
+|---|---|---|
+| `meta.frameTags[]` (`name`, `from`, `to`, `direction`) | `Pix2dSprite.AnimationTags` | Animation properties popup (timeline → ⚙) |
+| `frames[*].duration` | `Pix2dSprite.FrameDurations[i]`, falling back to `1000 / FrameRate` | same popup, per selected frame |
+| `meta.slices[0].keys[0].pivot` | `Pix2dSprite.ExportPivot` (unscaled canvas px) | same popup, **Export anchors** |
+| `meta.slices[0].keys[0].center` | `Pix2dSprite.NineSlice` margins → `(L, T, W−L−R, H−T−B)` | same popup, **Export anchors** |
+
+`direction` uses Aseprite's spelling: `forward`, `reverse`, `pingpong`, `pingpong_reverse`. Tag ranges
+are inclusive at both ends, and the editor keeps them aligned as frames are inserted / deleted /
+reordered; a range that no longer addresses a frame is dropped on load by `SceneIntegrity` rather than
+being silently clamped onto unrelated frames.
+
+### Exporting a single tag
+
+`pix2d export … --tag run` packs only that tag's frames. The sheet is **re-based to frame 0** — frame
+keys run `name 0 … name n-1` and the single emitted tag spans `0 … n-1` — which is what Aseprite's own
+`--tag` export produces, so an importer sees a self-contained animation. Per-frame durations still
+follow their source frames. `pix2d list` prints each artboard's tag names (plus
+`defaultFrameDurationMs`), so a pipeline can discover them without opening the project.
 
 ## Roadmap
 
-- **Shipped:** grid + tight packing, trim, power-of-two, Aseprite-compatible JSON, and the headless
-  CLI (`pix2d export … / list`).
-- **Next:** animation tags + per-frame durations + pivot/9-slice on the model → populated `frameTags`,
-  real `duration`, `slices` (which the emitters already anticipate); engine presets (Godot
-  `SpriteFrames` `.tres`, Unity meta, libGDX atlas) as sibling emitters over the same packed result.
+- **Shipped:** grid + tight packing, trim, power-of-two, Aseprite-compatible JSON, the headless CLI
+  (`pix2d export … / list`), and the animation-metadata model (tags, per-frame durations, pivot,
+  9-slice) with `--tag` filtering.
+- **Next:** engine presets (Godot `SpriteFrames` `.tres`, Unity meta, libGDX atlas) as sibling emitters
+  over the same packed result; frame rotation in the packer; sheet-per-tag in the in-app Export dialog.
 
 See the roadmap ([`docs/ROADMAP.md`](ROADMAP.md), **H2.2**) for the full plan.

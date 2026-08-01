@@ -270,6 +270,18 @@ public partial class MainView : ViewBase<MainViewModel>
                                         .ShowPinButton(true)
                                         .Content(ViewFactory.Create<BrushSettingsView>()),
 
+                                    ViewFactory.Create<PopupView>().Name("AnimationProperties")
+                                        .Ref(out _animationPropertiesPopup)
+                                        .Header(L("Animation"))
+                                        .IsOpen(vm, x => x.ShowAnimationProperties, BindingMode.TwoWay)
+                                        .CloseButtonCommand(vm.ViewCommands.ToggleAnimationPropertiesCommand)
+                                        .Width(300)
+                                        .Canvas_Top(40)
+                                        .Canvas_Right(160)
+                                        .UseCenteredPositionOnNarrowScreen(true)
+                                        .ShowPinButton(true)
+                                        .Content(ViewFactory.Create<AnimationPropertiesView>()),
+
                                     ViewFactory.Create<PopupView>().Name("ArtworkPreview")
                                         .Ref(out _artworkPreviewPopup)
                                         .Header(L("Preview"))
@@ -351,6 +363,7 @@ public partial class MainView : ViewBase<MainViewModel>
     private LayoutTransformControl _layoutTransformControl = null!;
     private PopupView _colorPickerPopup = null!;
     private PopupView _brushSettingsPopup = null!;
+    private PopupView _animationPropertiesPopup = null!;
     private PopupView _artworkPreviewPopup = null!;
     private PopupView _resizeCanvasPopup = null!;
     private PopupView _layerOptionsPopup = null!;
@@ -455,6 +468,7 @@ public partial class MainView : ViewBase<MainViewModel>
     {
         _colorPickerPopup?.ResetPositionForCurrentLayout();
         _brushSettingsPopup?.ResetPositionForCurrentLayout();
+        _animationPropertiesPopup?.ResetPositionForCurrentLayout();
         _artworkPreviewPopup?.ResetPositionForCurrentLayout();
         _resizeCanvasPopup?.ResetPositionForCurrentLayout();
         _layerOptionsPopup?.ResetPositionForCurrentLayout();

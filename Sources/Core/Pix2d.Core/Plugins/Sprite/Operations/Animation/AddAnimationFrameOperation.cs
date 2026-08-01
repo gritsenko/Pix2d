@@ -15,6 +15,11 @@ public class AddAnimationFrameOperation : EditOperationBase, ISpriteEditorOperat
     private LayerFrameMeta[]? _framesToRestore;
     private BitmapNode[]? _nodesToRestore;
 
+    // Animation metadata (tags + per-frame durations) is index-keyed, so inserting a frame re-indexes
+    // it. Undo restores the snapshot wholesale rather than inverting the shift — see
+    // SpriteAnimationMetaSnapshot for why the inverse doesn't exist.
+    private SpriteAnimationMetaSnapshot? _metaSnapshot;
+
     public override bool AffectsNodeStructure => true;
 
     public HashSet<int> AffectedLayerIndexes { get; } = [];
@@ -36,6 +41,10 @@ public class AddAnimationFrameOperation : EditOperationBase, ISpriteEditorOperat
 
      public override void OnPerform()
      {
+         // Capture once: redo re-runs this method on state undo just restored, and the shift is
+         // deterministic, so re-capturing would overwrite the pre-edit baseline with a post-edit one.
+         _metaSnapshot ??= SpriteAnimationMetaSnapshot.Capture(_sprite);
+
          var layers = _sprite.Layers.ToArray();
 
          for (var i = 0; i < layers.Length; i++)
@@ -49,6 +58,9 @@ public class AddAnimationFrameOperation : EditOperationBase, ISpriteEditorOperat
                  layers[i].InsertEmptyFrame(_newFrameIndex);
              }
          }
+
+         // After the frames exist, so the tag clamp sees the new frame count.
+         _sprite.ShiftAnimationMetaOnInsert(_newFrameIndex);
 
          _sprite.SetFrameIndex(_newFrameIndex);
      }
@@ -65,6 +77,8 @@ public class AddAnimationFrameOperation : EditOperationBase, ISpriteEditorOperat
              _nodesToRestore[i] = layers[i].GetSpriteByFrame(_newFrameIndex)!;
              layers[i].DeleteFrame(_newFrameIndex);
          }
+
+         _metaSnapshot?.Restore(_sprite);
 
          _sprite.SetFrameIndex(_restoreFrameIndex);
      }

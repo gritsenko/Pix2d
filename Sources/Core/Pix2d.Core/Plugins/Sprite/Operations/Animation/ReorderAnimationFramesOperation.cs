@@ -12,7 +12,10 @@ public class ReorderAnimationFramesOperation : EditOperationBase, ISpriteEditorO
     private readonly int _oldFrameIndex;
     private readonly int _newFrameIndex;
 
-    public override bool AffectsNodeStructure => true;
+    // Undo re-runs Reorder in the opposite direction for the frames, but the metadata shift is not
+    // symmetric (a single-frame tag can be rescued, a range can absorb the move), so the metadata is
+    // restored from a pre-edit snapshot instead. See SpriteAnimationMetaSnapshot.
+    private SpriteAnimationMetaSnapshot? _metaSnapshot;
 
     public HashSet<int> AffectedLayerIndexes { get; }
     public HashSet<int> AffectedFrameIndexes { get; }
@@ -30,15 +33,17 @@ public class ReorderAnimationFramesOperation : EditOperationBase, ISpriteEditorO
 
     public override void OnPerform()
     {
-            Reorder(_oldFrameIndex, _newFrameIndex);
+            _metaSnapshot ??= SpriteAnimationMetaSnapshot.Capture(_sprite);
+            Reorder(_oldFrameIndex, _newFrameIndex, shiftMeta: true);
         }
 
     public override void OnPerformUndo()
     {
-            Reorder(_newFrameIndex, _oldFrameIndex);
+            Reorder(_newFrameIndex, _oldFrameIndex, shiftMeta: false);
+            _metaSnapshot?.Restore(_sprite);
         }
 
-    private void Reorder(int fromIndex, int toIndex)
+    private void Reorder(int fromIndex, int toIndex, bool shiftMeta)
     {
             var layers = _sprite.Layers.ToArray();
 
@@ -60,6 +65,11 @@ public class ReorderAnimationFramesOperation : EditOperationBase, ISpriteEditorO
                 layers[i].Frames.RemoveAt(fromIndex);
                 layers[i].Frames.Insert(toIndex, frame);
             }
+
+            // Only past the validation above — a bailed-out reorder must leave the metadata alone or
+            // tags/durations desync from frames that never moved.
+            if (shiftMeta)
+                _sprite.ShiftAnimationMetaOnMove(fromIndex, toIndex);
 
             _sprite.SetFrameIndex(toIndex);
         }

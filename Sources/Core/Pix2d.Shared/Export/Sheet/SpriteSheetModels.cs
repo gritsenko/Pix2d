@@ -46,7 +46,11 @@ public sealed record SpriteSheetOptions
 
 /// <summary>One frame's placement on the sheet plus its trim/source geometry (all in output pixels).</summary>
 public sealed record PackedFrame(
-    int Index,               // source frame index in the sprite
+    // Index within the EXPORTED sheet (0-based over the frames actually packed), not the source frame
+    // index in the sprite. The two differ only under SpriteSheetOptions.TagFilter, where the sheet is
+    // re-based to 0 like Aseprite's own --tag export; SheetInfo.Tags is re-based to match, so the
+    // metadata emitters can pair frames against tag ranges in one index space.
+    int Index,
     SKRectI Frame,           // placement rect on the sheet
     bool Rotated,            // always false in v1 (frame rotation not supported yet)
     bool Trimmed,

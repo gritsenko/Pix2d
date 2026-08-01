@@ -66,6 +66,50 @@ public static class SceneIntegrity
             if (CanvasSize.IsDegenerate(layer.Size))
                 layer.Size = sprite.Size;
         }
+
+        RepairAnimationMeta(sprite);
+    }
+
+    /// <summary>
+    /// Brings the index-keyed animation metadata back inside the sprite's actual frame range. The
+    /// editor's own operations keep it consistent, but a file can still arrive inconsistent — written by
+    /// an older/newer build, hand-edited, or saved from a session where an operation bailed out. Doing
+    /// it here once means the timeline UI and the sheet exporter can trust the invariant instead of each
+    /// re-deriving it.
+    /// </summary>
+    private static void RepairAnimationMeta(Pix2dSprite sprite)
+    {
+        var tagsBefore = sprite.AnimationTags?.Count ?? 0;
+
+        // Drop unnamed tags first — a nameless tag has no meaning in exported metadata (it becomes an
+        // empty frameTags name) and cannot be selected with the CLI's --tag.
+        sprite.AnimationTags?.RemoveAll(t => string.IsNullOrWhiteSpace(t.Name));
+        sprite.NormalizeAnimationTags();
+
+        var tagsAfter = sprite.AnimationTags?.Count ?? 0;
+        if (tagsAfter != tagsBefore)
+            NodeTypeRegistry.Warn(
+                $"[SceneIntegrity] Sprite '{sprite.Name}': dropped {tagsBefore - tagsAfter} animation tag(s) " +
+                "that were unnamed or no longer addressed any frame.");
+
+        if (sprite.FrameDurations == null)
+            return;
+
+        // Durations are keyed by frame index; anything past the end is already ignored by
+        // GetFrameDurationMs, but trimming keeps the document honest and the contract snapshot stable.
+        var frameCount = sprite.GetFramesCount();
+        if (sprite.FrameDurations.Count > frameCount)
+            sprite.FrameDurations.RemoveRange(frameCount, sprite.FrameDurations.Count - frameCount);
+
+        for (var i = 0; i < sprite.FrameDurations.Count; i++)
+        {
+            var value = sprite.FrameDurations[i];
+            if (value != 0)
+                sprite.FrameDurations[i] = Math.Clamp(value, 1, 60000);
+        }
+
+        if (sprite.FrameDurations.All(d => d <= 0))
+            sprite.FrameDurations = null;
     }
 
     /// <summary>

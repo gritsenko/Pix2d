@@ -184,7 +184,22 @@ public sealed class HeadlessHarness
         ClickWorld(rect.MidX, rect.MidY, clickCount: clickCount);
     }
 
+    /// <summary>The live sprite editor for the active project — the same instance the timeline drives.</summary>
+    public Pix2d.Plugins.Sprite.Editors.SpriteEditor SpriteEditor =>
+        (Pix2d.Plugins.Sprite.Editors.SpriteEditor)AppState.CurrentProject.CurrentNodeEditor!;
+
+    /// <summary>Selects a frame the way the timeline does (state + editor stay in step).</summary>
+    public void SetFrameIndex(int index)
+    {
+        AppState.SpriteEditorState.CurrentFrameIndex = index;
+        SpriteEditor.SetFrameIndex(index);
+    }
+
+    /// <summary>Drag-reorders a frame, i.e. what a timeline tile drag commits.</summary>
+    public void ReorderFrames(int oldIndex, int newIndex) => SpriteEditor.ReorderFrames(oldIndex, newIndex);
+
     // --- Structural counts, read straight off the model tree --------------------------------------
+    public int UndoStackSize => Operations.UndoOperationsCount;
     public int LayerCount => ActiveSprite.Nodes.OfType<Pix2dSprite.Layer>().Count();
     public int FrameCount => ActiveSprite.GetFramesCount();
     public int ArtboardCount => AppState.CurrentProject.SceneNode!.Nodes.OfType<Pix2dSprite>().Count();

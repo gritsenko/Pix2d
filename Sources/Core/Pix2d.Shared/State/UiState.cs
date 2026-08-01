@@ -27,6 +27,13 @@ public class UiState : StateBase
         set => Set(value);
     }
 
+    /// <summary>Animation properties popup: per-frame duration, animation tags, export pivot / 9-slice.</summary>
+    public bool ShowAnimationProperties
+    {
+        get => Get<bool>();
+        set => Set(value);
+    }
+
     public bool ShowExtraTools
     {
         get => Get<bool>();

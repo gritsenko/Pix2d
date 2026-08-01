@@ -98,7 +98,12 @@ public static class SpriteSheetBuilder
                                     srcRect.Width == canvasW && srcRect.Height == canvasH);
 
                     packedFrames.Add(new PackedFrame(
-                        Index: indexes[i],
+                        // Position within the exported sheet, not the source frame index: under a tag
+                        // filter the sheet is re-based to 0 (what Aseprite's own --tag export does) and
+                        // GetTags re-bases the tag range to match, so the emitter's animations map — which
+                        // pairs frame indexes against tag ranges — keeps lining up. Without a filter the
+                        // two are identical, since indexes[i] == i.
+                        Index: i,
                         Frame: new SKRectI(pos.X, pos.Y, pos.X + srcRect.Width, pos.Y + srcRect.Height),
                         Rotated: false,
                         Trimmed: trimmed,
@@ -110,7 +115,7 @@ public static class SpriteSheetBuilder
                 canvas.Flush();
             }
 
-            var info = BuildInfo(sprite, scale, options, new SKSizeI(canvasW, canvasH));
+            var info = BuildInfo(sprite, scale, options, new SKSizeI(canvasW, canvasH), frameCount, indexes.Count);
             return new PackedSheet { Image = image, Frames = packedFrames, Info = info };
         }
         finally
@@ -130,11 +135,17 @@ public static class SpriteSheetBuilder
         {
             Image = image,
             Frames = Array.Empty<PackedFrame>(),
-            Info = BuildInfo(sprite, scale, options, canvasSize)
+            Info = BuildInfo(sprite, scale, options, canvasSize, sprite.GetFramesCount(), exportedFrameCount: 0)
         };
     }
 
-    private static SheetInfo BuildInfo(Pix2dSprite sprite, double scale, SpriteSheetOptions options, SKSizeI canvasSize)
+    /// <param name="exportedFrameCount">
+    /// Number of frames actually on the sheet — the index space tags are re-based into, which differs
+    /// from the sprite's frame count whenever a tag filter is active.
+    /// </param>
+    private static SheetInfo BuildInfo(
+        Pix2dSprite sprite, double scale, SpriteSheetOptions options, SKSizeI canvasSize,
+        int spriteFrameCount, int exportedFrameCount)
     {
         var layers = sprite.Layers
             .Select(l => new SheetLayerInfo(l.Name, (int)Math.Round(Math.Clamp(l.Opacity, 0f, 1f) * 255), "normal"))
@@ -146,35 +157,115 @@ public static class SpriteSheetBuilder
             CanvasSize: canvasSize,
             Scale: scale,
             FrameRate: sprite.FrameRate,
-            Tags: GetTags(sprite),
+            Tags: GetTags(sprite, options, spriteFrameCount, exportedFrameCount),
             Layers: layers,
             Pivot: GetPivot(sprite, scale),
-            NineSlice: GetNineSlice(sprite, scale));
+            NineSlice: GetNineSlice(sprite, scale, canvasSize));
     }
 
-    // --- PR-3 wiring points -----------------------------------------------------------------------
-    // The animation-metadata model (named tags, per-frame durations, pivot, 9-slice) does not exist on
-    // Pix2dSprite yet (roadmap H2.2 PR-3). Until it lands these return the uniform-timing / no-tag /
-    // no-pivot defaults, which still produce valid Aseprite JSON. When the model gains those fields,
-    // fill these in and every emitter picks the richer data up automatically.
+    // --- Animation metadata (roadmap H2.2 PR-3) ----------------------------------------------------
+    // These read the model on Pix2dSprite (tags, per-frame durations, export pivot, 9-slice). Each one
+    // clamps defensively even though SceneIntegrity normalises on load: a sheet can be built from a
+    // sprite the user is mid-edit on, and a malformed range here would produce metadata that breaks an
+    // engine importer rather than an obvious error.
 
+    /// <summary>
+    /// Frame range to export. With <see cref="SpriteSheetOptions.TagFilter"/> set this is the named
+    /// tag's range; the resulting sheet is then re-based so its frame indexes start at 0, matching what
+    /// Aseprite's own <c>--tag</c> export produces.
+    /// </summary>
     private static (int From, int To) ResolveFrameRange(Pix2dSprite sprite, SpriteSheetOptions options, int frameCount)
     {
-        // No tags in the model yet → always the full range regardless of TagFilter.
-        return (0, Math.Max(0, frameCount - 1));
+        var all = (0, Math.Max(0, frameCount - 1));
+
+        if (string.IsNullOrWhiteSpace(options.TagFilter))
+            return all;
+
+        var tag = FindTag(sprite, options.TagFilter!)
+                  ?? throw new ArgumentException(
+                      $"Animation tag '{options.TagFilter}' not found in sprite '{sprite.Name}'. "
+                      + $"Available: {DescribeTags(sprite)}.", nameof(options));
+
+        return (Math.Clamp(tag.From, 0, Math.Max(0, frameCount - 1)),
+                Math.Clamp(tag.To, 0, Math.Max(0, frameCount - 1)));
     }
+
+    internal static SpriteAnimationTag? FindTag(Pix2dSprite sprite, string name)
+        => sprite.AnimationTags?.FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    internal static string DescribeTags(Pix2dSprite sprite)
+        => sprite.AnimationTags is { Count: > 0 } tags
+            ? string.Join(", ", tags.Select(t => $"'{t.Name}'"))
+            : "(none)";
 
     private static int GetFrameDurationMs(Pix2dSprite sprite, int frameIndex)
+        => sprite.GetFrameDurationMs(frameIndex);
+
+    /// <summary>
+    /// Tags for <c>meta.frameTags</c>. Under a tag filter only that tag is emitted, re-based to the
+    /// exported sheet's index space — the emitter matches <see cref="PackedFrame.Index"/> against these
+    /// ranges to build the <c>animations</c> map, so the two must share one index space.
+    /// </summary>
+    private static IReadOnlyList<SheetTagInfo> GetTags(
+        Pix2dSprite sprite, SpriteSheetOptions options, int spriteFrameCount, int exportedFrameCount)
     {
-        var fps = Math.Max(1f, sprite.FrameRate);
-        return (int)Math.Round(1000f / fps);
+        if (sprite.AnimationTags is not { Count: > 0 } tags)
+            return Array.Empty<SheetTagInfo>();
+
+        // Tag ranges are source-frame indexes, so they clamp against the sprite's frame count...
+        var lastFrame = Math.Max(0, spriteFrameCount - 1);
+
+        if (!string.IsNullOrWhiteSpace(options.TagFilter))
+        {
+            var filtered = FindTag(sprite, options.TagFilter!);
+            if (filtered == null)
+                return Array.Empty<SheetTagInfo>();
+
+            // ...and are then re-based into the exported sheet's index space, which starts at 0.
+            var span = Math.Clamp(filtered.To, 0, lastFrame) - Math.Clamp(filtered.From, 0, lastFrame);
+            return [new SheetTagInfo(
+                filtered.Name, 0, Math.Clamp(span, 0, Math.Max(0, exportedFrameCount - 1)),
+                filtered.GetDirectionKey(), null)];
+        }
+
+        return tags
+            .Where(t => t.From <= lastFrame && t.To >= 0)
+            .Select(t => new SheetTagInfo(
+                t.Name,
+                Math.Clamp(t.From, 0, lastFrame),
+                Math.Clamp(t.To, 0, lastFrame),
+                t.GetDirectionKey(),
+                null))
+            .ToList();
     }
 
-    private static IReadOnlyList<SheetTagInfo> GetTags(Pix2dSprite sprite) => Array.Empty<SheetTagInfo>();
+    private static SKPointI? GetPivot(Pix2dSprite sprite, double scale)
+        => sprite.ExportPivot is { } p
+            ? new SKPointI((int)Math.Round(p.X * scale), (int)Math.Round(p.Y * scale))
+            : null;
 
-    private static SKPointI? GetPivot(Pix2dSprite sprite, double scale) => null;
+    /// <summary>
+    /// 9-slice margins scaled to output pixels. Skipped when the scaled margins would leave no centre
+    /// rect: <c>BuildSlices</c> derives <c>center</c> as <c>W - Left - Right</c>, and a zero/negative
+    /// one is what makes an engine importer choke rather than fall back.
+    /// </summary>
+    private static NineSliceInfo? GetNineSlice(Pix2dSprite sprite, double scale, SKSizeI canvasSize)
+    {
+        if (sprite.NineSlice is not { } ns)
+            return null;
 
-    private static NineSliceInfo? GetNineSlice(Pix2dSprite sprite, double scale) => null;
+        var scaled = new NineSliceInfo(
+            (int)Math.Round(ns.Left * scale),
+            (int)Math.Round(ns.Top * scale),
+            (int)Math.Round(ns.Right * scale),
+            (int)Math.Round(ns.Bottom * scale));
+
+        var fits = scaled.Left >= 0 && scaled.Top >= 0 && scaled.Right >= 0 && scaled.Bottom >= 0
+                   && scaled.Left + scaled.Right < canvasSize.Width
+                   && scaled.Top + scaled.Bottom < canvasSize.Height;
+
+        return fits ? scaled : null;
+    }
 
     // ----------------------------------------------------------------------------------------------
 
