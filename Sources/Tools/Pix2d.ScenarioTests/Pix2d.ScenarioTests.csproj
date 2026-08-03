@@ -31,7 +31,7 @@
     <!-- Only needed for AppBuilder.UsePlatformDetect().SetupWithoutStarting(), which brings up the
          AssetLoader (LocalizationService reads avares://.../strings.json), Dispatcher and FontManager
          without opening a window. Keep the version in lockstep with the heads (Avalonia 12.1.0). -->
-    <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
   </ItemGroup>
 
 </Project>

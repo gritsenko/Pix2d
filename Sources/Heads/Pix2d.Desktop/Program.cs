@@ -97,12 +97,21 @@ class Program
     /// Adreno driver blocklist and logs
     /// <c>"ARM64 Adreno GPU detected; the Adreno rendering blocklist is forcing a fallback to
     /// 'microsoft basic render driver'"</c>, i.e. the editor silently renders on the WARP software
-    /// adapter. Vulkan is the Adreno driver's native, non-blocklisted API, so ask for it first and
-    /// keep Wgl / AngleEgl / Software behind it as fallbacks.
+    /// adapter. Wgl and Vulkan both avoid the blocklist and both run on the real Adreno adapter, so
+    /// ask for those first and keep AngleEgl / Software behind them as fallbacks.
+    /// <para>
+    /// <b>Wgl leads, not Vulkan</b>, even though Vulkan is the Adreno driver's native API: the two
+    /// measured the same here (~20 ms vs ~22 ms CPU per canvas frame), but Avalonia's Vulkan backend
+    /// threw out of <c>VulkanSkiaGpu.TryCreateRenderTarget</c> on the render thread during real use
+    /// on this hardware, which kills the render loop mid-session. Wgl resolves to Windows' inbox
+    /// GLon12 layer (no vendor GL ICD is registered on Snapdragon) and, like ANGLE, presents through
+    /// DXGI — the better-trodden path. Vulkan stays second so a device without GLon12 still gets the
+    /// GPU. Flip the order at runtime with <c>PIX2D_RENDERING_MODE</c> to compare.
+    /// </para>
     /// <para>
     /// Composition mode is deliberately left at Avalonia's default: WinUIComposition and
     /// DirectComposition only apply to AngleEgl, and the default list already ends with
-    /// RedirectionSurface, which is what Vulkan and Wgl land on.
+    /// RedirectionSurface, which is what Wgl and Vulkan land on.
     /// </para>
     /// <para>
     /// <c>PIX2D_RENDERING_MODE</c> (comma-separated <c>vulkan,wgl,angle,software</c>) overrides the
@@ -126,8 +135,8 @@ class Program
 
             modes =
             [
-                Win32RenderingMode.Vulkan,
                 Win32RenderingMode.Wgl,
+                Win32RenderingMode.Vulkan,
                 Win32RenderingMode.AngleEgl,
                 Win32RenderingMode.Software
             ];

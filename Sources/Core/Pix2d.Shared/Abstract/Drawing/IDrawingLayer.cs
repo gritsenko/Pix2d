@@ -38,6 +38,16 @@ public interface IDrawingLayer
     void ClearTarget();
 
     SKColor DrawingColor { get; set; }
+
+    /// <summary>
+    /// Strength (0..1) the fill tool paints at — it scales the fill color's alpha, so a fill at 0.5
+    /// composites the color half-strength over what is already there (and in erase mode removes half
+    /// the alpha). Lives here rather than on the tool for the same reason as
+    /// <see cref="ColorSelectionTolerance"/>: the fill happens deep in the pointer pipeline, which only
+    /// sees the drawing layer. Not persisted between sessions.
+    /// </summary>
+    float FillOpacity { get; set; }
+
     IPixelBrush Brush { get; set; }
 
     void SetDrawingLayerMode(BrushDrawingMode drawingMode);

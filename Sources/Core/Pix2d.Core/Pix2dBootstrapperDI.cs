@@ -97,7 +97,7 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         services.AddSingleton<IViewPortRefreshService, ViewPortRefreshService>(); // Depends on: IViewPortService, IMessenger, AppState
         services.AddSingleton<ILocalizationService, LocalizationService>(); // Depends on: AppState, ISettingsService
 
-        services.AddSingleton<ISnappingService, SnappingService>(); // Depends on: ISceneService, IMessenger, AppState
+        services.AddSingleton<ISnappingService, SnappingService>(); // Depends on: ISceneService, IMessenger, AppState, IViewPortRefreshService
         services.AddSingleton<ISelectionService, SelectionService>(); // Depends on: ISceneService, ISnappingService, IMessenger, AppState
 
         services.AddSingleton<SpriteEditor>(); //Depends on: IDrawingService, IViewPortRefreshService, IMessenger, AppState, IOperationService
@@ -217,6 +217,11 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         _appState.IsSingleFingerPanEnabled = settingsService.Get<bool?>(nameof(AppState.IsSingleFingerPanEnabled)) ?? false;
         _appState.IsPenHapticsEnabled = settingsService.Get<bool?>(nameof(AppState.IsPenHapticsEnabled)) ?? true;
         _appState.IsAutoOpenTransformEditorAfterSelectionEnabled = settingsService.Get<bool?>(nameof(AppState.IsAutoOpenTransformEditorAfterSelectionEnabled)) ?? true;
+        _appState.IsReturnToPreviousToolAfterColorPickEnabled = settingsService.Get<bool?>(nameof(AppState.IsReturnToPreviousToolAfterColorPickEnabled)) ?? false;
+        _appState.GridColor = GridDefaults.ParseColor(settingsService.Get<string?>(nameof(AppState.GridColor)));
+        // Grid nodes are created in DrawingContainerBaseNode's constructor, before any watcher can reach
+        // them, so seed the new-node default too (SnappingService keeps it in step afterwards).
+        GridDefaults.CurrentColor = _appState.GridColor;
 
         var commandService = serviceProvider.GetRequiredService<ICommandService>();
         commandService.Initialize();

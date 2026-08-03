@@ -1,5 +1,7 @@
+using Pix2d.CommonNodes;
 using Pix2d.Primitives;
 using Pix2d.Primitives.ViewPort;
+using SkiaSharp;
 
 namespace Pix2d.State;
 
@@ -72,6 +74,28 @@ public class AppState : StateBase
     public bool IsAutoOpenTransformEditorAfterSelectionEnabled
     {
         get => Get(true);
+        set => Set(value);
+    }
+
+    /// <summary>
+    /// Whether the eyedropper switches back to the previously used tool right after picking a color (#215).
+    /// Off by default so the tool keeps its classic "stays until you switch" behaviour; mainly a touch-device
+    /// win, where the trip back to the brush is a separate two-tap detour.
+    /// </summary>
+    public bool IsReturnToPreviousToolAfterColorPickEnabled
+    {
+        get => Get(false);
+        set => Set(value);
+    }
+
+    /// <summary>
+    /// Color (alpha included) of the canvas grid lines (#223). App-wide rather than per-project — it is a
+    /// personal readability preference, unlike the grid cell size, which describes the artwork and lives in
+    /// <see cref="ViewPortState.GridSpacing"/>. Pushed into the scene's grid nodes by <c>SnappingService</c>.
+    /// </summary>
+    public SKColor GridColor
+    {
+        get => Get(GridDefaults.Color);
         set => Set(value);
     }
 

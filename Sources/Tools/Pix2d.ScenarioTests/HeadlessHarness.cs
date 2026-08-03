@@ -137,6 +137,10 @@ public sealed class HeadlessHarness
     /// <summary>True while a pixel-selection marquee exists on the drawing layer.</summary>
     public bool HasPixelSelection => _drawing.DrawingLayer.HasSelection;
 
+    /// <summary>The live drawing layer — lets a scenario read or tune the drawing-side settings a tool's
+    /// settings panel writes to (fill opacity, selection tolerance, drawing mode).</summary>
+    public Pix2d.Abstract.Drawing.IDrawingLayer DrawingLayer => _drawing.DrawingLayer;
+
     /// <summary>Marquee lifecycle phase (none / marquee ready / pixels lifted for transform).</summary>
     public Pix2d.Primitives.Drawing.SelectionPhase PixelSelectionPhase => _drawing.DrawingLayer.SelectionPhase;
 

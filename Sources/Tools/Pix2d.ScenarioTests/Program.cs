@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Mvvm.Messaging;
 using Newtonsoft.Json.Linq;
 using Pix2d.Abstract;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
@@ -19,8 +20,11 @@ using Pix2d.Primitives.Drawing;
 using Pix2d.Primitives.ViewPort;
 using Pix2d.Services;
 using Pix2d.ScenarioTests;
+using Pix2d.State;
+using Pix2d;
 using SkiaNodes;
 using SkiaNodes.Interactive;
+using SkiaNodes.Render;
 using SkiaNodes.Serialization;
 using SkiaSharp;
 
@@ -81,6 +85,9 @@ static class Runner
         PixelSelectionScenario(harness, t);
         GeneralContextObjectToolScenario(harness, t);
         GeneralContextObjectCommandsScenario(harness, t);
+        EyedropperReturnScenario(harness, t);
+        GridAppearanceScenario(harness, t);
+        FillOpacityScenario(harness, t);
         SafeSweep(harness);
 
         return t.Summarize();
@@ -1891,6 +1898,323 @@ static class Runner
     // Commands that genuinely error without a pixel selection (rather than gracefully no-op'ing);
     // they get a full-canvas selection set up before running.
     static readonly HashSet<string> NeedsPixelSelection = ["Sprite.Edit.CropPixels"];
+
+    // --- Eyedropper "switch back to previous tool" option (#215) -----------------------------------
+    static void EyedropperReturnScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Eyedropper return-to-previous-tool scenario ===");
+
+        h.NewProject(64);
+        h.AppState.CurrentProject.CurrentContextType = EditContextType.Sprite;
+        h.SetView(1);
+
+        // A known pixel to pick from, so we can also prove the pick itself still happens.
+        h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+        h.SetColor(SKColors.Red);
+        h.DrawPixel(10, 10);
+        h.SetColor(SKColors.Blue);
+
+        var tools = h.AppState.ToolsState;
+        var brushKey = nameof(Pix2d.Plugins.Drawing.Tools.BrushTool);
+        var eyedropperKey = nameof(Pix2d.Plugins.Drawing.Tools.EyedropperTool);
+
+        t.Check("switching tools records the outgoing one as PreviousToolKey", () =>
+        {
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.EyedropperTool>();
+            Assert.True(tools.PreviousToolKey == brushKey,
+                $"PreviousToolKey = '{tools.PreviousToolKey}', expected '{brushKey}'");
+        });
+
+        t.Check("with the option off the eyedropper stays active after a pick", () =>
+        {
+            h.AppState.IsReturnToPreviousToolAfterColorPickEnabled = false;
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.EyedropperTool>();
+
+            h.ClickWorld(10.5f, 10.5f);
+
+            Assert.True(tools.CurrentToolKey == eyedropperKey,
+                $"tool = '{tools.CurrentToolKey}', expected the eyedropper to stay active");
+        });
+
+        t.Check("with the option on the eyedropper hands back to the previous tool — and still picks", () =>
+        {
+            h.AppState.IsReturnToPreviousToolAfterColorPickEnabled = true;
+            h.SetColor(SKColors.Blue);
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.EyedropperTool>();
+
+            h.ClickWorld(10.5f, 10.5f);
+
+            Assert.True(tools.CurrentToolKey == brushKey,
+                $"tool = '{tools.CurrentToolKey}', expected a return to '{brushKey}'");
+
+            var picked = h.AppState.SpriteEditorState.CurrentColor;
+            Assert.True(picked.Red == 255 && picked.Green == 0 && picked.Blue == 0,
+                $"the color was not picked before the hand-off: {picked}");
+        });
+
+        t.Check("the option is backed by an AppSettings property (survives a restart)", () =>
+        {
+            var settings = h.Services.GetRequiredService<ISettingsService>();
+            settings.Set(nameof(AppState.IsReturnToPreviousToolAfterColorPickEnabled), true);
+
+            // A FRESH service reading the real file: without the AppSettings property, Set is a logged
+            // no-op and the toggle would silently reset on every launch.
+            var reader = new SettingsService(h.Services.GetRequiredService<IPlatformStuffService>());
+            Assert.True(reader.TryGet<bool>(nameof(AppState.IsReturnToPreviousToolAfterColorPickEnabled), out var stored) && stored,
+                "the toggle was not persisted");
+        });
+
+        h.AppState.IsReturnToPreviousToolAfterColorPickEnabled = false;
+    }
+
+    // --- Custom grid line color / opacity (#223) ---------------------------------------------------
+    static void GridAppearanceScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Grid appearance scenario ===");
+
+        h.NewProject(64);
+        // Force-construct the service that owns the AppState -> scene push; its watchers are wired in
+        // the ctor, so resolving it after the state change would miss the notification.
+        var snapping = h.Services.GetRequiredService<ISnappingService>();
+        var scene = h.Services.GetRequiredService<ISceneService>();
+
+        // r=0x80 g=0xFF b=0x40 a=0xB0 — a semi-transparent green, nothing like the default gray.
+        var custom = new SKColor(0x80, 0xFF, 0x40, 0xB0);
+
+        t.Check("changing AppState.GridColor reaches every drawing container's grid", () =>
+        {
+            h.AppState.GridColor = custom;
+
+            var containers = scene.GetCurrentSceneContainers<DrawingContainerBaseNode>();
+            Assert.True(containers is { Count: > 0 }, "no drawing containers in the scene");
+            foreach (var c in containers!)
+                Assert.True(c.GridColor == custom, $"container '{c.Name}' grid color = {c.GridColor}, expected {custom}");
+        });
+
+        t.Check("a container created afterwards starts with the chosen color, not the default gray", () =>
+        {
+            Assert.True(GridDefaults.CurrentColor == custom,
+                $"GridDefaults.CurrentColor = {GridDefaults.CurrentColor}, expected {custom}");
+
+            // The grid node is built in DrawingContainerBaseNode's ctor, before any watcher can reach it.
+            var fresh = new Pix2dSprite();
+            Assert.True(fresh.GridColor == custom, $"new container grid color = {fresh.GridColor}");
+        });
+
+        t.Check("the color round-trips through its persisted #AARRGGBB form", () =>
+        {
+            var text = GridDefaults.FormatColor(custom);
+            Assert.True(text == "#B080FF40", $"formatted as '{text}', expected #AARRGGBB");
+            Assert.True(GridDefaults.ParseColor(text) == custom, "parse(format(x)) != x");
+            Assert.True(GridDefaults.ParseColor(null) == GridDefaults.Color, "null should fall back to the default");
+            Assert.True(GridDefaults.ParseColor("not a color") == GridDefaults.Color, "garbage should fall back to the default");
+        });
+
+        t.Check("the color is backed by an AppSettings property (survives a restart)", () =>
+        {
+            var settings = h.Services.GetRequiredService<ISettingsService>();
+            settings.Set(nameof(AppState.GridColor), GridDefaults.FormatColor(custom));
+
+            var reader = new SettingsService(h.Services.GetRequiredService<IPlatformStuffService>());
+            Assert.True(reader.TryGet<string>(nameof(AppState.GridColor), out var stored)
+                        && GridDefaults.ParseColor(stored) == custom,
+                $"the grid color was not persisted (read back '{stored}')");
+        });
+
+        // The grid lives on the artboard's adorner layer, which is painted in the artboard's PARENT space
+        // with the layer's own Position as the offset. Two things used to break that: the layer was created
+        // in DrawingContainerBaseNode's ctor (before the node had a position or a parent, so it kept (0,0)),
+        // and GridNode drew its WORLD bounding box onto a canvas that was already in its own space. So an
+        // off-origin artboard's grid landed at double its offset, or at the scene origin. Render for real
+        // and look at where the lines actually are.
+        t.Check("an off-origin artboard's grid is drawn ON that artboard, not at the scene origin", () =>
+        {
+            h.NewProject(64);
+            h.Exec("Sprite.Edit.AddArtboard");
+            var boards = h.Artboards;
+            Assert.True(boards.Length == 2, $"expected 2 artboards, got {boards.Length}");
+
+            // An unmistakable offset, and a grid color nothing else in the scene uses.
+            var second = boards[1];
+            second.Position = new SKPoint(200, 0);
+            h.AppState.GridColor = new SKColor(255, 0, 255);
+            h.AppState.CurrentProject.ViewPortState.GridSpacing = new SKSize(8, 8);
+            h.AppState.CurrentProject.ViewPortState.ShowGrid = true;
+            h.SetView(1, 0, 0);
+
+            var ink = RenderSceneAndFindColor(h, new SKColor(255, 0, 255));
+            var boxes = boards.Select(b => b.GetBoundingBox()).ToArray();
+            Console.WriteLine($"  [diag] grid pixels: {ink.Count}, artboards: {string.Join(", ", boxes)}");
+
+            // Rasterization puts a line's ink a hair outside the mathematical rect, so allow 1px of slack
+            // when deciding "inside" — the failure this guards against is off by 200 world units, not by 1.
+            int OnBoard(SKRect b) => ink.Count(p => p.X >= b.Left - 1 && p.X <= b.Right + 1
+                                                    && p.Y >= b.Top - 1 && p.Y <= b.Bottom + 1);
+
+            var onFirst = OnBoard(boxes[0]);
+            var onSecond = OnBoard(boxes[1]);
+            var stray = ink.Where(p => boxes.All(b => !(p.X >= b.Left - 1 && p.X <= b.Right + 1
+                                                        && p.Y >= b.Top - 1 && p.Y <= b.Bottom + 1))).ToArray();
+            Console.WriteLine($"  [diag] on artboard 1: {onFirst}, on artboard 2 (offset): {onSecond}, stray: {stray.Length}");
+
+            Assert.True(onSecond > 0,
+                $"the artboard at x={boxes[1].Left} has no grid on it — its grid is drawn somewhere else");
+            Assert.True(onFirst > 0, "the artboard at the origin has no grid on it");
+            Assert.True(stray.Length == 0,
+                $"{stray.Length} grid pixels landed off every artboard, first at {stray.FirstOrDefault()}");
+        });
+
+        h.AppState.CurrentProject.ViewPortState.ShowGrid = false;
+        h.AppState.GridColor = GridDefaults.Color;
+    }
+
+    // --- Fill-tool opacity --------------------------------------------------------------------------
+    static void FillOpacityScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Fill opacity scenario ===");
+
+        h.NewProject(64);
+        const int px = 12, py = 12;
+
+        // The tool is a thin percent facade over IDrawingLayer.FillOpacity, which is what the pointer
+        // pipeline reads. Build one directly (the activated instance isn't exposed) and check the mapping.
+        var tool = ActivatorUtilities.CreateInstance<Pix2d.Plugins.Drawing.Tools.FillTool>(h.Services);
+        t.Check("FillTool.Opacity maps percent onto the drawing layer's 0..1 fill opacity", () =>
+        {
+            tool.Opacity = 50;
+            Assert.True(Math.Abs(h.DrawingLayer.FillOpacity - 0.5f) < 0.001f,
+                $"FillOpacity = {h.DrawingLayer.FillOpacity}, expected 0.5");
+            Assert.True(Math.Abs(tool.Opacity - 50) < 0.001, $"Opacity read back as {tool.Opacity}, expected 50");
+
+            tool.Opacity = 500;
+            Assert.True(h.DrawingLayer.FillOpacity == 1f, $"out-of-range input was not clamped: {h.DrawingLayer.FillOpacity}");
+            tool.Opacity = -10;
+            Assert.True(h.DrawingLayer.FillOpacity == 0f, $"out-of-range input was not clamped: {h.DrawingLayer.FillOpacity}");
+        });
+
+        // NewProject re-activates the default (brush) tool, so every case below re-arms the fill tool
+        // *after* creating its canvas — otherwise DrawPixel quietly paints a single brush dab instead.
+        void FreshFillCanvas(float opacity)
+        {
+            h.NewProject(64);
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.FillTool>();
+            h.DrawingLayer.SetDrawingLayerMode(BrushDrawingMode.Fill);
+            h.DrawingLayer.FillOpacity = opacity;
+        }
+
+        t.Check("a full-strength fill still paints the flat opaque color", () =>
+        {
+            FreshFillCanvas(1f);
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(px, py);
+
+            var c = h.GetPixel(px, py);
+            Assert.True(c.Alpha == 255 && c.Red == 255 && c.Green == 0 && c.Blue == 0,
+                $"expected opaque red at ({px},{py}), got {c}");
+            var corner = h.GetPixel(0, 0);
+            Assert.True(corner.Alpha == 255 && corner.Red == 255,
+                $"the fill should have flooded the whole empty canvas, but (0,0) is {corner}");
+        });
+
+        t.Check("a 50% fill on an empty canvas lands at half alpha", () =>
+        {
+            FreshFillCanvas(0.5f);
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(px, py);
+
+            var c = h.GetPixel(px, py);
+            Assert.True(Math.Abs(c.Alpha - 128) <= 2, $"expected alpha ~128 at ({px},{py}), got {c}");
+            Assert.True(c.Red >= 250 && c.Green == 0 && c.Blue == 0, $"expected red at ({px},{py}), got {c}");
+        });
+
+        // The check that catches an un-premultiplied write into the Premul working bitmap: with straight
+        // RGBA bytes Skia reads the color channels as already-multiplied, and the red comes out at full
+        // strength (255) instead of blending down to ~127 against the blue underneath.
+        t.Check("a 50% fill over an opaque color blends instead of replacing", () =>
+        {
+            FreshFillCanvas(1f);
+            h.SetColor(SKColors.Blue);
+            h.DrawPixel(px, py);
+
+            h.DrawingLayer.FillOpacity = 0.5f;
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(px, py);
+
+            var c = h.GetPixel(px, py);
+            Console.WriteLine($"  [diag] 50% red over opaque blue = {c}");
+            Assert.True(c.Alpha == 255, $"the result should stay opaque, got {c}");
+            Assert.True(Math.Abs(c.Red - 127) <= 4 && Math.Abs(c.Blue - 128) <= 4,
+                $"expected a ~50/50 red/blue blend at ({px},{py}), got {c}");
+        });
+
+        t.Check("a 50% fill in erase mode removes half the alpha", () =>
+        {
+            FreshFillCanvas(1f);
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(px, py);
+
+            h.DrawingLayer.SetDrawingLayerMode(BrushDrawingMode.FillErase);
+            h.DrawingLayer.FillOpacity = 0.5f;
+            h.DrawPixel(px, py);
+
+            var c = h.GetPixel(px, py);
+            Assert.True(Math.Abs(c.Alpha - 127) <= 2, $"expected alpha ~127 at ({px},{py}) after a half erase, got {c}");
+        });
+
+        t.Check("a zero-opacity fill is a no-op and pushes no undo step", () =>
+        {
+            FreshFillCanvas(0f);
+            h.SetColor(SKColors.Red);
+
+            var undoBefore = h.Operations.UndoOperationsCount;
+            h.DrawPixel(px, py);
+
+            Assert.True(h.GetPixel(px, py).Alpha == 0, $"expected an untouched pixel, got {h.GetPixel(px, py)}");
+            Assert.True(h.Operations.UndoOperationsCount == undoBefore,
+                $"undo count {undoBefore} -> {h.Operations.UndoOperationsCount}, expected no change");
+        });
+
+        // Leave the shared drawing layer as the rest of the suite expects it.
+        h.DrawingLayer.FillOpacity = 1f;
+        h.DrawingLayer.SetDrawingLayerMode(BrushDrawingMode.Draw);
+    }
+
+    /// <summary>
+    /// Renders the live scene (adorners included — the grid is one) through the real renderer and returns
+    /// every pixel of <paramref name="color"/> it finds, mapped back to WORLD coordinates. This is the only
+    /// way to catch a node that paints in the wrong coordinate space: every state-level assertion passes
+    /// while the ink lands somewhere else entirely.
+    /// </summary>
+    static List<SKPoint> RenderSceneAndFindColor(HeadlessHarness h, SKColor color)
+    {
+        const int size = 512;
+        var vp = h.Services.GetRequiredService<IViewPortService>().ViewPort!;
+        var root = SKApp.SceneManager.GetRootNode();
+
+        using var surface = SKSurface.Create(new SKImageInfo(size, size, Pix2DAppSettings.ColorType, SKAlphaType.Premul));
+        surface.Canvas.Clear(SKColors.Black);
+        SKNodeRenderer.Render(root, new RenderContext(surface.Canvas, vp));
+        surface.Canvas.Flush();
+
+        using var snapshot = surface.Snapshot();
+        using var bitmap = SKBitmap.FromImage(snapshot);
+
+        var found = new List<SKPoint>();
+        for (var y = 0; y < bitmap.Height; y++)
+        for (var x = 0; x < bitmap.Width; x++)
+        {
+            var c = bitmap.GetPixel(x, y);
+            if (c.Red != color.Red || c.Green != color.Green || c.Blue != color.Blue || c.Alpha == 0)
+                continue;
+
+            found.Add(vp.ViewportToWorld(new SKPoint(x, y)));
+        }
+
+        return found;
+    }
 
     static void SafeSweep(HeadlessHarness h)
     {

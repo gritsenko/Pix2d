@@ -40,6 +40,7 @@ public class ToolService : IToolService
         {
             oldTool?.ToolInstance?.Deactivate();
             tool.ToolInstance?.Activate();
+            ToolsState.PreviousToolKey = oldTool?.Name;
             ToolsState.CurrentToolKey = tool.Name;
         }
         finally
@@ -56,6 +57,22 @@ public class ToolService : IToolService
     public void ActivateTool<TTool>()
     {
         ActivateTool(typeof(TTool).Name);
+    }
+
+    public bool ActivatePreviousTool()
+    {
+        var previousKey = ToolsState.PreviousToolKey;
+        if (string.IsNullOrEmpty(previousKey) || previousKey == ToolsState.CurrentToolKey)
+            return false;
+
+        // A tool registered for another edit context can't be activated here (and the previous key
+        // survives context switches), so verify it still belongs to the context we're in.
+        var previousTool = GetToolStateByKey(previousKey);
+        if (previousTool == null || previousTool.Context != _appState.CurrentProject.CurrentContextType)
+            return false;
+
+        ActivateTool(previousKey);
+        return true;
     }
 
     public bool IsSelectionTool(string? toolKey)

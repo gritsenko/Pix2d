@@ -14,6 +14,12 @@ public interface IToolService
     string? IncomingToolKey { get; }
 
     /// <summary>
+    /// Switches back to the tool that was active before the current one. No-op (returns false) when there is
+    /// no previous tool, it is the current one, or it belongs to another edit context.
+    /// </summary>
+    bool ActivatePreviousTool();
+
+    /// <summary>
     /// True when <paramref name="toolKey"/> identifies a registered tool implementing
     /// <see cref="IPixelSelectionTool"/>. Lets the transform tool decide whether to keep the marquee alive
     /// during a hand-off without hard-coding the set of selection tools — new selection plugins (AI,

@@ -101,13 +101,13 @@
 	  <None Remove="artifacts\**" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia" Version="12.1.0" />
-		<PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
+		<PackageReference Include="Avalonia" Version="12.1.1" />
+		<PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
 		<PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
 		<PackageReference Include="Clowd.Clipboard" Version="1.1.4" />
 		<PackageReference Include="Clowd.Clipboard.Gdi" Version="1.1.4" />
 		<!-- Debug-only: pulls in the ASP.NET Core web stack + remote-control surface; must not ship in Release. -->
-		<PackageReference Include="Declarative.Avalonia.AgentTools" Version="12.1.0" Condition="'$(Configuration)'=='Debug'" />
+		<PackageReference Include="Declarative.Avalonia.AgentTools" Version="12.1.1" Condition="'$(Configuration)'=='Debug'" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="Sentry" Version="6.5.0" />
 		<!-- Pinned to match the version Avalonia.FreeDesktop (12.1.0) is compiled against. Pix2d has no

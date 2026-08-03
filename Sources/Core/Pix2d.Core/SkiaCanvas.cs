@@ -1150,7 +1150,6 @@ public class SkiaCanvas : Control
         public Rect Bounds { get; } = bounds;
         public bool HitTest(Point p) => true;
         public bool Equals(ICustomDrawOperation? other) => false;
-        private SKCanvas? _skCanvas;
         private Matrix _lastTransform;
         private Point? _lastOrigin;
 
@@ -1159,60 +1158,60 @@ public class SkiaCanvas : Control
             // No-op
         }
 
+        /// <summary>
+        /// Draws the scene into the canvas leased for <em>this</em> render pass.
+        /// </summary>
+        /// <remarks>
+        /// The lease must be taken per call and held for the whole draw: the <see cref="SKCanvas"/> it
+        /// hands out belongs to the render session that created it, and is not valid outside it. An
+        /// earlier version cached the canvas across calls, which worked by accident for the on-screen
+        /// window (same surface every frame) but broke every other render target: a pass driven by
+        /// <c>RenderTargetBitmap.Render</c> — which is how screenshots are taken, including the
+        /// AgentTools inspector's — drew into the stale surface instead, so the captured image had a
+        /// blank hole where the canvas should be.
+        /// </remarks>
         public void Render(ImmediateDrawingContext context)
         {
-            var canvas = GetSkCanvas(context);
-            if (canvas == null)
+            var leaseFeature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
+            if (leaseFeature == null)
                 return;
+
             try
             {
-
-                canvas.Save();
-
-                canvas.Clear(_bgColor);
-
-                if (parent is { _rootNode: not null, ViewPort: not null })
-                {
-                    var controlOriginInTopLevel = parent._cachedOriginInTopLevel;
-
-                    if (_lastTransform != context.CurrentTransform || _lastOrigin != controlOriginInTopLevel)
-                    {
-                        parent.UpdatePivotTransform(context.CurrentTransform, controlOriginInTopLevel);
-                        _lastTransform = context.CurrentTransform;
-                        _lastOrigin = controlOriginInTopLevel;
-                    }
-
-                    SKNodeRenderer.Render(parent._rootNode, new RenderContext(canvas, parent.ViewPort));
-                    //_parent._rootNode.Render(canvas, _parent.ViewPort);
-                }
-                canvas.Restore();
-            }
-            catch (ObjectDisposedException)
-            {
-                //ignore this. nothing we can do actually
-            }
-            //else
-            //    context.DrawText(Brushes.Black, new Point(), NoSkiaText.PlatformImpl);
-        }
-
-        private SKCanvas? GetSkCanvas(ImmediateDrawingContext context)
-        {
-            if (_skCanvas?.Handle == IntPtr.Zero)
-                _skCanvas = null;
-
-            return _skCanvas ??= GetCanvasFromField();
-
-            SKCanvas? GetCanvasFromField()
-            {
-                var leaseFeature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
-                if (leaseFeature == null)
-                    return null;
                 using var lease = leaseFeature.Lease();
 #if DEBUG
                 LogRenderBackendOnce(lease);
 #endif
                 var canvas = lease.SkCanvas;
-                return canvas;
+                var restorePoint = canvas.Save();
+                try
+                {
+                    canvas.Clear(_bgColor);
+
+                    if (parent is { _rootNode: not null, ViewPort: not null })
+                    {
+                        var controlOriginInTopLevel = parent._cachedOriginInTopLevel;
+
+                        if (_lastTransform != context.CurrentTransform || _lastOrigin != controlOriginInTopLevel)
+                        {
+                            parent.UpdatePivotTransform(context.CurrentTransform, controlOriginInTopLevel);
+                            _lastTransform = context.CurrentTransform;
+                            _lastOrigin = controlOriginInTopLevel;
+                        }
+
+                        SKNodeRenderer.Render(parent._rootNode, new RenderContext(canvas, parent.ViewPort));
+                    }
+                }
+                finally
+                {
+                    // Restore even if the scene throws: the canvas is shared with the rest of the frame,
+                    // so an unbalanced Save() would leak our clip/matrix into everything drawn after us.
+                    canvas.RestoreToCount(restorePoint);
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                //ignore this. nothing we can do actually
             }
         }
 

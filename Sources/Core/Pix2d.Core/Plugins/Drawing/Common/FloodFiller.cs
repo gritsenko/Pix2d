@@ -152,6 +152,12 @@ public class FloodFiller
         _ranges.Enqueue(r);
     }
 
+    /// <summary>
+    /// Serializes <see cref="FilledPixels"/> into a raw pixel buffer for the drawing layer's working
+    /// bitmap. Channels are **premultiplied**: the working bitmap is <see cref="SKAlphaType.Premul"/>,
+    /// so a semi-transparent fill (the fill tool's opacity) whose color channels exceed its alpha would
+    /// otherwise render over-bright. A fully opaque fill is byte-for-byte unchanged by this.
+    /// </summary>
     public byte[] GetPixelBytes()
     {
         var pixels = FilledPixels;
@@ -159,10 +165,15 @@ public class FloodFiller
         var di = 0;
         for (var i = 0; i < pixels.Length; i++, di = i * 4)
         {
+            var a = pixels[i].Alpha;
+            var r = Premultiply(pixels[i].Red, a);
+            var g = Premultiply(pixels[i].Green, a);
+            var b = Premultiply(pixels[i].Blue, a);
+
             var color = Pix2DAppSettings.ColorType switch
             {
-                SKColorType.Bgra8888 => (pixels[i].Blue, pixels[i].Green, pixels[i].Red, pixels[i].Alpha),
-                SKColorType.Rgba8888 => (pixels[i].Red, pixels[i].Green, pixels[i].Blue, pixels[i].Alpha),
+                SKColorType.Bgra8888 => (b, g, r, a),
+                SKColorType.Rgba8888 => (r, g, b, a),
                 _ => throw new Exception("Sorry, I don't support this color type")
             };
             bytes[di] = color.Item1;
@@ -172,6 +183,9 @@ public class FloodFiller
         }
         return bytes;
     }
+
+    private static byte Premultiply(byte channel, byte alpha)
+        => alpha == 255 ? channel : (byte)((channel * alpha + 127) / 255);
 }
 
 public class FloodFillRangeQueue : Queue<FloodFillRange>

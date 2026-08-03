@@ -11,11 +11,22 @@ public partial class FillToolSettingsView : ViewBase
 
     protected override object Build() =>
         new StackPanel()
+            .Orientation(Orientation.Horizontal)
+            .VerticalAlignment(VerticalAlignment.Center)
             .Margin(8)
+            .Spacing(12)
             .Children(
+                new SliderEx()
+                    .Width(168)
+                    .Label(L("Opacity"))
+                    .Units("%")
+                    .Minimum(1)
+                    .Maximum(100)
+                    .Value(_state, x => x.Opacity, BindingMode.TwoWay),
                 new ToggleSwitch()
-                    .OnContent("Erase mode: On")
-                    .OffContent("Erase mode: Off")
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .OnContent(L("Erase mode: On"))
+                    .OffContent(L("Erase mode: Off"))
                     .IsChecked(_state, x => x.EraseMode, BindingMode.TwoWay)
             );
 
@@ -35,12 +46,16 @@ public partial class FillToolSettingsView : ViewBase
         [ObservableProperty]
         public partial bool EraseMode { get; set; }
 
+        [ObservableProperty]
+        public partial double Opacity { get; set; } = 100;
+
         public void SetTool(FillTool? tool)
         {
             _tool = tool;
 
             _isSyncing = true;
             EraseMode = tool?.EraseMode ?? false;
+            Opacity = tool?.Opacity ?? 100;
             _isSyncing = false;
         }
 
@@ -50,6 +65,14 @@ public partial class FillToolSettingsView : ViewBase
                 return;
 
             _tool.EraseMode = value;
+        }
+
+        partial void OnOpacityChanged(double value)
+        {
+            if (_isSyncing || _tool == null)
+                return;
+
+            _tool.Opacity = value;
         }
     }
 }

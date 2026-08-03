@@ -28,6 +28,18 @@ public class FillTool : BaseTool, IDrawingTool
         }
     }
 
+    /// <summary>
+    /// Fill strength in percent (0..100). Scales the alpha of the color poured into the region — at 50
+    /// the fill composites half-strength over the existing pixels, and in erase mode it removes half
+    /// their alpha. Backed by <see cref="IDrawingLayer.FillOpacity"/>, which is what the pointer
+    /// pipeline actually reads.
+    /// </summary>
+    public double Opacity
+    {
+        get => DrawingService.DrawingLayer.FillOpacity * 100d;
+        set => DrawingService.DrawingLayer.FillOpacity = (float)(Math.Clamp(value, 0d, 100d) / 100d);
+    }
+
     public FillTool(IDrawingService drawingService)
     {
         DrawingService = drawingService;

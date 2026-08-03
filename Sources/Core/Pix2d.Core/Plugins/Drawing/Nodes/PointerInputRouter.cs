@@ -190,20 +190,31 @@ internal sealed class PointerInputRouter
 
     private bool TryApplyFillOnRelease()
     {
-        if (_host.GetDrawingMode() == BrushDrawingMode.Fill)
-        {
-            _host.FillRegion(_host.EndPos, _host.DrawingColor);
-            return true;
-        }
+        var mode = _host.GetDrawingMode();
+        if (mode != BrushDrawingMode.Fill && mode != BrushDrawingMode.FillErase)
+            return false;
 
-        if (_host.GetDrawingMode() == BrushDrawingMode.FillErase)
-        {
-            _host.FillRegion(_host.EndPos, SKColors.White, blendMode: SKBlendMode.DstOut);
-            return true;
-        }
+        // Erase fills with an opaque white *mask* and subtracts it (DstOut), so both modes carry the
+        // opacity in the same place — the alpha of the color handed to FillRegion.
+        var color = ApplyFillOpacity(
+            mode == BrushDrawingMode.Fill ? _host.DrawingColor : SKColors.White,
+            _host.FillOpacity);
 
-        return false;
+        // A fully transparent fill would still push an undo step for a no-op, so swallow the gesture.
+        if (color.Alpha == 0)
+            return true;
+
+        _host.FillRegion(_host.EndPos, color,
+            blendMode: mode == BrushDrawingMode.Fill ? SKBlendMode.SrcOver : SKBlendMode.DstOut);
+        return true;
     }
+
+    /// <summary>
+    /// Scales the color's own alpha rather than replacing it, so a semi-transparent paint color and a
+    /// reduced fill opacity compose instead of one silently overriding the other.
+    /// </summary>
+    private static SKColor ApplyFillOpacity(SKColor color, float opacity)
+        => color.WithAlpha((byte)Math.Clamp(MathF.Round(color.Alpha * Math.Clamp(opacity, 0f, 1f)), 0, 255));
 
     private bool ShouldWaitForDeferredTouchSelection(PointerActionEventArgs eventArgs)
     {

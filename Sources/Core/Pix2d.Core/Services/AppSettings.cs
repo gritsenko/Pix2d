@@ -54,6 +54,14 @@ public class AppSettings
     /// <summary>Auto-open the transform editor after a selection is made (Settings toggle, read into <c>AppState</c> at startup).</summary>
     public bool IsAutoOpenTransformEditorAfterSelectionEnabled { get; set; } = true;
 
+    /// <summary>Eyedropper switches back to the previously used tool after picking a color (Settings toggle, read into <c>AppState</c> at startup). See issue #215.</summary>
+    public bool IsReturnToPreviousToolAfterColorPickEnabled { get; set; }
+
+    // Grid appearance (issue #223) — a personal preference, so app-wide rather than per-project (cell size
+    // stays in ViewPortState). Stored as "#AARRGGBB" because SKColor doesn't round-trip through System.Text.Json.
+    /// <summary>Grid line color including its alpha, as an "#AARRGGBB" string.</summary>
+    public string? GridColor { get; set; }
+
     /// <summary>ISO-8601 ("O") timestamp of the last update check; throttles <c>UpdateService</c> to one check per interval.</summary>
     public string? LastUpdateCheckUtc { get; set; }
 

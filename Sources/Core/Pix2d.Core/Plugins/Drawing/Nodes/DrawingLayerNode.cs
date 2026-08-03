@@ -81,6 +81,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     private readonly PointerInputRouter _pointerInputRouter;
 
     private SKColor _drawingColor;
+    private float _fillOpacity = 1f;
     private IPixelBrush? _brush;
     private SKSurface? _brushPreviewSurface;
 
@@ -121,6 +122,13 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
                 UpdateBrushPreview(_brush);
             }
         }
+    }
+
+    /// <inheritdoc />
+    public float FillOpacity
+    {
+        get => _fillOpacity;
+        set => _fillOpacity = Math.Clamp(value, 0f, 1f);
     }
 
     public IPixelBrush Brush

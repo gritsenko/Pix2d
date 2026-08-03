@@ -14,6 +14,7 @@ internal interface IPointerInputRouterHost
     bool HasSelection { get; }
     bool IsTargetBitmapVisible { get; }
     SKColor DrawingColor { get; }
+    float FillOpacity { get; }
     SKPoint StartPos { get; set; }
     SKPoint EndPos { get; }
     SKPointI StartPosI { get; }

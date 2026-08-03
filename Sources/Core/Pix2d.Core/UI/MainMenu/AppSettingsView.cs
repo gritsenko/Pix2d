@@ -149,6 +149,22 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
                             .FontSize(14),
 
                         new TextBlock()
+                            .Text(L("Switch back to previous tool after color pick"))
+                            .Margin(0, 8, 0, 8)
+                            .FontSize(20)
+                            .TextWrapping(TextWrapping.Wrap)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .FontFamily(StaticResources.Fonts.TextArticlesFontFamily),
+                        new ToggleSwitch()
+                            .IsChecked(state, x => x.IsReturnToPreviousToolAfterColorPickEnabled, BindingMode.TwoWay)
+                            .Margin(0, 0, 0, 6),
+                        new TextBlock()
+                            .Text(L("After picking a color with the eyedropper, return to the tool you were using before — no extra tap to get back to drawing."))
+                            .Margin(0, 0, 0, 12)
+                            .TextWrapping(TextWrapping.Wrap)
+                            .FontSize(14),
+
+                        new TextBlock()
                             .Text(L("Pen haptic feedback"))
                             .Margin(0, 8, 0, 8)
                             .FontSize(20)
@@ -216,6 +232,9 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
         public partial bool IsAutoOpenTransformEditorAfterSelectionEnabled { get; set; }
 
         [ObservableProperty]
+        public partial bool IsReturnToPreviousToolAfterColorPickEnabled { get; set; }
+
+        [ObservableProperty]
         public partial bool IsPenHapticsEnabled { get; set; }
 
         [ObservableProperty]
@@ -243,6 +262,7 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             _appState.WatchFor(x => x.IsStylusModeEnabled, OnStylusModeChangedExternally);
             _appState.WatchFor(x => x.IsSingleFingerPanEnabled, OnSingleFingerPanChangedExternally);
             _appState.WatchFor(x => x.IsAutoOpenTransformEditorAfterSelectionEnabled, OnAutoOpenTransformEditorAfterSelectionChangedExternally);
+            _appState.WatchFor(x => x.IsReturnToPreviousToolAfterColorPickEnabled, OnReturnToPreviousToolAfterColorPickChangedExternally);
             _appState.WatchFor(x => x.IsPenHapticsEnabled, OnPenHapticsChangedExternally);
 
             SyncFromAppState();
@@ -330,6 +350,15 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             _settingsService.Set(nameof(AppState.IsAutoOpenTransformEditorAfterSelectionEnabled), value);
         }
 
+        partial void OnIsReturnToPreviousToolAfterColorPickEnabledChanged(bool value)
+        {
+            if (_isSyncing)
+                return;
+
+            _appState.IsReturnToPreviousToolAfterColorPickEnabled = value;
+            _settingsService.Set(nameof(AppState.IsReturnToPreviousToolAfterColorPickEnabled), value);
+        }
+
         partial void OnIsPenHapticsEnabledChanged(bool value)
         {
             if (_isSyncing)
@@ -375,6 +404,7 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
             IsStylusModeEnabled = _appState.IsStylusModeEnabled;
             IsSingleFingerPanEnabled = _appState.IsSingleFingerPanEnabled;
             IsAutoOpenTransformEditorAfterSelectionEnabled = _appState.IsAutoOpenTransformEditorAfterSelectionEnabled;
+            IsReturnToPreviousToolAfterColorPickEnabled = _appState.IsReturnToPreviousToolAfterColorPickEnabled;
             IsPenHapticsEnabled = _appState.IsPenHapticsEnabled;
             // Tri-state consent shown as a binary toggle: only the explicit "Allowed" reads as on;
             // Unset (never answered) and Denied both read as off.
@@ -417,6 +447,12 @@ public partial class AppSettingsView : ViewBase<AppSettingsView.State>
         {
             SyncFromAppState();
             _settingsService.Set(nameof(AppState.IsAutoOpenTransformEditorAfterSelectionEnabled), _appState.IsAutoOpenTransformEditorAfterSelectionEnabled);
+        }
+
+        private void OnReturnToPreviousToolAfterColorPickChangedExternally()
+        {
+            SyncFromAppState();
+            _settingsService.Set(nameof(AppState.IsReturnToPreviousToolAfterColorPickEnabled), _appState.IsReturnToPreviousToolAfterColorPickEnabled);
         }
 
         private void OnPenHapticsChangedExternally()
