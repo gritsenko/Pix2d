@@ -406,25 +406,60 @@ public class SkiaCanvas : Control
         _cachedOriginInTopLevel = topLevel == null ? null : this.TranslatePoint(default, topLevel);
     }
 
-    private void UpdatePivotTransform(Matrix currentTransform, Point? controlOriginInTopLevel)
+    /// <summary>
+    /// Builds the pivot matrix for <em>this</em> render pass: the transform that takes the scene, which is
+    /// laid out in <b>physical pixels</b> (<see cref="ViewPort.TransformMatrix"/> bakes in
+    /// <see cref="ViewPort.ScaleFactor"/>, matching <see cref="ToSKPoint"/> on the input side), into the
+    /// coordinate space of whatever surface is being drawn.
+    /// <para>
+    /// <paramref name="deviceTransform"/> is the leased canvas' own matrix at entry — the DIP→target mapping
+    /// Skia is already set up for. Dividing it by <see cref="ViewPort.ScaleFactor"/> converts it into a
+    /// physical→target mapping, which is what the scene needs. On the window surface (target = physical
+    /// pixels) that leaves the translation only, i.e. exactly the historical behaviour; in an offscreen
+    /// <c>RenderTargetBitmap</c> pass, whose space is DIP, it also scales the scene down so screenshots
+    /// stop drawing the canvas contents at <c>ScaleFactor</c>× their position and size on a HiDPI display.
+    /// </para>
+    /// </summary>
+    private void UpdatePivotTransform(Matrix currentTransform, SKMatrix deviceTransform, Point? controlOriginInTopLevel)
     {
         if (ViewPort == null)
             return;
 
-        var pivotTransform = ToSKMatrix(currentTransform);
-        pivotTransform.TransX *= ViewPort.ScaleFactor;
-        pivotTransform.TransY *= ViewPort.ScaleFactor;
+        var scale = ViewPort.ScaleFactor <= 0 ? 1f : ViewPort.ScaleFactor;
 
-        // On some platforms the custom draw op receives CurrentTransform without the control's
-        // translation inside the TopLevel: on Android the safe-area inset is missing on the first
-        // frames, and on Windows the compositor hands us an identity transform always. Without a
-        // correction the scene renders at the window origin, which became visible once the project
-        // tabs row pushed the canvas down. Fall back to the cached control origin (kept fresh via
-        // ArrangeCore/LayoutUpdated/SafeAreaChanged) whenever the supplied translation is zero.
-        if (controlOriginInTopLevel.HasValue)
+        // Degenerate device matrix (never seen in practice, but a zero scale would collapse the scene):
+        // fall back to the transform Avalonia reports for the pass, which is what this used to read.
+        var deviceScaleX = Math.Abs(deviceTransform.ScaleX) < 0.0001f ? 1f : deviceTransform.ScaleX;
+        if (Math.Abs(deviceTransform.ScaleX) < 0.0001f || Math.Abs(deviceTransform.ScaleY) < 0.0001f)
         {
-            var fallbackTransX = (float)(controlOriginInTopLevel.Value.X * ViewPort.ScaleFactor);
-            var fallbackTransY = (float)(controlOriginInTopLevel.Value.Y * ViewPort.ScaleFactor);
+            deviceTransform = ToSKMatrix(currentTransform);
+            deviceScaleX = Math.Abs(deviceTransform.ScaleX) < 0.0001f ? 1f : deviceTransform.ScaleX;
+        }
+
+        var pivotTransform = deviceTransform.PreConcat(SKMatrix.CreateScale(1f / scale, 1f / scale));
+
+        // On some platforms the custom draw op is handed a transform without the control's translation
+        // inside the TopLevel: on Android the safe-area inset is missing on the first frames, and on
+        // Windows the compositor hands us an identity transform always. Without a correction the scene
+        // renders at the window origin, which became visible once the project tabs row pushed the canvas
+        // down. Fall back to the cached control origin (kept fresh via ArrangeCore / LayoutUpdated /
+        // SafeAreaChanged) whenever the supplied translation is zero.
+        //
+        // Only for a pass drawing into the window surface, though — recognised by its scale matching the
+        // viewport's, since that surface is the one measured in physical pixels. A pass rendering the
+        // canvas *in isolation* (`screenshot_control`) legitimately has no translation: its target's origin
+        // IS the control, so adding the control's window origin there is what used to push the scene down
+        // by the height of the tab strip + top bar.
+        //
+        // Known limitation: at render scaling 1 the two are indistinguishable by scale alone (an isolated
+        // DIP pass and a Windows on-screen pass that reports no translation both look like scale 1), so
+        // there the isolated capture keeps that offset. Erring that way is deliberate — the alternative
+        // (classifying by the canvas' device clip) risks the *on-screen* scene, since a partial repaint or
+        // Android's first frames legitimately clip from the origin.
+        if (controlOriginInTopLevel.HasValue && Math.Abs(deviceScaleX - scale) < 0.01f)
+        {
+            var fallbackTransX = (float)(controlOriginInTopLevel.Value.X * deviceScaleX);
+            var fallbackTransY = (float)(controlOriginInTopLevel.Value.Y * deviceScaleX);
 
             if (Math.Abs(pivotTransform.TransX) < 0.01f && Math.Abs(fallbackTransX) > 0.01f)
                 pivotTransform.TransX = fallbackTransX;
@@ -434,7 +469,39 @@ public class SkiaCanvas : Control
         }
 
         ViewPort.PivotTransformMatrix = pivotTransform;
+
+#if DEBUG
+        LogPivotOnChange(currentTransform, deviceTransform, pivotTransform, scale, controlOriginInTopLevel);
+#endif
     }
+
+#if DEBUG
+    private static string? _lastLoggedPivot;
+
+    /// <summary>
+    /// On a HiDPI display the on-screen and offscreen passes must end up with *different* pivots (the
+    /// window surface is physical pixels, a <c>RenderTargetBitmap</c>'s is DIP). Logging each distinct
+    /// combination — deduplicated, so a 60 fps repaint prints nothing — is how that can be checked against
+    /// a running build via the inspector's <c>get_logs</c>, which is the only honest verification available
+    /// when the thing under test is the screenshot path itself.
+    /// </summary>
+    private static void LogPivotOnChange(Matrix currentTransform, SKMatrix deviceTransform, SKMatrix pivot,
+        float scale, Point? origin)
+    {
+        var line = $"[Pix2d] canvas pivot: device=[{deviceTransform.ScaleX:0.###} {deviceTransform.ScaleY:0.###} " +
+                   $"{deviceTransform.TransX:0.##} {deviceTransform.TransY:0.##}] " +
+                   $"avalonia=[{currentTransform.M11:0.###} {currentTransform.M22:0.###} " +
+                   $"{currentTransform.M31:0.##} {currentTransform.M32:0.##}] " +
+                   $"vpScale={scale:0.###} origin={(origin.HasValue ? $"{origin.Value.X:0.##},{origin.Value.Y:0.##}" : "-")} " +
+                   $"→ pivot=[{pivot.ScaleX:0.###} {pivot.ScaleY:0.###} {pivot.TransX:0.##} {pivot.TransY:0.##}]";
+
+        if (line == _lastLoggedPivot)
+            return;
+
+        _lastLoggedPivot = line;
+        Console.WriteLine(line);
+    }
+#endif
 
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
@@ -1150,8 +1217,6 @@ public class SkiaCanvas : Control
         public Rect Bounds { get; } = bounds;
         public bool HitTest(Point p) => true;
         public bool Equals(ICustomDrawOperation? other) => false;
-        private Matrix _lastTransform;
-        private Point? _lastOrigin;
 
         public void Dispose()
         {
@@ -1192,14 +1257,23 @@ public class SkiaCanvas : Control
                     {
                         var controlOriginInTopLevel = parent._cachedOriginInTopLevel;
 
-                        if (_lastTransform != context.CurrentTransform || _lastOrigin != controlOriginInTopLevel)
-                        {
-                            parent.UpdatePivotTransform(context.CurrentTransform, controlOriginInTopLevel);
-                            _lastTransform = context.CurrentTransform;
-                            _lastOrigin = controlOriginInTopLevel;
-                        }
+                        // The pivot describes THIS pass (see UpdatePivotTransform): the window surface is
+                        // physical pixels while an offscreen RenderTargetBitmap's is DIP, so it must be
+                        // recomputed per pass from the canvas' own matrix — and it lives on the shared
+                        // ViewPort, so restore the previous one afterwards or a screenshot leaves the
+                        // on-screen frames drawing with an offscreen pivot.
+                        var previousPivot = parent.ViewPort.PivotTransformMatrix;
+                        parent.UpdatePivotTransform(context.CurrentTransform, canvas.TotalMatrix, controlOriginInTopLevel);
 
-                        SKNodeRenderer.Render(parent._rootNode, new RenderContext(canvas, parent.ViewPort));
+                        try
+                        {
+                            SKNodeRenderer.Render(parent._rootNode, new RenderContext(canvas, parent.ViewPort));
+                        }
+                        finally
+                        {
+                            if (parent.ViewPort != null)
+                                parent.ViewPort.PivotTransformMatrix = previousPivot;
+                        }
                     }
                 }
                 finally

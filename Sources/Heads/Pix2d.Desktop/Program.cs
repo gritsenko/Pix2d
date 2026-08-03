@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Markup.Declarative;
 #if DEBUG
 using Declarative.Avalonia.AgentTools;
+using Pix2d.Desktop.AgentTools;
 #endif
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
@@ -25,6 +26,16 @@ namespace Pix2d.Desktop;
 
 class Program
 {
+#if DEBUG
+    /// <summary>
+    /// The app's DI container, handed to the AgentTools inspector so Pix2d's own MCP tool pack can be
+    /// constructed with the real services. A static field because <see cref="BuildAvaloniaApp"/> must stay
+    /// parameterless (Avalonia's visual designer calls it by convention) while the provider is built in
+    /// <see cref="Main"/> — null under the designer, which is why the inspector wiring is guarded.
+    /// </summary>
+    private static IServiceProvider? _serviceProvider;
+#endif
+
     // Initialization code. Don't use any CrossPlatformDesktop, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
@@ -54,6 +65,10 @@ class Program
         bootstrapper.ConfigureServices(serviceCollection);
         var sp = bootstrapper.GetServiceProvider();
 
+#if DEBUG
+        _serviceProvider = sp;
+#endif
+
         EditorApp.Pix2dBootstrapper = bootstrapper;
         EditorApp.AppStarted = OnAppStarted;
         EditorApp.AppInitialized = OnAppInitialized;
@@ -81,11 +96,31 @@ class Program
                 .LogToTrace();
 
 #if DEBUG
-        // In-process MCP inspector (Declarative.Avalonia.AgentTools) — loopback streamable-HTTP
-        // server on http://127.0.0.1:5599 exposing get_visual_tree / list_components / screenshot_*
-        // / get_errors, plus the opt-in `invoke` remote-control tool. Debug-only; must never ship
-        // in Release (the package reference is Debug-gated in the .csproj).
-        builder = builder.UseAgentInspector(o => o.EnableInteraction = true);
+        // In-process MCP inspector (Declarative.Avalonia.AgentTools) — loopback streamable-HTTP server on
+        // http://127.0.0.1:5599. Debug-only; must never ship in Release (the package reference is
+        // Debug-gated in the .csproj). Three tiers of tools, all documented in CLAUDE.md:
+        //  * read-only: get_app_info / get_visual_tree / get_layout / layout_audit / get_properties /
+        //    get_property_sources / get_data_context / get_source / find_text / hit_test /
+        //    list_components / get_errors / get_logs / get_render_stats / screenshot_window /
+        //    screenshot_control / screenshot_region / compare_screenshots / list_screenshots / highlight;
+        //  * EnableInteraction: real synthesized input through Avalonia's pipeline (tap with a true
+        //    ClickCount, drag, pointer_press/move/release, pointer_wheel, touch_* + pinch, pen pressure),
+        //    plus invoke / invoke_command / set_view_model / set_window_size / set_theme / open_popup;
+        //  * Pix2d's own pack (below) — the editor canvas is one opaque control to the generic tools, so
+        //    state, the SKNode scene, artwork pixels and the canvas↔screen coordinate mapping are only
+        //    reachable through tools we ship ourselves.
+        builder = builder.UseAgentInspector(o =>
+        {
+            o.EnableInteraction = true;
+
+            // Under the visual designer there is no container; the generic tools still work.
+            if (_serviceProvider != null)
+            {
+                o.Services = _serviceProvider;
+                o.WithTools<Pix2dInspectionTools>()   // pix2d_state / _scene_tree / _pixels / _canvas_png / _map_point / _commands
+                    .WithTools<Pix2dEditingTools>();  // pix2d_command / _select_tool / _set_color (gated on EnableInteraction)
+            }
+        });
 #endif
 
         return ConfigureWindowsRendering(builder);
