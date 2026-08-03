@@ -17,6 +17,59 @@ public static class RemoveBackground
     public static int SourceWidth { get; private set; }
     public static int SourceHeight { get; private set; }
 
+    /// <summary>
+    /// Set to the failure that permanently disabled background removal on this machine, null while it is
+    /// usable. Two parts of the pipeline can simply be absent from a user's installation: the native
+    /// onnxruntime library the managed package P/Invokes into (appstat: <c>DllNotFoundException</c> out of
+    /// <c>NativeMethods.OrtGetApiBase</c>, 3.11.3, Windows) and the embedded u2netp model. Neither can
+    /// appear mid-session, so the first such failure switches AI selection off instead of re-paying the
+    /// resize + tensor build on every gesture.
+    /// </summary>
+    public static Exception? UnavailableReason { get; private set; }
+
+    public static bool IsAvailable => UnavailableReason == null;
+
+    /// <summary>
+    /// The last failure seen by <see cref="TryProcess"/>, permanent or not — the message the UI reports.
+    /// </summary>
+    public static Exception? LastFailure { get; private set; }
+
+    /// <summary>
+    /// Runs <see cref="Process"/>, returning null instead of throwing. The exception used to escape all
+    /// the way out through <c>SKInput.SetPointerReleased</c> and terminate the app; the caller
+    /// (<see cref="AiPixelSelector"/>) now degrades to the plain rectangle the user dragged.
+    /// </summary>
+    public static SKBitmap? TryProcess(SKBitmap original, string model)
+    {
+        if (!IsAvailable)
+            return null;
+
+        try
+        {
+            if (AiPlugin.ModelData is not { Length: > 0 })
+                throw new InvalidOperationException(
+                    "AI model 'u2netp.onnx' is not loaded — the embedded plugin resource is missing.");
+
+            return Process(original, model);
+        }
+        catch (Exception ex)
+        {
+            LastFailure = ex;
+            if (IsPermanentFailure(ex))
+                UnavailableReason = ex;
+
+            Logger.LogException(ex);
+            return null;
+        }
+    }
+
+    // A missing or incompatible native runtime / model is fatal for the whole session; a genuine inference
+    // error is not, so that one only costs the current gesture.
+    private static bool IsPermanentFailure(Exception ex) =>
+        ex is DllNotFoundException or TypeInitializationException or BadImageFormatException
+            or EntryPointNotFoundException or InvalidOperationException
+        || (ex.InnerException is { } inner && IsPermanentFailure(inner));
+
     public static unsafe SKBitmap Process(SKBitmap original, string model)
     {
         SourceWidth = original.Width;

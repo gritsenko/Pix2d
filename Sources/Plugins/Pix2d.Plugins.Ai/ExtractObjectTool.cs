@@ -28,9 +28,14 @@ namespace Pix2d.Plugins.Ai;
 public class ExtractObjectTool : PixelSelectToolBase
 {
     private readonly IViewPortRefreshService _viewPortRefreshService;
+    private readonly IDialogService _dialogService;
 
     private DrawingOperationWithFullState? _pixelSelectDrawingOperation;
     private AiPixelSelector? _aiPixelSelector;
+
+    // One notice per session: the runtime cannot appear while the app is running, and a dialog on every
+    // gesture would be worse than quietly handing back the dragged rectangle.
+    private static bool _aiFailureReported;
 
     private IDrawingLayer DrawingLayer => DrawingService.DrawingLayer;
 
@@ -39,10 +44,12 @@ public class ExtractObjectTool : PixelSelectToolBase
         IMessenger messenger,
         AppState appState,
         IToolService toolService,
-        IViewPortRefreshService viewPortRefreshService)
+        IViewPortRefreshService viewPortRefreshService,
+        IDialogService dialogService)
         : base(drawingService, messenger, appState, toolService)
     {
         _viewPortRefreshService = viewPortRefreshService;
+        _dialogService = dialogService;
         _pixelSelectDrawingOperation = null!;
         _aiPixelSelector = null!;
     }
@@ -75,10 +82,28 @@ public class ExtractObjectTool : PixelSelectToolBase
 
     private void DrawingLayer_SelectionStarted(object? sender, EventArgs e)
     {
-        _aiPixelSelector = new AiPixelSelector();
+        _aiPixelSelector = new AiPixelSelector(OnAiSelectionFailed);
         DrawingLayer.SetCustomPixelSelector(_aiPixelSelector);
 
         SelectionState.IsUserSelecting = true;
+    }
+
+    /// <summary>
+    /// The selection already came back as the dragged rectangle (see <see cref="AiPixelSelector"/>) — all
+    /// that is left is to explain why the tool did not extract an object. Reported once per session, and
+    /// only when the failure is permanent: a one-off inference error is not worth a dialog.
+    /// </summary>
+    private void OnAiSelectionFailed(Exception? failure)
+    {
+        if (_aiFailureReported || RemoveBackground.IsAvailable)
+            return;
+
+        _aiFailureReported = true;
+        _dialogService.Alert(
+            "The AI model could not be loaded on this device, so object selection stays rectangular. "
+            + "Reinstalling Pix2d usually restores it."
+            + (failure == null ? "" : $"\n\n{failure.Message}"),
+            "AI selection unavailable");
     }
 
     private void DrawingLayerOnPixelsBeforeSelected(object? sender, PixelsBeforeSelectedEventArgs e)

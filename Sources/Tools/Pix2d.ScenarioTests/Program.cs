@@ -1586,6 +1586,22 @@ static class Runner
             Assert.True(box.Contains(sel), $"marquee {sel} is not inside the artboard {box}");
         });
 
+        // A drag running past the canvas edge used to size the selector's mask buffer from the raw drag
+        // extent (`new byte[_width * _height]` over the collected points), so a few hundred DIP off a
+        // zoomed-out canvas asked for hundreds of megabytes and died mid-gesture with OutOfMemoryException
+        // (appstat, 3.11.2, Android on a 64x64 canvas). The marquee must clamp to the canvas instead.
+        // 4000 world units is kept deliberately modest so a regression fails fast instead of thrashing.
+        t.Check("a drag far off-canvas clamps the marquee to the canvas", () =>
+        {
+            h.Exec("Edit.Selection.Deselect");
+            h.DragWorld(box.Left + 4, box.Top + 4, box.Left + 4000, box.Top + 4000);
+            Assert.True(h.HasPixelSelection, "no selection after the off-canvas drag");
+            var sel = h.PixelSelectionBounds;
+            Console.WriteLine($"  [diag] off-canvas drag marquee bounds: {sel}");
+            Assert.True(box.Contains(sel), $"marquee {sel} escaped the artboard {box}");
+            h.Exec("Edit.Selection.Deselect"); // this marquee covers most of the canvas — don't leak it
+        });
+
         t.Check("click outside the marquee clears the selection", () =>
         {
             h.ClickWorld(box.Left + 40, box.Top + 40);

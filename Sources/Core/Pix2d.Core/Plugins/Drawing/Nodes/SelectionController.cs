@@ -275,14 +275,15 @@ internal sealed class SelectionController
         _host.UseSwapBitmap = false;
 
         // pos arrives in world space (the router hands over the pointer's press position), while the
-        // selectors work in layer-local pixels — the same mapping AddSelectionPoint/SetSelectionRect do.
-        // Without it an artboard that isn't at the scene origin seeded the selector with an off-canvas
-        // point: the magic wand sampled the wrong pixel, and PixelSelector ran its first LineDda from
-        // there, dragging a stray line into the selection (which is how a plain click could come out as a
-        // wide rectangle).
-        _host.GetGlobalTransform().TryInvert(out var invertedTransform);
-        var localStart = invertedTransform.MapPoint(pos);
-        _pixelSelector.BeginSelection(new SKPointI((int)localStart.X, (int)localStart.Y));
+        // selectors work in layer-local pixels — see ToLocalClamped.
+        var localStart = ToLocalClamped(pos);
+
+        // The magic wand is the one selector seeded by *pixel identity* rather than by an extent (it sizes
+        // its own buffer from the layer bitmap and bounds-checks the seed itself). Clamping its seed to the
+        // canvas edge would turn a click off-canvas — which must select nothing — into a selection of
+        // whatever happens to sit on the border, so it gets the unclamped point.
+        var seed = SelectionMode == PixelSelectionMode.SameColor ? ToLocal(pos) : localStart;
+        _pixelSelector.BeginSelection(new SKPointI((int)seed.X, (int)seed.Y));
 
         ShowMarqueeOverlay();
 
@@ -299,9 +300,7 @@ internal sealed class SelectionController
         if (_pixelSelector == null)
             return;
 
-        var pivot = SKPoint.Empty;
-        _host.GetGlobalTransform().TryInvert(out var invertedTransform);
-        var selectionPoint = invertedTransform.MapPoint(p + pivot);
+        var selectionPoint = ToLocalClamped(p);
 
         // Pass a no-op plot: the pixel-level visualization is now handled by SelectionMarqueeOverlayNode.
         // The selector still needs the call to keep _selectionPoints populated (used by FinishSelection
@@ -317,13 +316,10 @@ internal sealed class SelectionController
         if (_pixelSelector == null)
             return;
 
-        var pivot = SKPoint.Empty;
-        _host.GetGlobalTransform().TryInvert(out var invertedTransform);
-
-        var p1 = invertedTransform.MapPoint(startPos + pivot).ToSkPointI();
-        var p2 = invertedTransform.MapPoint(new SKPoint(endPos.X, startPos.Y) + pivot).ToSkPointI();
-        var p3 = invertedTransform.MapPoint(endPos + pivot).ToSkPointI();
-        var p4 = invertedTransform.MapPoint(new SKPoint(startPos.X, endPos.Y) + pivot).ToSkPointI();
+        var p1 = ToLocalClamped(startPos).ToSkPointI();
+        var p2 = ToLocalClamped(new SKPoint(endPos.X, startPos.Y)).ToSkPointI();
+        var p3 = ToLocalClamped(endPos).ToSkPointI();
+        var p4 = ToLocalClamped(new SKPoint(startPos.X, endPos.Y)).ToSkPointI();
 
         _pixelSelector.BeginSelection(p1);
         _pixelSelector.AddSelectionPoint(p2, NoPlot);
@@ -340,6 +336,42 @@ internal sealed class SelectionController
     }
 
     private static void NoPlot(int x, int y) { }
+
+    /// <summary>
+    /// Maps a world-space pointer position into layer-local pixels and clamps it to the drawing target.
+    ///
+    /// <para>The mapping is what keeps an artboard that isn't at the scene origin honest: without it the
+    /// selector was seeded with an off-canvas point, the magic wand sampled the wrong pixel, and
+    /// <see cref="PixelSelector"/> ran its first LineDda from there, dragging a stray line into the
+    /// selection (which is how a plain click could come out as a wide rectangle).</para>
+    ///
+    /// <para>The clamp is what keeps it alive. A marquee can only ever select pixels that exist, but the
+    /// raw drag extent is what sizes the selector's mask buffer — <c>new byte[_width * _height]</c> in
+    /// <see cref="IPixelSelector.FinishSelection"/>. Dragging a few hundred DIP past the edge of a
+    /// zoomed-out canvas therefore asked for hundreds of megabytes and died mid-gesture with
+    /// <c>OutOfMemoryException</c> (appstat, 3.11.2, Android/SM-P613 on a 64x64 canvas). Clamping caps
+    /// every selector's buffer at the canvas size and, as a bonus, makes the marquee on screen and the
+    /// size it reports match what will actually be selected.</para>
+    /// </summary>
+    private SKPoint ToLocalClamped(SKPoint worldPos)
+    {
+        var local = ToLocal(worldPos);
+
+        if (_host.DrawingTarget is not { } drawingTarget)
+            return local;
+
+        // Pixel indices run 0..w-1 / 0..h-1; a degenerate target collapses to the origin.
+        var size = drawingTarget.GetSize();
+        return new SKPoint(
+            Math.Clamp(local.X, 0, Math.Max(0, size.Width - 1)),
+            Math.Clamp(local.Y, 0, Math.Max(0, size.Height - 1)));
+    }
+
+    private SKPoint ToLocal(SKPoint worldPos)
+    {
+        _host.GetGlobalTransform().TryInvert(out var invertedTransform);
+        return invertedTransform.MapPoint(worldPos);
+    }
 
     /// <summary>
     /// Activates selection editor using currently drawn selection area. If nothing is selected

@@ -6,7 +6,12 @@ using System.Runtime.InteropServices;
 
 namespace Pix2d.Plugins.Ai.Selection;
 
-public class AiPixelSelector : IPixelSelector
+/// <param name="aiFailureHandler">
+/// Called (on the pointer thread, inside the finishing gesture) when background removal could not run and
+/// the selection fell back to the dragged rectangle. Lets the owning tool tell the user once instead of
+/// silently handing back a rectangle from a tool named "object selection".
+/// </param>
+public class AiPixelSelector(Action<Exception?>? aiFailureHandler = null) : IPixelSelector
 {
     private SKPointI _lastSelectionPoint;
     private readonly HashSet<SKPointI> _selectionPoints = new HashSet<SKPointI>();
@@ -184,7 +189,18 @@ public class AiPixelSelector : IPixelSelector
                 }
             }
 
-        var extractedMask = RemoveBackground.Process(bitmap, "u2netp.onnx");
+        var extractedMask = RemoveBackground.TryProcess(bitmap, "u2netp.onnx");
+        if (extractedMask == null)
+        {
+            // No AI available (or inference failed): keep the whole dragged rectangle selected, exactly as
+            // the plain rect tool would. Letting the exception through instead killed the app from inside
+            // the pointer-released handler (appstat: DllNotFoundException, 3.11.3, Windows).
+            _pixelsBuff.AsSpan().Fill(255);
+            BuildSelectionPath();
+            aiFailureHandler?.Invoke(RemoveBackground.LastFailure);
+            return bitmap;
+        }
+
         var maskPixels = MemoryMarshal.Cast<byte, int>(extractedMask.GetPixelSpan());
 
         for (int y = 0; y < bitmap.Height; y++)

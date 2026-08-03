@@ -40,7 +40,18 @@ dotnet publish Sources/Heads/Pix2d.Browser -c Release
 dotnet build Sources/Heads/Pix2d.Droid -t:Install
 ```
 
-There is **no test project** in this solution — `dotnet test` has nothing to run. `TestImages/` is a folder of sample `.pix2d` files used for manual QA, not a test project.
+There is **no xunit/nunit project** in this solution — `dotnet test` has nothing to run. What exists instead are two **runnable console harnesses** under [Sources/Tools/](Sources/Tools/), and they are the cheapest way to verify a Core change without launching the UI:
+
+```bash
+# Headless editor scenarios: real DI + services + scene graph, synthesized pointer input,
+# per-check PASS/FAIL, plus a "safe sweep" that executes every registered command.
+dotnet run --project Sources/Tools/Pix2d.ScenarioTests
+
+# Project-format round-trips over the .pix2d corpus.
+dotnet run --project Sources/Tools/Pix2d.FormatTests
+```
+
+Add a scenario next to the existing ones in [Program.cs](Sources/Tools/Pix2d.ScenarioTests/Program.cs) (drive the editor through [`HeadlessHarness`](Sources/Tools/Pix2d.ScenarioTests/HeadlessHarness.cs): `NewProject`, `ActivateTool<T>`, `DragWorld`/`ClickWorld`, `GetPixel`, `Exec("Command.Name")`) rather than starting a new test project. `TestImages/` is a folder of sample `.pix2d` files used for manual QA, not a test project.
 
 CI lives in `.github/workflows/release-publish.yml` (every platform, Microsoft Store included) and `attach-store-msix.yml`. Multi-platform releases are triggered via `workflow_dispatch` or tag pushes `v*`.
 

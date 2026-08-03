@@ -32,8 +32,15 @@ public class AiPlugin : IPix2dPlugin
     private void LoadModel()
     {
         var assembly = Assembly.GetExecutingAssembly();
+
+        // FirstOrDefault, not Single: a trimmed / repackaged build without the embedded model must not take
+        // plugin initialization (and with it app startup) down. RemoveBackground.TryProcess reports the
+        // missing model to the user the first time the tool is actually used.
         var resourceName = assembly.GetManifestResourceNames()
-            .Single(str => str.EndsWith("u2netp.onnx", StringComparison.InvariantCultureIgnoreCase));
+            .FirstOrDefault(str => str.EndsWith("u2netp.onnx", StringComparison.InvariantCultureIgnoreCase));
+
+        if (resourceName == null)
+            return;
 
         using var stream = assembly.GetManifestResourceStream(resourceName);
         using var ms = new MemoryStream();
