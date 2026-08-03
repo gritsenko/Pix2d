@@ -77,7 +77,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Avalonia" Version="12.1.1" />
-		<PackageReference Include="Avalonia.Markup.Declarative" Version="12.1.1" />
+		<PackageReference Include="Avalonia.Markup.Declarative" Version="12.1.2-fix-agent.1" />
 		<PackageReference Include="Avalonia.Skia" Version="12.1.1" />
 		<PackageReference Include="Avalonia.Themes.Simple" Version="12.1.1" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />

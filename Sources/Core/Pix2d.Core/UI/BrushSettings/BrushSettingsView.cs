@@ -301,8 +301,7 @@ public partial class BrushSettingsView(AppState appState, IDrawingService drawin
             if (preset == null)
                 return;
 
-            _drawingState.CurrentPixelBrushPreset = preset;
-            SyncFromDrawingState();
+            ActivatePreset(preset);
         }
 
         /// <summary>
@@ -315,6 +314,24 @@ public partial class BrushSettingsView(AppState appState, IDrawingService drawin
             if (preset == null)
                 return;
 
+            ActivatePreset(preset);
+        }
+
+        /// <summary>
+        /// Makes <paramref name="preset"/> both the highlighted tile AND the brush the canvas draws with.
+        ///
+        /// <para>Both halves are needed: the row's highlight is <c>CurrentPixelBrushPreset</c> while the live
+        /// brush is <c>CurrentBrushSettings</c>, and assigning only the former leaves the user drawing with the
+        /// previous brush. Tapping a tile gets this for free through
+        /// <see cref="OnCurrentPixelBrushPresetChanged"/> — but that handler cannot be relied on here, because
+        /// writing the state property makes <see cref="SyncFromDrawingState"/> assign the view-model property
+        /// with <c>_isSyncing</c> set, which is exactly the case it bails out of.</para>
+        /// </summary>
+        private void ActivatePreset(Pix2d.Primitives.Drawing.BrushSettings preset)
+        {
+            // A clone, not the preset itself: editing size/opacity afterwards must not silently rewrite the
+            // saved tile (the same contract OnCurrentPixelBrushPresetChanged follows).
+            _drawingState.CurrentBrushSettings = preset.Clone();
             _drawingState.CurrentPixelBrushPreset = preset;
             SyncFromDrawingState();
         }

@@ -1276,6 +1276,46 @@ static class Runner
                 "the stamp preset stopped painting after its preview copy was disposed");
         });
 
+        // The two halves of "the new preset is selected" are separate state: CurrentPixelBrushPreset is the
+        // row's highlight, CurrentBrushSettings is what the canvas draws with. The presets menu wrote only the
+        // former, so a freshly created preset looked active while every stroke still used the previous brush.
+        // Asserted through BrushSettingsView.State (plain view-model state, no Avalonia types) because that is
+        // where the menu items land — the service deliberately doesn't activate anything.
+        t.Check("creating a brush from a selection makes it the brush that actually draws", () =>
+        {
+            h.NewProject(8);
+            state.CurrentBrushSettings = state.BrushPresets.First(p => p.BuiltInId == "square-1").Clone();
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(3, 3);
+            h.EnsurePixelSelection();
+
+            var vm = new Pix2d.UI.BrushSettings.BrushSettingsView.State(h.AppState, drawing, h.Dialogs);
+
+            // Both color modes go through the same code path, so both used to be broken; check both.
+            foreach (var useOriginalColors in new[] { true, false })
+            {
+                vm.SaveSelectionAsBrushPreset(useOriginalColors);
+
+                var created = state.BrushPresets[^1];
+                Assert.True(created.Brush is Pix2d.Plugins.Drawing.Brushes.ImageStampBrush,
+                    $"precondition: no stamp preset was created (useOriginalColors={useOriginalColors})");
+                Assert.True(ReferenceEquals(state.CurrentPixelBrushPreset, created),
+                    $"the new preset is not selected in the row (useOriginalColors={useOriginalColors})");
+                Assert.True(ReferenceEquals(state.CurrentBrushSettings.Brush, created.Brush),
+                    $"the live brush is still the previous one (useOriginalColors={useOriginalColors})");
+                Assert.True(!ReferenceEquals(state.CurrentBrushSettings, created),
+                    "the live settings must be a clone, not the preset tile itself");
+            }
+
+            // And the same for saving the current brush, which shares the activation helper.
+            state.CurrentBrushSettings = state.BrushPresets.First(p => p.BuiltInId == "circle-8").Clone();
+            vm.SaveCurrentBrushAsPreset();
+            Assert.True(state.CurrentPixelBrushPreset != null &&
+                        ReferenceEquals(state.CurrentBrushSettings.Brush, state.CurrentPixelBrushPreset.Brush),
+                "saving the current brush left the row highlight and the live brush out of sync");
+        });
+
         // Leave no user presets and no hidden built-ins behind for the command sweep / later scenarios.
         settings.Set("UserBrushPresets", new List<BrushPresetData>());
         settings.Set("HiddenBuiltInPresetIds", new List<string>());
