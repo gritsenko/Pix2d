@@ -58,7 +58,34 @@ public static class SKBitmapExtensions
 
     public static SKSurface GetSKSurface(this SKBitmap bitmap)
     {
-        return SKSurface.Create(new SKImageInfo(bitmap.Width, bitmap.Height, bitmap.ColorType, SKAlphaType.Premul), bitmap.GetPixels(), bitmap.Width * 4);
+        return SKSurface.Create(new SKImageInfo(bitmap.Width, bitmap.Height, bitmap.ColorType, SKAlphaType.Premul), bitmap.GetPixels(), bitmap.RowBytes);
+    }
+
+    /// <summary>
+    /// Opens a canvas that draws straight into <paramref name="bitmap"/>'s pixels. Use this instead of
+    /// <c>bitmap.GetSKSurface().Canvas</c>.
+    ///
+    /// <para>That idiom is a trap in two ways: the surface it creates is never disposed (the <c>using</c>
+    /// binds the canvas, which the surface owns), and it can hand back a <b>null</b> canvas — a raster
+    /// surface over an unallocated pixel buffer, or a native handle SkiaSharp's object cache no longer
+    /// resolves after the leaked surface was finalized. The caller then dereferenced null deep inside a
+    /// draw lambda: appstat saw it as a bare `NullReferenceException` in
+    /// <c>SKBitmapExtensions.CropByAnchor</c> under a resize undo, 23 events / 6 users on 3.11.2, with
+    /// nothing in the stack pointing at the missing canvas. A canvas built directly on the bitmap owns
+    /// itself, needs no surface, and throws a named error if it cannot be created.</para>
+    /// </summary>
+    public static SKCanvas CreateCanvas(this SKBitmap bitmap)
+    {
+        if (bitmap == null)
+            throw new ArgumentNullException(nameof(bitmap));
+
+        // SKBitmap's ctor throws when it cannot allocate, but a bitmap can also *arrive* here with its
+        // pixels released (see BitmapNode's unload path), and Skia will not raster into nothing.
+        if (bitmap.GetPixels() == IntPtr.Zero)
+            throw new InvalidOperationException(
+                $"Cannot draw into a {bitmap.Width}x{bitmap.Height} bitmap: it has no pixel buffer.");
+
+        return new SKCanvas(bitmap);
     }
 
     public static void Clear(this SKBitmap bitmap)
@@ -127,13 +154,32 @@ public static class SKBitmapExtensions
         // throws on the next stroke instead of at the point that produced it.
         newSize = new SKSizeI(Math.Max(1, newSize.Width), Math.Max(1, newSize.Height));
 
-        var newBm = new SKBitmap(new SKImageInfo(newSize.Width, newSize.Height, SKColorType.Rgba8888));
+        var newBm = AllocateBitmap(new SKImageInfo(newSize.Width, newSize.Height, SKColorType.Rgba8888));
         newBm.Erase(SKColor.Empty);
-        using (var canvas = newBm.GetSKSurface().Canvas)
+        using (var canvas = newBm.CreateCanvas())
         {
             processAction(canvas);
         }
         return newBm;
+    }
+
+    /// <summary>
+    /// Allocates a bitmap, reporting *what* could not be allocated when it fails. SkiaSharp's own message
+    /// ("Unable to allocate pixels for the bitmap.") carries no dimensions, so a report of it says nothing
+    /// about whether the app asked for something impossible or the device was simply out of memory —
+    /// which is exactly what the 64344556x64 canvas in appstat took an `app_context` field to work out.
+    /// </summary>
+    private static SKBitmap AllocateBitmap(SKImageInfo info)
+    {
+        try
+        {
+            return new SKBitmap(info);
+        }
+        catch (Exception e)
+        {
+            throw new InvalidOperationException(
+                $"Failed to allocate a {info.Width}x{info.Height} bitmap ({info.BytesSize64 / (1024 * 1024)} MB).", e);
+        }
     }
 
     public unsafe static void CopyPixelsToBitmap(this SKBitmap targetBitmap, byte[] pixels)

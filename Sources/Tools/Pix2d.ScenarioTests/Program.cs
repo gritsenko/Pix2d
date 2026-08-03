@@ -78,6 +78,9 @@ static class Runner
         SpriteSheetExportScenario(harness, t);
         ArtboardScenario(harness, t);
         DegenerateCanvasScenario(harness, t);
+        OversizedCanvasScenario(harness, t);
+        MoveThumbSelectionChurnScenario(harness, t);
+        ReadOnlyOverwriteScenario(harness, t);
         AnimationMetaScenario(harness, t);
         BrushPresetScenario(harness, t);
         BatchExportScenario(harness, t);
@@ -771,6 +774,171 @@ static class Runner
         // Leave a clean project behind — the poisoned frame above is not worth threading through the
         // scenarios that follow.
         h.NewProject();
+    }
+
+    // --- Scenario 7ad: an oversized canvas request cannot poison the document -----------------------
+    // The mirror image of 7ab, and the top live signature on 3.11.2: "Unable to allocate pixels for the
+    // bitmap." (21 events / 7 users), one session stuck at `app_context: canvas=64344556x64` — a typo in
+    // the (then unbounded) canvas-size panel. Because Pix2dSprite.Crop assigns Size *before* resizing its
+    // layers, the failed allocation left the sprite holding an impossible size, and every later operation
+    // that re-derives a bitmap from it (DrawingLayerNode.SetTarget allocates three) threw again. The
+    // defence is the same shape as the min-size one: CanvasSize clamps both ends at every choke point.
+    static void OversizedCanvasScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Oversized canvas scenario ===");
+
+        t.Check("CanvasSize clamps an absurd dimension to the allocatable maximum", () =>
+        {
+            var clamped = CanvasSize.Sanitize(new SKSize(64344556, 64));
+            Assert.True(clamped.Width == CanvasSize.MaxDimension, $"width is {clamped.Width}");
+            Assert.True(clamped.Height == 64, $"height {clamped.Height} should have passed through");
+            Assert.True(!CanvasSize.IsOversized(clamped), "the clamped size is still oversized");
+        });
+
+        t.Check("a canvas at the limit cannot overflow a 32-bit pixel-buffer size", () =>
+        {
+            // The reason MaxDimension is 16384 and not something rounder.
+            var max = (long)CanvasSize.MaxDimension;
+            Assert.True(max * max * 4 <= (long)int.MaxValue + 1,
+                $"{max}x{max}x4 = {max * max * 4} exceeds the addressable buffer size");
+        });
+
+        t.Check("a crop to an unallocatable size leaves the sprite usable", () =>
+        {
+            var sprite = Pix2dSprite.CreateFromBitmap(new SKBitmap(16, 16));
+
+            sprite.Crop(SKRect.Create(0, 0, 64344556, 64));
+
+            Assert.True(!CanvasSize.IsOversized(sprite.Size), $"sprite size is {sprite.Size}");
+            var frame = sprite.Layers.First().Nodes.OfType<SpriteNode>().First();
+            Assert.True(frame.Bitmap is { Width: > 0, Height: > 0 }, "the crop left the frame without pixels");
+        });
+
+        // End to end through the real command + operation path: the panel's Apply on a nonsense width.
+        h.NewProject();
+        var editService = h.Services.GetRequiredService<IEditService>();
+
+        t.Check("Apply on a nonsense canvas width does not throw", () =>
+            editService.CropCurrentSprite(new SKSize(64344556, 64), 0.5f, 0.5f));
+
+        t.Check("and the editor keeps drawing afterwards", () =>
+        {
+            // This is what used to fail forever after: the next stroke re-enters DrawingLayerNode.SetTarget,
+            // which allocates working/background/swap bitmaps from the (previously impossible) target size.
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(2, 2);
+
+            Assert.True(h.GetPixel(2, 2).Alpha > 0, "the stroke did not land after an oversized crop");
+        });
+
+        h.NewProject();
+    }
+
+    // --- Scenario 7ae: a selection rebuilt mid-drag must not kill the drag -------------------------
+    // MoveThumbNode snapshots the dragged nodes' positions once, on DragStarted, then indexed that
+    // snapshot on every DragDelta. The selection is not frozen for the duration of a gesture though — the
+    // pointer stays captured by the thumb while other code re-selects — so a node that joined the
+    // selection mid-gesture had no snapshot entry and the next pointer-move threw KeyNotFoundException:
+    // appstat 3.11.3, `'Pix2d.Plugins.Drawing.Nodes.SpriteSelectionNode' was not present in the
+    // dictionary`, out of `tool=PixelTransformTool` (its lift materialises that node after the press).
+    // Reproduced here with artboards in General context because the invariant belongs to the thumb, not
+    // to any one tool: whatever changes the selection, the drag must keep working.
+    static void MoveThumbSelectionChurnScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Move-thumb selection churn scenario ===");
+
+        h.NewProject(64);
+        h.Exec("Sprite.Edit.AddArtboard");
+
+        var sprites = h.AppState.CurrentProject.SceneNode!.Nodes.OfType<Pix2dSprite>().ToArray();
+        var a = sprites[0];
+        var b = sprites[1];
+        var aBox = a.GetBoundingBox();
+
+        h.AppState.CurrentProject.CurrentContextType = EditContextType.General;
+        h.SetView(1);   // 1:1, so the screen-pixel-sized thumb hit zones stay where the maths says
+
+        t.Check("a node that joins the selection mid-drag does not break the gesture", () =>
+        {
+            // Press starts a select-and-drag on `a` alone: the thumb captures the pointer and snapshots {a}.
+            h.PressWorld(aBox.MidX, aBox.MidY);
+            h.MoveWorld(aBox.MidX + 4, aBox.MidY, pressed: true);
+
+            // Mid-gesture re-selection, pointer still captured by the thumb — {a} becomes {a, b}.
+            h.SelectNodes(a, b);
+
+            h.MoveWorld(aBox.MidX + 8, aBox.MidY, pressed: true);
+            h.ReleaseWorld(aBox.MidX + 8, aBox.MidY);
+        });
+
+        t.Check("the newcomer is carried by the rest of the drag, not teleported by it", () =>
+        {
+            // Adopting a mid-drag node back-dates its origin by the delta already applied, so it must not
+            // jump by the whole gesture — only by what happened after it joined.
+            var moved = b.Position;
+
+            h.SelectNodes(a, b);
+            h.PressWorld(aBox.MidX, aBox.MidY);
+            h.MoveWorld(aBox.MidX + 3, aBox.MidY, pressed: true);
+            h.ReleaseWorld(aBox.MidX + 3, aBox.MidY);
+
+            Assert.True(b.Position == new SKPoint(moved.X + 3, moved.Y),
+                $"expected the second artboard at +3, got {moved} -> {b.Position}");
+        });
+
+        h.NewProject();
+    }
+
+    // --- Scenario 7af: overwriting a read-only file ------------------------------------------------
+    // Windows marks files extracted from a .zip read-only. Export-over-existing and Ctrl+S on a
+    // PNG-backed project both write through IFileContentSource, whose delete-then-write pair failed with
+    // UnauthorizedAccessException on exactly such a file (appstat 3.11.3, a PNG opened from a Minecraft
+    // resource-pack zip in Temp). Overwriting is the confirmed intent of both operations.
+    static void ReadOnlyOverwriteScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Read-only overwrite scenario ===");
+
+        var dir = Path.Combine(Path.GetTempPath(), "Pix2d.ScenarioTests", "readonly-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "ladder.png");
+
+        try
+        {
+            File.WriteAllText(path, "stale content that must be replaced entirely");
+            File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.ReadOnly);
+
+            var file = new Pix2d.Common.FileSystem.NetFileSource(path);
+
+            t.Check("SaveAsync overwrites a read-only file", () =>
+            {
+                using var source = new MemoryStream(new byte[] { 1, 2, 3 });
+                file.SaveAsync(source).GetAwaiter().GetResult();
+
+                var written = File.ReadAllBytes(path);
+                Assert.True(written.Length == 3, $"expected the file to be truncated to 3 bytes, got {written.Length}");
+            });
+
+            t.Check("OpenWriteAsync overwrites a read-only file", () =>
+            {
+                File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.ReadOnly);
+
+                using (var stream = file.OpenWriteAsync().GetAwaiter().GetResult())
+                    stream.Write([9, 9]);
+
+                Assert.True(File.ReadAllBytes(path).Length == 2, "the stream did not truncate the file");
+            });
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(path))
+                    File.SetAttributes(path, FileAttributes.Normal);
+                Directory.Delete(dir, true);
+            }
+            catch { /* temp cleanup is best effort */ }
+        }
     }
 
     // --- Scenario 7ac: animation metadata — tags, per-frame durations, index shifting ---------------

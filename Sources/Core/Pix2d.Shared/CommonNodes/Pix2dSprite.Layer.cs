@@ -311,7 +311,7 @@ public partial class Pix2dSprite
 
             vp.ShowArea(bbox);
 
-            using var canvas = targetBitmap.GetSKSurface().Canvas;
+            using var canvas = targetBitmap.CreateCanvas();
             canvas.Clear(SKColor.Empty);
 
             SKNodeRenderer.Render(node, new RenderContext(canvas, vp));

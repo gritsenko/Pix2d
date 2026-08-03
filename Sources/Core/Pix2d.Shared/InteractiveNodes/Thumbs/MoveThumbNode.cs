@@ -145,7 +145,22 @@ public class MoveThumbNode : NodeManipulateThumbBase
         if (TargetSelection?.Nodes != null && _initialTargetsPos != null)
         {
             foreach (var target in TargetSelection.Nodes)
-                DragNode(target, _initialTargetsPos[target], delta, SnapToPixels);
+            {
+                // The snapshot is taken once, on DragStarted — but the selection is not frozen for the
+                // duration of a drag: a tool can rebuild it mid-gesture (the pixel-transform tool recreates
+                // its SpriteSelectionNode), and DragComplete empties the snapshot while a stale pointer-move
+                // can still arrive. Indexing it directly turned either case into a KeyNotFoundException out
+                // of an ordinary drag (appstat, 3.11.3). Adopt the newcomer instead, back-dating its origin
+                // by the delta already applied so it stays where it is now and tracks the rest of the drag.
+                if (!_initialTargetsPos.TryGetValue(target, out var initialPos))
+                {
+                    var current = target.GetGlobalPosition();
+                    initialPos = new SKPoint(current.X - delta.X, current.Y - delta.Y);
+                    _initialTargetsPos[target] = initialPos;
+                }
+
+                DragNode(target, initialPos, delta, SnapToPixels);
+            }
         }
     }
 

@@ -27,13 +27,19 @@ public partial class ResizeCanvasView(ISelectionService selectionService, IEditS
                         new Grid().Cols("*, 16, *").Rows("Auto, Auto")
                             .Children(
                                 new TextBlock().Text(L("Width")).FontSize(12).Foreground(Brushes.Gray),
+                                // Bounded input: an unbounded box let a typo become the canvas size, and the
+                                // resulting bitmap allocation threw for the rest of the session. See CanvasSize.
                                 new NumericUpDown().Row(1)
                                     .FormatString("N0")
+                                    .Minimum(State.MinCanvasDimension)
+                                    .Maximum(State.MaxCanvasDimension)
                                     .Value(state, x => x.CanvasWidth, BindingMode.TwoWay),
 
                                 new TextBlock().Col(2).Text(L("Height")).FontSize(12).Foreground(Brushes.Gray),
                                 new NumericUpDown().Col(2).Row(1)
                                     .FormatString("N0")
+                                    .Minimum(State.MinCanvasDimension)
+                                    .Maximum(State.MaxCanvasDimension)
                                     .Value(state, x => x.CanvasHeight, BindingMode.TwoWay)
                             ),
 
@@ -112,6 +118,13 @@ public partial class ResizeCanvasView(ISelectionService selectionService, IEditS
 
     public sealed partial class State : ObservableObject
     {
+        /// <summary>The bounds the model enforces anyway (see <see cref="CanvasSize"/>), surfaced to the
+        /// input boxes so the panel can never ask for a canvas the editor will refuse to allocate.</summary>
+        public const decimal MinCanvasDimension = (decimal)CanvasSize.MinDimension;
+
+        /// <inheritdoc cref="MinCanvasDimension"/>
+        public const decimal MaxCanvasDimension = (decimal)CanvasSize.MaxDimension;
+
         private readonly ISelectionService _selectionService;
         private readonly IEditService _editService;
         private readonly IViewPortService _viewPortService;
@@ -153,8 +166,12 @@ public partial class ResizeCanvasView(ISelectionService selectionService, IEditS
         public bool IsAnchorVisible => ResizeMode == 0;
 
         private bool HasActiveArtboard => _selectionService.GetActiveContainer() is not null;
-        private int CurrentWidth => (int)(CanvasWidth ?? 0);
-        private int CurrentHeight => (int)(CanvasHeight ?? 0);
+
+        // An empty input box means "leave this dimension alone", not "collapse it": the boxes are
+        // clearable, and treating null as 0 asked for a 1px canvas (the model's floor) — i.e. Apply on a
+        // half-typed size would have destroyed the artwork.
+        private int CurrentWidth => (int)(CanvasWidth ?? _originalWidth);
+        private int CurrentHeight => (int)(CanvasHeight ?? _originalHeight);
 
         public State(ISelectionService selectionService, IEditService editService, IViewPortService viewPortService,
             IMessenger messenger, AppState appState)
@@ -274,16 +291,22 @@ public partial class ResizeCanvasView(ISelectionService selectionService, IEditS
         private void SetCanvasHeightFromWidth(decimal width)
         {
             _isSyncing = true;
-            CanvasHeight = Math.Max(decimal.Zero, (decimal)Math.Round((double)width / _aspectRatio));
+            CanvasHeight = ClampDimension((decimal)Math.Round((double)width / _aspectRatio));
             _isSyncing = false;
         }
 
         private void SetCanvasWidthFromHeight(decimal height)
         {
             _isSyncing = true;
-            CanvasWidth = Math.Max(decimal.Zero, (decimal)Math.Round((double)height * _aspectRatio));
+            CanvasWidth = ClampDimension((decimal)Math.Round((double)height * _aspectRatio));
             _isSyncing = false;
         }
+
+        // The aspect-ratio link writes the paired dimension programmatically, which bypasses the
+        // NumericUpDown's own Minimum/Maximum — a valid width on an extreme ratio can still compute an
+        // out-of-range height. Clamp here so both routes agree with the model.
+        private static decimal ClampDimension(decimal value)
+            => Math.Clamp(value, MinCanvasDimension, MaxCanvasDimension);
 
         private AnchorButtonState[] CreateAnchorButtons()
         {

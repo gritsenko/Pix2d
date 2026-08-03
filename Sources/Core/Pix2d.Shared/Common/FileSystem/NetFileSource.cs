@@ -22,10 +22,11 @@ public class NetFileSource : IFileContentSource
 
     public Task SaveAsync(Stream sourceStream)
     {
-        if (File.Exists(Path))
-            File.Delete(Path);
+        PrepareForOverwrite();
 
-        using var fileStream = File.OpenWrite(Path);
+        // FileMode.Create truncates in place. The previous delete-then-OpenWrite pair needed no delete to
+        // begin with, and File.Delete is *stricter* than writing: it refuses outright on a read-only file.
+        using var fileStream = new FileStream(Path, FileMode.Create, FileAccess.Write);
         sourceStream.CopyTo(fileStream);
         fileStream.Flush();
         fileStream.Close();
@@ -35,10 +36,40 @@ public class NetFileSource : IFileContentSource
 
     public Task<Stream> OpenWriteAsync()
     {
+        PrepareForOverwrite();
+
         var outputFileStream = File.OpenWrite(Path);
         outputFileStream.SetLength(0);
         outputFileStream.Position = 0;
         return Task.FromResult<Stream>(outputFileStream);
+    }
+
+    /// <summary>
+    /// Clears the read-only attribute so an overwrite the user has already asked for can proceed.
+    ///
+    /// <para>Windows marks files extracted from a <c>.zip</c> read-only, and both paths that reach here —
+    /// export to an existing file and Ctrl+S on a PNG-backed project (which writes back to the source
+    /// image) — then failed with <c>UnauthorizedAccessException</c> on a file the user had just opened
+    /// from an archive: appstat, 3.11.3, `…\Temp\…\VanillaDefault 1.21.7.zip…\ladder.png`. Overwriting is
+    /// the whole point of the operation and it is already confirmed upstream (export asks, Ctrl+S means
+    /// save), so the read-only flag has nothing left to protect here. A genuine permission problem
+    /// (ACLs, another process holding the file) still surfaces as before.</para>
+    /// </summary>
+    private void PrepareForOverwrite()
+    {
+        if (!File.Exists(Path))
+            return;
+
+        try
+        {
+            var attributes = File.GetAttributes(Path);
+            if ((attributes & FileAttributes.ReadOnly) != 0)
+                File.SetAttributes(Path, attributes & ~FileAttributes.ReadOnly);
+        }
+        catch (Exception)
+        {
+            // Best effort — if the attribute cannot be cleared, let the write itself report the real error.
+        }
     }
 
     public Task SaveCompressedPng(Stream sourcePngStream)

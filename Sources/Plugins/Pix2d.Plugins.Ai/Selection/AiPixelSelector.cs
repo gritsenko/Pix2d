@@ -191,7 +191,7 @@ public class AiPixelSelector : IPixelSelector
             for (int x = 0; x < bitmap.Width; x++)
                 _pixelsBuff[x + y * _width] = (byte)(maskPixels[x + y * _width] >> 24);
 
-        using var canvas = bitmap.GetSKSurface().Canvas;
+        using var canvas = bitmap.CreateCanvas();
         canvas.DrawBitmap(extractedMask, SKPoint.Empty, new SKPaint() { BlendMode = SKBlendMode.DstIn });
 
         bitmap = CropToMaskBounds(bitmap);

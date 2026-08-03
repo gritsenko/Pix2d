@@ -298,11 +298,15 @@ public class BitmapNode : SKNode, IDrawingTarget, IBitmapNode
     public void MergeFrom(BitmapNode sprite, float opacity = 1)
     {
         if (_bitmap == null) return;
-        using (var surface = _bitmap.GetSKSurface())
+
+        // A source frame with no pixels has nothing to contribute — and handing null to DrawBitmap only
+        // turns "merge down an empty layer" into an ArgumentNullException from inside Skia.
+        if (sprite.Bitmap == null) return;
+
+        using (var canvas = _bitmap.CreateCanvas())
+        using (var paint = new SKPaint { Color = SKColors.Black.WithAlpha((byte)(opacity * 255)) })
         {
-            var canvas = surface.Canvas;
-            var paint = new SKPaint() { Color = SKColors.Black.WithAlpha((byte)(opacity * 255)) };
-            canvas.DrawBitmap(sprite.Bitmap!, sprite.GetBoundingBox(), paint);
+            canvas.DrawBitmap(sprite.Bitmap, sprite.GetBoundingBox(), paint);
             canvas.Flush();
         }
 
