@@ -17,6 +17,7 @@ using Pix2d.Plugins.PngFormat.Exporters;
 using Pix2d.Export.Sheet.Metadata;
 using Pix2d.Primitives;
 using Pix2d.Primitives.Drawing;
+using Pix2d.Plugins.Drawing.Brushes;
 using Pix2d.Primitives.ViewPort;
 using Pix2d.Services;
 using Pix2d.ScenarioTests;
@@ -91,6 +92,7 @@ static class Runner
         EyedropperReturnScenario(harness, t);
         GridAppearanceScenario(harness, t);
         FillOpacityScenario(harness, t);
+        ShapeBrushScenario(harness, t);
         SafeSweep(harness);
 
         return t.Summarize();
@@ -2438,6 +2440,206 @@ static class Runner
         }
 
         return found;
+    }
+
+    // --- Shape tools rasterize with the currently selected brush preset ---------------------------
+    // Line/Rect/Oval/Triangle stamp `IDrawingLayer.Brush` exactly like a freehand stroke does, so every
+    // preset — including a soft marker/spray and a captured image stamp — has to behave the same way in
+    // a shape as it does under the pencil: its own size, its own opacity, its own spacing phase.
+    static void ShapeBrushScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Shape tools with custom brushes ===");
+
+        var state = h.AppState.SpriteEditorState;
+
+        // A fresh canvas with `TTool` armed and `brush` selected. NewProject re-activates the default
+        // (pencil) tool, so the shape tool must be armed *after* the canvas exists.
+        void Arm<TTool>(IPixelBrush brush, float scale, float opacity, float spacing = 1f)
+            where TTool : Pix2d.Abstract.Tools.ITool
+        {
+            h.NewProject(64);
+            h.ActivateTool<TTool>();
+            h.SetColor(SKColors.Red);
+            state.CurrentBrushSettings = new BrushSettings
+            {
+                Brush = brush,
+                Scale = scale,
+                Opacity = opacity,
+                Spacing = spacing
+            };
+        }
+
+        // Sprite-local pixel (x, y) is world (x + 0.5, y + 0.5).
+        void DragPixels(int x0, int y0, int x1, int y1)
+            => h.DragWorld(x0 + 0.5f, y0 + 0.5f, x1 + 0.5f, y1 + 0.5f);
+
+        int ColumnHeight(int x) => h.NonEmptyPixels().Count(p => p.X == x);
+
+        (int L, int T, int R, int B) Painted()
+        {
+            var pts = h.NonEmptyPixels().ToArray();
+            return pts.Length == 0
+                ? (0, 0, -1, -1)
+                : (pts.Min(p => p.X), pts.Min(p => p.Y), pts.Max(p => p.X), pts.Max(p => p.Y));
+        }
+
+        t.Check("a 1px brush still draws a hairline (baseline)", () =>
+        {
+            Arm<Pix2d.Plugins.Drawing.Tools.Shapes.PixelLineTool>(new SquareSolidBrush(), 1, 1f);
+            DragPixels(10, 20, 40, 20);
+
+            Assert.True(h.GetPixel(10, 20).Alpha > 0, "the line does not start where the pointer went down");
+            Assert.True(h.GetPixel(40, 20).Alpha > 0, "the line does not reach the release point");
+            Assert.True(ColumnHeight(25) == 1, $"expected a 1px-thick line, column 25 is {ColumnHeight(25)}px");
+        });
+
+        t.Check("a line is as thick as the selected brush", () =>
+        {
+            Arm<Pix2d.Plugins.Drawing.Tools.Shapes.PixelLineTool>(new SquareSolidBrush(), 5, 1f);
+            DragPixels(10, 20, 40, 20);
+
+            Assert.True(ColumnHeight(25) == 5, $"expected a 5px-thick line, column 25 is {ColumnHeight(25)}px");
+        });
+
+        t.Check("a marker line honours the brush opacity", () =>
+        {
+            // Marker is an even-opacity brush: the dabs union into the stroke buffer at full strength and
+            // the whole stroke lands once at the brush opacity. Shapes go through the ExternalDraw mode,
+            // which used to skip that composite entirely and paint a solid, fully opaque line.
+            Arm<Pix2d.Plugins.Drawing.Tools.Shapes.PixelLineTool>(new MarkerBrush(), 8, 0.5f);
+            DragPixels(10, 32, 50, 32);
+
+            var c = h.GetPixel(30, 32);
+            Console.WriteLine($"  [diag] marker line core = {c}");
+            Assert.True(c.Alpha > 0, "the marker line painted nothing");
+            Assert.True(Math.Abs(c.Alpha - 128) <= 12, $"expected ~50% alpha along a 0.5-opacity marker line, got {c}");
+        });
+
+        t.Check("an oval stamps the brush at its own size", () =>
+        {
+            // StrokeRenderer.DrawEllipse used to hand brush.Size to IPixelBrush.Draw's `pressure`
+            // parameter, which multiplies the stamp scale — a size-5 brush stamped at 25px, off-center.
+            Arm<Pix2d.Plugins.Drawing.Tools.Shapes.PixelOvalTool>(new SquareSolidBrush(), 5, 1f);
+            DragPixels(16, 16, 44, 44);
+
+            var (l, top, r, b) = Painted();
+            Console.WriteLine($"  [diag] oval painted bounds = ({l},{top})-({r},{b})");
+            Assert.True(r >= 0, "the oval painted nothing");
+            // The outline spans 16..44; a 5px stamp centered on it may bleed 2-3px either way, no more.
+            Assert.True(l >= 13 && top >= 13 && r <= 47 && b <= 47,
+                $"the oval's stamps are oversized: bounds ({l},{top})-({r},{b}), expected within (13,13)-(47,47)");
+        });
+
+        t.Check("an image-stamp brush paints its captured pixels along a shape", () =>
+        {
+            using var stamp = new SKBitmap(3, 3, SKColorType.Rgba8888, SKAlphaType.Premul);
+            stamp.Erase(SKColors.Lime);
+
+            Arm<Pix2d.Plugins.Drawing.Tools.Shapes.PixelLineTool>(
+                new ImageStampBrush(stamp.Copy(), useOriginalColors: true), 3, 1f);
+            DragPixels(12, 24, 40, 24);
+
+            var c = h.GetPixel(26, 24);
+            Assert.True(c.Alpha > 0, "the stamp brush painted nothing along the line");
+            Assert.True(c.Green > 200 && c.Red < 60,
+                $"expected the stamp's own green pixels (UseOriginalColors), got {c}");
+            Assert.True(ColumnHeight(26) == 3, $"expected a 3px-thick stamped line, column 26 is {ColumnHeight(26)}px");
+        });
+
+        t.Check("a shape always starts at the point the pointer went down", () =>
+        {
+            // Dab spacing is stroke-local state on the brush. It used to survive from one shape to the
+            // next (and from one preview redraw to the next), so a short shape drawn near the previous
+            // one had its opening dabs swallowed — with a wide enough spacing, the whole shape vanished.
+            Arm<Pix2d.Plugins.Drawing.Tools.Shapes.PixelLineTool>(new SquareSolidBrush(), 1, 1f, spacing: 5f);
+
+            DragPixels(10, 20, 11, 20);
+            Assert.True(h.GetPixel(10, 20).Alpha > 0, "the first short line did not paint its start point");
+
+            DragPixels(12, 20, 13, 20);
+            Assert.True(h.GetPixel(12, 20).Alpha > 0,
+                "a short line drawn next to the previous one inherited its dab spacing and painted nothing");
+        });
+
+        // Every check above draws on the harness's default artboard, which sits at world (0, 0) — where the
+        // layer-local→world transform is the identity and a double-mapped outline is indistinguishable from
+        // a correct one. A second artboard has a non-zero offset and is the only way to catch that here.
+        void ArmOnSecondArtboard<TTool>(float scale) where TTool : Pix2d.Abstract.Tools.ITool
+        {
+            Arm<TTool>(new SquareSolidBrush(), scale, 1f);
+            h.Exec("Sprite.Edit.AddArtboard");
+            h.ActivateTool<TTool>();   // AddArtboard re-targets the editor; re-arm so the drag is a shape
+        }
+
+        // Sprite-local (x, y) on the *active* artboard → world, via its own bounding box.
+        void DragOnActive(int x0, int y0, int x1, int y1)
+        {
+            var b = h.ActiveSprite.GetBoundingBox();
+            h.DragWorld(b.Left + x0 + 0.5f, b.Top + y0 + 0.5f, b.Left + x1 + 0.5f, b.Top + y1 + 0.5f);
+        }
+
+        t.Check("the second artboard really is offset (guards the checks below)", () =>
+        {
+            ArmOnSecondArtboard<Pix2d.Plugins.Drawing.Tools.Shapes.PixelLineTool>(1);
+            Assert.True(h.ArtboardCount == 2, $"expected 2 artboards, got {h.ArtboardCount}");
+            var b = h.ActiveSprite.GetBoundingBox();
+            Assert.True(b.Left != 0 || b.Top != 0,
+                $"the new artboard is at the world origin ({b.Left},{b.Top}) — the offset checks would be vacuous");
+
+            // The offset only exercises the world/layer split if the drawing layer actually carries it in
+            // its global transform — that transform is what a double-mapped outline gets shifted by. If it
+            // is identity here, every check below passes whether or not the mapping is correct.
+            var t2 = ((SKNode)h.DrawingLayer).GetGlobalTransform();
+            Console.WriteLine($"  [diag] artboard world=({b.Left},{b.Top}) drawing-layer transform=({t2.TransX},{t2.TransY})");
+            Assert.True(Math.Abs(t2.TransX - b.Left) < 0.01f && Math.Abs(t2.TransY - b.Top) < 0.01f,
+                $"the drawing layer sits at ({t2.TransX},{t2.TransY}) but its artboard is at ({b.Left},{b.Top}) — "
+                + "the harness is not modelling the offset, so the checks below prove nothing");
+        });
+
+        t.Check("a line draws on an artboard away from the world origin", () =>
+        {
+            // The shape builders hand over layer-local points; StrokeRenderer.DrawStroke used to map them
+            // through the inverse global transform anyway, shifting the outline by the artboard's world
+            // position — so on any artboard but the first, shapes silently painted nothing at all.
+            ArmOnSecondArtboard<Pix2d.Plugins.Drawing.Tools.Shapes.PixelLineTool>(5);
+            DragOnActive(10, 20, 40, 20);
+
+            Assert.True(h.GetPixel(25, 20).Alpha > 0, "the line painted nothing on the offset artboard");
+            Assert.True(ColumnHeight(25) == 5, $"expected a 5px-thick line, column 25 is {ColumnHeight(25)}px");
+        });
+
+        t.Check("a rectangle draws on an artboard away from the world origin", () =>
+        {
+            ArmOnSecondArtboard<Pix2d.Plugins.Drawing.Tools.Shapes.PixelRectangleTool>(1);
+            DragOnActive(12, 12, 40, 40);
+
+            Assert.True(h.GetPixel(12, 12).Alpha > 0 && h.GetPixel(40, 40).Alpha > 0,
+                "the rectangle painted nothing on the offset artboard");
+            Assert.True(h.GetPixel(26, 26).Alpha == 0, "the rectangle should be an outline, not filled");
+        });
+
+        t.Check("a triangle draws on an artboard away from the world origin", () =>
+        {
+            ArmOnSecondArtboard<Pix2d.Plugins.Drawing.Tools.PixelTriangleTool>(1);
+            DragOnActive(12, 12, 40, 40);
+
+            Assert.True(h.NonEmptyPixels().Any(), "the triangle painted nothing on the offset artboard");
+            Assert.True(h.GetPixel(12, 40).Alpha > 0 && h.GetPixel(40, 40).Alpha > 0,
+                "the triangle's baseline corners are missing");
+        });
+
+        t.Check("an oval still draws on an artboard away from the world origin", () =>
+        {
+            // DrawEllipse was the one shape rasterizer that already treated its input as layer-local, so it
+            // worked here all along — this pins that the world/local split above did not flip it the other way.
+            ArmOnSecondArtboard<Pix2d.Plugins.Drawing.Tools.Shapes.PixelOvalTool>(1);
+            DragOnActive(12, 12, 40, 40);
+
+            var (l, top, r, b) = Painted();
+            Assert.True(r >= 0, "the oval painted nothing on the offset artboard");
+            Assert.True(l >= 10 && top >= 10 && r <= 42 && b <= 42,
+                $"the oval landed outside its drag bounds: ({l},{top})-({r},{b})");
+        });
     }
 
     static void SafeSweep(HeadlessHarness h)

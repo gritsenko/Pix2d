@@ -57,6 +57,15 @@ public interface IPixelBrush
 
     Task InitBrush(float scale, float opacity, float spacing);
 
+    /// <summary>
+    /// Marks the start of a new stroke or shape rasterization pass: drops the dab-spacing state carried
+    /// between stamps so the first dab always lands, wherever the previous one happened to end.
+    /// <para>Shape tools call this on <b>every</b> pass — each preview redraw re-walks the whole outline —
+    /// which is what keeps the committed shape identical to the preview the user was looking at, and stops
+    /// a short shape drawn next to the previous one from having its opening dabs swallowed.</para>
+    /// </summary>
+    void BeginStroke();
+
     bool Draw(IDrawingLayer layer, SKPointI pos, SKColor color, double pressure, bool ignoreSpacing = false);
     bool Erase(IDrawingLayer layer, SKPointI pos, double pressure, bool ignoreSpacing);
 }

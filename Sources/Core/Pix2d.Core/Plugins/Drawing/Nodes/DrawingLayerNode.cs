@@ -377,7 +377,16 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         PreviewPosition = currPointerPosition;
 
         if (_drawingMode == BrushDrawingMode.ExternalDraw)
+        {
+            // Shape tools drive their own drawing from the tool, so there is no stroke to advance here —
+            // but this node still owns the brush cursor overlay, and it has to repaint as the pointer
+            // moves. Without this the cursor sat frozen wherever it was last drawn and only caught up
+            // when some unrelated event refreshed the viewport (crossing an artboard boundary, say).
+            if (currPointerPosition != prevPointerPosition && IsShowingBrush())
+                Refresh();
+
             return;
+        }
 
         base.OnPointerMoved(eventArgs);
 
@@ -795,7 +804,11 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         // Reset pressure to full at the start of every operation. The freehand path re-applies the live
         // value per stamp; shapes (and any non-freehand path) keep full pressure because they never do.
         if (_brush != null)
+        {
             _brush.CurrentPressure = 1;
+            // Dab spacing is stroke-local: the first dab of this stroke must land wherever the last one ended.
+            _brush.BeginStroke();
+        }
 
         DrawingStarted?.Invoke(this, EventArgs.Empty);
 
@@ -819,7 +832,14 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         _useSmoothStroke = style != BrushStrokeStyle.Pixel
                            && _drawingMode == BrushDrawingMode.Draw
                            && !IsPixelPerfectMode;
-        _strokeBufferOpacity = _useSmoothStroke && style == BrushStrokeStyle.Marker
+        // The even-opacity composite is a property of the *brush*, not of who is driving it, so shapes
+        // (ExternalDraw: line / rect / oval / triangle) opt in too — they stamp the same Marker dabs at full
+        // strength into the stroke buffer, and without this the buffer was laid down opaque and the brush's
+        // opacity silently vanished from every shape. Smoothing stays freehand-only: it reshapes the cursor
+        // path, which a shape does not have.
+        _strokeBufferOpacity = style == BrushStrokeStyle.Marker
+                               && _drawingMode is BrushDrawingMode.Draw or BrushDrawingMode.ExternalDraw
+                               && !IsPixelPerfectMode
             ? Math.Clamp(_brush!.Opacity, 0f, 1f)
             : null;
         _smoothStrokeStarted = false;
@@ -969,7 +989,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
             lock (_snapshotLock)
             {
                 if (_workingBitmapDisplaySnapshot != null)
-                    canvas.DrawImage(_workingBitmapDisplaySnapshot, 0, 0);
+                    DrawStrokeBuffer(canvas, _workingBitmapDisplaySnapshot);
                 else if (_workingBitmap != null)
                     DrawStrokeBuffer(canvas, _workingBitmap);
 
@@ -989,19 +1009,23 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     // otherwise it's drawn opaque (the per-dab opacity is already baked into the bitmap).
     private void DrawStrokeBuffer(SKCanvas canvas, SKBitmap bitmap)
     {
-        if (_strokeBufferOpacity is { } opacity)
-        {
-            using var paint = new SKPaint
-            {
-                Color = SKColor.Empty.WithAlpha((byte)Math.Clamp(opacity * 255f, 0, 255))
-            };
-            canvas.DrawBitmap(bitmap, 0, 0, paint);
-        }
-        else
-        {
-            canvas.DrawBitmap(bitmap, 0, 0);
-        }
+        using var paint = GetStrokeBufferPaint();
+        canvas.DrawBitmap(bitmap, 0, 0, paint);
     }
+
+    // Same composite for the immutable COW snapshot. Shapes publish one on every preview frame, so drawing
+    // it raw here would have shown a Marker outline at full strength while the committed result honored the
+    // brush opacity.
+    private void DrawStrokeBuffer(SKCanvas canvas, SKImage image)
+    {
+        using var paint = GetStrokeBufferPaint();
+        canvas.DrawImage(image, 0, 0, paint);
+    }
+
+    private SKPaint? GetStrokeBufferPaint() =>
+        _strokeBufferOpacity is { } opacity
+            ? new SKPaint { Color = SKColor.Empty.WithAlpha((byte)Math.Clamp(opacity * 255f, 0, 255)) }
+            : null;
 
     private void RenderBrushPreview(SKCanvas canvas)
     {
@@ -1043,13 +1067,24 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         }
     }
 
+    // --- Shape rasterization (the ExternalDraw tools: line / rect / oval / triangle) -----------------
+    // Points arrive in LAYER-LOCAL space: the shape builders resolve the pointer with
+    // GetPosition(drawingLayer) before calling in. The freehand path (DrawStroke/DrawPointStroke/
+    // EraseStroke below) is the one that speaks world coordinates. See StrokeRenderer's class comment.
+    //
+    // Every one of these is a full outline pass: the shape tools re-run them from scratch on each pointer
+    // move to refresh the preview, and once more to commit. So each pass restarts the brush's dab spacing —
+    // otherwise the phase carried over from the previous pass, which made the dabs shuffle while dragging
+    // and could swallow the opening dabs of a short shape drawn next to the previous one.
     public void DrawLine(SKPoint p0, SKPoint p1)
     {
+        _brush?.BeginStroke();
         _strokeRenderer.DrawLine(p0, p1, Brush, DrawingColor, Opacity, 1);
     }
 
     public void DrawRect(SKPoint p0, SKPoint p1, bool fromCenter = false)
     {
+        _brush?.BeginStroke();
         _strokeRenderer.DrawRect(p0, p1, Brush, DrawingColor, Opacity, 1);
     }
 
@@ -1073,6 +1108,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
 
     public void DrawEllipse(SKPoint p0, SKPoint p1, bool fromCenter = false)
     {
+        _brush?.BeginStroke();
         _strokeRenderer.DrawEllipse(p0, p1, Brush, DrawingColor, fromCenter);
     }
 

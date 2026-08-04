@@ -18,6 +18,15 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
     protected float _opacity = 1f;
     protected float _scale = 1f;
     protected SKPointI _lastPos;
+
+    /// <summary>
+    /// False until the current stroke has placed its first dab. Spacing is measured from the previous dab,
+    /// so without this flag the opening dab of a new stroke/shape is measured against the *previous* one's
+    /// last dab and gets swallowed whenever the two happen to start close together. Cleared by
+    /// <see cref="BeginStroke"/>.
+    /// </summary>
+    private bool _hasLastPos;
+
     protected float _cacheSize;
     protected SKColor _cacheColor;
     protected float Spacing { get; set; } = 0.01f;
@@ -165,6 +174,9 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
     }
 
 
+    /// <inheritdoc />
+    public virtual void BeginStroke() => _hasLastPos = false;
+
     public virtual bool Draw(IDrawingLayer layer, SKPointI pos, SKColor color, double pressure,
         bool ignoreSpacing = false)
     {
@@ -175,12 +187,12 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
             return true;
         }
 
-        var dst = pos.DistanceTo(_lastPos);
-        if (dst >= AbsoluteSpacing)
+        // The opening dab of a stroke has nothing to be spaced from, so it always lands.
+        if (!_hasLastPos || pos.DistanceTo(_lastPos) >= AbsoluteSpacing)
         {
-            //Debug.WriteLine(dst); 
             _lastPos = pos;
-            DrawCore(layer, pos, color, pressure); 
+            _hasLastPos = true;
+            DrawCore(layer, pos, color, pressure);
             return true;
         }
 
@@ -191,12 +203,11 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
     {
         if (!ignoreSpacing)
         {
-            if (pos.DistanceTo(_lastPos) < AbsoluteSpacing)
-            {
-                _lastPos = pos;
-                return false;
-            }
+            var tooClose = _hasLastPos && pos.DistanceTo(_lastPos) < AbsoluteSpacing;
             _lastPos = pos;
+            _hasLastPos = true;
+            if (tooClose)
+                return false;
         }
 
         EraseCore(layer, pos, pressure);
