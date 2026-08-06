@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using SkiaNodes;
 using SkiaNodes.Abstract;
 using SkiaNodes.Extensions;
@@ -20,6 +21,9 @@ public class DrawingContainerBaseNode : SKNode, IContainerNode, IClippingSource
     }
 
     /// <summary>Grid line color (alpha included) — the user preference from <c>AppState.GridColor</c> (#223).</summary>
+    // Not document state: it's a per-user readability preference persisted in AppSettings and pushed into every
+    // container by SnappingService, so persisting it would carry one machine's preference into everyone's files.
+    [JsonIgnore]
     public SKColor GridColor
     {
         get => _grid.Color;
