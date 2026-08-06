@@ -82,6 +82,7 @@ static class Runner
         OversizedCanvasScenario(harness, t);
         MoveThumbSelectionChurnScenario(harness, t);
         ReadOnlyOverwriteScenario(harness, t);
+        LoggerTargetFailureScenario(harness, t);
         AnimationMetaScenario(harness, t);
         BrushPresetScenario(harness, t);
         BatchExportScenario(harness, t);
@@ -941,6 +942,58 @@ static class Runner
             }
             catch { /* temp cleanup is best effort */ }
         }
+    }
+
+    // --- Scenario 7ag: a logging target that throws ------------------------------------------------
+    // Logger.Dispatch runs on the error path — Logger.LogException is what most catch blocks call. A
+    // target that threw there replaced the error being reported with a fatal unhandled exception, and
+    // starved every target after it, including the crash-telemetry sink. That is how a full disk turned
+    // a failed export into a crash (appstat 3.11.3: IOException writing pix2d_log.txt).
+    static void LoggerTargetFailureScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Logger target failure scenario ===");
+
+        var exploding = new ThrowingLoggerTarget();
+        var witness = new RecordingLoggerTarget();
+
+        Logger.RegisterLoggerTarget(exploding);
+        Logger.RegisterLoggerTarget(witness);
+        try
+        {
+            t.Check("a throwing logger target does not escape Logger.LogException", () =>
+            {
+                Logger.LogException(new InvalidOperationException("export failed"));
+                Assert.True(exploding.Calls == 1, $"the target was not reached, got {exploding.Calls} calls");
+            });
+
+            t.Check("targets after a throwing one still receive the entry", () =>
+                Assert.True(witness.Calls == 1, $"expected 1 entry, got {witness.Calls}"));
+        }
+        finally
+        {
+            Logger.UnregisterLoggerTarget(exploding);
+            Logger.UnregisterLoggerTarget(witness);
+        }
+    }
+
+    private sealed class ThrowingLoggerTarget : ILoggerTarget
+    {
+        public int Calls;
+        public bool EventsOnly => false;
+
+        public void OnLogged(LogEntry logEntry)
+        {
+            Calls++;
+            throw new IOException("There is not enough space on the disk.");
+        }
+    }
+
+    private sealed class RecordingLoggerTarget : ILoggerTarget
+    {
+        public int Calls;
+        public bool EventsOnly => false;
+
+        public void OnLogged(LogEntry logEntry) => Calls++;
     }
 
     // --- Scenario 7ac: animation metadata — tags, per-frame durations, index shifting ---------------

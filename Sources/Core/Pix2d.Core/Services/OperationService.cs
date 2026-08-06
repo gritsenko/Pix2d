@@ -64,9 +64,10 @@ public class OperationService : IOperationService
         set => _active.CurrentOperation = value;
     }
 
-    public bool CanUndo => _undoOperations.Any();
+    // Count, not Any(): enumerating the stack now snapshots it, and these are polled by the UI.
+    public bool CanUndo => _undoOperations.Count > 0;
     public int UndoOperationsCount => _undoOperations.Count;
-    public bool CanRedo => _redoOperations.Any();
+    public bool CanRedo => _redoOperations.Count > 0;
 
     public event EventHandler<OperationInvokeEventArgs>? OperationInvoked;
 
@@ -346,6 +347,15 @@ public class OperationService : IOperationService
         Messenger.Default.Send(new OperationInvokedMessage(e.OperationType, e.Operation));
     }
 
+    /// <summary>
+    /// Undo/redo stack with a hard cap. Every member takes the same lock and enumeration hands out a
+    /// snapshot: pushes are supposed to come from the UI thread, but a debounced operation used to be
+    /// pushed straight from a timer's threadpool thread, and the resulting concurrent mutation surfaced
+    /// as "Collection was modified after the enumerator was instantiated" out of the enumerating callers
+    /// (<see cref="UpdateCacheStates"/>, <see cref="IsAlreadyPushed"/>) — appstat, 3.11.2. The caller was
+    /// fixed; this makes the class itself refuse to corrupt, since a 100-item copy costs nothing next to
+    /// the edit operation being pushed.
+    /// </summary>
     private class LimitedSizeStack<T>(int maxSize) : IEnumerable<T>
     {
         private readonly LinkedList<T> _list = [];
@@ -354,6 +364,9 @@ public class OperationService : IOperationService
 
         public void Push(T item)
         {
+            T? evicted = default;
+            var hasEvicted = false;
+
             lock (_list)
             {
                 _list.AddFirst(item);
@@ -362,27 +375,43 @@ public class OperationService : IOperationService
                     if (_list.Last == null)
                         throw new Exception("No items in stack!");
 
-                    OnRemoveItem?.Invoke(_list.Last.Value);
+                    evicted = _list.Last.Value;
+                    hasEvicted = true;
                     _list.RemoveLast();
                 }
             }
+
+            // Outside the lock: OnRemoveItem deletes the operation's disk cache and disposes it.
+            if (hasEvicted)
+                OnRemoveItem?.Invoke(evicted!);
         }
 
         public T Pop()
         {
-            if (_list.First == null)
-                throw new Exception("No items in stack!");
+            lock (_list)
+            {
+                if (_list.First == null)
+                    throw new Exception("No items in stack!");
 
-            var item = _list.First.Value!;
-            _list.RemoveFirst();
-            return item;
+                var item = _list.First.Value!;
+                _list.RemoveFirst();
+                return item;
+            }
         }
 
-        public int Count => _list.Count;
+        public int Count
+        {
+            get
+            {
+                lock (_list) return _list.Count;
+            }
+        }
 
         public IEnumerator<T> GetEnumerator()
         {
-            return _list.GetEnumerator();
+            T[] snapshot;
+            lock (_list) snapshot = _list.ToArray();
+            return ((IEnumerable<T>)snapshot).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -392,7 +421,7 @@ public class OperationService : IOperationService
 
         public void Clear()
         {
-            _list.Clear();
+            lock (_list) _list.Clear();
         }
     }
 }

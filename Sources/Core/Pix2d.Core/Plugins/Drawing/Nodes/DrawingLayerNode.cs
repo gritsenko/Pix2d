@@ -860,10 +860,15 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
 
     private void ApplyWorkingBitmap()
     {
-        if (DrawingTarget == null)
+        // IsInitialized, not just DrawingTarget: SetTarget assigns the target first and allocates the
+        // bitmaps after, and it skipped the allocation entirely for a degenerate (0x0) target. Releasing a
+        // stroke on such a layer reached SKCanvas.DrawBitmap with a null bitmap and threw
+        // ArgumentNullException from an ordinary pointer-up (appstat, 3.11.2, canvas=0x0). Nothing to
+        // composite means nothing to apply.
+        if (!IsInitialized)
             return;
 
-        DrawingTarget.Draw(drawingTargetCanvas =>
+        DrawingTarget!.Draw(drawingTargetCanvas =>
         {
             drawingTargetCanvas.Clear();
             drawingTargetCanvas.DrawBitmap(_backgroundBitmap, 0, 0);

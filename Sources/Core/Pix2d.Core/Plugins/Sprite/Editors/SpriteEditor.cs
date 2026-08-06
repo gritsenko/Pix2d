@@ -92,7 +92,13 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
 
     private void OnOperationTimerTick(object? state)
     {
-        PerformPendingOperation();
+        // Same reasoning as the playback timer below: this fires on a threadpool thread, and pushing an
+        // operation touches UI-thread state — the undo history. Doing it here raced whatever the user was
+        // drawing at the same moment and threw "Collection was modified after the enumerator was
+        // instantiated" out of OperationService's undo stack (appstat, 3.11.2). Post, not Invoke: the tick
+        // has nothing to wait for, and SetDebouncedOperation holds _updateOperationLock across a
+        // PerformPendingOperation call of its own.
+        Dispatcher.UIThread.Post(PerformPendingOperation);
     }
 
     private void OnProjectClose(ProjectCloseMessage? obj)

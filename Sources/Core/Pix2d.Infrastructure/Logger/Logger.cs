@@ -55,7 +55,20 @@ public class Logger
             if (loggerTarget.EventsOnly && !isEvent)
                 continue;
 
-            loggerTarget.OnLogged(entry);
+            // A failing target must not take the app down, and must not stop the remaining targets from
+            // seeing the entry. Most dispatches happen on an error path (Logger.LogException), so an
+            // exception escaping here replaces the error being *reported* with a fatal unhandled one —
+            // that is exactly how a full disk turned an export failure into a crash (appstat, 3.11.3:
+            // IOException out of LocalTextFileLoggerTarget while writing pix2d_log.txt). It also meant the
+            // crash-telemetry target never received the entry, because the file target ran first.
+            try
+            {
+                loggerTarget.OnLogged(entry);
+            }
+            catch
+            {
+                // Nowhere left to report this — logging the logger would recurse.
+            }
         }
     }
 
