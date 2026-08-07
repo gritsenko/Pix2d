@@ -649,7 +649,9 @@ jobs:
       run: |
         cd app.pix2d.com_repo
         before=$(du -sm . | cut -f1)
-        find . -path ./.git -prune -o -type f \( -name '*.gz' -o -name '*.br' \) -print -delete | wc -l
+        # No -prune here: -delete implies -depth, and modern findutils makes "-prune with -depth"
+        # a fatal error (it broke the v3.11.5 run), so .git is excluded by path instead.
+        find . -type f -not -path './.git/*' \( -name '*.gz' -o -name '*.br' \) -print -delete | wc -l
         echo "size: ${before} MB -> $(du -sm . | cut -f1) MB"
       shell: bash
 
