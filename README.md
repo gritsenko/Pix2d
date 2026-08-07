@@ -38,20 +38,27 @@ Pix2D is a versatile graphics editor designed specifically for game developers a
 
 This repository contains the official documentation and projects for Pix2D. The public APIs and plugin system are under development and will be available soon.
 
+Where the project is heading — and what is being worked on right now — is tracked in the [Roadmap](./docs/ROADMAP.md).
+
 ## Installation
 
+Every platform is built and published from the same tag, so the [latest GitHub release](https://github.com/gritsenko/Pix2d/releases/latest) always carries the current build of all of them.
+
 ### Windows
-- Download from [Windows Store](https://pix2d.com)
-- Or download the Windows Installer from our [official website](https://pix2d.com)
+- [Microsoft Store](https://pix2d.com) (signed, installs by double-click)
+- Portable `.zip` — [latest release](https://github.com/gritsenko/Pix2d/releases/latest)
 
 ### Linux
-- Linux version available at [pix2d.com](https://pix2d.com)
+- `.deb` package or portable `.tar.gz` — [latest release](https://github.com/gritsenko/Pix2d/releases/latest)
+
+### macOS
+- `.dmg` (Intel + ARM) — [latest release](https://github.com/gritsenko/Pix2d/releases/latest). See [Running Pix2D on macOS](#running-pix2d-on-macos) below.
 
 ### Android
 - Get it on [Google Play](https://pix2d.com)
 
 ### Web Version
-- Access online at [pix2d.com](https://pix2d.com)
+- Access online at [app.pix2d.com](https://app.pix2d.com)
 
 ## Usage
 

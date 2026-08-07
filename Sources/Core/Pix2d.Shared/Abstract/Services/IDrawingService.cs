@@ -1,4 +1,4 @@
-﻿using Pix2d.Abstract.Drawing;
+using Pix2d.Abstract.Drawing;
 using Pix2d.Primitives.Drawing;
 using SkiaSharp;
 
@@ -112,6 +112,13 @@ public interface IDrawingService
     /// Selects all pixels on the current drawing layer.
     /// </summary>
     void SelectAll();
+
+    /// <summary>
+    /// Selects every non-transparent pixel of <paramref name="maskSource"/> — the layer-thumbnail
+    /// Ctrl+click gesture ("load layer transparency as a selection"). The mask commonly comes from a
+    /// layer other than the one being edited; it is ignored unless it matches the drawing target's size.
+    /// </summary>
+    void SelectOpaquePixels(SKBitmap? maskSource);
 
     /// <summary>
     /// Inverts the current pixel selection on the active drawing layer.

@@ -1176,6 +1176,7 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     }
 
     public void SelectAll() => _selection.SelectAll();
+    public void SelectOpaquePixels(SKBitmap? maskSource) => _selection.SelectOpaquePixels(maskSource);
     public void FillSelection(SKColor color) => _selection.FillSelection(color);
     public void SetSelection(SpriteSelectionNode selectionLayer, SKBitmap? backgroundBitmap, bool contourOnly = false)
         => _selection.SetSelection(selectionLayer, backgroundBitmap, contourOnly);

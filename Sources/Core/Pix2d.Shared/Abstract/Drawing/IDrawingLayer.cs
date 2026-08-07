@@ -1,4 +1,4 @@
-﻿using SkiaNodes;
+using SkiaNodes;
 using SkiaSharp;
 using System;
 using Pix2d.Primitives.Drawing;
@@ -92,6 +92,13 @@ public interface IDrawingLayer
 
     void SetSelectionFromExternal(SKBitmap bitmap, in SKPoint position);
     void SelectAll();
+
+    /// <summary>
+    /// Selects every non-transparent pixel of <paramref name="maskSource"/>, which must match the
+    /// drawing target's size. The mask can belong to a different layer than the one being edited.
+    /// </summary>
+    void SelectOpaquePixels(SKBitmap? maskSource);
+
     void FillSelection(SKColor color);
     void ActivateEditor();
 

@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Edit;
 using Pix2d.Abstract.Operations;
+using Pix2d.Abstract.Tools;
+using Pix2d.Plugins.Drawing.Tools.PixelSelect;
 using Pix2d.Command;
 using Pix2d.Common.Behaviors;
 using Pix2d.Common.Extensions;
@@ -99,6 +101,7 @@ public partial class LayersView : ViewBase<LayersView.State>
             var itemView = ActivatorUtilities.CreateInstance<LayerItemView>(_serviceProvider, itemVm);
             itemView.RightPointerPressed = () => ItemRightPointerPressed(itemVm);
             itemView.LeftPointerPressed = () => ItemClicked(itemVm);
+            itemView.ModifiedLeftPointerPressed = () => SelectLayerPixels(itemVm);
             return itemView.AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Vertical });
         }
 
@@ -147,8 +150,10 @@ public partial class LayersView : ViewBase<LayersView.State>
             {
                 InvalidateThumbnailItems(operation.Operation.GetEditedNodes().OfType<Pix2dSprite.Layer>());
             }
-            else if (operation.Operation is ChangeVisibilityOperationBase)
+            else if (operation.Operation is ChangeVisibilityOperationBase or RenameNodeOperation)
             {
+                // RenameNodeOperation is here for the tile caption: undo/redo of a rename changes no
+                // pixels, so nothing else would refresh the item.
                 InvalidateThumbnailItems(operation.Operation.GetEditedNodes().OfType<Pix2dSprite.Layer>());
             }
         }
@@ -235,6 +240,29 @@ public partial class LayersView : ViewBase<LayersView.State>
         public void ItemRightPointerPressed(LayerItemViewModel itemVm)
         {
             _viewCommands.ToggleLayerOptionsCommand.Execute();
+        }
+
+        /// <summary>
+        /// Ctrl+click on a layer thumbnail — select that layer's non-transparent pixels (#57). The
+        /// active layer is left alone on purpose, so the silhouette of one layer can mask edits on
+        /// another. Resolved lazily and defensively: on a head without the Drawing plugin there is no
+        /// <see cref="IDrawingService"/> and the gesture is simply inert.
+        /// </summary>
+        public void SelectLayerPixels(LayerItemViewModel itemVm)
+        {
+            var drawingService = _serviceProvider.GetService<IDrawingService>();
+            if (drawingService == null)
+                return;
+
+            // The marquee needs a tool that can act on it — same handoff Edit.Selection.SelectAll does.
+            // (DrawingService then applies the user's auto-open-transform preference, as it does for
+            // every other marquee.)
+            _serviceProvider.GetService<IToolService>()?.ActivateTool<PixelSelectRectTool>();
+
+            // A null bitmap means the layer's current frame has no pixels yet — that is an empty
+            // silhouette, which the call below turns into "nothing selected" rather than a no-op.
+            drawingService.SelectOpaquePixels(itemVm.SourceNode.GetCurrentFrameBitmap());
+            _serviceProvider.GetService<IViewPortRefreshService>()?.Refresh();
         }
     }
 

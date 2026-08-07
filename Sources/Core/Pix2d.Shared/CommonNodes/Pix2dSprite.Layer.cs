@@ -82,6 +82,12 @@ public partial class Pix2dSprite
         public SpriteNode? GetSpriteByFrame(int index) => GetSpriteByFrame(GetFrameByIndex(index));
 
         /// <summary>
+        /// The raw pixels of the frame this layer is currently showing, or null when the frame has no
+        /// bitmap yet. Read-only use only — this is the live buffer, not a copy.
+        /// </summary>
+        public SKBitmap? GetCurrentFrameBitmap() => GetActiveFrameSprite()?.Bitmap;
+
+        /// <summary>
         /// Resolves frame metadata by index, or null when the index doesn't address an existing frame.
         /// Frame indexes reach this class from UI collections (timeline VMs), undo operations and the
         /// playback timer, and those can lag one edit behind the model — a frame deleted while the

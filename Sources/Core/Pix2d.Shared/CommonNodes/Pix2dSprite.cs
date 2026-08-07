@@ -529,6 +529,21 @@ public partial class Pix2dSprite : DrawingContainerBaseNode, IDrawingTarget, ICl
         return "Layer " + layer.Index.ToString("000");
     }
 
+    /// <summary>
+    /// True when a layer still carries the auto-generated title (see <see cref="GenerateLayerName"/>),
+    /// i.e. the user never named it. The UI uses this to keep the layer tiles clean — a caption reading
+    /// "Layer 003" tells nobody anything, so only real names are shown.
+    ///
+    /// Matches the *pattern*, not the name a layer would get right now: indexes shift on reorder, so a
+    /// layer created as "Layer 002" can legitimately sit at index 0 and is still unnamed.
+    /// </summary>
+    public static bool IsGeneratedLayerName(string? name)
+        => string.IsNullOrWhiteSpace(name) || GeneratedLayerNameRegex.IsMatch(name.Trim());
+
+    private static readonly System.Text.RegularExpressions.Regex GeneratedLayerNameRegex =
+        new(@"^Layer\s+\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                              | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     public SKBitmap GetFramePreview(int frameIndex, float scale = 1, bool useBackgroundColor = false)
     {
         var bitmap = new SKBitmap(new SKImageInfo((int)(Size.Width * scale), (int)(Size.Height * scale),

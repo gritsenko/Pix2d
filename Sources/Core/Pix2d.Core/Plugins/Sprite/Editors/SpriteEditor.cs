@@ -194,6 +194,22 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         _viewPortRefreshService.Refresh();
     }
 
+    /// <summary>
+    /// Renames a layer as one undoable step. A blank name is rejected rather than stored — an
+    /// empty title would leave the layer tile unlabelled with no way to tell it apart.
+    /// </summary>
+    public void RenameLayer(Pix2dSprite.Layer layer, string name)
+    {
+        var newName = name.Trim();
+        if (string.IsNullOrEmpty(newName) || newName == layer.Name)
+            return;
+
+        var operation = new RenameNodeOperation([layer]);
+        layer.Name = newName;
+        operation.SetFinalData();
+        _operationService.PushOperations(operation);
+    }
+
 
     public Pix2dSprite.Layer AddEmptyLayer(Pix2dSprite.Layer? addAfter = null)
     {

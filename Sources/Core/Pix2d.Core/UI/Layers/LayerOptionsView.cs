@@ -14,8 +14,8 @@ using static Pix2d.Abstract.Services.IEffectsService;
 
 namespace Pix2d.UI.Layers;
 
-public partial class LayerOptionsView(IEffectsService effectsService, IMessenger messenger, IViewPortRefreshService viewPortRefreshService, AppState appState)
-    : ViewBase<LayerOptionsView.State>(new State(effectsService, messenger, viewPortRefreshService, appState))
+public partial class LayerOptionsView(IEffectsService effectsService, IMessenger messenger, IViewPortRefreshService viewPortRefreshService, AppState appState, IDialogService dialogService)
+    : ViewBase<LayerOptionsView.State>(new State(effectsService, messenger, viewPortRefreshService, appState, dialogService))
 {
     protected override object Build(State state) =>
         new ScrollViewer()
@@ -61,6 +61,16 @@ public partial class LayerOptionsView(IEffectsService effectsService, IMessenger
                                     .Content(
                                         new PathIcon().Data(Geometry.Parse(
                                             "M 2.5 1 C 1.6774686 1 1 1.6774686 1 2.5 L 1 8.5 C 1 9.3225314 1.6774686 10 2.5 10 L 5 10 L 5 12.5 C 5 13.322531 5.6774686 14 6.5 14 L 12.5 14 C 13.322531 14 14 13.322531 14 12.5 L 14 6.5 C 14 5.6774686 13.322531 5 12.5 5 L 10 5 L 10 2.5 C 10 1.6774686 9.3225314 1 8.5 1 L 2.5 1 z M 2.5 2 L 8.5 2 C 8.7814686 2 9 2.2185314 9 2.5 L 9 6 L 12.5 6 C 12.781469 6 13 6.2185314 13 6.5 L 13 12.5 C 13 12.781469 12.781469 13 12.5 13 L 6.5 13 C 6.2185314 13 6 12.781469 6 12.5 L 6 9 L 2.5 9 C 2.2185314 9 2 8.7814686 2 8.5 L 2 2.5 C 2 2.2185314 2.2185314 2 2.5 2 z M 3.6875 2.9804688 L 2.9804688 3.6875 L 3.3339844 4.0410156 L 4.8789062 5.5859375 L 3.4648438 7 L 7 7 L 7 3.4648438 L 5.5859375 4.8789062 L 4.0410156 3.3339844 L 3.6875 2.9804688 z M 8 8 L 8 8.7070312 L 8 11.535156 L 9.4140625 10.121094 L 11.021484 11.728516 L 11.375 12.082031 L 12.082031 11.375 L 11.728516 11.021484 L 10.121094 9.4140625 L 11.535156 8 L 8.7070312 8 L 8 8 z"))
+                                    ),
+
+                                new AppButton()
+                                    .With(ButtonStyle)
+                                    .Label(L("Rename"))
+                                    .OnClick(() => state.Rename())
+                                    .Content(
+                                        new TextBlock()
+                                            .Text("\xE8AC")
+                                            .FontFamily(StaticResources.Fonts.IconFontSegoe)
                                     ),
 
                                 new AppButton()
@@ -184,6 +194,7 @@ public partial class LayerOptionsView(IEffectsService effectsService, IMessenger
         private readonly IEffectsService _effectsService;
         private readonly IViewPortRefreshService _viewPortRefreshService;
         private readonly AppState _appState;
+        private readonly IDialogService _dialogService;
         private bool _isSyncing;
 
         [ObservableProperty]
@@ -203,11 +214,12 @@ public partial class LayerOptionsView(IEffectsService effectsService, IMessenger
         private Pix2dSprite.Layer? Layer => SpriteEditor?.CurrentSprite?.SelectedLayer;
 
         public State(IEffectsService effectsService, IMessenger messenger, IViewPortRefreshService viewPortRefreshService,
-            AppState appState)
+            AppState appState, IDialogService dialogService)
         {
             _effectsService = effectsService;
             _viewPortRefreshService = viewPortRefreshService;
             _appState = appState;
+            _dialogService = dialogService;
             AvailableEffects = _effectsService.GetAvailableEffects();
 
             ReloadFromLayer();
@@ -241,6 +253,25 @@ public partial class LayerOptionsView(IEffectsService effectsService, IMessenger
 
             Layer.BlendMode = value.BlendMode;
             OnLayerUpdated();
+        }
+
+        /// <summary>
+        /// Renames the selected layer through an input dialog. Fire-and-forget from the click handler,
+        /// matching the artboard rename in <see cref="ObjectActionsBarView"/>; unlike that one this is
+        /// undoable, since a layer title is document state the sprite editor's history already covers.
+        /// </summary>
+        public void Rename() => _ = RenameAsync();
+
+        private async Task RenameAsync()
+        {
+            if (Layer is not { } layer)
+                return;
+
+            var result = await _dialogService.ShowInputDialogAsync(L("Layer name"), L("Rename layer"), layer.Name);
+            if (string.IsNullOrWhiteSpace(result))
+                return;
+
+            SpriteEditor?.RenameLayer(layer, result);
         }
 
         public void AddEffect(IEffectItem item)

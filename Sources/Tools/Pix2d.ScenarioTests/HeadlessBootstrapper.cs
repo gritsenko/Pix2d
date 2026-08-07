@@ -200,12 +200,22 @@ public sealed class HeadlessDialogService : IDialogService
     /// <summary>Message of the most recent Yes/No prompt, so a scenario can assert what the user was asked.</summary>
     public string? LastYesNoMessage { get; private set; }
 
+    /// <summary>Text returned by the next <see cref="ShowInputDialogAsync"/>. Null (the default) means the
+    /// user dismissed the prompt, so the sweep never renames anything by accident.</summary>
+    public string? InputAnswer { get; set; }
+
+    /// <summary>Default value the most recent input prompt was seeded with.</summary>
+    public string? LastInputDefaultValue { get; private set; }
+
     public void SetDialogContainer(object container) { }
     public void SetPanelsContainer(object container) { }
     public void Alert(string message, string title) { }
     public Task ShowAlert(string message, string title) => Task.CompletedTask;
     public Task<string?> ShowInputDialogAsync(string message, string title, string defaultValue = "")
-        => Task.FromResult<string?>(null);
+    {
+        LastInputDefaultValue = defaultValue;
+        return Task.FromResult(InputAnswer);
+    }
     public Task<bool> ShowYesNoDialog(string message, string title, string okLabel = "Ok", string cancelLabel = "Cancel")
     {
         LastYesNoMessage = message;

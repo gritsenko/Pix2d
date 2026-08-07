@@ -1,8 +1,11 @@
 #nullable enable
 using System;
+using System.Globalization;
+using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Pix2d.Abstract.Services;
 using Pix2d.Primitives;
@@ -109,9 +112,20 @@ public class UpdateService : IUpdateService
         return ParseRelease(json);
     }
 
-    internal static UpdateInfo? ParseRelease(string json)
+    /// <summary>
+    /// Parses GitHub's "latest release" payload. Public so the headless harness can pin the shape of a
+    /// real response — the whole update check is fail-silent, so a parsing regression here is invisible
+    /// at runtime (it happened: see the date handling below).
+    /// </summary>
+    public static UpdateInfo? ParseRelease(string json)
     {
-        var root = JObject.Parse(json);
+        // DateParseHandling.None keeps ISO-8601 strings as strings. Newtonsoft's default turns them into
+        // DateTime JValues, and Value<DateTimeOffset?>() on one of those throws
+        // "Invalid cast from 'System.DateTime' to 'System.DateTimeOffset'" — which aborted *every*
+        // update check, silently, since CheckForUpdateAsync logs and swallows. Dates are parsed
+        // explicitly below instead of relying on the reader's conversions.
+        using var reader = new JsonTextReader(new StringReader(json)) { DateParseHandling = DateParseHandling.None };
+        var root = JObject.Load(reader);
 
         // Ignore drafts and pre-releases — they are not update candidates.
         if (root.Value<bool?>("draft") == true || root.Value<bool?>("prerelease") == true)
@@ -124,7 +138,10 @@ public class UpdateService : IUpdateService
         var name = root.Value<string>("name");
         var body = root.Value<string>("body") ?? string.Empty;
         var htmlUrl = root.Value<string>("html_url") ?? string.Empty;
-        var publishedAt = root.Value<DateTimeOffset?>("published_at") ?? DateTimeOffset.MinValue;
+        var publishedAt = DateTimeOffset.TryParse(root.Value<string>("published_at"),
+            CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var published)
+            ? published
+            : DateTimeOffset.MinValue;
 
         // First downloadable asset (portable archive / installer), if any. Not surfaced in UI yet.
         string? downloadUrl = null;

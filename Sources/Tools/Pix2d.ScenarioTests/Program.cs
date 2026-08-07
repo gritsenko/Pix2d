@@ -11,6 +11,7 @@ using Pix2d.Abstract.Services;
 using Pix2d.CommonNodes;
 using Pix2d.Project;
 using Pix2d.UI;
+using Pix2d.UI.Layers;
 using Pix2d.Export;
 using Pix2d.Export.Sheet;
 using Pix2d.Plugins.PngFormat.Exporters;
@@ -94,6 +95,8 @@ static class Runner
         GridAppearanceScenario(harness, t);
         FillOpacityScenario(harness, t);
         ShapeBrushScenario(harness, t);
+        LayerTitleAndPixelMaskScenario(harness, t);
+        UpdateReleaseParsingScenario(t);
         SafeSweep(harness);
 
         return t.Summarize();
@@ -2693,6 +2696,177 @@ static class Runner
             Assert.True(l >= 10 && top >= 10 && r <= 42 && b <= 42,
                 $"the oval landed outside its drag bounds: ({l},{top})-({r},{b})");
         });
+    }
+
+    // --- Scenario 7bc: layer titles (#67) and "select the layer's opaque pixels" (#57) ---------------
+    // Both are driven through the view-models the real UI uses (LayerOptionsView.State.Rename and
+    // LayersView.State.SelectLayerPixels — plain ObservableObjects, no Avalonia types), so the wiring
+    // between the panel, the sprite editor and the drawing layer is what gets exercised, not just the
+    // services underneath.
+    static void LayerTitleAndPixelMaskScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Layer title / select-opaque-pixels scenario ===");
+
+        h.NewProject(32);
+        h.SetColor(SKColors.Red);
+
+        // A 3x3 block at (10,10) — small enough that a marquee covering it can't be confused with the
+        // full-canvas marquee SelectAll would produce.
+        for (var y = 10; y <= 12; y++)
+            for (var x = 10; x <= 12; x++)
+                h.DrawPixel(x, y);
+
+        var editor = h.SpriteEditor;
+        var maskLayer = editor.SelectedLayer!;
+        var originalName = maskLayer.Name;
+        var options = ActivatorUtilities.CreateInstance<LayerOptionsView.State>(h.Services);
+
+        t.Check("rename: the layer options panel writes the new title", () =>
+        {
+            h.Dialogs.InputAnswer = "Outline";
+            options.Rename();
+            Assert.True(maskLayer.Name == "Outline", $"layer name is '{maskLayer.Name}', expected 'Outline'");
+        });
+
+        t.Check("rename: the prompt is seeded with the current title", () =>
+            Assert.True(h.Dialogs.LastInputDefaultValue == originalName,
+                $"prompt was seeded with '{h.Dialogs.LastInputDefaultValue}', expected '{originalName}'"));
+
+        t.Check("rename: one undo step, and undo/redo moves the title back and forth", () =>
+        {
+            h.Exec("Edit.Undo");
+            Assert.True(maskLayer.Name == originalName, $"after undo the name is '{maskLayer.Name}', expected '{originalName}'");
+            h.Exec("Edit.Redo");
+            Assert.True(maskLayer.Name == "Outline", $"after redo the name is '{maskLayer.Name}', expected 'Outline'");
+        });
+
+        t.Check("rename: a blank name is rejected and pushes no undo step", () =>
+        {
+            var undoBefore = h.UndoStackSize;
+            h.Dialogs.InputAnswer = "   ";
+            options.Rename();
+            Assert.True(maskLayer.Name == "Outline", $"a blank name overwrote the title with '{maskLayer.Name}'");
+            Assert.True(h.UndoStackSize == undoBefore, $"undo stack {undoBefore} -> {h.UndoStackSize}, expected no change");
+        });
+
+        t.Check("rename: dismissing the prompt leaves the title alone", () =>
+        {
+            h.Dialogs.InputAnswer = null;
+            options.Rename();
+            Assert.True(maskLayer.Name == "Outline", $"a dismissed prompt changed the title to '{maskLayer.Name}'");
+        });
+
+        t.Check("the tile shows a user-given title but not an auto-generated one", () =>
+        {
+            var tile = new LayerItemView.State(new LayerItemViewModel(maskLayer, editor),
+                h.Services.GetRequiredService<IViewPortRefreshService>());
+            Assert.True(tile.ShowNameStrip && tile.LayerName == "Outline",
+                $"named layer: strip={tile.ShowNameStrip} text='{tile.LayerName}', expected the name to show");
+
+            maskLayer.Name = originalName;   // back to the generated "Layer NNN"
+            tile.SyncFromModel();
+            Assert.True(!tile.ShowNameStrip && tile.LayerName.Length == 0,
+                $"unnamed layer: strip={tile.ShowNameStrip} text='{tile.LayerName}', expected no caption");
+
+            // Reorder renumbers layers, so "is this the name it would get right now" is the wrong test —
+            // any "Layer <n>" counts as unnamed.
+            maskLayer.Name = "Layer 042";
+            tile.SyncFromModel();
+            Assert.True(!tile.ShowNameStrip, "a generated name from another index was treated as a real title");
+
+            maskLayer.Name = "Outline";
+            tile.SyncFromModel();
+        });
+
+        // --- #57: the mask comes from the clicked layer, the target stays the active one -------------
+        h.Exec("Sprite.Edit.AddLayer");
+        var activeLayer = editor.SelectedLayer!;
+        var layers = ActivatorUtilities.CreateInstance<LayersView.State>(h.Services);
+
+        t.Check("ctrl+click on a thumbnail selects that layer's opaque pixels", () =>
+        {
+            layers.SelectLayerPixels(new LayerItemViewModel(maskLayer, editor));
+            Assert.True(h.HasPixelSelection, "no marquee after the gesture");
+
+            var b = h.PixelSelectionBounds;
+            Assert.True(Math.Abs(b.Left - 10) <= 1 && Math.Abs(b.Top - 10) <= 1
+                        && Math.Abs(b.Width - 3) <= 1 && Math.Abs(b.Height - 3) <= 1,
+                $"marquee is {b}, expected the 3x3 block at (10,10) — a full-canvas rect means the mask was ignored");
+        });
+
+        t.Check("... taking the mask from another layer without stealing the active one", () =>
+            Assert.True(ReferenceEquals(editor.SelectedLayer, activeLayer),
+                "the gesture switched the active layer; it must only load the selection"));
+
+        t.Check("... and hands the marquee to a selection tool, not the brush", () =>
+        {
+            // The gesture activates the rect-selection tool; DrawingService then applies the user's
+            // auto-open-transform preference on top, exactly as it does for a hand-drawn marquee — so
+            // either of the two is a correct landing spot, the brush is not.
+            var tool = h.AppState.ToolsState.CurrentToolKey;
+            Assert.True(tool is "PixelSelectRectTool" or "PixelTransformTool",
+                $"active tool is '{tool}', expected a selection tool");
+        });
+
+        t.Check("an empty layer selects nothing (and drops the previous marquee)", () =>
+        {
+            layers.SelectLayerPixels(new LayerItemViewModel(activeLayer, editor));
+            Assert.True(!h.HasPixelSelection, "an empty layer produced a marquee");
+        });
+    }
+
+    // --- Scenario 7bd: the self-update release parser -----------------------------------------------
+    // Pure function, no harness needed. It earns a scenario because the update check swallows every
+    // exception by design, so a parsing bug here disables self-update on all portable desktop builds
+    // and shows up nowhere but a log line.
+    static void UpdateReleaseParsingScenario(TestReport t)
+    {
+        Console.WriteLine("\n=== Self-update release parsing scenario ===");
+
+        // Shape of a real https://api.github.com/repos/gritsenko/Pix2d/releases/latest payload.
+        const string json = """
+        {
+          "tag_name": "v3.11.4",
+          "name": "Pix2D v3.11.4",
+          "body": "  Fixes and improvements.  ",
+          "html_url": "https://github.com/gritsenko/Pix2d/releases/tag/v3.11.4",
+          "draft": false,
+          "prerelease": false,
+          "published_at": "2026-08-06T12:34:56Z",
+          "assets": [ { "browser_download_url": "https://example.invalid/Pix2d_win.zip" } ]
+        }
+        """;
+
+        t.Check("a real release payload parses (the ISO date must not throw)", () =>
+        {
+            var info = UpdateService.ParseRelease(json);
+            Assert.True(info != null, "ParseRelease returned null for a valid release");
+            Assert.True(info!.Version == new Version(3, 11, 4), $"version {info.Version}, expected 3.11.4");
+            Assert.True(info.Name == "Pix2D v3.11.4", $"name '{info.Name}'");
+            Assert.True(info.ReleaseNotes == "Fixes and improvements.", $"notes '{info.ReleaseNotes}'");
+            Assert.True(info.PublishedAt == new DateTimeOffset(2026, 8, 6, 12, 34, 56, TimeSpan.Zero),
+                $"published {info.PublishedAt:O}, expected 2026-08-06T12:34:56Z");
+            Assert.True(info.DownloadUrl == "https://example.invalid/Pix2d_win.zip", $"asset '{info.DownloadUrl}'");
+        });
+
+        t.Check("drafts and pre-releases are not update candidates", () =>
+        {
+            Assert.True(UpdateService.ParseRelease(json.Replace("\"draft\": false", "\"draft\": true")) == null,
+                "a draft was offered as an update");
+            Assert.True(UpdateService.ParseRelease(json.Replace("\"prerelease\": false", "\"prerelease\": true")) == null,
+                "a pre-release was offered as an update");
+        });
+
+        t.Check("a missing or unparseable date degrades instead of throwing", () =>
+        {
+            var info = UpdateService.ParseRelease(json.Replace("\"2026-08-06T12:34:56Z\"", "\"not a date\""));
+            Assert.True(info != null && info.PublishedAt == DateTimeOffset.MinValue,
+                "a bad published_at should leave the rest of the release usable");
+        });
+
+        t.Check("a release with no usable tag is ignored", () =>
+            Assert.True(UpdateService.ParseRelease(json.Replace("\"v3.11.4\"", "\"nightly\"")) == null,
+                "a non-version tag was accepted"));
     }
 
     static void SafeSweep(HeadlessHarness h)

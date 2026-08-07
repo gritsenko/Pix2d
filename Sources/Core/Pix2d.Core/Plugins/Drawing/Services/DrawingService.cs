@@ -739,6 +739,11 @@ public class DrawingService : IDrawingService
             _drawingLayer.SelectAll();
     }
 
+    public void SelectOpaquePixels(SKBitmap? maskSource)
+    {
+        _drawingLayer?.SelectOpaquePixels(maskSource);
+    }
+
     public void InvertSelection()
     {
         if (_drawingLayer is not DrawingLayerNode drawingLayerNode || CurrentDrawingTarget == null)

@@ -248,6 +248,37 @@ internal sealed class SelectionController
         FinishSelection();
     }
 
+    /// <summary>
+    /// Selects every non-transparent pixel of <paramref name="maskSource"/> — the layer-thumbnail
+    /// Ctrl+click gesture. The mask may come from a layer other than the drawing target (that is the
+    /// point: select the silhouette of one layer while editing another), but it has to describe the
+    /// same grid, so a size mismatch selects nothing rather than reading out of range.
+    ///
+    /// The gesture always *replaces* the selection, so a null mask (a layer whose current frame has
+    /// no pixels allocated yet) still drops the previous marquee — "this layer's silhouette" is an
+    /// empty selection, not "leave the last one alone".
+    /// </summary>
+    public void SelectOpaquePixels(SKBitmap? maskSource)
+    {
+        var drawingTarget = _host.DrawingTarget;
+        if (drawingTarget == null)
+            return;
+
+        ApplySelection();
+
+        var size = drawingTarget.GetSize();
+        if (maskSource == null
+            || maskSource.Width != (int)size.Width
+            || maskSource.Height != (int)size.Height)
+            return;
+
+        OnSelectionStarted();
+        _pixelSelector = new OpaquePixelSelector(maskSource);
+        // Always contour-highlighted: the whole value of this gesture is seeing the silhouette, and
+        // unlike the marquee tools it has no rectangle to fall back on.
+        FinishSelection(highlightSelection: true);
+    }
+
     public void BeginSelection(SKPoint pos)
     {
         ApplySelection();
@@ -377,7 +408,11 @@ internal sealed class SelectionController
     /// Activates selection editor using currently drawn selection area. If nothing is selected
     /// (1 pixel is in the selected area), editor is not activated.
     /// </summary>
-    public void FinishSelection()
+    /// <param name="highlightSelection">
+    /// Overrides the per-mode default (every mode but Rectangle traces a contour). Only the
+    /// non-drag entry points pass it — a marquee gesture always wants the mode's own answer.
+    /// </param>
+    public void FinishSelection(bool? highlightSelection = null)
     {
         var drawingTarget = _host.DrawingTarget;
         if (_pixelSelector == null || drawingTarget == null)
@@ -389,7 +424,7 @@ internal sealed class SelectionController
         _host.State = DrawingLayerState.Ready;
 
         var selector = _pixelSelector;
-        selector.FinishSelection(SelectionMode != PixelSelectionMode.Rectangle);
+        selector.FinishSelection(highlightSelection ?? SelectionMode != PixelSelectionMode.Rectangle);
 
         var size = drawingTarget.GetSize();
         var tmpBitmap = new SKBitmap(new SKImageInfo((int)size.Width, (int)size.Height, SKColorType.Rgba8888));
