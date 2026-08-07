@@ -51,12 +51,30 @@ public class MoveThumbNode : NodeManipulateThumbBase
     /// </summary>
     public bool PassShiftPressThrough { get; set; }
 
+    /// <summary>
+    /// When true, a single-click press holding a marquee-combining modifier (Shift = add, Ctrl = subtract)
+    /// falls through the same way, so Shift/Ctrl+drag started *inside* a live marquee grows or shrinks it
+    /// instead of moving it. Subtracting in particular almost always starts inside the selection, so
+    /// without this the gesture is unreachable. Enabled only for a contour-mode pixel selection: once
+    /// pixels are lifted the modifiers belong to the transform (Shift = aspect lock).
+    /// </summary>
+    public bool PassSelectionCombinePressThrough { get; set; }
+
     public override void OnPointerPressed(PointerActionEventArgs eventArgs, int clickCount)
     {
-        if (PassShiftPressThrough && clickCount == 1 && eventArgs.KeyModifiers.HasFlag(KeyModifier.Shift))
+        if (clickCount == 1 && ShouldPassPressThrough(eventArgs.KeyModifiers))
             return;
 
         base.OnPointerPressed(eventArgs, clickCount);
+    }
+
+    private bool ShouldPassPressThrough(KeyModifier modifiers)
+    {
+        if (PassShiftPressThrough && modifiers.HasFlag(KeyModifier.Shift))
+            return true;
+
+        return PassSelectionCombinePressThrough
+               && (modifiers.HasFlag(KeyModifier.Shift) || modifiers.HasFlag(KeyModifier.Ctrl));
     }
 
     public MoveThumbNode()

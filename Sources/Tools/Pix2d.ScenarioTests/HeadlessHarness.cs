@@ -148,6 +148,54 @@ public sealed class HeadlessHarness
     public SKRect PixelSelectionBounds =>
         _drawing.DrawingLayer.HasSelection ? _drawing.DrawingLayer.GetSelectionLayer().GetBoundingBox() : SKRect.Empty;
 
+    /// <summary>
+    /// The marquee flattened to a canvas-space mask (1 = selected, indexed <c>x + y * canvasWidth</c>), or
+    /// null when nothing is selected. Lets a scenario assert *which* pixels a combined selection covers —
+    /// a bounding box can't tell a union from the rectangle that encloses it, nor spot a subtracted hole.
+    /// </summary>
+    public byte[]? PixelSelectionMask()
+    {
+        var layer = _drawing.DrawingLayer;
+        if (!layer.HasSelection || layer.DrawingTarget is not { } target)
+            return null;
+
+        var size = target.GetSize();
+        return Pix2d.Plugins.Drawing.Common.Drawing.SelectionMaskOps.Rasterize(
+            (Pix2d.Plugins.Drawing.Nodes.SpriteSelectionNode)layer.GetSelectionLayer(),
+            ((SKNode)target).Position,
+            (int)size.Width,
+            (int)size.Height);
+    }
+
+    /// <summary>True when canvas pixel (x, y) is inside the current selection.</summary>
+    public bool IsPixelSelected(int x, int y)
+    {
+        var mask = PixelSelectionMask();
+        if (mask == null || _drawing.DrawingLayer.DrawingTarget is not { } target)
+            return false;
+
+        var size = target.GetSize();
+        if (x < 0 || y < 0 || x >= (int)size.Width || y >= (int)size.Height)
+            return false;
+
+        return mask[x + y * (int)size.Width] > 0;
+    }
+
+    /// <summary>Number of selected canvas pixels (0 when there is no selection).</summary>
+    public int SelectedPixelCount()
+    {
+        var mask = PixelSelectionMask();
+        if (mask == null)
+            return 0;
+
+        var count = 0;
+        foreach (var v in mask)
+            if (v > 0)
+                count++;
+
+        return count;
+    }
+
     /// <summary>Drags a marquee with the active selection tool, from world (x0, y0) to world (x1, y1).</summary>
     public void DragWorld(float x0, float y0, float x1, float y1, KeyModifier modifiers = KeyModifier.None)
     {

@@ -229,6 +229,23 @@ public class SameColorSelector : IPixelSelector
         return bitmap;
     }
 
+    public byte[]? GetSelectionMask(int width, int height)
+    {
+        if (_pixelsBuff == null || width <= 0 || height <= 0)
+            return null;
+
+        var mask = new byte[width * height];
+        var w = Math.Min(width, _bitmap.Width);
+        var h = Math.Min(height, _bitmap.Height);
+
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+                if (_pixelsBuff[x + y * _bitmap.Width] > 0)
+                    mask[x + y * width] = 1;
+
+        return mask;
+    }
+
     public void ClearSelectionFromBitmap(ref SKBitmap bitmap)
     {
         if (_pixelsBuff == null)

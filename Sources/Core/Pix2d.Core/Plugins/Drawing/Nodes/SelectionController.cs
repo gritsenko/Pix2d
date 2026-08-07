@@ -1,6 +1,7 @@
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Selection;
 using Pix2d.InteractiveNodes;
+using Pix2d.Plugins.Drawing.Common.Drawing;
 using Pix2d.Plugins.Drawing.PixelSelectors;
 using Pix2d.Plugins.Drawing.Operations;
 using Pix2d.Primitives.Drawing;
@@ -37,6 +38,25 @@ internal sealed class SelectionController
     private TransformSelectionOperation? _currentSelectionOperation;
     private bool _pixelsLifted;
     private bool _frameResizeMode;
+
+    // --- Shift/Ctrl marquee combining -----------------------------------------------------------------
+    // Captured at BeginSelection, consumed at FinishSelection. The selection that was live when the
+    // gesture started has to be flattened *before* BeginSelection's ApplySelection drops it, so all three
+    // are snapshots taken at press time: the region as a canvas mask (what the set algebra runs on), its
+    // outline (drawn under the in-progress marquee so the user can see what they are adding to) and the
+    // full state (restored if the gesture turns out to be a plain click, and used as the undo target of
+    // the resulting BeginSelectionOperation).
+    private byte[]? _pendingBaseMask;
+    private SKPath? _pendingBasePath;
+    private SelectionStateSnapshot? _pendingBaseState;
+    private SelectionCombineMode _pendingCombineMode = SelectionCombineMode.Replace;
+
+    /// <summary>
+    /// The selection a combining gesture grew out of, or null when the last marquee simply replaced what
+    /// was there. <c>DrawingService</c> hands it to <see cref="BeginSelectionOperation"/> so undoing a
+    /// Shift-add steps back to the previous selection instead of clearing everything.
+    /// </summary>
+    public SelectionStateSnapshot? LastCombinedFromSelection { get; private set; }
 
     public event EventHandler? SelectionStarted;
     public event EventHandler? SelectionRemoved;
@@ -242,6 +262,7 @@ internal sealed class SelectionController
 
     public void SelectAll()
     {
+        ClearCombineBase();
         ApplySelection();
         OnSelectionStarted();
         _pixelSelector = new AllPixelSelector();
@@ -264,6 +285,7 @@ internal sealed class SelectionController
         if (drawingTarget == null)
             return;
 
+        ClearCombineBase();
         ApplySelection();
 
         var size = drawingTarget.GetSize();
@@ -279,8 +301,15 @@ internal sealed class SelectionController
         FinishSelection(highlightSelection: true);
     }
 
-    public void BeginSelection(SKPoint pos)
+    /// <param name="combineMode">
+    /// What to do with the region this gesture produces once it finishes. Anything but
+    /// <see cref="SelectionCombineMode.Replace"/> snapshots the current selection first — see
+    /// <see cref="CaptureCombineBase"/>.
+    /// </param>
+    public void BeginSelection(SKPoint pos, SelectionCombineMode combineMode = SelectionCombineMode.Replace)
     {
+        CaptureCombineBase(combineMode);
+
         ApplySelection();
         OnSelectionStarted();
         _host.State = DrawingLayerState.DrawingSelectionArea;
@@ -317,6 +346,7 @@ internal sealed class SelectionController
         _pixelSelector.BeginSelection(new SKPointI((int)seed.X, (int)seed.Y));
 
         ShowMarqueeOverlay();
+        _marqueeOverlay.SetBasePath(_pendingBasePath);
 
         if (SelectionMode != PixelSelectionMode.Rectangle)
         {
@@ -324,6 +354,53 @@ internal sealed class SelectionController
             // already produces a visible line segment, matching the pointer trace.
             _marqueeOverlay.BeginFreeformPath(localStart);
         }
+    }
+
+    /// <summary>
+    /// Flattens the live selection so the gesture that is about to start can combine with it. Falls back to
+    /// <see cref="SelectionCombineMode.Replace"/> — i.e. captures nothing — whenever combining doesn't
+    /// apply, so a modifier held with nothing selected behaves exactly like an ordinary marquee.
+    /// </summary>
+    private void CaptureCombineBase(SelectionCombineMode combineMode)
+    {
+        _pendingBaseMask = null;
+        _pendingBasePath = null;
+        _pendingBaseState = null;
+        _pendingCombineMode = SelectionCombineMode.Replace;
+
+        if (combineMode == SelectionCombineMode.Replace || _selectionLayer == null)
+            return;
+
+        // Lifted pixels are mid-transform: combining would have to composite the floating bitmap back
+        // onto the canvas first, which is a different (and destructive) operation than reshaping a
+        // marquee. Degrade to Replace rather than half-do it.
+        if (_pixelsLifted || _host.DrawingTarget is not { } drawingTarget)
+            return;
+
+        var size = drawingTarget.GetSize();
+        var width = (int)size.Width;
+        var height = (int)size.Height;
+        if (width <= 0 || height <= 0)
+            return;
+
+        var mask = SelectionMaskOps.Rasterize(_selectionLayer, ((SKNode)drawingTarget).Position, width, height);
+        if (SelectionMaskOps.IsEmpty(mask))
+            return;
+
+        _pendingBaseMask = mask;
+        _pendingCombineMode = combineMode;
+        _pendingBasePath = SelectionMaskOps.BuildContour(mask, width, height, out _);
+
+        if (_host.BackgroundBitmap is { } background)
+            _pendingBaseState = new SelectionStateSnapshot(_selectionLayer, background.Copy(), ContourOnly: true);
+    }
+
+    private void ClearCombineBase()
+    {
+        _pendingBaseMask = null;
+        _pendingBasePath = null;
+        _pendingBaseState = null;
+        _pendingCombineMode = SelectionCombineMode.Replace;
     }
 
     public void AddSelectionPoint(SKPoint p)
@@ -416,7 +493,10 @@ internal sealed class SelectionController
     {
         var drawingTarget = _host.DrawingTarget;
         if (_pixelSelector == null || drawingTarget == null)
+        {
+            ClearCombineBase();
             return;
+        }
 
         // Drag-phase visualization is done — the static frame (FrameEditorNode + LineHighlightNode) takes over below.
         HideMarqueeOverlay();
@@ -427,39 +507,88 @@ internal sealed class SelectionController
         selector.FinishSelection(highlightSelection ?? SelectionMode != PixelSelectionMode.Rectangle);
 
         var size = drawingTarget.GetSize();
-        var tmpBitmap = new SKBitmap(new SKImageInfo((int)size.Width, (int)size.Height, SKColorType.Rgba8888));
+        var width = (int)size.Width;
+        var height = (int)size.Height;
+        var tmpBitmap = new SKBitmap(new SKImageInfo(width, height, SKColorType.Rgba8888));
         drawingTarget.CopyBitmapTo(tmpBitmap);
+
+        // Must run before GetSelectionMask for every selector — AiPixelSelector computes its mask in here.
         var selectionBitmap = selector.GetSelectionBitmap(tmpBitmap);
+
+        var baseMask = _pendingBaseMask;
+        var combineMode = _pendingCombineMode;
+        var baseState = _pendingBaseState;
+        ClearCombineBase();
+
+        if (baseMask != null && baseMask.Length == width * height)
+        {
+            // Combining path: the marquee just drawn is only an operand. Everything visible — pixels,
+            // contour, background — is rebuilt from the combined mask, so it stays one coherent selection
+            // rather than two overlapping ones.
+            selectionBitmap.Dispose();
+
+            var combined = SelectionMaskOps.Combine(baseMask, selector.GetSelectionMask(width, height), combineMode);
+            var region = SelectionMaskOps.BuildRegion(tmpBitmap, combined, ((SKNode)drawingTarget).Position);
+            tmpBitmap.Dispose();
+
+            if (region == null)
+            {
+                // Subtracted (or intersected) everything away. Nothing selected is a legitimate result, but
+                // BeginSelection already announced a gesture, so close it out.
+                OnSelectionRemoved();
+                _host.RequestRefresh();
+                return;
+            }
+
+            LastCombinedFromSelection = baseState;
+            SelectionSize = region.SelectionLayer.Size;
+            CompleteSelection(region.SelectionLayer, region.BackgroundBitmap, drawingTarget);
+            return;
+        }
 
         selector.ClearSelectionFromBitmap(ref tmpBitmap);
 
         if (selectionBitmap.Pixels.Length > 1)
         {
-            OnPixelsBeforeSelected(selectionBitmap);
+            LastCombinedFromSelection = null;
 
-            _selectionLayer = new SpriteSelectionNode
-            {
-                Bitmap = selectionBitmap,
-                SelectionPath = selector.GetSelectionPath(),
-                SelectionContours = selector.GetSelectionContours(),
-                Opacity = 1,
-                Position = selector.Offset + ((SKNode)drawingTarget).Position,
-            };
-
-            _host.Opacity = drawingTarget.GetOpacity();
-            _host.BackgroundBitmap = tmpBitmap;
-
-            // Selection tools (Rect / Lasso / Color) always finish in contour-only mode — they
-            // never lift pixels. Auto-enter into transform mode (if enabled) is handled by
-            // DrawingService switching to PixelTransformTool, which is the single owner of the
-            // "pixels lifted" state.
-            ActivateEditor(contourOnly: true);
-            OnPixelsSelected();
-            // Fires last, after the marquee is fully visible. DrawingService listens for this
-            // exact event (not PixelsSelected) to push BeginSelectionOperation — keeps undo-stack
-            // pushes scoped to actual user gestures rather than every SetSelection replay.
-            MarqueeFinishedByUser?.Invoke(this, EventArgs.Empty);
+            CompleteSelection(
+                new SpriteSelectionNode
+                {
+                    Bitmap = selectionBitmap,
+                    SelectionPath = selector.GetSelectionPath(),
+                    SelectionContours = selector.GetSelectionContours(),
+                    Opacity = 1,
+                    Position = selector.Offset + ((SKNode)drawingTarget).Position,
+                },
+                tmpBitmap,
+                drawingTarget);
         }
+    }
+
+    /// <summary>
+    /// Shared tail of <see cref="FinishSelection"/>: installs a freshly built selection and announces it.
+    /// </summary>
+    private void CompleteSelection(SpriteSelectionNode selectionLayer, SKBitmap backgroundBitmap, IDrawingTarget drawingTarget)
+    {
+        if (selectionLayer.Bitmap is { } bitmap)
+            OnPixelsBeforeSelected(bitmap);
+
+        _selectionLayer = selectionLayer;
+
+        _host.Opacity = drawingTarget.GetOpacity();
+        _host.BackgroundBitmap = backgroundBitmap;
+
+        // Selection tools (Rect / Lasso / Color) always finish in contour-only mode — they
+        // never lift pixels. Auto-enter into transform mode (if enabled) is handled by
+        // DrawingService switching to PixelTransformTool, which is the single owner of the
+        // "pixels lifted" state.
+        ActivateEditor(contourOnly: true);
+        OnPixelsSelected();
+        // Fires last, after the marquee is fully visible. DrawingService listens for this
+        // exact event (not PixelsSelected) to push BeginSelectionOperation — keeps undo-stack
+        // pushes scoped to actual user gestures rather than every SetSelection replay.
+        MarqueeFinishedByUser?.Invoke(this, EventArgs.Empty);
     }
 
     public void ApplySelection(bool saveToUndo = false)
@@ -506,6 +635,19 @@ internal sealed class SelectionController
             return;
         _pixelSelector = null;
         HideMarqueeOverlay();
+
+        var baseState = _pendingBaseState;
+        ClearCombineBase();
+
+        // A combining gesture that produced nothing (Shift+click, or a pinch that interrupted the drag)
+        // must leave the selection it was going to combine with intact — BeginSelection dropped it eagerly,
+        // so put it back. Without this, Shift+click would clear the selection, which is the opposite of
+        // what holding Shift asks for.
+        if (baseState != null && _host.DrawingTarget != null)
+        {
+            SetSelection(baseState.SelectionLayer, baseState.BackgroundBitmap, contourOnly: baseState.ContourOnly);
+            return;
+        }
 
         // BeginSelection announced the gesture with SelectionStarted; without the matching event the
         // consumers that track "is the user selecting right now" (selection-size readout in the info panel,
@@ -610,6 +752,12 @@ internal sealed class SelectionController
         _selectionEditor.ContourOnly = contourOnly;
         _selectionEditor.FrameResizeMode = _frameResizeMode;
         _selectionEditor.AllowResize = !contourOnly || _frameResizeMode;
+
+        // Let Shift/Ctrl+drag started on top of the marquee reach the selection tool instead of moving the
+        // frame — that gesture is how you subtract, and it necessarily starts inside the selection. Only
+        // while the marquee is a plain contour: with pixels lifted the modifiers drive the transform, and
+        // the crop tool's frame is a region to drag, not a set to combine with.
+        _selectionEditor.PassSelectionCombinePressThrough = contourOnly && !_frameResizeMode;
     }
 
     /// <summary>

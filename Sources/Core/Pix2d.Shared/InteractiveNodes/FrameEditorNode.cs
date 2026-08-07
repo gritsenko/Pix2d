@@ -115,6 +115,15 @@ public class FrameEditorNode : SKNode
         set => _moveThumb.PassShiftPressThrough = value;
     }
 
+    /// <summary>See <see cref="MoveThumbNode.PassSelectionCombinePressThrough"/> — enabled by the
+    /// pixel-selection editor while a contour-mode marquee is up, so Shift/Ctrl+drag inside it reaches the
+    /// selection tool and combines instead of moving the marquee.</summary>
+    public bool PassSelectionCombinePressThrough
+    {
+        get => _moveThumb.PassSelectionCombinePressThrough;
+        set => _moveThumb.PassSelectionCombinePressThrough = value;
+    }
+
     public bool EditStarted { get; set; }
     public bool IsChanged => _initialPos != _moveThumb.Position || _initialSize != _moveThumb.Size || _forceIsChanged || Math.Abs(_moveThumb.Rotation - _initialRotation) > 0.01;
 

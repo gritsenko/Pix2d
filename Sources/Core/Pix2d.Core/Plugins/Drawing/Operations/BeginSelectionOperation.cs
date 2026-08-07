@@ -17,19 +17,28 @@ public class BeginSelectionOperation : EditOperationBase, IToolAwareOperation, I
     private readonly DrawingLayerNode _drawingLayer;
     private readonly SpriteSelectionNode _selectionLayer;
     private readonly SKBitmap _backgroundBitmap;
+    private readonly SelectionStateSnapshot? _previousSelection;
 
     public string? ToolKeyBeforeOperation { get; }
     public string? ToolKeyAfterOperation { get; }
 
+    /// <param name="previousSelection">
+    /// The selection this marquee was combined with (Shift/Ctrl), if any. Undo restores it instead of
+    /// clearing — a Shift-add is one step *on top of* a selection, so reversing it has to leave that
+    /// selection standing, otherwise building one up region by region would collapse on the first Ctrl+Z.
+    /// Null for an ordinary replacing marquee, which undoes to nothing selected.
+    /// </param>
     public BeginSelectionOperation(
         DrawingLayerNode drawingLayer,
         SpriteSelectionNode selectionLayer,
         SKBitmap backgroundBitmap,
-        string? toolKey)
+        string? toolKey,
+        SelectionStateSnapshot? previousSelection = null)
     {
         _drawingLayer = drawingLayer;
         _selectionLayer = selectionLayer;
         _backgroundBitmap = backgroundBitmap;
+        _previousSelection = previousSelection;
 
         // Both before and after point at the selection tool that produced the marquee. On undo this avoids
         // stranding the user in PixelTransformTool with no selection (which is its own broken state) — the
@@ -49,6 +58,15 @@ public class BeginSelectionOperation : EditOperationBase, IToolAwareOperation, I
 
     public override void OnPerformUndo()
     {
+        if (_previousSelection != null)
+        {
+            _drawingLayer.SetSelection(
+                _previousSelection.SelectionLayer,
+                _previousSelection.BackgroundBitmap,
+                contourOnly: _previousSelection.ContourOnly);
+            return;
+        }
+
         // Undo: drop the marquee. If a stacked operation already dropped it (rare but possible when the
         // user creates multiple marquees in a row), this is a no-op rather than an error.
         if (_drawingLayer.HasSelection)

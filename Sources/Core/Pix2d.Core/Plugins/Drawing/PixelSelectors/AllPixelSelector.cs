@@ -18,6 +18,16 @@ public class AllPixelSelector : IPixelSelector
 
     public List<List<SKPoint>>? GetSelectionContours() => null;
 
+    public byte[]? GetSelectionMask(int width, int height)
+    {
+        if (width <= 0 || height <= 0)
+            return null;
+
+        var mask = new byte[width * height];
+        mask.AsSpan().Fill(1);
+        return mask;
+    }
+
     public SKPoint Offset { get; }
     public void BeginSelection(SKPointI point)
     {

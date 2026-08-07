@@ -89,6 +89,7 @@ static class Runner
         BatchExportScenario(harness, t);
         PrecisionScrollDetectorScenario(harness, t);
         PixelSelectionScenario(harness, t);
+        SelectionCombineScenario(harness, t);
         GeneralContextObjectToolScenario(harness, t);
         GeneralContextObjectCommandsScenario(harness, t);
         EyedropperReturnScenario(harness, t);
@@ -1735,6 +1736,206 @@ static class Runner
                 "still on PixelTransformTool after Deselect");
         });
 
+        h.AppState.IsAutoOpenTransformEditorAfterSelectionEnabled = autoTransform;
+    }
+
+    // --- Scenario 7bc: combining marquees — Shift adds, Ctrl subtracts, Shift+Ctrl intersects -------
+    // The selection has two representations (a live SpriteSelectionNode with its own transform, and a flat
+    // canvas mask) and only the second one can be combined, so every check here asserts on the *mask*
+    // (h.IsPixelSelected / h.SelectedPixelCount) rather than on the bounding box — a union and the
+    // rectangle enclosing it have the same bounds, and a subtracted hole has none at all.
+    // Runs on a second artboard so the drawing target is away from the scene origin, which is where the
+    // mask rasterization has to subtract the target position or land the region in the wrong place.
+    static void SelectionCombineScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Selection combine scenario (Shift / Ctrl) ===");
+
+        h.NewProject(64);
+        h.Exec("Sprite.Edit.AddArtboard");
+        h.SetView(1);
+
+        // Lifting pixels into the transform tool ends contour mode, and a lifted selection deliberately
+        // degrades combining back to Replace — keep the marquee tool in charge for these checks.
+        var autoTransform = h.AppState.IsAutoOpenTransformEditorAfterSelectionEnabled;
+        h.AppState.IsAutoOpenTransformEditorAfterSelectionEnabled = false;
+
+        var box = h.ActiveSprite.GetBoundingBox();
+        var l = box.Left;
+        var tp = box.Top;
+
+        h.ActivateTool<Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelSelectRectTool>();
+
+        // Two disjoint 9x9 squares: pixels 4..12 and 20..28.
+        void DragA(KeyModifier m = KeyModifier.None) => h.DragWorld(l + 4, tp + 4, l + 12, tp + 12, m);
+        void DragB(KeyModifier m = KeyModifier.None) => h.DragWorld(l + 20, tp + 20, l + 28, tp + 28, m);
+
+        t.Check("a plain second marquee still replaces the first", () =>
+        {
+            DragA();
+            DragB();
+            Assert.True(!h.IsPixelSelected(6, 6), "the first marquee survived a plain (no-modifier) redraw");
+            Assert.True(h.IsPixelSelected(24, 24), "the second marquee did not take");
+            Assert.True(h.SelectedPixelCount() == 81, $"expected 81 selected pixels, got {h.SelectedPixelCount()}");
+        });
+
+        t.Check("Shift+drag unions the new marquee with the existing selection", () =>
+        {
+            h.Exec("Edit.Selection.Deselect");
+            DragA();
+            DragB(KeyModifier.Shift);
+
+            Assert.True(h.IsPixelSelected(6, 6), "the original region was dropped instead of added to");
+            Assert.True(h.IsPixelSelected(24, 24), "the added region is not selected");
+            Assert.True(!h.IsPixelSelected(16, 16), "the gap between the two squares got selected");
+            Assert.True(h.SelectedPixelCount() == 162, $"expected 81+81 selected pixels, got {h.SelectedPixelCount()}");
+        });
+
+        t.Check("undo of a Shift-add steps back to the previous selection, not to nothing", () =>
+        {
+            h.Operations.Undo();
+            Assert.True(h.HasPixelSelection, "undo cleared the selection the add was built on");
+            Assert.True(h.IsPixelSelected(6, 6), "the original region did not come back");
+            Assert.True(!h.IsPixelSelected(24, 24), "the added region survived undo");
+        });
+
+        t.Check("Ctrl+drag subtracts the new marquee from the existing selection", () =>
+        {
+            h.Exec("Edit.Selection.Deselect");
+            DragA();
+            // Bite the bottom-right quadrant (8..12) out of the 4..12 square.
+            h.DragWorld(l + 8, tp + 8, l + 12, tp + 12, KeyModifier.Ctrl);
+
+            Assert.True(h.IsPixelSelected(5, 5), "the untouched part of the selection was dropped");
+            Assert.True(!h.IsPixelSelected(10, 10), "the subtracted region is still selected");
+            Assert.True(h.SelectedPixelCount() == 81 - 25, $"expected 56 selected pixels, got {h.SelectedPixelCount()}");
+        });
+
+        t.Check("Shift+Ctrl keeps only the overlap", () =>
+        {
+            h.Exec("Edit.Selection.Deselect");
+            DragA();
+            // 8..20 overlaps 4..12 on 8..12 — a 5x5 square.
+            h.DragWorld(l + 8, tp + 8, l + 20, tp + 20, KeyModifier.Shift | KeyModifier.Ctrl);
+
+            Assert.True(h.IsPixelSelected(10, 10), "the overlap is not selected");
+            Assert.True(!h.IsPixelSelected(5, 5), "a pixel outside the new marquee stayed selected");
+            Assert.True(!h.IsPixelSelected(16, 16), "a pixel outside the old marquee got selected");
+            Assert.True(h.SelectedPixelCount() == 25, $"expected 25 selected pixels, got {h.SelectedPixelCount()}");
+        });
+
+        // A subtracted hole is a second sub-contour inside the outer one, so the next gesture has to
+        // rasterize the base as a donut rather than as a solid rectangle.
+        t.Check("a hole punched out of a selection survives a further add", () =>
+        {
+            h.Exec("Edit.Selection.Deselect");
+            h.DragWorld(l + 4, tp + 4, l + 16, tp + 16);                            // 13x13 = 169
+            h.DragWorld(l + 8, tp + 8, l + 12, tp + 12, KeyModifier.Ctrl);          // minus 5x5 = 25
+            Assert.True(!h.IsPixelSelected(10, 10), "precondition: the hole was not punched");
+
+            DragB(KeyModifier.Shift);                                               // plus 9x9 = 81
+            Assert.True(!h.IsPixelSelected(10, 10), "the hole filled itself back in");
+            Assert.True(h.IsPixelSelected(5, 5) && h.IsPixelSelected(24, 24), "the donut or the addition was lost");
+            Assert.True(h.SelectedPixelCount() == 169 - 25 + 81,
+                $"expected 225 selected pixels, got {h.SelectedPixelCount()}");
+        });
+
+        t.Check("subtracting the whole selection away leaves nothing selected", () =>
+        {
+            h.Exec("Edit.Selection.Deselect");
+            DragA();
+            h.DragWorld(l + 2, tp + 2, l + 30, tp + 30, KeyModifier.Ctrl);
+            Assert.True(!h.HasPixelSelection, "a fully subtracted selection is still live");
+        });
+
+        // BeginSelection drops the live marquee before the new one is drawn, so a combining gesture that
+        // produces nothing has to put it back — otherwise Shift+click, which asks to *add*, would clear.
+        t.Check("Shift+click keeps the selection instead of deselecting", () =>
+        {
+            DragA();
+            h.ClickWorld(l + 40, tp + 40, KeyModifier.Shift);
+            Assert.True(h.HasPixelSelection, "Shift+click outside the marquee cleared the selection");
+            Assert.True(h.IsPixelSelected(6, 6), "Shift+click changed which pixels are selected");
+            Assert.True(h.SelectedPixelCount() == 81, $"expected the selection untouched, got {h.SelectedPixelCount()}");
+        });
+
+        // With nothing to combine against there is no sensible set operation, so the gesture degrades to a
+        // plain marquee (same as Photoshop) rather than doing nothing at all.
+        t.Check("a modifier with nothing selected behaves like a plain marquee", () =>
+        {
+            foreach (var modifier in new[] { KeyModifier.Shift, KeyModifier.Ctrl, KeyModifier.Shift | KeyModifier.Ctrl })
+            {
+                h.Exec("Edit.Selection.Deselect");
+                DragB(modifier);
+                Assert.True(h.IsPixelSelected(24, 24), $"{modifier}+drag on an empty selection produced nothing");
+                Assert.True(h.SelectedPixelCount() == 81,
+                    $"{modifier}: expected 81 selected pixels, got {h.SelectedPixelCount()}");
+            }
+        });
+
+        t.Check("lasso adds to a rectangle marquee", () =>
+        {
+            h.Exec("Edit.Selection.Deselect");
+            DragA();
+
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelSelectLassoTool>();
+            h.PressWorld(l + 20, tp + 20, KeyModifier.Shift);
+            h.MoveWorld(l + 30, tp + 22, pressed: true, KeyModifier.Shift);
+            h.MoveWorld(l + 26, tp + 30, pressed: true, KeyModifier.Shift);
+            h.ReleaseWorld(l + 26, tp + 30, KeyModifier.Shift);
+
+            Assert.True(h.IsPixelSelected(6, 6), "the rectangle was dropped by the lasso add");
+            Assert.True(h.SelectedPixelCount() > 81, $"the lasso added nothing, count = {h.SelectedPixelCount()}");
+        });
+
+        // The magic wand is the case this feature exists for: picking several colour regions one click at
+        // a time. It also takes a different code path — a click, not a drag, and a selector whose mask is
+        // whole-canvas rather than bounding-box sized.
+        t.Check("magic wand Shift+click adds a second colour region", () =>
+        {
+            h.Exec("Edit.Selection.Deselect");
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Red);
+            // A 2x2 blob, not a single pixel: FinishSelection drops a selection whose bitmap is 1x1.
+            h.DrawPixel((int)l + 10, (int)tp + 10);
+            h.DrawPixel((int)l + 11, (int)tp + 10);
+            h.DrawPixel((int)l + 10, (int)tp + 11);
+            h.DrawPixel((int)l + 11, (int)tp + 11);
+
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelSelectColorTool>();
+            h.ClickWorld(l + 10.5f, tp + 10.5f);
+            var drawnRegion = h.SelectedPixelCount();
+            Assert.True(drawnRegion > 0 && h.IsPixelSelected(10, 10), "the wand did not select the drawn pixel");
+            Assert.True(!h.IsPixelSelected(40, 40), "the wand leaked into the transparent area");
+
+            h.ClickWorld(l + 40.5f, tp + 40.5f, KeyModifier.Shift);
+            Assert.True(h.IsPixelSelected(10, 10), "the first colour region was dropped");
+            Assert.True(h.IsPixelSelected(40, 40), "the second colour region was not added");
+            Assert.True(h.SelectedPixelCount() == 64 * 64,
+                $"drawn + transparent should cover the canvas, got {h.SelectedPixelCount()}");
+        });
+
+        // Invert flattens the live selection through the same rasterization the combining does, and it used
+        // to apply the layer transform to a contour path that was already in canvas coordinates — so a
+        // *non-rectangular* selection (lasso / wand, the ones that carry a path) inverted around a region
+        // offset by twice its own position. A rectangle marquee has no path and was never affected, which
+        // is what hid it.
+        t.Check("invert of a contour selection is the exact complement", () =>
+        {
+            h.Exec("Edit.Selection.Deselect");
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelSelectColorTool>();
+            h.ClickWorld(l + 10.5f, tp + 10.5f);       // the 2x2 red blob drawn above
+
+            var before = h.SelectedPixelCount();
+            Assert.True(before == 4, $"precondition: expected the 2x2 blob selected, got {before}");
+
+            h.Exec("Edit.Selection.InvertSelection");
+            Assert.True(!h.IsPixelSelected(10, 10), "the originally selected pixel is still selected");
+            Assert.True(h.IsPixelSelected(40, 40), "the complement does not cover the rest of the canvas");
+            Assert.True(h.SelectedPixelCount() == 64 * 64 - 4,
+                $"expected the exact complement, got {h.SelectedPixelCount()}");
+        });
+
+        h.Exec("Edit.Selection.Deselect");
         h.AppState.IsAutoOpenTransformEditorAfterSelectionEnabled = autoTransform;
     }
 

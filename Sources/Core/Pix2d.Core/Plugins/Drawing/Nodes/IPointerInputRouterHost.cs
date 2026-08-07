@@ -23,7 +23,7 @@ internal interface IPointerInputRouterHost
     void ApplySelection();
     void Refresh();
     void CapturePointer();
-    void BeginSelection(SKPoint pos);
+    void BeginSelection(SKPoint pos, SelectionCombineMode combineMode);
     void AddSelectionPoint(SKPoint p);
     void SetSelectionRect(SKPoint startPos, SKPoint endPos);
     void BeginDrawing();

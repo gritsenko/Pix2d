@@ -24,6 +24,12 @@ internal sealed class SelectionMarqueeOverlayNode : SKNode
     private readonly SKPath _path = new();
     private bool _hasPath;
 
+    // Outline of the selection that is being added to / subtracted from during a Shift/Ctrl gesture. The
+    // press already dropped the live marquee (BeginSelection applies the previous selection), so without
+    // this the user would drag the new region against a blank canvas and only see the combined result on
+    // release. Static for the whole gesture — it is a snapshot, not something the drag reshapes.
+    private SKPath? _basePath;
+
     public void SetRectanglePath(SKPointI a, SKPointI b)
     {
         var x1 = Math.Min(a.X, b.X);
@@ -49,17 +55,24 @@ internal sealed class SelectionMarqueeOverlayNode : SKNode
         if (_hasPath) _path.LineTo(p);
     }
 
+    /// <summary>
+    /// Shows the outline of the selection the current gesture combines with. Pass null (or call
+    /// <see cref="Clear"/>) to drop it.
+    /// </summary>
+    public void SetBasePath(SKPath? path) => _basePath = path;
+
     public void Clear()
     {
         _path.Reset();
         _hasPath = false;
+        _basePath = null;
     }
 
     public override bool ContainsPoint(SKPoint worldPos) => false;
 
     protected override void OnDraw(SKCanvas canvas, ViewPort vp)
     {
-        if (!_hasPath) return;
+        if (!_hasPath && _basePath == null) return;
 
         // Path effects must be disposed — assigning to paint.PathEffect doesn't transfer ownership,
         // and OnDraw runs every frame during a marquee drag so an undisposed dash effect leaks a
@@ -72,6 +85,15 @@ internal sealed class SelectionMarqueeOverlayNode : SKNode
         using var whiteDash = SKPathEffect.CreateDash([dashLen, dashLen], dashLen);
         blackPaint.PathEffect = blackDash;
         whitePaint.PathEffect = whiteDash;
+
+        if (_basePath != null)
+        {
+            canvas.DrawPath(_basePath, blackPaint);
+            canvas.DrawPath(_basePath, whitePaint);
+        }
+
+        if (!_hasPath) return;
+
         canvas.DrawPath(_path, blackPaint);
         canvas.DrawPath(_path, whitePaint);
     }

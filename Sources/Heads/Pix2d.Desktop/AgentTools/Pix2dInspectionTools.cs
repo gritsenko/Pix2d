@@ -27,7 +27,11 @@ namespace Pix2d.Desktop.AgentTools;
 /// </para>
 /// </summary>
 [McpServerToolType]
-public sealed class Pix2dInspectionTools(AppState state, ICommandService commandService, IViewPortService viewPortService)
+public sealed class Pix2dInspectionTools(
+    AppState state,
+    ICommandService commandService,
+    IViewPortService viewPortService,
+    IDrawingService drawingService)
 {
     private const int MaxPixelCells = 4096;
     private const string PaletteChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -84,7 +88,11 @@ public sealed class Pix2dInspectionTools(AppState state, ICommandService command
                       $" pixelPerfect={ses.IsPixelPerfectDrawingModeEnabled}");
 
         var objectSelection = project.Selection?.Nodes ?? [];
-        sb.AppendLine($"selection: pixels={ses.HasSelection} userSelecting={state.SelectionState.IsUserSelecting}" +
+        // Straight off the drawing layer: SpriteEditorState.HasSelection was never assigned by anything, so
+        // this line used to read "pixels=False" with a marquee plainly on screen.
+        var pixelSelection = drawingService.DrawingLayer.SelectionPhase;
+        sb.AppendLine($"selection: pixels={pixelSelection != Pix2d.Primitives.Drawing.SelectionPhase.None} ({pixelSelection})" +
+                      $" userSelecting={state.SelectionState.IsUserSelecting}" +
                       $" objects={objectSelection.Length}" +
                       (objectSelection.Length > 0
                           ? $" [{string.Join(", ", objectSelection.Select(n => $"\"{n.Name}\""))}] bounds={Rect(project.Selection!.Bounds)}"

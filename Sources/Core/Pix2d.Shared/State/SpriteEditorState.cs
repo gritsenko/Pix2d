@@ -104,11 +104,6 @@ public class SpriteEditorState : StateBase
         set => Set(value);
     }
 
-    public bool HasSelection
-    {
-        get => Get(false);
-        set => Set(value);
-    }
     public bool ShowBackground
     {
         get => Get(false);

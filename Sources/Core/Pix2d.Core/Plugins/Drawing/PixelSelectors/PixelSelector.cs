@@ -197,4 +197,26 @@ public class PixelSelector : IPixelSelector
     public SKPath? GetSelectionPath() => _selectionPath;
 
     public List<List<SKPoint>>? GetSelectionContours() => _selectionContours;
+
+    public byte[]? GetSelectionMask(int width, int height)
+    {
+        if (_pixelsBuff == null || width <= 0 || height <= 0)
+            return null;
+
+        var mask = new byte[width * height];
+
+        // The buffer is bounding-box sized (_offsetX/_offsetY shift canvas coords into it), so walk the
+        // intersection of the box with the canvas rather than the whole canvas.
+        var left = Math.Max(0, _imageLeft);
+        var top = Math.Max(0, _imageTop);
+        var right = Math.Min(width - 1, _imageRight);
+        var bottom = Math.Min(height - 1, _imageBot);
+
+        for (var y = top; y <= bottom; y++)
+            for (var x = left; x <= right; x++)
+                if (_pixelsBuff[x + _offsetX + (y + _offsetY) * _width] > 0)
+                    mask[x + y * width] = 1;
+
+        return mask;
+    }
 }

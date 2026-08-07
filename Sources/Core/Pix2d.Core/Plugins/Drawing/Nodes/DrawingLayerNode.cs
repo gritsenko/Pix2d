@@ -1182,7 +1182,14 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         => _selection.SetSelection(selectionLayer, backgroundBitmap, contourOnly);
     public void SetSelectionFromExternal(SKBitmap bitmap, in SKPoint position)
         => _selection.SetSelectionFromExternal(bitmap, position);
-    public void BeginSelection(SKPoint pos) => _selection.BeginSelection(pos);
+    public void BeginSelection(SKPoint pos, SelectionCombineMode combineMode = SelectionCombineMode.Replace)
+        => _selection.BeginSelection(pos, combineMode);
+
+    /// <summary>
+    /// The selection the last marquee combined with (Shift/Ctrl), or null when it plainly replaced what was
+    /// there. Read by <c>DrawingService</c> when it pushes the marquee's undo step.
+    /// </summary>
+    internal SelectionStateSnapshot? LastCombinedFromSelection => _selection.LastCombinedFromSelection;
     public void EraseSelection() => _selection.EraseSelection();
     public void ApplySelection(bool saveToUndo = false) => _selection.ApplySelection(saveToUndo);
 

@@ -20,6 +20,11 @@ internal sealed class PointerInputRouter
     private readonly DeferredTouchSelection _deferredTouchSelection = new();
     private SKPoint _marqueeStartViewportPosition;
 
+    // Resolved from the modifiers held at pointer-down and kept for the whole gesture — a deferred touch
+    // selection promotes several events later, and releasing Shift mid-drag must not silently turn an
+    // add into a replace.
+    private SelectionCombineMode _combineMode = SelectionCombineMode.Replace;
+
     public PointerInputRouter(IPointerInputRouterHost host)
     {
         _host = host;
@@ -127,6 +132,8 @@ internal sealed class PointerInputRouter
 
     private void HandleSelectionPointerPressed(PointerActionEventArgs eventArgs)
     {
+        _combineMode = ResolveCombineMode(eventArgs.KeyModifiers);
+
         if (eventArgs.Pointer.IsTouch)
         {
             _deferredTouchSelection.Begin(eventArgs.Pointer.ViewportPosition);
@@ -135,8 +142,26 @@ internal sealed class PointerInputRouter
 
         _marqueeStartViewportPosition = eventArgs.Pointer.ViewportPosition;
         _host.CapturePointer();
-        _host.BeginSelection(_host.StartPosI);
+        _host.BeginSelection(_host.StartPosI, _combineMode);
         _host.AddSelectionPoint(_host.StartPosI);
+    }
+
+    /// <summary>
+    /// Photoshop's marquee modifiers, minus Alt: <see cref="ShouldIgnorePointerPressed"/> swallows Alt
+    /// presses for the eyedropper, so subtract moves to Ctrl and intersect to Shift+Ctrl.
+    /// </summary>
+    private static SelectionCombineMode ResolveCombineMode(KeyModifier modifiers)
+    {
+        var add = (modifiers & KeyModifier.Shift) != 0;
+        var subtract = (modifiers & KeyModifier.Ctrl) != 0;
+
+        return (add, subtract) switch
+        {
+            (true, true) => SelectionCombineMode.Intersect,
+            (true, false) => SelectionCombineMode.Add,
+            (false, true) => SelectionCombineMode.Subtract,
+            _ => SelectionCombineMode.Replace
+        };
     }
 
     private void HandleDrawingPointerPressed()
@@ -228,7 +253,7 @@ internal sealed class PointerInputRouter
 
         _marqueeStartViewportPosition = eventArgs.Pointer.ViewportPosition;
         _host.CapturePointer();
-        _host.BeginSelection(_host.StartPosI);
+        _host.BeginSelection(_host.StartPosI, _combineMode);
         _host.AddSelectionPoint(_host.StartPosI);
         LastPointerPosition = _host.StartPosI;
         return false;

@@ -163,7 +163,9 @@ public class DrawingService : IDrawingService
         var backgroundBitmap = dln.GetSelectionBackground();
         var toolKey = _appState.ToolsState.CurrentToolKey;
 
-        var op = new BeginSelectionOperation(dln, selectionLayer, backgroundBitmap, toolKey);
+        // Non-null only for a Shift/Ctrl combining marquee — undo then steps back to the selection this one
+        // grew out of rather than clearing the lot.
+        var op = new BeginSelectionOperation(dln, selectionLayer, backgroundBitmap, toolKey, dln.LastCombinedFromSelection);
         _operationService.PushOperations(op);
 
         if (!_appState.IsAutoOpenTransformEditorAfterSelectionEnabled)

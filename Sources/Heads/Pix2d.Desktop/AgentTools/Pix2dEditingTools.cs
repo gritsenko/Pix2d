@@ -25,7 +25,11 @@ namespace Pix2d.Desktop.AgentTools;
 /// </summary>
 [McpServerToolType]
 [AgentInteractionTools]
-public sealed class Pix2dEditingTools(AppState state, ICommandService commandService, IToolService toolService)
+public sealed class Pix2dEditingTools(
+    AppState state,
+    ICommandService commandService,
+    IToolService toolService,
+    IDrawingService drawingService)
 {
     [McpServerTool(Name = "pix2d_command", Destructive = true), Description(
         "Executes a Pix2d command by name (see pix2d_commands), e.g. 'Edit.Undo', 'View.ZoomIn', " +
@@ -246,7 +250,9 @@ public sealed class Pix2dEditingTools(AppState state, ICommandService commandSer
         sb.Append($" frame={state.SpriteEditorState.CurrentFrameIndex}/{state.SpriteEditorState.FramesCount}");
         sb.Append($" layer={state.SpriteEditorState.CurrentLayerIndex}");
         sb.Append($" objectsSelected={project.Selection?.Nodes.Length ?? 0}");
-        sb.Append($" pixelSelection={state.SpriteEditorState.HasSelection}");
+        // The drawing layer, not SpriteEditorState.HasSelection — nothing ever assigned that flag, so this
+        // reported False whatever the marquee was doing.
+        sb.Append($" pixelSelection={drawingService.DrawingLayer.SelectionPhase}");
         sb.Append($" unsaved={project.HasUnsavedChanges}");
         return sb.ToString();
     }

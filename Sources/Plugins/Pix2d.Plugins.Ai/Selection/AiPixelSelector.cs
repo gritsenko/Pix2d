@@ -134,6 +134,31 @@ public class AiPixelSelector(Action<Exception?>? aiFailureHandler = null) : IPix
         return _pixelsBuff[x + _offsetX + (y + _offsetY) * _width];
     }
 
+    /// <summary>
+    /// Binary view of the AI mask. Unlike the other selectors this one's buffer holds coverage (0..255,
+    /// the model's alpha), so it is thresholded at half coverage — combining two selections is a set
+    /// operation and has no way to express a partially-selected pixel.
+    /// </summary>
+    public byte[]? GetSelectionMask(int width, int height)
+    {
+        if (_pixelsBuff == null || width <= 0 || height <= 0)
+            return null;
+
+        var mask = new byte[width * height];
+
+        var left = Math.Max(0, _imageLeft);
+        var top = Math.Max(0, _imageTop);
+        var right = Math.Min(width - 1, _imageRight);
+        var bottom = Math.Min(height - 1, _imageBot);
+
+        for (var y = top; y <= bottom; y++)
+            for (var x = left; x <= right; x++)
+                if (_pixelsBuff[x + _offsetX + (y + _offsetY) * _width] >= 128)
+                    mask[x + y * width] = 1;
+
+        return mask;
+    }
+
     public unsafe void ClearSelectionFromBitmap(ref SKBitmap bitmap)
     {
         if (_pixelsBuff == null)
