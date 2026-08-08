@@ -1,4 +1,7 @@
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Pix2d.Command;
 using Pix2d.Plugins.Sprite.Commands;
@@ -16,6 +19,43 @@ public partial class ActionsBarView(AppState appState, ICommandService commandSe
     private static void IconStyle(PathIcon icon) => icon
         .Width(16)
         .Height(16);
+
+    /// <summary>
+    /// Opens <paramref name="flyout"/> when the button is held down, leaving a plain click to toggle.
+    /// This is the gesture issue #214 asked for, and it is the only one available: Pix2d binds the right
+    /// mouse button to the eyedropper app-wide, so the button's <c>ContextFlyout</c> never gets a
+    /// <c>ContextRequested</c> on desktop (verified on a running build — right-clicking it just switched
+    /// the tool). Doing it by hand rather than through the platform gesture also makes mouse, pen and
+    /// touch behave identically.
+    /// </summary>
+    private static void AttachLongPress(Control button, FlyoutBase flyout, State state)
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(450) };
+
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            // If the release still raises Click it would toggle the setting the user was only trying to
+            // configure, so the state drops that one change.
+            state.SuppressNextSymmetryToggle = true;
+            flyout.ShowAt(button);
+        };
+
+        button.AddHandler(InputElement.PointerPressedEvent, (_, _) =>
+            {
+                // Disarm on every press, not only when the suppressed Click arrives: opening the flyout
+                // takes the pointer capture, so the release that ends a long press does not always raise
+                // Click — and a flag left armed would then swallow the user's *next*, deliberate click.
+                // (Seen on a running build: after one long press the toggle stopped responding.)
+                state.SuppressNextSymmetryToggle = false;
+                timer.Start();
+            },
+            RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+        button.AddHandler(InputElement.PointerReleasedEvent, (_, _) => timer.Stop(),
+            RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+        button.AddHandler(InputElement.PointerCaptureLostEvent, (_, _) => timer.Stop(),
+            RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+    }
 
     protected override StyleGroup BuildStyles() =>
     [
@@ -91,27 +131,26 @@ public partial class ActionsBarView(AppState appState, ICommandService commandSe
                                 .Label(L("Flip Y"))
                                 .ToolTip_Tip(L(state.SpriteEditCommands.FlipVertical.Tooltip)),
 
-                            // MIRROR X
+                            // SYMMETRY — a click toggles it (the old Mirror X gesture), a press-and-hold
+                            // opens the axes + angle settings (see AttachLongPress). One button replaces
+                            // the two Mirror toggles: X, Y and X+Y are now presets inside the same model,
+                            // so a second toolbar toggle could only express two of the states.
                             new AppToggleButton()
                                 .Classes(ButtonClass)
-                                .IsChecked(state, x => x.MirrorX, BindingMode.TwoWay)
+                                .IsChecked(state, x => x.IsSymmetryEnabled, BindingMode.TwoWay)
                                 .Content(new PathIcon()
                                     .With(IconStyle)
                                     .Data(Geometry.Parse(
                                         "M8,14V0H9V14Zm9-2H11V2h6V12h0Zm-5-1h4V3H12ZM0,12V2H6V12Z")))
-                                .Label(L("Mirror X"))
-                                .ToolTip_Tip(L("Mirror X")),
-
-                            // MIRROR Y
-                            new AppToggleButton()
-                                .Classes(ButtonClass)
-                                .IsChecked(state, x => x.MirrorY, BindingMode.TwoWay)
-                                .Content(new PathIcon()
-                                    .With(IconStyle)
-                                    .Data(Geometry.Parse(
-                                        "M-393.477 -548.726L-403.477 -548.726L-403.477 -542.726L-393.477 -542.726L-393.477 -548.726L-393.477 -548.726ZM-391.477 -540.726L-405.477 -540.726L-405.477 -539.726L-391.477 -539.726L-391.477 -540.726L-391.477 -540.726ZM-403.478 -537.726L-403.478 -531.726L-393.478 -531.726L-393.478 -537.726L-403.478 -537.726L-403.478 -537.726ZM-402.477 -532.726L-402.477 -536.726L-394.477 -536.726L-394.477 -532.726L-402.477 -532.726L-402.477 -532.726Z")))
-                                .Label(L("Mirror Y"))
-                                .ToolTip_Tip(L("Mirror Y")),
+                                .Label(L("Symmetry"))
+                                .ToolTip_Tip(L("Symmetry (hold for settings)"))
+                                .ContextFlyout(
+                                    new Flyout()
+                                        .Ref(out var symmetryFlyout)
+                                        .Placement(PlacementMode.Bottom)
+                                        .Content(ViewFactory.Create<SymmetrySettingsView>())
+                                )
+                                .With(b => AttachLongPress(b, symmetryFlyout, state)),
 
                             //Grid settings
                             new AppButton()
@@ -181,13 +220,17 @@ public partial class ActionsBarView(AppState appState, ICommandService commandSe
         public partial bool IsAnimationPlaying { get; set; }
 
         [ObservableProperty]
-        public partial bool MirrorX { get; set; }
-
-        [ObservableProperty]
-        public partial bool MirrorY { get; set; }
+        public partial bool IsSymmetryEnabled { get; set; }
 
         [ObservableProperty]
         public partial bool LockAxis { get; set; }
+
+        // The toggle mirrors AppState, so turning symmetry on from the settings flyout (or off from a
+        // future shortcut) lights the toolbar button too; _syncing keeps the echo out of the user path.
+        private bool _syncing;
+
+        /// <summary>Set by the long-press gesture: the Click that ends the hold must not flip the setting.</summary>
+        public bool SuppressNextSymmetryToggle { get; set; }
 
         public State(AppState appState, ICommandService commandService, IDrawingService drawingService, ISnappingService snappingService)
         {
@@ -201,8 +244,17 @@ public partial class ActionsBarView(AppState appState, ICommandService commandSe
 
             IsAnimationPlaying = _appState.SpriteEditorState.IsPlayingAnimation;
             LockAxis = _snappingService.ForceAspectLock;
+            SyncSymmetry();
 
             _appState.SpriteEditorState.WatchFor(x => x.IsPlayingAnimation, () => IsAnimationPlaying = _appState.SpriteEditorState.IsPlayingAnimation);
+            _appState.SpriteEditorState.WatchFor(x => x.Symmetry, SyncSymmetry);
+        }
+
+        private void SyncSymmetry()
+        {
+            _syncing = true;
+            IsSymmetryEnabled = _appState.SpriteEditorState.Symmetry.IsEnabled;
+            _syncing = false;
         }
 
         public SpriteEditCommands SpriteEditCommands { get; }
@@ -213,14 +265,24 @@ public partial class ActionsBarView(AppState appState, ICommandService commandSe
 
         public bool CanEdit => !IsAnimationPlaying;
 
-        partial void OnMirrorXChanged(bool value)
+        partial void OnIsSymmetryEnabledChanged(bool value)
         {
-            _drawingService.SetMirrorMode(Primitives.Drawing.MirrorMode.Horizontal, value);
-        }
+            if (_syncing) return;
 
-        partial void OnMirrorYChanged(bool value)
-        {
-            _drawingService.SetMirrorMode(Primitives.Drawing.MirrorMode.Vertical, value);
+            if (SuppressNextSymmetryToggle)
+            {
+                SuppressNextSymmetryToggle = false;
+                SyncSymmetry(); // put the visual back where the app state still is
+                return;
+            }
+
+            // Turning it on for the first time lands on the classic single vertical axis; after that the
+            // toggle only flips IsEnabled, so the user's axis count / angle / centre survive an off/on.
+            var current = _appState.SpriteEditorState.Symmetry;
+            _drawingService.SetSymmetry(
+                value && current.AxisCount <= 1 && current.AngleDegrees == 0 && !current.IsEnabled
+                    ? Primitives.Drawing.SymmetrySettings.MirrorX(current.Center)
+                    : current with { IsEnabled = value });
         }
 
         partial void OnLockAxisChanged(bool value)

@@ -79,6 +79,8 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     private readonly SelectionController _selection;
     private readonly StrokeRenderer _strokeRenderer;
     private readonly PointerInputRouter _pointerInputRouter;
+    private readonly SymmetryOverlayNode _symmetryOverlay = new();
+    private SymmetrySettings _symmetry = SymmetrySettings.Off;
 
     private SKColor _drawingColor;
     private float _fillOpacity = 1f;
@@ -162,10 +164,28 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     public bool HasSelection => _selection.HasSelection;
 
     public SelectionPhase SelectionPhase => _selection.SelectionPhase;
-    public bool MirrorX { get; set; }
-    public bool MirrorY { get; set; }
-    public static int MirrorYOffset { get; set; } = -1;
-    public static int MirrorXOffset { get; set; } = -1;
+
+    /// <inheritdoc />
+    public SymmetrySettings Symmetry
+    {
+        get => _symmetry;
+        set
+        {
+            _symmetry = value;
+            _symmetryOverlay.Settings = value;
+        }
+    }
+
+    /// <summary>
+    /// Raised when the user drags (or double-clicks to reset) the on-canvas symmetry handle. Null means
+    /// "back to the middle of the canvas". <see cref="Pix2d.Abstract.Services.IDrawingService"/> owns the
+    /// state, so the node only reports the gesture.
+    /// </summary>
+    public Action<SKPoint?>? SymmetryCenterChanged
+    {
+        get => _symmetryOverlay.CenterChanged;
+        set => _symmetryOverlay.CenterChanged = value;
+    }
 
     public bool LockTransparentPixels => DrawingTarget?.LockTransparentPixels ?? false;
     public bool ShowBrushPreview { get; set; }
@@ -228,6 +248,11 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         _strokeRenderer = new StrokeRenderer(this);
         _pointerInputRouter = new PointerInputRouter(this);
 
+        // A child rather than a sibling adorner: it inherits this node's coordinate space, so the axes are
+        // drawn straight in canvas pixels, and being deeper in the tree it sees a press before the drawing
+        // layer does (SKInput walks visible descendants and reverses them).
+        Nodes.Add(_symmetryOverlay);
+
         // Re-raise selection events through the node so external consumers (PixelSelectToolBase,
         // ExtractObjectTool, DrawingService, PixelTextTool) keep seeing the node as event sender.
         _selection.SelectionStarted     += (_, e) => SelectionStarted?.Invoke(this, e);
@@ -236,6 +261,13 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         _selection.PixelsBeforeSelected += (_, e) => PixelsBeforeSelected?.Invoke(this, e);
         _selection.SelectionTransformed += (_, e) => SelectionTransformed?.Invoke(this, e);
         _selection.MarqueeFinishedByUser += (_, e) => MarqueeFinishedByUser?.Invoke(this, e);
+    }
+
+    protected override void OnSizeChanged()
+    {
+        base.OnSizeChanged();
+        // The overlay resolves "centre of the canvas" and clips its axes against this size.
+        _symmetryOverlay.Size = Size;
     }
 
     private void ClearWorkingBitmap()
@@ -1041,11 +1073,9 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
 
         canvas.DrawSurface(_brushPreviewSurface, PreviewPosition.X - Brush.PixelOffset.X, PreviewPosition.Y - Brush.PixelOffset.Y);
 
-        if (MirrorY || MirrorX)
-        {
-            var mirrorPos = GetMirroredPoint(PreviewPosition, Brush.PixelOffset, Brush.Size);
-            canvas.DrawSurface(_brushPreviewSurface, mirrorPos.X, mirrorPos.Y);
-        }
+        // One preview stamp per symmetry image, so what the cursor shows is what a click would commit.
+        foreach (var image in _strokeRenderer.GetSymmetryImages(PreviewPosition, Brush))
+            canvas.DrawSurface(_brushPreviewSurface, image.X - Brush.PixelOffset.X, image.Y - Brush.PixelOffset.Y);
     }
 
     public void DrawWithBitmap(SKBitmap bitmap, SKRect destRect, SKBlendMode compositionMode, float opacity)
@@ -1125,11 +1155,6 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     public void DrawStroke(SKPoint p0, SKPoint p1, IPixelBrush brush, SKColor color, float opacity, float scale = 1)
     {
         _strokeRenderer.DrawStroke(p0, p1, brush, color, opacity, scale);
-    }
-
-    public SKPointI GetMirroredPoint(SKPointI p, SKPointI brushOffset = default, int brushSize = default)
-    {
-        return _strokeRenderer.GetMirroredPoint(p, brushOffset, brushSize);
     }
 
     public void EraseStroke(SKPoint p0, SKPoint p1, IPixelBrush brush, float opacity)

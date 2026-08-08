@@ -47,13 +47,6 @@ public abstract class ShapeBuilderBase
         Points.Clear();
     }
 
-    protected SKPoint GetMirroredPoint(SKPoint p)
-    {
-        if (DrawingLayer == null)
-            return p;
-        return DrawingLayer.GetMirroredPoint(p.ToSkPointI());
-    }
-
     public void Reset()
     {
         Cancel();

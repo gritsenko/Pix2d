@@ -82,11 +82,17 @@ public interface IDrawingService
     void ClearCurrentLayer();
 
     /// <summary>
-    /// Enables or disables a specific mirror mode for drawing operations.
+    /// Replaces the drawing symmetry (mirror axes / radial). Writes <c>AppState.SpriteEditorState.Symmetry</c>,
+    /// which is what pushes the settings into the drawing layer and repaints the on-canvas axes — callers
+    /// should go through here rather than assigning the state directly.
     /// </summary>
-    /// <param name="mode">The MirrorMode to set (Horizontal, Vertical, or Both).</param>
-    /// <param name="enable">A boolean value indicating whether to enable (true) or disable (false) the mirror mode.</param>
-    void SetMirrorMode(MirrorMode mode, bool enable);
+    void SetSymmetry(SymmetrySettings settings);
+
+    /// <summary>
+    /// Moves the symmetry centre to a point in canvas pixels, or back to the middle of the canvas when
+    /// <paramref name="center"/> is null. Clamped into the canvas by <see cref="SymmetrySettings.GetCenter"/>.
+    /// </summary>
+    void SetSymmetryCenter(SKPoint? center);
 
     /// <summary>
     /// Pastes a given bitmap onto the current drawing target at a specified position.

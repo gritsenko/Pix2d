@@ -62,9 +62,12 @@ public interface IDrawingLayer
     /// Lifecycle of the current selection marquee. None / MarqueeReady (contour-only) / Transforming (pixels lifted).
     /// </summary>
     SelectionPhase SelectionPhase { get; }
-    bool MirrorX { get; set; }
-    bool MirrorY { get; set; }
-    SKPointI GetMirroredPoint(SKPointI p, SKPointI brushOffset = default, int brushSize = default);
+    /// <summary>
+    /// Mirror/radial symmetry applied to every dab this layer rasterizes. Pushed in by
+    /// <see cref="Pix2d.Abstract.Services.IDrawingService"/> from <c>AppState.SpriteEditorState.Symmetry</c>.
+    /// </summary>
+    SymmetrySettings Symmetry { get; set; }
+
     bool ShowBrushPreview { get; set; }
     SKSize SelectionSize { get; }
     IDrawingTarget? DrawingTarget { get; }

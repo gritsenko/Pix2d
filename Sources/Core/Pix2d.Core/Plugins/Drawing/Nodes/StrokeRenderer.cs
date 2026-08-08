@@ -1,6 +1,7 @@
 using Pix2d.Abstract.Drawing;
 using Pix2d.Plugins.Drawing.Common;
 using Pix2d.Plugins.Drawing.Common.Drawing;
+using Pix2d.Primitives.Drawing;
 using SkiaNodes.Extensions;
 using SkiaSharp;
 
@@ -21,6 +22,13 @@ namespace Pix2d.Plugins.Drawing.Nodes;
 internal sealed class StrokeRenderer
 {
     private readonly IStrokeRendererHost _host;
+
+    // Symmetry image cache. GetSymmetryImages runs once per rasterized pixel, so the transform set is
+    // rebuilt only when the settings or the canvas change, and the anchors land in a reused buffer.
+    private SymmetrySettings _symmetrySettings = SymmetrySettings.Off;
+    private SKSize _symmetryCanvas = SKSize.Empty;
+    private SKMatrix[] _symmetryTransforms = [];
+    private readonly List<SKPointI> _symmetryImages = [];
 
     public StrokeRenderer(IStrokeRendererHost host)
     {
@@ -193,12 +201,14 @@ internal sealed class StrokeRenderer
     {
         var isDrawn = brush.Erase(_host, p, scale, true);
 
-        if (isDrawn && (_host.MirrorX || _host.MirrorY))
-        {
-            var ox = _host.MirrorX ? brush.PixelOffset.X * 2 : 0;
-            var oy = _host.MirrorY ? brush.PixelOffset.Y * 2 : 0;
-            brush.Erase(_host, GetMirroredPoint(p, new SKPointI(ox, oy), _host.Brush.Size), scale, true);
-        }
+        if (!isDrawn)
+            return;
+
+        // ignoreSpacing on the images: spacing is measured from the previous dab along the stroke, and the
+        // mirrored copies are not part of that path — letting them update it would shuffle the dab phase.
+        var images = GetSymmetryImages(p, brush);
+        for (var i = 0; i < images.Count; i++)
+            brush.Erase(_host, images[i], scale, true);
     }
 
     /// <summary>Freehand erase segment, in <b>world</b> coordinates.</summary>
@@ -240,27 +250,29 @@ internal sealed class StrokeRenderer
         return true;
     }
 
-    public SKPointI GetMirroredPoint(SKPointI p, SKPointI brushOffset = default, int brushSize = default)
+    /// <summary>
+    /// Every extra place the given dab has to be stamped for the layer's current symmetry, in
+    /// <b>layer-local</b> coordinates. Empty when symmetry is off.
+    /// </summary>
+    /// <remarks>
+    /// The returned list is a reused buffer owned by this renderer — enumerate it before the next call.
+    /// This runs once per rasterized pixel of a stroke, so neither the buffer nor the transform set is
+    /// rebuilt per dab; the transforms are recomputed only when the settings or the canvas size change.
+    /// </remarks>
+    public IReadOnlyList<SKPointI> GetSymmetryImages(SKPointI p, IPixelBrush brush)
     {
-        var xx = p.X;
-        if (_host.MirrorX)
+        var settings = _host.Symmetry;
+        var size = _host.Size;
+
+        if (!settings.Equals(_symmetrySettings) || size != _symmetryCanvas)
         {
-            xx = (int)(_host.Size.Width - p.X) - brushSize;
+            _symmetrySettings = settings;
+            _symmetryCanvas = size;
+            _symmetryTransforms = SymmetryMath.BuildTransforms(settings, size);
         }
 
-        var yy = p.Y;
-        if (_host.MirrorY)
-        {
-            yy = (int)(_host.Size.Height - p.Y) - brushSize;
-        }
-
-        if (brushOffset != default)
-        {
-            xx += _host.MirrorX ? brushOffset.X : -brushOffset.X;
-            yy += _host.MirrorY ? brushOffset.Y : -brushOffset.Y;
-        }
-
-        return new SKPointI(xx, yy);
+        SymmetryMath.GetImageAnchors(_symmetryTransforms, p, brush.PixelOffset, brush.Size, _symmetryImages);
+        return _symmetryImages;
     }
 
     /// <summary>
@@ -280,12 +292,13 @@ internal sealed class StrokeRenderer
     {
         var isDrawn = brush.Draw(_host, p, color, pressure, ignoreSpacing);
 
-        if (isDrawn && (_host.MirrorX || _host.MirrorY))
-        {
-            var ox = _host.MirrorX ? brush.PixelOffset.X * 2 : 0;
-            var oy = _host.MirrorY ? brush.PixelOffset.Y * 2 : 0;
-            brush.Draw(_host, GetMirroredPoint(p, new SKPointI(ox, oy), _host.Brush.Size), color, pressure, true);
-        }
+        if (!isDrawn)
+            return;
+
+        // See ErasePoint: the images always ignore spacing so they can't perturb the stroke's dab phase.
+        var images = GetSymmetryImages(p, brush);
+        for (var i = 0; i < images.Count; i++)
+            brush.Draw(_host, images[i], color, pressure, true);
     }
 
     private void FloodFillBitmap(SKPointI origin, SKColor fillColor, SKBitmap bitmap, float tolerance, SKBlendMode blendMode)

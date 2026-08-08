@@ -26,8 +26,6 @@ public class DrawingService : IDrawingService
 
     private IDrawingLayer? _drawingLayer;
 
-    public event EventHandler? MirrorModeChanged;
-
     private readonly IViewPortRefreshService _viewPortRefreshService;
     private readonly IMessenger _messenger;
     private readonly ISettingsService _settingsService;
@@ -81,6 +79,7 @@ public class DrawingService : IDrawingService
         SpriteEditorState.WatchFor(x => x.CurrentBrushSettings, OnBrushChanged);
         SpriteEditorState.WatchFor(x => x.CurrentColor, OnColorChanged);
         SpriteEditorState.WatchFor(x => x.IsPixelPerfectDrawingModeEnabled, OnPixelPerfectModeChanged);
+        SpriteEditorState.WatchFor(x => x.Symmetry, ApplySymmetry);
     }
 
     private void OnOperationInvoked(OperationInvokedMessage msg)
@@ -134,6 +133,10 @@ public class DrawingService : IDrawingService
 
         _drawingLayer = newDrawingLayer;
         _drawingLayer.DrawingColor = SpriteEditorState.CurrentColor;
+        _drawingLayer.Symmetry = SpriteEditorState.Symmetry;
+
+        if (_drawingLayer is DrawingLayerNode symmetryHost)
+            symmetryHost.SymmetryCenterChanged = SetSymmetryCenter;
 
         if (_drawingLayer != null)
         {
@@ -640,6 +643,9 @@ public class DrawingService : IDrawingService
         adornerLayer.Add((SKNode)_drawingLayer);
 
         ((SKNode)_drawingLayer).Position = new SKPoint();
+        // SetTarget may have resized the layer to a different canvas; a centre the user moved is clamped
+        // into the new one on read, but the axes still have to be re-pushed and repainted.
+        ApplySymmetry();
         OnDrawingTargetChanged();
     }
 
@@ -688,18 +694,23 @@ public class DrawingService : IDrawingService
         return SKColor.Empty;
     }
 
-    public void SetMirrorMode(MirrorMode mode, bool enable)
+    public void SetSymmetry(SymmetrySettings settings) => SpriteEditorState.Symmetry = settings;
+
+    public void SetSymmetryCenter(SKPoint? center) =>
+        SpriteEditorState.Symmetry = SpriteEditorState.Symmetry with { Center = center };
+
+    /// <summary>
+    /// Pushes the state's symmetry into the drawing layer and repaints. Called from the state watcher and
+    /// from every point the drawing layer or its target is (re)attached — the layer is replaced/retargeted
+    /// on project load, tab switch and artboard switch, and a setting the user turned on must survive that.
+    /// </summary>
+    private void ApplySymmetry()
     {
         if (_drawingLayer == null)
             return;
 
-        if (mode == MirrorMode.Horizontal || mode == MirrorMode.Both)
-            _drawingLayer.MirrorX = enable;
-
-        if (mode == MirrorMode.Vertical || mode == MirrorMode.Both)
-            _drawingLayer.MirrorY = enable;
-
-        OnMirrorModeChanged();
+        _drawingLayer.Symmetry = SpriteEditorState.Symmetry;
+        Refresh();
     }
 
     public void PasteBitmap(SKBitmap bitmap, SKPoint pos)
@@ -725,8 +736,6 @@ public class DrawingService : IDrawingService
     protected virtual void OnDrawn() => _messenger.Send(new DrawingServiceOnDrawnMessage());
 
     protected virtual void OnDrawingTargetChanged() => _messenger.Send(new DrawingTargetChangedMessage());
-
-    protected virtual void OnMirrorModeChanged() => MirrorModeChanged?.Invoke(this, EventArgs.Empty);
 
     public IPixelSelectionEditor GetSelectionEditor()
     {

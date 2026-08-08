@@ -244,8 +244,12 @@ public class SkiaCanvas : Control
         UpdateCursor();
     }
 
+    private void OnHoverCursorChanged(object? sender, EventArgs e) => UpdateCursor();
+
     private void UpdateCursor()
     {
+        // Order matters: pan and the Alt color-picker are modes the user explicitly asked for, so they
+        // outrank a node's hover request (SKInput.HoverCursor), which is only a hint from the scene graph.
         if (Input.PanMode)
         {
             _cursor ??= new Cursor(StandardCursorType.Hand);
@@ -255,6 +259,11 @@ public class SkiaCanvas : Control
         {
             _pickerCursor ??= new Cursor(StandardCursorType.Cross);
             Cursor = _pickerCursor;
+        }
+        else if (Input.HoverCursor == SKCursorType.Hand)
+        {
+            _cursor ??= new Cursor(StandardCursorType.Hand);
+            Cursor = _cursor;
         }
         else
         {
@@ -360,6 +369,10 @@ public class SkiaCanvas : Control
             _rootNode.ShowGrid = true;
         Input.RootNodeProvider = () => _rootNode!;
         Input.ViewPortProvider = () => ViewPort!;
+        // -= first: SKInput is a process-wide singleton while this control is not (hot reload rebuilds it,
+        // and a second window would bring its own), so a plain += would leak a handler per canvas.
+        Input.HoverCursorChanged -= OnHoverCursorChanged;
+        Input.HoverCursorChanged += OnHoverCursorChanged;
         _viewPortService.Initialize(ViewPort!);
 
         OnViewportInitialized();

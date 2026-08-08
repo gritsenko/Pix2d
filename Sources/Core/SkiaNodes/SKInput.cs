@@ -15,10 +15,33 @@ public class SKInput
     private SKInputPointer _pointer;
     private static SKInput? _instance;
 
+    private SKCursorType _hoverCursor;
+
     public event EventHandler<KeyboardActionEventArgs>? KeyPressed;
     public event EventHandler<KeyboardActionEventArgs>? KeyReleased;
     public event EventHandler<RootNodeChangedEventArgs>? RootNodeChanged;
     public event EventHandler<SKInputPointer>? PointerChanged;
+
+    /// <summary>Raised only when <see cref="HoverCursor"/> actually changes, so the host can set its cursor there.</summary>
+    public event EventHandler? HoverCursorChanged;
+
+    /// <summary>
+    /// What the topmost interactive node under the pointer wants the cursor to be, recomputed on every
+    /// pointer move. The host control (Pix2d's <c>SkiaCanvas</c>) maps it onto a real cursor — the scene
+    /// graph has no other way to influence it, since the whole canvas is one Avalonia control.
+    /// </summary>
+    public SKCursorType HoverCursor
+    {
+        get => _hoverCursor;
+        private set
+        {
+            if (_hoverCursor == value)
+                return;
+
+            _hoverCursor = value;
+            HoverCursorChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     public static SKInput Current => _instance ??= new SKInput();
 
@@ -129,6 +152,11 @@ public class SKInput
 
         var args = new PointerActionEventArgs(PointerActionType.Moved, Pointer, modifiers);
 
+        // Resolved from the same pass rather than from OnPointerEnter/Leave: the dispatch below walks the
+        // whole chain under the pointer (topmost first) unless one of them handles the event, so a node
+        // gets Enter and Leave within a single move as soon as anything interactive sits beneath it.
+        var hoverCursor = SKCursorType.Default;
+
         HandlePointerEventByInteractives((interactive) =>
         {
             interactive?.OnPointerMoved(args);
@@ -139,7 +167,12 @@ public class SKInput
                 LastInteractiveUnderPointer?.OnPointerEnter(worldPos);
             }
 
+            if (hoverCursor == SKCursorType.Default && interactive is SKNode node)
+                hoverCursor = node.GetHoverCursor(worldPos);
+
         }, args);
+
+        HoverCursor = hoverCursor;
     }
 
     public IEnumerable<IInteractive> GetInteractives(SKPoint pos)

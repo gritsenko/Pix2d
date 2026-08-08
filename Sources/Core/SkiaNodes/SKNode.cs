@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using SkiaNodes.Extensions;
+using SkiaNodes.Interactive;
 using SkiaNodes.TreeObserver;
 using SkiaSharp;
 
@@ -254,6 +255,13 @@ public partial class SKNode
     {
         return GetHitZone().Contains(worldPos);
     }
+
+    /// <summary>
+    /// The cursor this node wants while the pointer is at <paramref name="worldPos"/>. Only consulted for
+    /// interactive nodes under the pointer (see <c>SKInput.SetPointerMoved</c>), topmost first — the first
+    /// node returning something other than <see cref="SKCursorType.Default"/> wins.
+    /// </summary>
+    public virtual SKCursorType GetHoverCursor(SKPoint worldPos) => SKCursorType.Default;
 
     public virtual SKRect GetHitZone()
     {

@@ -109,4 +109,15 @@ public class SpriteEditorState : StateBase
         get => Get(false);
         set => Set(value);
     }
+
+    /// <summary>
+    /// Mirror / radial symmetry for drawing. Session state, deliberately not persisted and not part of the
+    /// project file — same lifetime the Mirror X/Y toggles have always had. Replaced wholesale rather than
+    /// mutated (it is a record struct) so one <c>WatchFor</c> covers every field of it.
+    /// </summary>
+    public SymmetrySettings Symmetry
+    {
+        get => Get(SymmetrySettings.Off);
+        set => Set(value);
+    }
 }

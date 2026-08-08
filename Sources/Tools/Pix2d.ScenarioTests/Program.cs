@@ -96,6 +96,7 @@ static class Runner
         GridAppearanceScenario(harness, t);
         FillOpacityScenario(harness, t);
         ShapeBrushScenario(harness, t);
+        SymmetryScenario(harness, t);
         LayerTitleAndPixelMaskScenario(harness, t);
         UpdateReleaseParsingScenario(t);
         SafeSweep(harness);
@@ -2897,6 +2898,224 @@ static class Runner
             Assert.True(l >= 10 && top >= 10 && r <= 42 && b <= 42,
                 $"the oval landed outside its drag bounds: ({l},{top})-({r},{b})");
         });
+    }
+
+    // --- Scenario 7bd: symmetry axes (#23, #214) -----------------------------------------------------
+    // Two halves. The first drives SymmetryMath directly (pure, no harness needed) because the
+    // interesting cases are geometric: a wide brush must stay ON the axis rather than drift by half its
+    // size, a dab on the axis must not be stamped twice, and N axes must generate the dihedral group.
+    // The second half draws through the real pipeline so the state -> IDrawingService -> drawing-layer
+    // wiring is covered as well, and asserts the *count* of painted pixels — which is what separates the
+    // new "X+Y = four images" from the old behaviour (a 180 degree rotation, i.e. two).
+    static void SymmetryScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Symmetry scenario ===");
+
+        var canvas = new SKSize(64, 64);
+        var pixelBrushCenter = SKPointI.Empty; // a 1px brush anchors on the pixel itself
+
+        SKPointI[] Images(SymmetrySettings s, SKPointI anchor, SKPointI brushCenter = default, int brushSize = 1)
+        {
+            var buffer = new List<SKPointI>();
+            SymmetryMath.GetImageAnchors(SymmetryMath.BuildTransforms(s, canvas), anchor, brushCenter, brushSize, buffer);
+            return buffer.ToArray();
+        }
+
+        t.Check("symmetry off produces no images", () =>
+            Assert.True(Images(SymmetrySettings.Off, new SKPointI(10, 20)).Length == 0,
+                "an off symmetry still mirrored the dab"));
+
+        t.Check("one vertical axis mirrors X and leaves Y alone", () =>
+        {
+            var images = Images(SymmetrySettings.MirrorX(), new SKPointI(10, 20));
+            Assert.True(images.Length == 1 && images[0] == new SKPointI(53, 20),
+                $"expected [(53,20)], got [{string.Join(", ", images)}]");
+        });
+
+        t.Check("one horizontal axis mirrors Y and leaves X alone", () =>
+        {
+            var images = Images(SymmetrySettings.MirrorY(), new SKPointI(10, 20));
+            Assert.True(images.Length == 1 && images[0] == new SKPointI(10, 43),
+                $"expected [(10,43)], got [{string.Join(", ", images)}]");
+        });
+
+        // The discriminating one: pre-3.12 both toggles on produced a single image (the 180 degree
+        // rotation), so a "symmetric" drawing was only symmetric about the centre point.
+        t.Check("X+Y produces three images, not one", () =>
+        {
+            var images = Images(SymmetrySettings.MirrorBoth(), new SKPointI(10, 20));
+            Assert.True(images.Length == 3, $"expected 3 images, got {images.Length}");
+            Assert.True(images.Contains(new SKPointI(53, 20)), "missing the vertical-axis mirror");
+            Assert.True(images.Contains(new SKPointI(10, 43)), "missing the horizontal-axis mirror");
+            Assert.True(images.Contains(new SKPointI(53, 43)), "missing the diagonal (rotated) image");
+        });
+
+        // A 4px brush anchors at CenterPoint (1,1) and covers [anchor-1, anchor+3), so its footprint
+        // centre sits on x = 32 when the anchor is 31. Reflecting the anchor instead of the footprint
+        // would move it by the brush size and produce a spurious second stamp.
+        t.Check("a wide brush centred on the axis is not stamped a second time", () =>
+        {
+            var images = Images(SymmetrySettings.MirrorX(), new SKPointI(31, 20), new SKPointI(1, 1), brushSize: 4);
+            Assert.True(images.Length == 0, $"expected no extra stamp, got [{string.Join(", ", images)}]");
+        });
+
+        t.Check("a dab on a half-pixel axis is not double-stamped", () =>
+        {
+            var images = Images(SymmetrySettings.MirrorX(new SKPoint(32.5f, 32)), new SKPointI(32, 20));
+            Assert.True(images.Length == 0, $"expected no extra stamp, got [{string.Join(", ", images)}]");
+        });
+
+        t.Check("a moved centre moves the mirror", () =>
+        {
+            var images = Images(SymmetrySettings.MirrorX(new SKPoint(16, 32)), new SKPointI(10, 20));
+            Assert.True(images.Length == 1 && images[0] == new SKPointI(21, 20),
+                $"expected [(21,20)], got [{string.Join(", ", images)}]");
+        });
+
+        t.Check("N axes generate 2N distinct images", () =>
+        {
+            for (var n = 1; n <= SymmetrySettings.MaxAxisCount; n++)
+            {
+                // (7, 11) off both axes and off the diagonals, so no image collapses onto another.
+                var images = Images(new SymmetrySettings { IsEnabled = true, AxisCount = n, AngleDegrees = 7 },
+                    new SKPointI(7, 11));
+                Assert.True(images.Length == 2 * n - 1,
+                    $"{n} axes produced {images.Length} extra images, expected {2 * n - 1}");
+                Assert.True(images.Distinct().Count() == images.Length, $"{n} axes produced duplicate images");
+            }
+        });
+
+        t.Check("the axis count is clamped into range", () =>
+        {
+            Assert.True(new SymmetrySettings { AxisCount = 0 }.AxisCount == SymmetrySettings.MinAxisCount,
+                "0 axes was not clamped up");
+            Assert.True(new SymmetrySettings { AxisCount = 999 }.AxisCount == SymmetrySettings.MaxAxisCount,
+                "999 axes was not clamped down");
+            Assert.True(SymmetrySettings.Off.AxisCount == SymmetrySettings.MinAxisCount,
+                "the default settings value has an undrawable axis count");
+        });
+
+        t.Check("a moved centre is clamped into the canvas, an unset one follows it", () =>
+        {
+            var moved = SymmetrySettings.MirrorX(new SKPoint(500, -20)).GetCenter(canvas);
+            Assert.True(moved == new SKPoint(64, 0), $"expected the centre clamped to (64,0), got {moved}");
+            Assert.True(SymmetrySettings.MirrorX().GetCenter(new SKSize(32, 48)) == new SKPoint(16, 24),
+                "an unset centre did not resolve to the middle of the canvas");
+        });
+
+        t.Check("the overlay's axis segment spans the canvas", () =>
+        {
+            Assert.True(SymmetryMath.TryGetAxisSegment(SymmetrySettings.MirrorX(), canvas, 0, out var a, out var b),
+                "the vertical axis was reported as missing the canvas");
+            var top = a.Y < b.Y ? a : b;
+            var bottom = a.Y < b.Y ? b : a;
+            Assert.True(top == new SKPoint(32, 0) && bottom == new SKPoint(32, 64),
+                $"expected (32,0)-(32,64), got {a}-{b}");
+        });
+
+        // --- through the real drawing pipeline ---------------------------------------------------
+        var drawing = h.Services.GetRequiredService<IDrawingService>();
+
+        int PaintOnce(SymmetrySettings settings, int x, int y)
+        {
+            h.NewProject(64);
+            // NewProject re-activates the default tool, so arm the brush after it.
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Red);
+            drawing.SetSymmetry(settings);
+            h.DrawPixel(x, y);
+            return h.NonEmptyPixels().Count();
+        }
+
+        t.Check("SetSymmetry reaches both the app state and the drawing layer", () =>
+        {
+            h.NewProject(64);
+            drawing.SetSymmetry(SymmetrySettings.MirrorBoth());
+            Assert.True(h.AppState.SpriteEditorState.Symmetry.IsEnabled, "the app state did not record the symmetry");
+            Assert.True(h.DrawingLayer.Symmetry.AxisCount == 2, "the drawing layer did not receive the settings");
+
+            // A new project rebuilds the drawing target; a session setting has to survive that.
+            h.NewProject(64);
+            Assert.True(h.DrawingLayer.Symmetry.IsEnabled,
+                "symmetry was lost when the drawing target was rebuilt");
+        });
+
+        t.Check("a stroke with symmetry off paints one pixel", () =>
+        {
+            var count = PaintOnce(SymmetrySettings.Off, 10, 20);
+            Assert.True(count == 1, $"expected 1 painted pixel, got {count}");
+        });
+
+        t.Check("mirror X paints the dab and its mirror", () =>
+        {
+            var count = PaintOnce(SymmetrySettings.MirrorX(), 10, 20);
+            Assert.True(count == 2, $"expected 2 painted pixels, got {count}");
+            Assert.True(h.GetPixel(53, 20).Red == 255, "the mirrored pixel is not on the far side of the axis");
+        });
+
+        t.Check("X+Y paints four pixels", () =>
+        {
+            var count = PaintOnce(SymmetrySettings.MirrorBoth(), 10, 20);
+            Assert.True(count == 4, $"expected 4 painted pixels, got {count}");
+            Assert.True(h.GetPixel(53, 20).Red == 255 && h.GetPixel(10, 43).Red == 255 && h.GetPixel(53, 43).Red == 255,
+                "the four-way symmetry did not paint all three mirrors");
+        });
+
+        t.Check("four radial axes paint eight pixels", () =>
+        {
+            var count = PaintOnce(new SymmetrySettings { IsEnabled = true, AxisCount = 4, AngleDegrees = 0 }, 10, 20);
+            Assert.True(count == 8, $"expected 8 painted pixels, got {count}");
+        });
+
+        // The overlay's grip is a real hit target, so wherever it sits it eats presses. It is parked
+        // outside the canvas for exactly this reason: the first cut put it on the intersection, which
+        // defaults to the middle of the canvas, and this check painted 0 pixels instead of 2.
+        t.Check("the axis grip does not swallow strokes near the symmetry centre", () =>
+        {
+            var count = PaintOnce(SymmetrySettings.MirrorX(), 32, 32);
+            Assert.True(count >= 1, "a dab on the symmetry centre painted nothing — the grip ate the press");
+        });
+
+        t.Check("a moved centre moves the painted mirror", () =>
+        {
+            var count = PaintOnce(SymmetrySettings.MirrorX(new SKPoint(16, 32)), 10, 20);
+            Assert.True(count == 2, $"expected 2 painted pixels, got {count}");
+            Assert.True(h.GetPixel(21, 20).Red == 255, "the mirror did not follow the moved centre");
+            Assert.True(h.GetPixel(53, 20).Alpha == 0, "the mirror was still painted about the canvas centre");
+        });
+
+        t.Check("SetSymmetryCenter(null) puts the axes back in the middle", () =>
+        {
+            drawing.SetSymmetry(SymmetrySettings.MirrorX(new SKPoint(16, 32)));
+            drawing.SetSymmetryCenter(null);
+            Assert.True(!h.AppState.SpriteEditorState.Symmetry.Center.HasValue, "the centre was not cleared");
+            Assert.True(h.AppState.SpriteEditorState.Symmetry.IsEnabled, "clearing the centre also turned symmetry off");
+        });
+
+        // The grip sits on empty canvas background, where nothing else says "draggable" — the grab hand is
+        // the whole affordance. Headlessly OnDraw never runs, so the node's world-per-pixel stays 1 and the
+        // grip is 12 world units above the top of the axis.
+        t.Check("the pointer over the grip asks for a grab hand", () =>
+        {
+            h.NewProject(64);
+            drawing.SetSymmetry(SymmetrySettings.MirrorX());
+
+            h.MoveWorld(32, -12, pressed: false);
+            Assert.True(SKInput.Current.HoverCursor == SKCursorType.Hand,
+                $"expected Hand over the grip, got {SKInput.Current.HoverCursor}");
+
+            h.MoveWorld(20, 30, pressed: false);
+            Assert.True(SKInput.Current.HoverCursor == SKCursorType.Default,
+                $"expected Default over the artwork, got {SKInput.Current.HoverCursor}");
+
+            drawing.SetSymmetry(SymmetrySettings.Off);
+            h.MoveWorld(32, -12, pressed: false);
+            Assert.True(SKInput.Current.HoverCursor == SKCursorType.Default,
+                "the grip still claimed the cursor with symmetry off");
+        });
+
+        drawing.SetSymmetry(SymmetrySettings.Off);
+        h.NewProject(64);
     }
 
     // --- Scenario 7bc: layer titles (#67) and "select the layer's opaque pixels" (#57) ---------------
