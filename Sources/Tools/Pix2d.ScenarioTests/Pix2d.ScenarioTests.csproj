@@ -7,9 +7,10 @@
       2. executes a curated safe subset and asserts no exception,
       3. runs scripted user scenarios (draw a pixel, assert the layer bitmap + undo/redo).
 
-    Intended to be run manually before a release, NOT on every build. Intentionally NOT listed in
-    Sources/Pix2d.slnx so the multi-platform solution build and CI stay unaffected (same policy as
-    Pix2d.FormatTests). Run with a dotnet run against this project directory.
+    Intentionally NOT listed in Sources/Pix2d.slnx so the multi-platform solution build stays
+    unaffected (same policy as Pix2d.FormatTests); CI runs it by csproj path instead
+    (.github/workflows/ci.yml, job `scenario_tests`, on every push/PR to main). Run it locally with
+    a dotnet run against this project directory.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

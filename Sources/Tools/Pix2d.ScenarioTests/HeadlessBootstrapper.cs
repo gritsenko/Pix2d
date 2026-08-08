@@ -8,6 +8,7 @@ using Pix2d.Common.FileSystem;
 using Pix2d.Infrastructure;
 using Pix2d.Infrastructure.Logger;
 using Pix2d.Plugins.Drawing;
+using Pix2d.Plugins.ImageFormats.PiskelFormat;
 using Pix2d.Plugins.ImageFormats.PngFormat;
 using Pix2d.Plugins.Sprite;
 using Pix2d.Services;
@@ -67,6 +68,9 @@ public sealed class HeadlessBootstrapper : Pix2dBootstrapperDI
         LoadPlugin<SpritePlugin>();
         LoadPlugin<DrawingPlugin>();
         LoadPlugin<PngFormatPlugin>();
+        // Import-only and dependency-free; needed so the .piskel import scenario exercises the real
+        // registration path rather than calling the importer directly.
+        LoadPlugin<PiskelFormatPlugin>();
     }
 
     protected override bool InitTelemetry()

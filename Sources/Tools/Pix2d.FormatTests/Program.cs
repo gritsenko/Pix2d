@@ -137,6 +137,10 @@ static SortedDictionary<string, string[]> ComputeContract()
     AddContractEntry(contract, resolver, "~OnionSkinSettings", typeof(OnionSkinSettings));
     AddContractEntry(contract, resolver, "~AnimationTag", typeof(SpriteAnimationTag));
     AddContractEntry(contract, resolver, "~NineSliceMargins", typeof(NineSliceMargins));
+    // Layer.Frames — the frame table. Structurally the most load-bearing inline object in the format
+    // (it is what maps a frame to its pixels, and several frames sharing one node is how a linked cel is
+    // stored), yet it was missing here: the linked-cel flag was added to it and the guard said nothing.
+    AddContractEntry(contract, resolver, "~LayerFrameMeta", typeof(LayerFrameMeta));
 
     return contract;
 }

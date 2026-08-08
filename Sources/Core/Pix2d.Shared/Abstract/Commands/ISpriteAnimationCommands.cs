@@ -12,4 +12,10 @@ public interface ISpriteAnimationCommands : ICommandList
     Pix2dCommand NextFrame { get; }
     Pix2dCommand DeleteFrame { get; }
     Pix2dCommand Stop { get; }
+
+    /// <summary>Link every frame of the selected layer to the current frame's image (a linked cel).</summary>
+    Pix2dCommand LinkAllFrames { get; }
+
+    /// <summary>Give the current frame its own copy of a linked image again.</summary>
+    Pix2dCommand UnlinkFrame { get; }
 }

@@ -8,7 +8,11 @@
     on a headless CI runner. It reuses the exact same sheet engine as the in-app exporter
     (SpriteSheetBuilder + the metadata emitters in Pix2d.Shared/Export/Sheet). Intentionally NOT listed
     in Sources/Pix2d.slnx (same policy as Pix2d.FormatTests / Pix2d.ScenarioTests) so the multi-platform
-    solution build and CI are unaffected; it is promoted into the release pipeline in a later increment.
+    solution build is unaffected; the release pipeline publishes it by csproj path
+    (.github/workflows/release-publish.yml, job `build_cli`).
+
+    Deliberately NOT trimmed when published: the .pix2d loader (NodeSerializer / NodeTypeRegistry) resolves
+    node types reflectively from Newtonsoft JSON, which a trimmer cannot see.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -24,6 +28,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Pix2d.Shared\Pix2d.Shared.csproj" />
+  </ItemGroup>
+
+  <!--
+    Pix2d.Shared brings the plain `SkiaSharp` package, whose native library ships for Windows only — the app
+    heads get libSkiaSharp.so / .dylib transitively through Avalonia.Skia, which this project deliberately
+    does not reference. Without these the tool builds fine everywhere and then throws DllNotFoundException on
+    the first SKBitmap, i.e. on every export. Keep the versions in lockstep with SkiaSharp in Pix2d.Shared.
+  -->
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.4" />
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="3.119.4" />
   </ItemGroup>
 
 </Project>

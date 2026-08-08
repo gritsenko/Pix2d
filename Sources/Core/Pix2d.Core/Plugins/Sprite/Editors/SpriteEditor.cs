@@ -561,6 +561,66 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         OnFramesChanged(FramesChangedType.Delete, [index]);
     }
 
+    /// <summary>
+    /// Makes the selected layer's frames <paramref name="frameIndices"/> share one image (a linked cel), so
+    /// editing any of them edits all of them. The current frame's pixels are the ones kept. Per layer by
+    /// design — that is what a cel is, and it lets a static background share one image while the layers above
+    /// keep animating.
+    /// </summary>
+    public void LinkFrames(IReadOnlyList<int> frameIndices)
+    {
+        RunLinkOperation(frameIndices, CurrentFrameIndex, link: true);
+    }
+
+    /// <summary>Links every frame of the selected layer to the current frame's image.</summary>
+    public void LinkAllFrames()
+    {
+        if (CurrentSprite == null)
+            return;
+
+        LinkFrames(Enumerable.Range(0, CurrentSprite.GetFramesCount()).ToArray());
+    }
+
+    /// <summary>
+    /// Breaks the current frame out of its link, giving it a private copy of the shared pixels. The other
+    /// members stay linked to each other.
+    /// </summary>
+    public void UnlinkCurrentFrame()
+    {
+        RunLinkOperation([CurrentFrameIndex], CurrentFrameIndex, link: false);
+    }
+
+    /// <summary>True when the selected layer's current frame is a linked cel (drives the command's UI state).</summary>
+    public bool IsCurrentFrameLinked =>
+        CurrentSprite?.SelectedLayer?.IsFrameLinked(CurrentFrameIndex) == true;
+
+    private void RunLinkOperation(IReadOnlyList<int> frameIndices, int sourceFrameIndex, bool link)
+    {
+        if (CurrentSprite?.SelectedLayer is not { } layer)
+            return;
+
+        var layerIndex = CurrentSprite.Layers.ToList().IndexOf(layer);
+        if (layerIndex < 0)
+            return;
+
+        var operation = new LinkAnimationFramesOperation(CurrentSprite, layerIndex, frameIndices,
+            sourceFrameIndex, link);
+
+        // Nothing to do (a single frame, or an unlink on a frame that isn't linked) must not push an undo
+        // step — an undo that restores identical state reads as a lost click.
+        if (!operation.IsApplicable())
+            return;
+
+        _operationService.InvokeAndPushOperations(operation);
+
+        _drawingService.UpdateDrawingTarget();
+        _viewPortRefreshService?.Refresh();
+
+        // Reset rather than a targeted update: linking changes several frames' pixels *and* their link
+        // markers at once, so the timeline has to rebuild its tiles rather than refresh a thumbnail.
+        OnFramesChanged(FramesChangedType.Reset, operation.AffectedFrameIndexes.ToArray());
+    }
+
     public void ReorderFrames(int oldIndex, int newIndex)
     {
         if (CurrentSprite == null)
@@ -793,6 +853,11 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
         if (data.Layers.Count == 0)
             return;
 
+        // Same reason as SpriteImportApplier.Apply: a format that records a playback speed must not land on
+        // the default. This is the import-into-the-current-sprite path, which does not go through the applier.
+        if (data.FrameRate is > 0 and { } frameRate && CurrentSprite != null)
+            CurrentSprite.FrameRate = frameRate;
+
         foreach (var layerPropertiesInfo in data.Layers)
         {
             AddEmptyLayer();
@@ -801,7 +866,7 @@ public class SpriteEditor : ISpriteEditor, IImportTarget
                 throw new InvalidOperationException("No layer selected");
 
             if (data.ReplaceFrames)
-                layer.DeleteFrame(0);
+                SpriteImportApplier.ClearFrames(layer);
 
             for (var frameIndex = 0; frameIndex < layerPropertiesInfo.Frames.Count; frameIndex++)
             {

@@ -14,7 +14,13 @@ public class DeleteAnimationFrameOperation : EditOperationBase, ISpriteEditorOpe
     private readonly Dictionary<int, BitmapNode> _deletedNodes = new Dictionary<int, BitmapNode>();
     private readonly int _deletedFrameIndex;
     private readonly int _newFrameIndex;
-    private Guid _deletedFrameNodeId;
+
+    // Per layer, the full frame metadata as it stood immediately before the delete. Keyed by layer because a
+    // single field could only hold the LAST layer's value: with linked cels (or any duplicate-without-edit)
+    // several layers take the "shared node" path on the same delete, so one layer's node id would overwrite
+    // another's and undo would hand layer A the id of layer B's node — no node of that id in A, so A's frame
+    // came back blank. Storing the whole meta rather than just the id is what also preserves IsLinked.
+    private readonly Dictionary<int, LayerFrameMeta> _deletedMetas = new Dictionary<int, LayerFrameMeta>();
 
     // Deleting a frame drops any tag that covered only it and discards that frame's duration override;
     // neither is recomputable, so undo restores a pre-edit snapshot instead of inverting the shift.
@@ -58,7 +64,12 @@ public class DeleteAnimationFrameOperation : EditOperationBase, ISpriteEditorOpe
                 var layer = layers[i];
 
                 var i1 = i;//resharper idea
-     layer.DeleteFrame(_deletedFrameIndex, s => _deletedNodes[i1] = s, f => _deletedFrameNodeId = f);
+
+                // Snapshot before the delete: DeleteFrame may collapse the link group it belonged to, so the
+                // meta has to be read while it still describes the frame as the user had it.
+                _deletedMetas[i1] = LayerFrameMeta.Copy(layer.Frames[_deletedFrameIndex]);
+
+                layer.DeleteFrame(_deletedFrameIndex, s => _deletedNodes[i1] = s);
             }
 
             // Only after the validation above let the frames actually go: shifting the metadata on a
@@ -77,10 +88,13 @@ public class DeleteAnimationFrameOperation : EditOperationBase, ISpriteEditorOpe
             {
                 var layer = layers[i];
 
-                if (_deletedNodes.TryGetValue(i, out var spriteNode))
-                    layer.InsertFrameFromBitmapNode(_deletedFrameIndex, spriteNode);
-                else
-                    layer.InsertFrameFromNodeId(_deletedFrameIndex, _deletedFrameNodeId);
+                if (!_deletedMetas.TryGetValue(i, out var meta))
+                    continue;
+
+                // The captured node is passed only when this layer's frame owned it outright; a shared frame
+                // restores against the node its meta already names, which its siblings kept attached.
+                _deletedNodes.TryGetValue(i, out var spriteNode);
+                layer.InsertFrameFromMeta(_deletedFrameIndex, meta, spriteNode as SpriteNode);
             }
 
             _metaSnapshot?.Restore(_sprite);

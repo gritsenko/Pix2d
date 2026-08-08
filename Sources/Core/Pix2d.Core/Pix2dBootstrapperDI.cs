@@ -9,6 +9,7 @@ using Pix2d.Infrastructure.Tasks;
 using Pix2d.Logging;
 using Pix2d.Plugins.ImageFormats.GifFormat;
 using Pix2d.Plugins.ImageFormats.JpgFormat;
+using Pix2d.Plugins.ImageFormats.PiskelFormat;
 using Pix2d.Plugins.ImageFormats.PngFormat;
 using Pix2d.Plugins.ImageFormats.SvgFormat;
 using Pix2d.Plugins.Sprite;
@@ -152,6 +153,8 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
         LoadPlugin<JpgFormatPlugin>();
         LoadPlugin<GifFormatPlugin>();
         LoadPlugin<SvgFormatPlugin>();
+        // Import-only, pure managed JSON + Skia — no platform dependency, so every head gets it.
+        LoadPlugin<PiskelFormatPlugin>();
     }
 
     protected void LoadPlugin<TPlugin>() where TPlugin : class, IPix2dPlugin

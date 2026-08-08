@@ -1,0 +1,77 @@
+name: CI
+
+# Roadmap Track Q — run the two console test harnesses on every push/PR so a regression is caught
+# at review time instead of at release time. Both live under Sources/Tools/ and are deliberately NOT
+# in Sources/Pix2d.slnx (see their csproj comments), so each job targets its csproj directly.
+#
+# Exit codes (both harnesses): 0 = all checks passed, 1 = at least one failed, 2 = setup/boot failed.
+# `dotnet run` propagates the app's exit code, so a non-zero result fails the job with no extra wiring.
+#
+# Why windows-latest for both: Pix2d.FormatTests and Pix2d.Cli reference the plain `SkiaSharp` package,
+# which ships Windows natives only — `libSkiaSharp.so` arrives via SkiaSharp.NativeAssets.Linux, which
+# the app heads only get transitively through Avalonia.Skia. Pix2d.ScenarioTests additionally needs
+# UsePlatformDetect() on an STA thread. Moving the format job to ubuntu is a follow-up (Track Q's
+# "CI matrix" item), not a prerequisite for gating merges.
+
+on:
+  push:
+    branches: [ main ]
+    # Docs/CI-metadata-only pushes don't need a harness run.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+  workflow_dispatch:
+
+# A new push to the same branch/PR supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Loads every TestImages/*.pix2d through the real production load path (ProjectUnpacker ->
+  # ProjectFormat -> NodeSerializer), asserts a save/reload round-trip, and pins the per-type
+  # serialized property set against Sources/Tools/Pix2d.FormatTests/format-contract.json.
+  # The contract guard is the reason this belongs in CI: the v3.11.5 GridColor leak into saved
+  # projects was caught only because someone ran this harness by hand before tagging.
+  format_tests:
+    name: Format corpus + serialization contract
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run Pix2d.FormatTests
+        run: dotnet run --project Sources/Tools/Pix2d.FormatTests -c Release
+
+  # Boots the real DI graph headlessly (Avalonia SetupWithoutStarting, no window), drives the editor
+  # through scripted user scenarios, and finishes with a safe sweep executing every registered command.
+  # Transitively compiles Pix2d.Core + Pix2d.Shared, so it also acts as the Core compile check on a PR.
+  scenario_tests:
+    name: Headless editor scenarios
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run Pix2d.ScenarioTests
+        run: dotnet run --project Sources/Tools/Pix2d.ScenarioTests -c Release

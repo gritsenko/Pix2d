@@ -47,7 +47,10 @@ public partial class SpriteSheetExportSettingsView()
                     .Content(L("Power-of-two size"))
                     .IsChecked(state, x => x.PowerOfTwo, BindingMode.TwoWay),
 
-                new TextBlock().Margin(0, 8, 0, 0).Text(L("Metadata (.json sidecar)")),
+                // The label names the sidecar's real extension, which is per-format now that the engine
+                // presets are in (.tres / .png.meta / .atlas) — a hardcoded ".json" would be a lie for three
+                // of the four choices.
+                new TextBlock().Margin(0, 8, 0, 0).Text(state, x => x.MetadataHint),
                 new ComboBox()
                     .HorizontalAlignment(HorizontalAlignment.Stretch)
                     .ItemsSource(state.MetadataFormatNames)
@@ -92,6 +95,20 @@ public partial class SpriteSheetExportSettingsView()
         [ObservableProperty] public partial bool Trim { get; set; }
         [ObservableProperty] public partial bool PowerOfTwo { get; set; }
         [ObservableProperty] public partial int MetadataFormatIndex { get; set; }
+
+        /// <summary>Caption above the format dropdown, naming the extension the selected preset writes.</summary>
+        [ObservableProperty] public partial string MetadataHint { get; set; } = BuildMetadataHint(0);
+
+        private static string BuildMetadataHint(int index)
+        {
+            // Index 0 is the "no sidecar" entry, so it has no extension to report.
+            if (index <= 0 || index > SheetMetadataEmitters.All.Count)
+                return L("Metadata");
+
+            // One format string rather than concatenated fragments — word order around the extension is
+            // not the same in every language.
+            return string.Format(L("Metadata ({0} sidecar)"), SheetMetadataEmitters.All[index - 1].FileExtension);
+        }
 
         public void SetExporter(SpriteSheetExporter exporter)
         {
@@ -147,6 +164,10 @@ public partial class SpriteSheetExportSettingsView()
 
         partial void OnMetadataFormatIndexChanged(int value)
         {
+            // The caption follows the selection even before an exporter is attached, so a freshly opened
+            // dialog never shows a stale extension.
+            MetadataHint = BuildMetadataHint(value);
+
             if (_exporter != null && value >= 0 && value < _metadataIds.Count)
             {
                 _exporter.MetadataFormat = _metadataIds[value];

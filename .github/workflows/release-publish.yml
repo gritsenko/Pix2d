@@ -43,6 +43,11 @@ on:
         type: boolean
         required: false
         default: false
+      include_cli:
+        description: 'Include the headless pix2d CLI (all platforms)'
+        type: boolean
+        required: false
+        default: false
       deploy_to_play_store:
         description: 'Deploy Android .aab to Google Play (Release Track)'
         type: boolean
@@ -87,6 +92,7 @@ jobs:
           echo "Input include_macos_intel: ${{ github.event.inputs.include_macos_intel }}"
           echo "Input include_macos_arm: ${{ github.event.inputs.include_macos_arm }}"
           echo "Input include_store_msix: ${{ github.event.inputs.include_store_msix }}"
+          echo "Input include_cli: ${{ github.event.inputs.include_cli }}"
 
           # Calculate the boolean value for any_platform_included
           # Using bash logic for robustness in evaluating boolean inputs
@@ -97,7 +103,8 @@ jobs:
                 "${{ github.event.inputs.include_wasm_deploy }}" == "true" || \
                 "${{ github.event.inputs.include_macos_intel }}" == "true" || \
                 "${{ github.event.inputs.include_macos_arm }}" == "true" || \
-                "${{ github.event.inputs.include_store_msix }}" == "true" ]]; then
+                "${{ github.event.inputs.include_store_msix }}" == "true" || \
+                "${{ github.event.inputs.include_cli }}" == "true" ]]; then
             ANY_INCLUDED=true
           fi
 
@@ -504,6 +511,103 @@ jobs:
           artifacts/linux-desktop/Pix2d_linux-x64-${{ env.VERSION }}.tar.gz
           artifacts/linux-desktop/pix2d_${{ env.VERSION }}_amd64.deb
 
+  # Headless CLI (roadmap H2.2 PR-5). Sources/Tools/Pix2d.Cli references only Pix2d.Shared — no Avalonia,
+  # no display — so every platform cross-publishes from this one Linux runner (runtime packs come from
+  # NuGet); there is no need for a per-OS runner the way the app heads need one.
+  build_cli:
+    needs: determine_build_scope
+    if: ${{ github.event_name == 'push' || github.event.inputs.include_cli == 'true' || !needs.determine_build_scope.outputs.any_platform_included }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Get Version
+      shell: bash
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            version=$(echo "$GITHUB_REF" | sed 's/refs\/tags\/v//')
+            echo "Using version from git tag: $version"
+        elif [ -n "${{ github.event.inputs.version }}" ]; then
+            version="${{ github.event.inputs.version }}"
+            echo "Using version from manual input: $version"
+        else
+            version="0.0.0"
+            echo "Using default version for manual run: $version"
+        fi
+
+        clean_version=$(echo "$version" | tr -cd '0-9.')
+        if [[ ! "$clean_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: $clean_version"
+            exit 1
+        fi
+
+        echo "VERSION=$clean_version" >> $GITHUB_ENV
+        echo "Using version: $clean_version"
+
+    - name: Publish and package the CLI for every platform
+      shell: bash
+      run: |
+        set -euo pipefail
+        CLI_PROJECT=Sources/Tools/Pix2d.Cli/Pix2d.Cli.csproj
+        mkdir -p artifacts/cli
+
+        for rid in win-x64 linux-x64 osx-x64 osx-arm64; do
+          out="./publish-cli/$rid"
+
+          # Self-contained so a CI runner needs no .NET install, and deliberately NOT trimmed: the .pix2d
+          # loader resolves node types reflectively and a trimmer cannot see them.
+          dotnet publish "$CLI_PROJECT" -c Release -r "$rid" --self-contained true \
+            -p:PublishSingleFile=true -p:PublishTrimmed=false -p:DebugType=none \
+            -p:Version="$VERSION" -o "$out"
+
+          # libSkiaSharp's NATIVE pdb ships inside the SkiaSharp native-asset package and is ~84 MB — an
+          # order of magnitude more than the tool itself. DebugType only governs managed symbols, so it has
+          # to be removed here or it dominates the artifact.
+          find "$out" -name '*.pdb' -delete
+
+          # The native library stays beside the executable rather than inside the single file (that would
+          # need self-extraction to a temp dir at every start), so each artifact is an archive, not one file.
+          if [ "$rid" = "win-x64" ]; then
+            (cd "$out" && zip -qr "$GITHUB_WORKSPACE/artifacts/cli/pix2d_cli_${rid}-${VERSION}.zip" .)
+          else
+            chmod +x "$out/pix2d"
+            tar -czf "artifacts/cli/pix2d_cli_${rid}-${VERSION}.tar.gz" -C "$out" .
+          fi
+        done
+
+        ls -la artifacts/cli
+
+    - name: Smoke-test the Linux CLI
+      shell: bash
+      run: |
+        set -euo pipefail
+        # The runner is linux-x64, so the artifact it will ship can actually be executed here. This is the
+        # check that catches a missing libSkiaSharp.so: without it the tool builds and then dies on the first
+        # SKBitmap, i.e. on every real export.
+        work=$(mktemp -d)
+        tar -xzf "artifacts/cli/pix2d_cli_linux-x64-${VERSION}.tar.gz" -C "$work"
+
+        "$work/pix2d" --version
+        "$work/pix2d" list TestImages/123frames.pix2d > "$work/list.json"
+        "$work/pix2d" export TestImages/123frames.pix2d \
+          --spritesheet "$work/sheet.png" --data "$work/sheet.json"
+
+        test -s "$work/list.json" || { echo "::error::CLI 'list' produced no output"; exit 1; }
+        test -s "$work/sheet.png" || { echo "::error::CLI produced no sheet PNG"; exit 1; }
+        test -s "$work/sheet.json" || { echo "::error::CLI produced no metadata sidecar"; exit 1; }
+        echo "CLI smoke test OK"
+
+    - name: Upload CLI Artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: cli
+        path: artifacts/cli/*
+
   # Dedicated job for building the WASM artifacts so they can be uploaded
   build_wasm:
     needs: determine_build_scope
@@ -668,7 +772,7 @@ jobs:
   create_release:
     runs-on: ubuntu-latest
     # Depends on all build and deploy jobs
-    needs: [build_android, build_windows, build_linux, build_macos_intel, build_macos_arm, deploy_wasm_to_gh_pages]
+    needs: [build_android, build_windows, build_linux, build_macos_intel, build_macos_arm, build_cli, deploy_wasm_to_gh_pages]
     # Only run if a tag is pushed
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event.inputs.trigger_release == 'true' }}
     steps:
@@ -721,6 +825,10 @@ jobs:
           artifacts/linux-desktop/pix2d_${{ steps.extract_version.outputs.version }}_amd64.deb
           artifacts/macos-intel/Pix2d_macOS-x64-${{ steps.extract_version.outputs.version }}.dmg
           artifacts/macos-arm/Pix2d_macOS-arm64-${{ steps.extract_version.outputs.version }}.dmg
+          artifacts/cli/pix2d_cli_win-x64-${{ steps.extract_version.outputs.version }}.zip
+          artifacts/cli/pix2d_cli_linux-x64-${{ steps.extract_version.outputs.version }}.tar.gz
+          artifacts/cli/pix2d_cli_osx-x64-${{ steps.extract_version.outputs.version }}.tar.gz
+          artifacts/cli/pix2d_cli_osx-arm64-${{ steps.extract_version.outputs.version }}.tar.gz
           # The WASM artifact is deployed directly to app.pix2d.com, so it's usually not attached as a separate file to the release.
           # If you also need it attached to the release, uncomment the line below:
           # artifacts/browser-wasm

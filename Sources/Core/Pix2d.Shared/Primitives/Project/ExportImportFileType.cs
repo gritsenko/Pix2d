@@ -10,6 +10,9 @@ public class ExportImportProjectType
     public static ExportImportProjectType Gif = new(".gif");
     public static ExportImportProjectType Jpeg = new(".jpg");
 
+    /// <summary>Piskel document — import only (see PiskelFormatPlugin).</summary>
+    public static ExportImportProjectType Piskel = new(".piskel");
+
     public string FileExtension { get; } = "";
     public bool IsDirectoryProject { get; }
 
@@ -31,6 +34,7 @@ public class ExportImportProjectType
             Png.FileExtension,
             Gif.FileExtension,
             Jpeg.FileExtension,
+            Piskel.FileExtension,
         };
     }
 }

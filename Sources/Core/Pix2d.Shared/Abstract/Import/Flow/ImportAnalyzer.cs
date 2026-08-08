@@ -17,6 +17,9 @@ public static class ImportAnalyzer
     private static readonly string[] ProjectExtensions = [".pix2d", ".pxm"];
     private static readonly string[] RasterExtensions = [".png", ".jpg", ".jpeg"];
 
+    // Layered source documents: one file decodes straight into layers + frames.
+    private static readonly string[] LayeredDocumentExtensions = [".piskel"];
+
     // base name = file name without trailing separator(s) and digits; num = the trailing digits.
     // e.g. "idle_0001" -> ("idle", 1), "run-2" -> ("run", 2), "frfr0000" -> ("frfr", 0).
     private static readonly Regex FrameNumberRegex =
@@ -32,6 +35,9 @@ public static class ImportAnalyzer
 
         if (files.All(f => Ext(f) == ".gif"))
             return ImportFileKind.Gif;
+
+        if (files.All(f => LayeredDocumentExtensions.Contains(Ext(f))))
+            return ImportFileKind.LayeredDocument;
 
         if (files.All(f => RasterExtensions.Contains(Ext(f))))
             return ImportFileKind.Raster;

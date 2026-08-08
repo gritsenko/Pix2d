@@ -22,6 +22,13 @@ public class ImportData
     }
 
     public bool ReplaceFrames { get; set; }
+
+    /// <summary>
+    /// Playback speed carried over from the source document, or null to keep the sprite's default. Only
+    /// formats that actually record one set it (.piskel); a PNG/GIF import leaves it null.
+    /// </summary>
+    public float? FrameRate { get; set; }
+
     public SKSizeI Size { get; set; }
     public List<LayerPropertiesInfo> Layers { get; set; } = [];
 }

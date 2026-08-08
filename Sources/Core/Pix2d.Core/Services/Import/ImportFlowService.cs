@@ -57,6 +57,10 @@ public class ImportFlowService(
         {
             ImportFileKind.Project => await DecideProjectPlanAsync(request),
             ImportFileKind.Gif => new ImportPlan(ImportMode.Gif, [new ImportGroup(GroupName(files[0]), files)]),
+            // A .piskel already carries its own layers and frames, so there is nothing to ask about: one
+            // file is one sprite, wherever it was dropped.
+            ImportFileKind.LayeredDocument => new ImportPlan(ImportMode.LayeredDocument,
+                files.Select(f => new ImportGroup(GroupName(f), [f])).ToList()),
             ImportFileKind.Raster => await DecideRasterPlanAsync(request),
             _ => throw new NotSupportedException("Unsupported file type for import.")
         };
@@ -139,7 +143,8 @@ public class ImportFlowService(
             case ImportMode.AnimationFrames:
                 return await ImportAsAnimationsAsync(plan.Groups);
             case ImportMode.Gif:
-                return await ImportGifAsync(request.Files);
+            case ImportMode.LayeredDocument:
+                return await ImportWholeDocumentsAsync(request.Files);
             case ImportMode.ProjectIntoScene:
                 return await ImportProjectIntoSceneAsync(plan.Groups[0].OrderedFiles[0]);
             case ImportMode.OpenAsProject:
@@ -200,12 +205,20 @@ public class ImportFlowService(
         return new IImportService.ImportResult(true);
     }
 
-    private async Task<IImportService.ImportResult> ImportGifAsync(IReadOnlyList<IFileContentSource> files)
+    /// <summary>
+    /// One sprite per file for formats whose importer already produces a complete sprite — a GIF (one layer,
+    /// N frames) or a .piskel (N layers, N frames each). The decoded <see cref="ImportData"/> is passed
+    /// through untouched, which is what preserves a .piskel's layer names and opacity; the raster paths
+    /// deliberately rebuild it instead, because there each file is only one bitmap.
+    /// </summary>
+    private async Task<IImportService.ImportResult> ImportWholeDocumentsAsync(IReadOnlyList<IFileContentSource> files)
     {
-        // One animated sprite per GIF (GifImporter decodes a GIF into one layer with N frames).
         var imports = new List<(string Name, ImportData Data)>();
-        foreach (var gif in files)
-            imports.Add((GroupName(gif), await DecodeAsync([gif])));
+        foreach (var file in files)
+            imports.Add((GroupName(file), await DecodeAsync([file])));
+
+        if (imports.Count == 0)
+            return new IImportService.ImportResult(false, "no documents decoded");
 
         editService.AddArtboardsFromImportData(imports);
         return new IImportService.ImportResult(true);

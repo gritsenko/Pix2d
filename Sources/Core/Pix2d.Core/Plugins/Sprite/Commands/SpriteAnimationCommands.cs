@@ -40,4 +40,14 @@ public class SpriteAnimationCommands : CommandsListBase, ISpriteAnimationCommand
     public Pix2dCommand Stop =>
         GetCommand(() => { SpriteEditor?.Stop(); }, "Stop", null, EditContextType.Sprite);
 
+    // Linked cels (H2.4). Per layer, not per sprite: the point is a static layer sharing one image across the
+    // animation while the layers above it keep animating. Both are no-ops when they'd change nothing, so
+    // neither pushes an empty undo step.
+    public Pix2dCommand LinkAllFrames =>
+        GetCommand(() => { SpriteEditor?.LinkAllFrames(); }, "Link all frames of this layer", null,
+            EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
+
+    public Pix2dCommand UnlinkFrame =>
+        GetCommand(() => { SpriteEditor?.UnlinkCurrentFrame(); }, "Unlink this frame", null,
+            EditContextType.Sprite, behaviour: ServiceProvider.GetRequiredService<DisableOnAnimationCommandBehavior>());
 }

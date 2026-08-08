@@ -6,8 +6,12 @@ using System.Linq;
 namespace Pix2d.Export.Sheet.Metadata;
 
 /// <summary>
-/// Registry of available metadata emitters. Preset formats (Godot/Unity/libGDX) register here as they
-/// land, and both the export settings dropdown and the CLI <c>--format</c> flag enumerate the same set.
+/// Registry of available metadata emitters. Both the export settings dropdown and the CLI <c>--format</c>
+/// flag enumerate this same list, so registering an emitter here is all it takes to surface it in the app
+/// and on the command line — no UI or CLI change required.
+///
+/// Order is the UI order; Aseprite JSON stays first because it is the default and the most portable
+/// (engine-agnostic importers are written against it), followed by the direct engine presets.
 /// </summary>
 public static class SheetMetadataEmitters
 {
@@ -16,7 +20,10 @@ public static class SheetMetadataEmitters
 
     private static readonly List<ISheetMetadataEmitter> _emitters =
     [
-        new AsepriteJsonEmitter()
+        new AsepriteJsonEmitter(),
+        new GodotSpriteFramesEmitter(),
+        new UnityMetaEmitter(),
+        new LibGdxAtlasEmitter()
     ];
 
     public static IReadOnlyList<ISheetMetadataEmitter> All => _emitters;

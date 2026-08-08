@@ -242,7 +242,13 @@ Usage:
 export options:
   --spritesheet <path>   Output sheet PNG (required).
   --data <path>          Also write a metadata sidecar to this path.
-  --format <id>          Metadata format for --data (default: aseprite).
+  --format <id>          Metadata format for --data (default: aseprite):
+                           aseprite  Aseprite --data JSON (most portable)
+                           godot     Godot 4 SpriteFrames .tres
+                           unity     Unity texture .png.meta (pre-sliced sprites)
+                           libgdx    libGDX TexturePacker .atlas
+                         Name --data with the format's own extension (.tres/.png.meta/.atlas);
+                         for unity it must be <sheet>.png.meta next to the sheet PNG.
   --sheet-type <mode>    Packing: grid | tight (default: grid).
   --columns <n>          Columns in grid mode (default: 4).
   --padding <n>          Transparent gutter between frames, in px (default: 0).

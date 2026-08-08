@@ -204,6 +204,12 @@
     "onClickHandlerName",
     "textureKey"
   ],
+  "~LayerFrameMeta": [
+    "fid",
+    "i",
+    "k",
+    "ln"
+  ],
   "~NineSliceMargins": [
     "bottom",
     "left",

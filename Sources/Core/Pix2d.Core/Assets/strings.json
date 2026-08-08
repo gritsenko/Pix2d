@@ -392,7 +392,12 @@
       "Axes": "Axes",
       "Angle": "Angle",
       "Centre the axes": "Centre the axes",
-      "Drag the grip at the end of an axis to move the axes; double-click it to centre them.": "Drag the grip at the end of an axis to move the axes; double-click it to centre them."
+      "Drag the grip at the end of an axis to move the axes; double-click it to centre them.": "Drag the grip at the end of an axis to move the axes; double-click it to centre them.",
+      "Linked frame — edits apply to every frame it is linked with": "Linked frame — edits apply to every frame it is linked with",
+      "Link all frames of this layer": "Link all frames of this layer",
+      "Unlink this frame": "Unlink this frame",
+      "Metadata": "Metadata",
+      "Metadata ({0} sidecar)": "Metadata ({0} sidecar)"
     },
     "Locale": "en",
     "LocaleTitle": "English",
@@ -780,7 +785,12 @@
       "Axes": "Оси",
       "Angle": "Угол",
       "Centre the axes": "Вернуть оси в центр",
-      "Drag the grip at the end of an axis to move the axes; double-click it to centre them.": "Перетащите маркер на конце оси, чтобы сдвинуть оси; двойной клик вернёт их в центр."
+      "Drag the grip at the end of an axis to move the axes; double-click it to centre them.": "Перетащите маркер на конце оси, чтобы сдвинуть оси; двойной клик вернёт их в центр.",
+      "Linked frame — edits apply to every frame it is linked with": "Связанный кадр — правки применяются ко всем связанным кадрам",
+      "Link all frames of this layer": "Связать все кадры этого слоя",
+      "Unlink this frame": "Отвязать этот кадр",
+      "Metadata": "Метаданные",
+      "Metadata ({0} sidecar)": "Метаданные (файл {0})"
     },
     "Locale": "ru",
     "LocaleTitle": "Russian",

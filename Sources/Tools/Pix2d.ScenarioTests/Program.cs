@@ -1,11 +1,17 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Themes.Simple;
 using Microsoft.Extensions.DependencyInjection;
 using Mvvm.Messaging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Drawing;
 using Pix2d.Abstract.Export;
+using Pix2d.Abstract.Import;
+using Pix2d.Abstract.Import.Flow;
+using Pix2d.Plugins.ImageFormats.PiskelFormat;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Services;
 using Pix2d.CommonNodes;
@@ -78,6 +84,9 @@ static class Runner
         FrameScenario(harness, t);
         ExportScenario(harness, t);
         SpriteSheetExportScenario(harness, t);
+        EnginePresetExportScenario(harness, t);
+        PiskelImportScenario(harness, t);
+        LinkedCelsScenario(harness, t);
         ArtboardScenario(harness, t);
         DegenerateCanvasScenario(harness, t);
         OversizedCanvasScenario(harness, t);
@@ -472,6 +481,1058 @@ static class Runner
         });
     }
 
+    // --- Scenario 6b: engine export presets (H2.2 PR-4) --------------------------------------------
+    // Godot .tres / Unity .png.meta / libGDX .atlas over the SAME PackedSheet the Aseprite emitter
+    // consumes. The checks target what each format gets *wrong by default* rather than re-asserting the
+    // packer: Godot's relative frame duration, Unity's bottom-up rect origin and id stability, and
+    // libGDX's bottom-left trim offset + name/index animation convention.
+    static void EnginePresetExportScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Engine export presets scenario (Godot / Unity / libGDX) ===");
+
+        // Two rows on purpose (3 frames, 2 columns): a single-row sheet cannot distinguish a top-down
+        // rect from a bottom-up one, which is the whole point of the Unity y check below.
+        h.NewProject(64);
+        h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+        h.SetColor(SKColors.Red);
+        h.DrawPixel(5, 5);
+        h.Exec("Sprite.Animation.AddFrame");
+        h.DrawPixel(10, 10);
+        h.Exec("Sprite.Animation.AddFrame");
+        h.DrawPixel(20, 20);
+
+        var sprite = h.ActiveSprite;
+        var canvasW = (int)sprite.Size.Width;
+        var canvasH = (int)sprite.Size.Height;
+        var fps = sprite.FrameRate;
+
+        sprite.AnimationTags =
+        [
+            new SpriteAnimationTag { Name = "intro", From = 0, To = 0 },
+            new SpriteAnimationTag { Name = "loop", From = 1, To = 2 }
+        ];
+        sprite.SetFrameDurationMs(1, 400);
+        sprite.NineSlice = new NineSliceMargins { Left = 8, Top = 6, Right = 4, Bottom = 2 };
+
+        SpriteSheetOptions Opts(bool trim = false) => new()
+        {
+            PackMode = trim ? SheetPackMode.Tight : SheetPackMode.Grid,
+            MaxColumns = 2,
+            Trim = trim,
+            SpriteName = "hero",
+            ImageFileName = "hero.png"
+        };
+
+        using var sheet = SpriteSheetBuilder.Build(sprite, 1, Opts());
+        using var trimmed = SpriteSheetBuilder.Build(sprite, 1, Opts(trim: true));
+
+        var opts = new SheetMetadataOptions { AppVersion = "9.9.9" };
+
+        // --- registry wiring: the UI dropdown and CLI --format both enumerate this list ------------
+        t.Check("all four metadata presets are registered and resolvable by id", () =>
+        {
+            foreach (var id in new[] { "aseprite", "godot", "unity", "libgdx" })
+                Assert.True(SheetMetadataEmitters.TryGet(id) != null, $"emitter '{id}' is not registered");
+
+            Assert.True(SheetMetadataEmitters.TryGet("nope") == null, "an unknown id must resolve to null");
+            Assert.True(SheetMetadataEmitters.TryGet("none") == null, "'none' means no sidecar");
+            Assert.True(SheetMetadataEmitters.All.Select(e => e.Id).Distinct().Count() == SheetMetadataEmitters.All.Count,
+                "emitter ids must be unique — the CLI and the UI both key on them");
+            Assert.True(SheetMetadataEmitters.All.All(e => e.FileExtension.StartsWith('.')),
+                "every FileExtension must carry its dot (Path.ChangeExtension relies on it)");
+        });
+
+        // --- Godot -------------------------------------------------------------------------------
+        var tres = new GodotSpriteFramesEmitter().Emit(sheet, opts);
+        Console.WriteLine("  [diag] godot head: " + tres.Replace("\r", "").Replace("\n", " ")[..Math.Min(120, tres.Length)]);
+
+        t.Check("Godot .tres declares a format=3 SpriteFrames with one AtlasTexture per frame", () =>
+        {
+            Assert.True(tres.StartsWith("[gd_resource type=\"SpriteFrames\"", StringComparison.Ordinal),
+                "missing the gd_resource header");
+            Assert.True(tres.Contains("format=3"), "Godot 4 text resources are format=3");
+
+            var subs = Regex.Matches(tres, @"\[sub_resource type=""AtlasTexture"" id=""([^""]+)""\]").Count;
+            Assert.True(subs == 3, $"expected 3 AtlasTexture sub-resources, got {subs}");
+
+            // load_steps counts 1 ext_resource + N sub_resources + the resource itself.
+            var steps = int.Parse(Regex.Match(tres, @"load_steps=(\d+)").Groups[1].Value);
+            Assert.True(steps == subs + 2, $"load_steps={steps}, expected {subs + 2}");
+
+            Assert.True(Regex.Matches(tres, @"\[ext_resource ").Count == 1, "expected exactly one texture ext_resource");
+            Assert.True(tres.Contains("path=\"res://hero.png\""), "the ext_resource must point at the sheet PNG");
+        });
+
+        t.Check("Godot regions match the packed frame rects", () =>
+        {
+            var regions = Regex.Matches(tres, @"region = Rect2\((\d+), (\d+), (\d+), (\d+)\)")
+                .Select(m => new SKRectI(
+                    int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value),
+                    int.Parse(m.Groups[1].Value) + int.Parse(m.Groups[3].Value),
+                    int.Parse(m.Groups[2].Value) + int.Parse(m.Groups[4].Value)))
+                .ToArray();
+
+            foreach (var frame in sheet.Frames)
+                Assert.True(regions.Contains(frame.Frame), $"no region matches packed frame {frame.Index} at {frame.Frame}");
+        });
+
+        t.Check("Godot emits one animation per tag, named as the tag", () =>
+        {
+            var names = Regex.Matches(tres, @"""name"": &""([^""]+)""").Select(m => m.Groups[1].Value).ToArray();
+            Assert.True(names.Length == 2, $"expected 2 animations, got [{string.Join(", ", names)}]");
+            Assert.True(names.Contains("intro") && names.Contains("loop"),
+                $"animations should be named after the tags, got [{string.Join(", ", names)}]");
+            Assert.True(tres.Contains($"\"speed\": {fps.ToString("0.####", CultureInfo.InvariantCulture)}")
+                        || tres.Contains($"\"speed\": {(int)fps}.0"),
+                "the animation speed should be the sprite's frame rate");
+        });
+
+        // The discriminating check for the duration snap: Godot's per-frame `duration` is a MULTIPLIER of
+        // the animation speed, and the sprite's own default is stored as whole ms (15 fps -> 67), so a naive
+        // ms*fps/1000 yields 1.005 for an untouched frame and plays the animation slow.
+        t.Check("Godot durations are 1.0 for default frames and scaled for an override", () =>
+        {
+            var durations = Regex.Matches(tres, @"""duration"": ([0-9.]+)")
+                .Select(m => double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture))
+                .ToArray();
+
+            Assert.True(durations.Length == 3, $"expected 3 frame durations, got {durations.Length}");
+            Assert.True(durations.Count(d => Math.Abs(d - 1.0) < 1e-9) == 2,
+                $"the two default frames must be exactly 1.0, got [{string.Join(", ", durations)}]");
+
+            var expectedOverride = 400.0 * fps / 1000.0;
+            Assert.True(durations.Any(d => Math.Abs(d - expectedOverride) < 0.01),
+                $"the 400 ms override should scale to ~{expectedOverride:0.###}, got [{string.Join(", ", durations)}]");
+        });
+
+        t.Check("Godot restores a trimmed frame's footprint through AtlasTexture.margin", () =>
+        {
+            var tresTrimmed = new GodotSpriteFramesEmitter().Emit(trimmed, opts);
+            var margins = Regex.Matches(tresTrimmed, @"margin = Rect2\((\d+), (\d+), (\d+), (\d+)\)").ToArray();
+            Assert.True(margins.Length == 3, $"expected a margin on each trimmed frame, got {margins.Length}");
+
+            // margin.size is what was cropped away, so region.size + margin.size == the original canvas.
+            foreach (var m in margins)
+            {
+                var mw = int.Parse(m.Groups[3].Value);
+                var mh = int.Parse(m.Groups[4].Value);
+                Assert.True(mw > 0 && mh > 0, $"a single-pixel frame must crop in both axes, got {mw}x{mh}");
+            }
+
+            var first = trimmed.Frames[0];
+            Assert.True(tresTrimmed.Contains(
+                    $"margin = Rect2({first.SpriteSourceRect.Left}, {first.SpriteSourceRect.Top}, " +
+                    $"{first.SourceSize.Width - first.Frame.Width}, {first.SourceSize.Height - first.Frame.Height})"),
+                "the margin must be (trim offset, cropped size)");
+
+            Assert.True(!tres.Contains("margin = "), "an untrimmed export must not emit a margin");
+        });
+
+        t.Check("Godot falls back to a 'default' animation when the sprite has no tags", () =>
+        {
+            var untagged = sprite.AnimationTags;
+            sprite.AnimationTags = null;
+            try
+            {
+                using var plain = SpriteSheetBuilder.Build(sprite, 1, Opts());
+                var doc = new GodotSpriteFramesEmitter().Emit(plain, opts);
+                var names = Regex.Matches(doc, @"""name"": &""([^""]+)""").Select(m => m.Groups[1].Value).ToArray();
+                Assert.True(names.Length == 1 && names[0] == "default",
+                    $"expected a single 'default' animation, got [{string.Join(", ", names)}]");
+                Assert.True(Regex.Matches(doc, @"""texture"": SubResource").Count == 3,
+                    "the default animation must cover every frame");
+            }
+            finally
+            {
+                sprite.AnimationTags = untagged;
+            }
+        });
+
+        // --- Unity -------------------------------------------------------------------------------
+        var meta = new UnityMetaEmitter().Emit(sheet, opts);
+
+        t.Check("Unity .meta is a Multiple-mode TextureImporter with pixel-art defaults", () =>
+        {
+            Assert.True(meta.StartsWith("fileFormatVersion: 2", StringComparison.Ordinal), "missing the meta header");
+            Assert.True(Regex.IsMatch(meta, @"^guid: [0-9a-f]{32}$", RegexOptions.Multiline),
+                "guid must be 32 lowercase hex chars");
+            Assert.True(meta.Contains("  spriteMode: 2\n"), "spriteMode must be 2 (Multiple) for the sprite list to apply");
+            Assert.True(meta.Contains("    filterMode: 0\n"), "pixel art needs Point filtering");
+            Assert.True(meta.Contains("    textureCompression: 0\n"), "pixel art must not be compressed");
+            Assert.True(meta.Contains("  spriteMeshType: 0\n"), "FullRect is required for 9-slice borders");
+            Assert.True(new UnityMetaEmitter().FileExtension == ".png.meta",
+                "Unity's sidecar keeps the image extension: <image>.png.meta");
+        });
+
+        t.Check("Unity emits one sprite per animation frame, named <tag>_<index>", () =>
+        {
+            var names = Regex.Matches(meta, @"^      name: (.+)$", RegexOptions.Multiline)
+                .Select(m => m.Groups[1].Value).ToArray();
+
+            Assert.True(names.Length == 3, $"expected 3 sprites, got [{string.Join(", ", names)}]");
+            Assert.True(names.Contains("intro_0") && names.Contains("loop_0") && names.Contains("loop_1"),
+                $"names should be tag-scoped and 0-based within the tag, got [{string.Join(", ", names)}]");
+            Assert.True(names.Distinct().Count() == names.Length, "sprite names must be unique or Unity drops one");
+        });
+
+        // The classic way a hand-written .meta comes out wrong: Unity rects are bottom-up.
+        t.Check("Unity sprite rects flip Y into Unity's bottom-up texture space", () =>
+        {
+            var rects = Regex.Matches(meta, @"        x: (\d+)\n        y: (\d+)\n        width: (\d+)\n        height: (\d+)")
+                .Select(m => (X: int.Parse(m.Groups[1].Value), Y: int.Parse(m.Groups[2].Value),
+                              W: int.Parse(m.Groups[3].Value), H: int.Parse(m.Groups[4].Value)))
+                .ToArray();
+
+            Assert.True(rects.Length == 3, $"expected 3 rects, got {rects.Length}");
+            Assert.True(sheet.Image.Height > canvasH,
+                "this check needs a multi-row sheet to be meaningful — MaxColumns=2 over 3 frames");
+
+            foreach (var frame in sheet.Frames)
+            {
+                var expectedY = sheet.Image.Height - frame.Frame.Top - frame.Frame.Height;
+                Assert.True(rects.Any(r => r.X == frame.Frame.Left && r.Y == expectedY
+                                           && r.W == frame.Frame.Width && r.H == frame.Frame.Height),
+                    $"frame {frame.Index} at top={frame.Frame.Top} should map to y={expectedY}; " +
+                    $"rects were [{string.Join(", ", rects.Select(r => $"({r.X},{r.Y})"))}]");
+            }
+
+            // A top-row frame must end up with the LARGEST y — the assertion a top-down emit fails.
+            var topRow = sheet.Frames.Where(f => f.Frame.Top == 0).ToArray();
+            Assert.True(topRow.Length > 0, "expected at least one frame on the top row");
+            var maxY = rects.Max(r => r.Y);
+            Assert.True(topRow.All(f => sheet.Image.Height - f.Frame.Top - f.Frame.Height == maxY),
+                "top-row frames must carry the largest Unity y");
+        });
+
+        t.Check("Unity maps the 9-slice onto border as (left, bottom, right, top)", () =>
+        {
+            var border = Regex.Match(meta, @"      border: \{x: (\d+), y: (\d+), z: (\d+), w: (\d+)\}");
+            Assert.True(border.Success, "no sprite border emitted");
+            Assert.True(border.Groups[1].Value == "8", $"border.x should be Left=8, got {border.Groups[1].Value}");
+            Assert.True(border.Groups[2].Value == "2", $"border.y should be Bottom=2, got {border.Groups[2].Value}");
+            Assert.True(border.Groups[3].Value == "4", $"border.z should be Right=4, got {border.Groups[3].Value}");
+            Assert.True(border.Groups[4].Value == "6", $"border.w should be Top=6, got {border.Groups[4].Value}");
+        });
+
+        // Re-exporting over an existing asset must not orphan scene references.
+        t.Check("Unity ids are stable across re-export and unique per sprite", () =>
+        {
+            var again = new UnityMetaEmitter().Emit(sheet, opts);
+            Assert.True(again == meta, "the same sheet must emit a byte-identical .meta (ids must not be random)");
+
+            var spriteIds = Regex.Matches(meta, @"      spriteID: ([0-9a-f]{32})").Select(m => m.Groups[1].Value).ToArray();
+            Assert.True(spriteIds.Length == 3 && spriteIds.Distinct().Count() == 3,
+                $"expected 3 distinct spriteIDs, got [{string.Join(", ", spriteIds)}]");
+
+            var internalIds = Regex.Matches(meta, @"      internalID: (-?\d+)").Select(m => int.Parse(m.Groups[1].Value)).ToArray();
+            Assert.True(internalIds.Length == 3 && internalIds.Distinct().Count() == 3,
+                "internalIDs must be distinct within one asset");
+            Assert.True(internalIds.All(i => i > 0), "internalID 0 means 'unset' and negatives confuse the importer");
+
+            // Each internalID must also appear in the name table Unity resolves sub-assets through.
+            foreach (var id in internalIds)
+                Assert.True(meta.Contains($"      213: {id}\n"), $"internalID {id} is missing from internalIDToNameTable");
+        });
+
+        // --- libGDX ------------------------------------------------------------------------------
+        var atlas = new LibGdxAtlasEmitter().Emit(sheet, opts);
+
+        t.Check("libGDX .atlas page header names the sheet and uses Nearest filtering", () =>
+        {
+            var lines = atlas.Replace("\r", "").Split('\n');
+            Assert.True(lines[0] == "hero.png", $"first line must be the image file name, got '{lines[0]}'");
+            Assert.True(lines[1] == $"size: {sheet.Image.Width},{sheet.Image.Height}", $"got '{lines[1]}'");
+            Assert.True(lines[2] == "format: RGBA8888", $"got '{lines[2]}'");
+            Assert.True(lines[3] == "filter: Nearest,Nearest", $"pixel art must not be filtered, got '{lines[3]}'");
+            Assert.True(lines[4] == "repeat: none", $"got '{lines[4]}'");
+        });
+
+        // atlas.findRegions("loop") is ordered by index — this naming IS the animation in libGDX.
+        t.Check("libGDX repeats the tag name per frame with a 0-based index within the tag", () =>
+        {
+            var regions = Regex.Matches(atlas, @"^(\S.*)\n  rotate: false\n  xy: (\d+), (\d+)\n  size: (\d+), (\d+)\n  orig: (\d+), (\d+)\n  offset: (\d+), (\d+)\n  index: (\d+)$",
+                    RegexOptions.Multiline)
+                .Select(m => (Name: m.Groups[1].Value, Index: int.Parse(m.Groups[10].Value),
+                              X: int.Parse(m.Groups[2].Value), Y: int.Parse(m.Groups[3].Value)))
+                .ToArray();
+
+            Assert.True(regions.Length == 3, $"expected 3 fully-formed regions, got {regions.Length}");
+
+            var loop = regions.Where(r => r.Name == "loop").OrderBy(r => r.Index).ToArray();
+            Assert.True(loop.Length == 2, $"'loop' covers 2 frames, got {loop.Length}");
+            Assert.True(loop[0].Index == 0 && loop[1].Index == 1,
+                $"indices must restart per tag, got [{string.Join(", ", loop.Select(r => r.Index))}]");
+
+            var intro = regions.Where(r => r.Name == "intro").ToArray();
+            Assert.True(intro.Length == 1 && intro[0].Index == 0, "'intro' should be a single index-0 region");
+        });
+
+        t.Check("libGDX trim offset is measured from the bottom-left of the original frame", () =>
+        {
+            var atlasTrimmed = new LibGdxAtlasEmitter().Emit(trimmed, opts);
+            var frame = trimmed.Frames[0];
+            var expectedY = frame.SourceSize.Height - frame.SpriteSourceRect.Top - frame.Frame.Height;
+
+            Assert.True(expectedY != frame.SpriteSourceRect.Top,
+                "this check is vacuous unless the top and bottom margins differ — pick a different pixel");
+            Assert.True(atlasTrimmed.Contains($"  offset: {frame.SpriteSourceRect.Left}, {expectedY}\n"),
+                $"expected offset {frame.SpriteSourceRect.Left}, {expectedY} (bottom-up) — a top-down emit " +
+                $"would write {frame.SpriteSourceRect.Left}, {frame.SpriteSourceRect.Top}");
+            Assert.True(atlasTrimmed.Contains($"  orig: {frame.SourceSize.Width}, {frame.SourceSize.Height}\n"),
+                "orig must stay the untrimmed source size");
+        });
+
+        t.Check("libGDX uses the sprite name as the region name when there are no tags", () =>
+        {
+            var untagged = sprite.AnimationTags;
+            sprite.AnimationTags = null;
+            try
+            {
+                using var plain = SpriteSheetBuilder.Build(sprite, 1, Opts());
+                var doc = new LibGdxAtlasEmitter().Emit(plain, opts);
+                var names = Regex.Matches(doc, @"^(\S.*)\n  rotate:", RegexOptions.Multiline)
+                    .Select(m => m.Groups[1].Value).Distinct().ToArray();
+                Assert.True(names.Length == 1 && names[0] == "hero",
+                    $"expected a single 'hero' region name, got [{string.Join(", ", names)}]");
+            }
+            finally
+            {
+                sprite.AnimationTags = untagged;
+            }
+        });
+
+        // --- partial tag coverage: the presets must not silently lose frames ----------------------
+        // A tag covering only part of the timeline is ordinary. Unity and libGDX represent plain regions, so
+        // an uncovered frame with no entry is unreachable (unsliceable / invisible to findRegion); Godot has
+        // no free-standing frame at all, so it drops them on purpose. The three must differ deliberately.
+        t.Check("partial tag coverage still addresses every frame in Unity and libGDX", () =>
+        {
+            var full = sprite.AnimationTags;
+            // Frames 1 and 2 are left uncovered.
+            sprite.AnimationTags = [new SpriteAnimationTag { Name = "intro", From = 0, To = 0 }];
+            try
+            {
+                using var partial = SpriteSheetBuilder.Build(sprite, 1, Opts());
+                var frameCount = partial.Frames.Count;
+                Assert.True(frameCount == 3, $"the sheet should still pack all 3 frames, got {frameCount}");
+
+                var atlas = new LibGdxAtlasEmitter().Emit(partial, opts);
+                var regionLines = Regex.Matches(atlas, @"^(\S.*)\n  rotate:", RegexOptions.Multiline).Count;
+                Assert.True(regionLines == frameCount,
+                    $"libGDX emitted {regionLines} regions for {frameCount} packed frames — an uncovered " +
+                    "frame has no region and can never be reached through findRegion");
+
+                var meta = new UnityMetaEmitter().Emit(partial, opts);
+                var spriteRects = Regex.Matches(meta, @"^      internalID: ", RegexOptions.Multiline).Count;
+                Assert.True(spriteRects == frameCount,
+                    $"Unity emitted {spriteRects} sprite rects for {frameCount} packed frames — an uncovered " +
+                    "frame cannot be sliced, and hand-slicing is overwritten on the next re-export");
+
+                // Godot's opposite, deliberate choice.
+                var tres = new GodotSpriteFramesEmitter().Emit(partial, opts);
+                var atlasTextures = Regex.Matches(tres, @"^\[sub_resource ", RegexOptions.Multiline).Count;
+                Assert.True(atlasTextures == 1,
+                    $"Godot should emit only the referenced frame's AtlasTexture, got {atlasTextures}");
+            }
+            finally
+            {
+                sprite.AnimationTags = full;
+            }
+        });
+
+        t.Check("Godot sub-resource ids are unique per frame", () =>
+        {
+            var tres = new GodotSpriteFramesEmitter().Emit(sheet, opts);
+            var ids = Regex.Matches(tres, @"\[sub_resource type=""AtlasTexture"" id=""([^""]+)""\]")
+                .Select(m => m.Groups[1].Value).ToArray();
+
+            Assert.True(ids.Length > 0, "no AtlasTexture sub-resources were emitted");
+            Assert.True(ids.Distinct().Count() == ids.Length,
+                $"duplicate sub-resource ids [{string.Join(", ", ids)}] — Godot keeps only the LAST " +
+                "[sub_resource] with a given id, so two frames would silently show identical pixels");
+        });
+
+        t.Check("Unity internalIDs are unique within the asset", () =>
+        {
+            var meta = new UnityMetaEmitter().Emit(sheet, opts);
+            var ids = Regex.Matches(meta, @"^      internalID: (-?\d+)", RegexOptions.Multiline)
+                .Select(m => m.Groups[1].Value).ToArray();
+
+            Assert.True(ids.Length > 0, "no sprite internalIDs were emitted");
+            Assert.True(ids.Distinct().Count() == ids.Length,
+                $"duplicate internalIDs [{string.Join(", ", ids)}] — Unity rejects them within one asset");
+        });
+
+        // Two tags that differ only in a character Sanitize strips would collide on one region name, and
+        // libGDX's index sort would then interleave both animations into an arbitrary play order.
+        t.Check("libGDX disambiguates tag names that sanitize to the same region name", () =>
+        {
+            var full = sprite.AnimationTags;
+            sprite.AnimationTags =
+            [
+                new SpriteAnimationTag { Name = "run", From = 0, To = 0 },
+                new SpriteAnimationTag { Name = "run:", From = 1, To = 1 }
+            ];
+            try
+            {
+                using var packed = SpriteSheetBuilder.Build(sprite, 1, Opts());
+                var atlas = new LibGdxAtlasEmitter().Emit(packed, opts);
+                var names = Regex.Matches(atlas, @"^(\S.*)\n  rotate:", RegexOptions.Multiline)
+                    .Select(m => m.Groups[1].Value).ToArray();
+
+                Assert.True(names.Distinct().Count() == names.Count(),
+                    $"two animations share the region name [{string.Join(", ", names)}] — findRegions would " +
+                    "interleave them and the play order becomes arbitrary");
+            }
+            finally
+            {
+                sprite.AnimationTags = full;
+            }
+        });
+
+        // The 9-slice margins are canvas-space; a trimmed frame's rect starts at SpriteSourceRect, so
+        // copying them across unchanged misplaces every slice line by exactly the trim offset.
+        t.Check("Unity 9-slice borders are re-based onto a trimmed frame's rect", () =>
+        {
+            var meta = new UnityMetaEmitter().Emit(trimmed, opts);
+            var borders = Regex.Matches(meta, @"^      border: \{x: (-?\d+), y: (-?\d+), z: (-?\d+), w: (-?\d+)\}",
+                    RegexOptions.Multiline)
+                .Select(m => (X: int.Parse(m.Groups[1].Value), Y: int.Parse(m.Groups[2].Value),
+                              Z: int.Parse(m.Groups[3].Value), W: int.Parse(m.Groups[4].Value)))
+                .ToArray();
+
+            Assert.True(borders.Length > 0, "no borders were emitted");
+
+            var frames = trimmed.Frames.OrderBy(f => f.Index).ToArray();
+            Assert.True(frames.Any(f => f.Trimmed),
+                "this check is vacuous unless the packer actually trimmed something");
+
+            foreach (var b in borders)
+            {
+                Assert.True(b.X >= 0 && b.Y >= 0 && b.Z >= 0 && b.W >= 0,
+                    $"a re-based border went negative: {b}");
+            }
+
+            // The canvas margins are 8/6/4/2; on a trimmed frame at least one side must have shrunk, or the
+            // re-basing did not happen at all.
+            Assert.True(borders.Any(b => b != (8, 2, 4, 6)),
+                $"every trimmed frame kept the raw canvas border (8,2,4,6) — the trim offset was not applied");
+        });
+    }
+
+    // --- Scenario 6c: .piskel import (H2.3) --------------------------------------------------------
+    // The document is synthesized here rather than checked in as a fixture, so the exact structure the
+    // checks depend on is visible next to them — in particular the layout indirection, which is the one
+    // part of the format a reader gets wrong silently.
+    static void PiskelImportScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== .piskel import scenario ===");
+
+        const int W = 4, H = 4;
+
+        // Encodes a horizontal strip of WxH cells as a base64 data-uri PNG, the way Piskel stores a chunk.
+        static string Sheet(params SKColor?[] cells)
+        {
+            using var bitmap = new SKBitmap(new SKImageInfo(W * cells.Length, H, SKColorType.Rgba8888, SKAlphaType.Premul));
+            using (var canvas = new SKCanvas(bitmap))
+            {
+                canvas.Clear(SKColors.Transparent);
+                for (var i = 0; i < cells.Length; i++)
+                {
+                    if (cells[i] is not { } color)
+                        continue;
+                    using var paint = new SKPaint { Color = color };
+                    canvas.DrawRect(new SKRect(i * W, 0, i * W + W, H), paint);
+                }
+            }
+
+            using var data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
+            return "data:image/png;base64," + Convert.ToBase64String(data.ToArray());
+        }
+
+        // Layers are JSON *strings* inside the envelope — that double encoding is part of the format.
+        static string LayerJson(string name, double opacity, int frameCount, string layout, string sheet) =>
+            JsonConvert.SerializeObject(
+                $"{{\"name\":\"{name}\",\"opacity\":{opacity.ToString(CultureInfo.InvariantCulture)}," +
+                $"\"frameCount\":{frameCount},\"chunks\":[{{\"layout\":{layout},\"base64PNG\":\"{sheet}\"}}]}}");
+
+        // Layer 0 "Background": cell 0 (red) fills frames 0 AND 2, cell 1 (green) fills frame 1.
+        //   A reader that treats cell i as frame i produces red/green/EMPTY instead of red/green/red.
+        // Layer 1 "Overlay" at 50 %: cells fill frames 0 and 2, leaving frame 1 uncovered (= transparent).
+        var doc = "{\"modelVersion\":2,\"piskel\":{\"name\":\"hero\",\"fps\":8,\"width\":" + W + ",\"height\":" + H +
+                  ",\"layers\":[" +
+                  LayerJson("Background", 1.0, 3, "[[0,2],[1]]", Sheet(SKColors.Red, SKColors.Lime)) + "," +
+                  LayerJson("Overlay", 0.5, 3, "[[0],[2]]", Sheet(SKColors.Blue, SKColors.Blue)) +
+                  "]}}";
+
+        // --- the pure reader ----------------------------------------------------------------------
+        t.Check("piskel: the envelope, the double-encoded layers and the canvas size are read", () =>
+        {
+            var parsed = PiskelDocument.Parse(doc);
+            Assert.True(parsed.Width == W && parsed.Height == H, $"size came out {parsed.Width}x{parsed.Height}");
+            Assert.True(parsed.Layers.Count == 2, $"expected 2 layers, got {parsed.Layers.Count}");
+            Assert.True(parsed.FrameCount == 3, $"expected 3 frames, got {parsed.FrameCount}");
+            Assert.True(Math.Abs(parsed.Fps - 8f) < 0.01f, $"fps came out {parsed.Fps}");
+            Assert.True(parsed.Layers[0].Name == "Background" && parsed.Layers[1].Name == "Overlay",
+                $"layer names came out [{string.Join(", ", parsed.Layers.Select(l => l.Name))}]");
+        });
+
+        t.Check("piskel: an inline layer object parses as well as the string form", () =>
+        {
+            var inline = "{\"modelVersion\":2,\"piskel\":{\"name\":\"x\",\"width\":" + W + ",\"height\":" + H +
+                         ",\"layers\":[{\"name\":\"Inline\",\"opacity\":1,\"frameCount\":1," +
+                         "\"chunks\":[{\"layout\":[[0]],\"base64PNG\":\"" + Sheet(SKColors.Red) + "\"}]}]}}";
+            var parsed = PiskelDocument.Parse(inline);
+            Assert.True(parsed.Layers.Count == 1 && parsed.Layers[0].Name == "Inline",
+                "an inlined layer object should be accepted too");
+        });
+
+        var data = PiskelImporter.BuildImportData(doc);
+
+        t.Check("piskel: layers keep their name and opacity, and every layer gets every frame", () =>
+        {
+            Assert.True(data.Size.Width == W && data.Size.Height == H, $"import size {data.Size}");
+            Assert.True(data.Layers.Count == 2, $"expected 2 import layers, got {data.Layers.Count}");
+            Assert.True(data.Layers[0].Name == "Background" && data.Layers[1].Name == "Overlay",
+                "layer names must survive the conversion");
+            Assert.True(Math.Abs(data.Layers[1].Opacity - 0.5f) < 0.01f,
+                $"Overlay opacity came out {data.Layers[1].Opacity}");
+            // A short layer would leave the sprite's timeline ragged, so both are padded to 3.
+            Assert.True(data.Layers.All(l => l.Frames.Count == 3),
+                $"frame counts came out [{string.Join(", ", data.Layers.Select(l => l.Frames.Count))}]");
+        });
+
+        static SKColor PixelOf(LayerFrameInfo frame) => frame.BitmapProviderFunc!.Invoke().GetPixel(1, 1);
+
+        // THE discriminating check for the layout indirection.
+        t.Check("piskel: a cell shared by several frames fills all of them (layout, not cell order)", () =>
+        {
+            var bg = data.Layers[0].Frames;
+            Assert.True(PixelOf(bg[0]) == SKColors.Red, $"frame 0 should be red, got {PixelOf(bg[0])}");
+            Assert.True(PixelOf(bg[1]) == SKColors.Lime, $"frame 1 should be green, got {PixelOf(bg[1])}");
+            Assert.True(PixelOf(bg[2]) == SKColors.Red,
+                $"frame 2 shares cell 0 with frame 0 and must also be red, got {PixelOf(bg[2])} " +
+                "(reading cell i as frame i leaves this frame empty)");
+        });
+
+        t.Check("piskel: a frame no layout covers comes in transparent, not dropped", () =>
+        {
+            var overlay = data.Layers[1].Frames;
+            Assert.True(PixelOf(overlay[0]) == SKColors.Blue, $"overlay frame 0 should be blue, got {PixelOf(overlay[0])}");
+            Assert.True(PixelOf(overlay[1]).Alpha == 0, $"overlay frame 1 should be empty, got {PixelOf(overlay[1])}");
+            Assert.True(PixelOf(overlay[2]) == SKColors.Blue, $"overlay frame 2 should be blue, got {PixelOf(overlay[2])}");
+        });
+
+        // Frames become independently editable layer bitmaps, so a shared cell must not share a buffer.
+        t.Check("piskel: frames sharing a cell do not share one bitmap", () =>
+        {
+            var fresh = PiskelImporter.BuildImportData(doc);
+            var bg = fresh.Layers[0].Frames;
+            var first = bg[0].BitmapProviderFunc!.Invoke();
+            var third = bg[2].BitmapProviderFunc!.Invoke();
+
+            Assert.True(!ReferenceEquals(first, third), "frames 0 and 2 must be distinct bitmap instances");
+            first.SetPixel(1, 1, SKColors.Black);
+            Assert.True(third.GetPixel(1, 1) == SKColors.Red,
+                $"editing frame 0 changed frame 2 — they share a buffer (frame 2 now {third.GetPixel(1, 1)})");
+        });
+
+        // --- malformed input ----------------------------------------------------------------------
+        t.Check("piskel: a v1 document is refused with a message naming the version", () =>
+        {
+            var v1 = doc.Replace("\"modelVersion\":2", "\"modelVersion\":1");
+            var threw = false;
+            try { PiskelDocument.Parse(v1); }
+            catch (FormatException e) when (e.Message.Contains("1") && e.Message.Contains("version")) { threw = true; }
+            Assert.True(threw, "expected a FormatException naming the unsupported model version");
+        });
+
+        t.Check("piskel: garbage and empty input are format errors, not crashes", () =>
+        {
+            foreach (var bad in new[] { "", "   ", "not json at all", "{}", "{\"piskel\":{}}" })
+            {
+                var threw = false;
+                try { PiskelDocument.Parse(bad); }
+                catch (FormatException) { threw = true; }
+                Assert.True(threw, $"expected a FormatException for input '{bad}'");
+            }
+        });
+
+        // --- registration + the real flow ---------------------------------------------------------
+        t.Check("piskel: .piskel is a registered importable extension", () =>
+        {
+            var importService = h.Services.GetRequiredService<IImportService>();
+            Assert.True(importService.SupportedExtensions.Contains(".piskel"),
+                $"no importer registered for .piskel; registered: [{string.Join(", ", importService.SupportedExtensions)}]");
+            Assert.True(ExportImportProjectType.GetSupportedImportFileExtensions().Contains(".piskel"),
+                "the file picker's extension list must offer .piskel");
+        });
+
+        t.Check("piskel: the analyzer classifies it as a layered document, not a raster still", () =>
+        {
+            var files = h.Services.GetRequiredService<IFileService>();
+            var dir = Path.Combine(Path.GetTempPath(), "pix2d-piskel-" + Guid.NewGuid().ToString("N")[..8]);
+            Directory.CreateDirectory(dir);
+            try
+            {
+            var path = Path.Combine(dir, "hero.piskel");
+            File.WriteAllText(path, doc);
+
+            var source = new Pix2d.Common.FileSystem.NetFileSource(path);
+            Assert.True(ImportAnalyzer.ClassifyKind([source]) == ImportFileKind.LayeredDocument,
+                $"classified as {ImportAnalyzer.ClassifyKind([source])}");
+
+            // And end-to-end through the real flow: one file becomes one artboard with both layers.
+            h.NewProject(16);
+            var before = h.ArtboardCount;
+            var flow = h.Services.GetRequiredService<IImportFlowService>();
+
+            // Off the main thread, like RunExport: the flow's awaits would otherwise post continuations to
+            // Avalonia's dispatcher, which never pumps in this synchronous harness.
+            var task = Task.Run(() => flow.RunImportFlowAsync(new ImportRequest([source], null, FromDrag: false)));
+            Assert.True(task.Wait(TimeSpan.FromSeconds(30)), "the import flow did not complete");
+            Assert.True(task.Result.Success, "import flow failed: " + task.Result.Message);
+
+            Assert.True(h.ArtboardCount == before + 1, $"expected one new artboard, count went {before} -> {h.ArtboardCount}");
+
+            var imported = h.Artboards.Last();
+            var layers = imported.Nodes.OfType<Pix2dSprite.Layer>().ToArray();
+            Assert.True(layers.Length == 2, $"expected 2 layers on the imported sprite, got {layers.Length}");
+            Assert.True(imported.GetFramesCount() == 3, $"expected 3 frames, got {imported.GetFramesCount()}");
+            Assert.True((int)imported.Size.Width == W && (int)imported.Size.Height == H,
+                $"the sprite should take the document's canvas size, got {imported.Size}");
+
+            // SpriteImportApplier has to carry the name and opacity onto the real layers, not just parse them.
+            Assert.True(layers.Any(l => l.Name == "Background") && layers.Any(l => l.Name == "Overlay"),
+                $"layer names did not reach the sprite: [{string.Join(", ", layers.Select(l => l.Name))}]");
+            var overlay = layers.First(l => l.Name == "Overlay");
+            Assert.True(Math.Abs(overlay.Opacity - 0.5f) < 0.01f,
+                $"the Overlay layer's opacity did not reach the sprite (got {overlay.Opacity})");
+
+            // EVERY layer must hold exactly the document's frames — not just the first one. Pix2dSprite
+            // .AddLayer seeds a new layer with the first layer's frame count, which is already 3 by the time
+            // layer 2 is added, and InsertFrameFromBitmap *inserts*: deleting a single frame before filling
+            // left layer 2 with 3 real frames plus 2 stale empties. Layers then disagree on FrameCount, the
+            // empties are saved into the .pix2d, and later frame edits land on desynced indices. A sprite-wide
+            // GetFramesCount() check cannot see this — it reports one layer's view.
+            foreach (var layer in layers)
+            {
+                Assert.True(layer.FrameCount == 3,
+                    $"layer '{layer.Name}' has {layer.FrameCount} frames, expected 3 (stale frames left behind)");
+            }
+
+            // The document's fps must reach the sprite rather than silently falling back to the 15 default.
+            Assert.True(Math.Abs(imported.FrameRate - 8f) < 0.01f,
+                $"the document's frame rate did not reach the sprite (got {imported.FrameRate})");
+            }
+            finally
+            {
+                Directory.Delete(dir, true);
+            }
+        });
+    }
+
+    // --- Scenario 6d: linked cels (H2.4) -----------------------------------------------------------
+    // The model already shared SpriteNodes between frames as an invisible memory optimisation, broken by
+    // copy-on-write on the first edit. Linked cels make that sharing deliberate, so the checks that matter
+    // are the ones separating the two behaviours: an edit must PROPAGATE across a link and must still SPLIT
+    // an old incidentally-shared duplicate.
+    static void LinkedCelsScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Linked cels scenario ===");
+
+        // Builds a fresh 3-frame sprite with a distinct pixel per frame and returns its selected layer.
+        Pix2dSprite.Layer Setup()
+        {
+            h.NewProject(16);
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+            h.SetColor(SKColors.Red);
+            h.DrawPixel(1, 1);
+            h.Exec("Sprite.Animation.AddFrame");
+            h.SetColor(SKColors.Lime);
+            h.DrawPixel(2, 2);
+            h.Exec("Sprite.Animation.AddFrame");
+            h.SetColor(SKColors.Blue);
+            h.DrawPixel(3, 3);
+            h.SetFrameIndex(0);
+            return h.ActiveSprite.SelectedLayer!;
+        }
+
+        // Reads a pixel straight out of a frame's own bitmap, bypassing the "current frame" indirection.
+        static SKColor FramePixel(Pix2dSprite.Layer layer, int frameIndex, int x, int y) =>
+            layer.GetSpriteByFrame(frameIndex)?.Bitmap?.GetPixel(x, y) ?? SKColors.Transparent;
+
+        t.Check("linked cels: nothing is linked by default", () =>
+        {
+            var layer = Setup();
+            for (var i = 0; i < layer.FrameCount; i++)
+                Assert.True(!layer.IsFrameLinked(i), $"frame {i} should not be linked on a fresh sprite");
+            Assert.True(!h.SpriteEditor.IsCurrentFrameLinked, "the editor should report no link");
+        });
+
+        t.Check("linked cels: linking makes the frames share one image, keeping the source's pixels", () =>
+        {
+            var layer = Setup();
+            var undoBefore = h.UndoStackSize;
+
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 1, 2]);
+
+            Assert.True(h.UndoStackSize == undoBefore + 1, "linking should be exactly one undo step");
+            for (var i = 0; i < 3; i++)
+                Assert.True(layer.IsFrameLinked(i), $"frame {i} should be linked");
+
+            Assert.True(layer.GetLinkedFrameIndices(1).SequenceEqual(new[] { 0, 1, 2 }),
+                $"the link group came out [{string.Join(", ", layer.GetLinkedFrameIndices(1))}]");
+
+            // Frame 0's red pixel is now every frame's; frames 1 and 2 lost their own green/blue.
+            for (var i = 0; i < 3; i++)
+            {
+                Assert.True(FramePixel(layer, i, 1, 1) == SKColors.Red, $"frame {i} should show the source's red pixel");
+                Assert.True(FramePixel(layer, i, 2, 2).Alpha == 0, $"frame {i} should have lost frame 1's green pixel");
+            }
+
+            // One node for three frames is the memory win the feature is for.
+            Assert.True(layer.Nodes.OfType<SpriteNode>().Count() == 1,
+                $"3 linked frames should own 1 sprite node, got {layer.Nodes.OfType<SpriteNode>().Count()}");
+        });
+
+        // THE defining behaviour: an edit on one linked cel is an edit on all of them.
+        t.Check("linked cels: drawing on one linked frame changes every frame in the link", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 1, 2]);
+
+            h.SetFrameIndex(1);
+            h.SetColor(SKColors.Yellow);
+            h.DrawPixel(7, 7);
+
+            for (var i = 0; i < 3; i++)
+                Assert.True(FramePixel(layer, i, 7, 7) == SKColors.Yellow,
+                    $"frame {i} should carry the stroke drawn on frame 1, got {FramePixel(layer, i, 7, 7)} " +
+                    "(copy-on-write still splitting a linked cel?)");
+        });
+
+        // The compatibility guarantee: an UNLINKED shared node (what a plain duplicate produces, and what
+        // older project files contain) must still copy-on-write, or editing an old file would corrupt it.
+        t.Check("linked cels: a plain duplicate is still copy-on-write, not a link", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.Exec("Sprite.Animation.DuplicateFrame");
+
+            var dup = h.SpriteEditor.CurrentFrameIndex;
+            Assert.True(!layer.IsFrameLinked(dup), "a duplicate must not be a link");
+            Assert.True(!layer.IsFrameLinked(0), "the duplicate's source must not become a link either");
+
+            h.SetColor(SKColors.Yellow);
+            h.DrawPixel(9, 9);
+
+            Assert.True(FramePixel(layer, dup, 9, 9) == SKColors.Yellow, "the duplicate should carry the new stroke");
+            Assert.True(FramePixel(layer, 0, 9, 9).Alpha == 0,
+                "editing a duplicate must NOT change its source — that is the copy-on-write behaviour older " +
+                "project files depend on");
+        });
+
+        // A duplicate of a linked frame is handed the source's node by the insert, and because that node has
+        // copy-on-write disabled the duplicate would quietly follow the link until it is itself edited. So the
+        // check that bites is editing the LINKED ORIGINAL and asserting the duplicate does not move — editing
+        // the duplicate first would be split off by copy-on-write anyway and prove nothing.
+        t.Check("linked cels: duplicating a LINKED frame yields a frame the link cannot reach", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 1]);
+
+            h.SetFrameIndex(0);
+            h.Exec("Sprite.Animation.DuplicateFrame");
+            var dup = h.SpriteEditor.CurrentFrameIndex;
+
+            Assert.True(!layer.IsFrameLinked(dup), "the duplicate of a linked frame must not join the link");
+
+            var linked = layer.GetLinkedFrameIndices(0).ToArray();
+            Assert.True(linked.Length == 2 && !linked.Contains(dup),
+                $"the link should still have exactly its two members and not the duplicate, got [{string.Join(", ", linked)}]");
+
+            // Draw on a member of the link, not on the duplicate.
+            h.SetFrameIndex(linked[0]);
+            h.SetColor(SKColors.Yellow);
+            h.DrawPixel(8, 8);
+
+            foreach (var i in linked)
+                Assert.True(FramePixel(layer, i, 8, 8) == SKColors.Yellow, $"linked frame {i} should take the stroke");
+
+            Assert.True(FramePixel(layer, dup, 8, 8).Alpha == 0,
+                $"the duplicate at index {dup} must not follow the link it was copied out of — " +
+                $"got {FramePixel(layer, dup, 8, 8)}");
+        });
+
+        t.Check("linked cels: unlinking one frame gives it a private copy and leaves the rest linked", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 1, 2]);
+
+            h.SetFrameIndex(1);
+            h.SpriteEditor.UnlinkCurrentFrame();
+
+            Assert.True(!layer.IsFrameLinked(1), "frame 1 should no longer be linked");
+            Assert.True(layer.IsFrameLinked(0) && layer.IsFrameLinked(2), "frames 0 and 2 should stay linked");
+            Assert.True(layer.GetLinkedFrameIndices(0).SequenceEqual(new[] { 0, 2 }),
+                $"the remaining group came out [{string.Join(", ", layer.GetLinkedFrameIndices(0))}]");
+
+            // It keeps the pixels it had, but now privately.
+            Assert.True(FramePixel(layer, 1, 1, 1) == SKColors.Red, "the unlinked frame keeps the shared image");
+
+            h.SetColor(SKColors.Yellow);
+            h.DrawPixel(6, 6);
+            Assert.True(FramePixel(layer, 1, 6, 6) == SKColors.Yellow, "the unlinked frame takes the stroke");
+            Assert.True(FramePixel(layer, 0, 6, 6).Alpha == 0 && FramePixel(layer, 2, 6, 6).Alpha == 0,
+                "the still-linked frames must not see it");
+        });
+
+        // A one-member "link" would keep drawing the marker and keep blocking copy-on-write for nothing.
+        t.Check("linked cels: unlinking down to a single member drops the link entirely", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 1]);
+
+            h.SetFrameIndex(0);
+            h.SpriteEditor.UnlinkCurrentFrame();
+
+            Assert.True(!layer.IsFrameLinked(0) && !layer.IsFrameLinked(1),
+                "with one member left there is no link, so neither frame should report one");
+        });
+
+        t.Check("linked cels: undo restores every frame's own pixels, and redo re-links", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 1, 2]);
+
+            h.Exec("Edit.Undo");
+
+            for (var i = 0; i < 3; i++)
+                Assert.True(!layer.IsFrameLinked(i), $"frame {i} should not be linked after undo");
+
+            Assert.True(FramePixel(layer, 0, 1, 1) == SKColors.Red, "frame 0 should be red again");
+            Assert.True(FramePixel(layer, 1, 2, 2) == SKColors.Lime,
+                $"frame 1's own green pixel must come back — got {FramePixel(layer, 1, 2, 2)} " +
+                "(a link discards the followers' bitmaps, so undo has to restore the nodes, not recompute them)");
+            Assert.True(FramePixel(layer, 2, 3, 3) == SKColors.Blue, "frame 2 should be blue again");
+            Assert.True(layer.Nodes.OfType<SpriteNode>().Count() == 3,
+                $"all three sprite nodes should be back, got {layer.Nodes.OfType<SpriteNode>().Count()}");
+
+            h.Exec("Edit.Redo");
+            for (var i = 0; i < 3; i++)
+                Assert.True(layer.IsFrameLinked(i), $"frame {i} should be linked again after redo");
+            Assert.True(FramePixel(layer, 1, 2, 2).Alpha == 0, "redo should drop frame 1's own pixels again");
+        });
+
+        t.Check("linked cels: undo of an unlink returns the frame to the link", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 1, 2]);
+            h.SetFrameIndex(1);
+            h.SpriteEditor.UnlinkCurrentFrame();
+
+            h.Exec("Edit.Undo");
+
+            Assert.True(layer.IsFrameLinked(1), "frame 1 should be linked again");
+            Assert.True(layer.GetLinkedFrameIndices(1).SequenceEqual(new[] { 0, 1, 2 }),
+                $"the group came out [{string.Join(", ", layer.GetLinkedFrameIndices(1))}]");
+            Assert.True(layer.Nodes.OfType<SpriteNode>().Count() == 1,
+                $"the unlink's private copy should be gone, got {layer.Nodes.OfType<SpriteNode>().Count()} nodes");
+        });
+
+        t.Check("linked cels: a no-op link or unlink pushes no undo step", () =>
+        {
+            var layer = Setup();
+            var before = h.UndoStackSize;
+
+            h.SetFrameIndex(0);
+            h.SpriteEditor.UnlinkCurrentFrame();          // nothing is linked
+            h.SpriteEditor.LinkFrames([0]);               // a single frame cannot be a link
+            h.SpriteEditor.LinkFrames([]);                // nor can none
+
+            Assert.True(h.UndoStackSize == before,
+                $"undo stack grew from {before} to {h.UndoStackSize} on operations that change nothing");
+            Assert.True(!layer.IsFrameLinked(0), "frame 0 should still not be linked");
+        });
+
+        // Clearing a linked cel used to BRICK it: ClearFrame detached the node while leaving IsLinked set, and
+        // EnsureFrameHasUniqueSprite early-returns on IsLinked, so no sprite was ever rebuilt — later strokes
+        // silently no-opped and the clear could not even be undone. Clearing must write through the link.
+        t.Check("linked cels: clearing a linked frame clears the whole link and stays undoable", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 1, 2]);
+
+            h.SetFrameIndex(1);
+            h.Exec("Sprite.Edit.Clear");
+
+            for (var i = 0; i < 3; i++)
+                Assert.True(FramePixel(layer, i, 1, 1).Alpha == 0,
+                    $"frame {i} should have been cleared through the link, got {FramePixel(layer, i, 1, 1)}");
+            for (var i = 0; i < 3; i++)
+                Assert.True(layer.IsFrameLinked(i), $"frame {i} should still be linked after a clear");
+
+            // The frame must still accept paint — the bricked state swallowed strokes silently.
+            h.SetColor(SKColors.Yellow);
+            h.DrawPixel(5, 5);
+            for (var i = 0; i < 3; i++)
+                Assert.True(FramePixel(layer, i, 5, 5) == SKColors.Yellow,
+                    $"frame {i} should take a stroke after the clear, got {FramePixel(layer, i, 5, 5)} " +
+                    "(a cleared linked frame that can no longer be drawn on is the bricked state)");
+
+            h.Exec("Edit.Undo");   // the stroke
+            h.Exec("Edit.Undo");   // the clear
+            Assert.True(FramePixel(layer, 0, 1, 1) == SKColors.Red,
+                $"undoing the clear must bring the shared pixels back, got {FramePixel(layer, 0, 1, 1)}");
+        });
+
+        // Deleting one member of a two-frame link leaves a single frame that shares with nobody; keeping the
+        // flag would draw a link marker that lies and block copy-on-write for nothing.
+        t.Check("linked cels: deleting down to one member drops the link", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 1]);
+
+            h.SetFrameIndex(1);
+            h.Exec("Sprite.Animation.DeleteFrame");
+
+            Assert.True(!layer.IsFrameLinked(0),
+                "the surviving frame shares with nobody, so it must not still report a link");
+        });
+
+        // Undo of a frame delete restored from a SINGLE node id shared by every layer, so with two layers
+        // holding shared (linked) frames one layer's id overwrote the other's and that layer's frame came
+        // back blank. It also rebuilt the meta from a bare id, dropping IsLinked.
+        t.Check("linked cels: undoing a frame delete restores every layer's pixels and its link", () =>
+        {
+            var layer0 = Setup();
+            h.Exec("Sprite.Edit.AddLayer");
+            var layer1 = h.ActiveSprite.SelectedLayer!;
+            Assert.True(!ReferenceEquals(layer0, layer1), "a second layer should have been added");
+
+            // Give the new layer its own pixels, then link both layers so every frame takes the shared path.
+            h.SetFrameIndex(0);
+            h.SetColor(SKColors.Cyan);
+            h.DrawPixel(4, 4);
+            h.SpriteEditor.LinkFrames([0, 1, 2]);
+
+            h.ActiveSprite.SelectLayer(layer0);
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 1, 2]);
+
+            h.SetFrameIndex(1);
+            h.Exec("Sprite.Animation.DeleteFrame");
+            h.Exec("Edit.Undo");
+
+            Assert.True(layer0.FrameCount == 3 && layer1.FrameCount == 3,
+                $"both layers should be back to 3 frames, got {layer0.FrameCount} and {layer1.FrameCount}");
+
+            Assert.True(FramePixel(layer0, 1, 1, 1) == SKColors.Red,
+                $"layer 0's restored frame lost its pixels, got {FramePixel(layer0, 1, 1, 1)}");
+            Assert.True(FramePixel(layer1, 1, 4, 4) == SKColors.Cyan,
+                $"layer 1's restored frame lost its pixels, got {FramePixel(layer1, 1, 4, 4)} " +
+                "(one layer's node id overwriting another's on undo?)");
+
+            Assert.True(layer0.IsFrameLinked(1) && layer1.IsFrameLinked(1),
+                "the restored frame must come back INSIDE its link — a frame sharing the group's pixels but " +
+                "not flagged linked is the mixed state the invariant forbids");
+        });
+
+        // Re-running the command over an already identical group would push an undo step that restores the
+        // state it started from — a "lost click" on Ctrl+Z.
+        t.Check("linked cels: re-linking an already linked layer pushes no undo step", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.Exec("Sprite.Animation.LinkAllFrames");
+
+            var after = h.UndoStackSize;
+            h.Exec("Sprite.Animation.LinkAllFrames");
+
+            Assert.True(h.UndoStackSize == after,
+                $"undo stack grew from {after} to {h.UndoStackSize} on a re-link that changes nothing");
+            for (var i = 0; i < layer.FrameCount; i++)
+                Assert.True(layer.IsFrameLinked(i), $"frame {i} should still be linked");
+        });
+
+        t.Check("linked cels: the command list exposes link/unlink in the Sprite context", () =>
+        {
+            var names = h.Commands.GetCommands().Select(c => c.Name).ToArray();
+            foreach (var name in new[] { "Sprite.Animation.LinkAllFrames", "Sprite.Animation.UnlinkFrame" })
+                Assert.True(names.Contains(name), $"{name} is not registered");
+        });
+
+        t.Check("linked cels: LinkAllFrames links the whole layer through the command", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.Exec("Sprite.Animation.LinkAllFrames");
+
+            for (var i = 0; i < layer.FrameCount; i++)
+                Assert.True(layer.IsFrameLinked(i), $"frame {i} should be linked");
+            Assert.True(h.SpriteEditor.IsCurrentFrameLinked, "the editor should report the current frame linked");
+
+            h.Exec("Sprite.Animation.UnlinkFrame");
+            Assert.True(!h.SpriteEditor.IsCurrentFrameLinked, "the command should have unlinked the current frame");
+        });
+
+        // Linking is per LAYER: a static background sharing one image while the layer above keeps animating
+        // is the whole use case, so it must not touch the sibling layer.
+        t.Check("linked cels: linking one layer leaves the other layers alone", () =>
+        {
+            Setup();
+            h.Exec("Sprite.Edit.AddLayer");
+
+            var layers = h.ActiveSprite.Layers.ToArray();
+            Assert.True(layers.Length == 2, $"expected 2 layers, got {layers.Length}");
+
+            h.SetFrameIndex(0);
+            h.Exec("Sprite.Animation.LinkAllFrames");
+
+            var selected = h.ActiveSprite.SelectedLayer!;
+            var other = layers.First(l => !ReferenceEquals(l, selected));
+
+            for (var i = 0; i < selected.FrameCount; i++)
+                Assert.True(selected.IsFrameLinked(i), $"selected layer frame {i} should be linked");
+            for (var i = 0; i < other.FrameCount; i++)
+                Assert.True(!other.IsFrameLinked(i), $"the other layer's frame {i} must not be linked");
+        });
+
+        t.Check("linked cels: a link survives a save/load round-trip", () =>
+        {
+            var layer = Setup();
+            h.SetFrameIndex(0);
+            h.SpriteEditor.LinkFrames([0, 2]);
+            Assert.True(layer.GetLinkedFrameIndices(0).SequenceEqual(new[] { 0, 2 }), "precondition: 0 and 2 linked");
+
+            // The real save path: NodeSerializer writes the tree plus its bitmap data entries, and
+            // ProjectFormat.DeserializeScene is the single load path the app and the autosave store share.
+            using var serializer = new NodeSerializer();
+            var json = serializer.Serialize(h.AppState.CurrentProject.SceneNode!);
+            var reloaded = ProjectFormat.DeserializeScene(json, ProjectFormat.CurrentVersion,
+                serializer.GetDataEntries());
+
+            var reloadedLayer = reloaded.Nodes.OfType<Pix2dSprite>().First().Layers.First();
+            Assert.True(reloadedLayer.IsFrameLinked(0) && reloadedLayer.IsFrameLinked(2),
+                "the link flag must be persisted (LayerFrameMeta.ln)");
+            Assert.True(!reloadedLayer.IsFrameLinked(1), "frame 1 was never linked");
+            Assert.True(reloadedLayer.GetLinkedFrameIndices(0).SequenceEqual(new[] { 0, 2 }),
+                $"the reloaded group came out [{string.Join(", ", reloadedLayer.GetLinkedFrameIndices(0))}]");
+            Assert.True(reloadedLayer.GetSpriteByFrame(0)?.Id == reloadedLayer.GetSpriteByFrame(2)?.Id,
+                "the reloaded frames must resolve to the SAME sprite node, or the link is cosmetic only");
+        });
+    }
+
     // --- Scenario 7: artboards (multiple sprites in one scene) --------------------------------------
     static void ArtboardScenario(HeadlessHarness h, TestReport t)
     {
@@ -628,6 +1689,36 @@ static class Runner
                 var meta = JObject.Parse(File.ReadAllText(json));
                 Assert.True((string?)meta["meta"]?["image"] == item.Name + ".png",
                     $"sidecar meta.image should name the sheet next to it, got '{(string?)meta["meta"]?["image"]}'");
+            }
+        });
+
+        // The Unity preset is the only emitter whose FileExtension is a DOUBLE extension (".png.meta", because
+        // Unity's sidecar keeps the asset's own name). Both write paths compose the name differently, so the
+        // batch one gets asserted against real files here rather than reasoned about.
+        t.Check("batch sheet export composes the Unity double extension as <name>.png.meta", () =>
+        {
+            var unityDir = Path.Combine(files.RootPath, "unity");
+            var folder = new Pix2d.Common.FileSystem.NetFolder(unityDir);
+            var exporter = new SpriteSheetExporter(files, h.Services.GetRequiredService<IPlatformStuffService>())
+            {
+                MetadataFormat = "unity"
+            };
+
+            foreach (var item in exportService.GetExportItems(ExportScope.AllSprites))
+            {
+                var it = item;
+                RunExport(() => exporter.ExportToFolderAsync(it.Nodes, 1, folder, it.Name));
+            }
+
+            foreach (var item in exportService.GetExportItems(ExportScope.AllSprites))
+            {
+                var metaPath = Path.Combine(unityDir, item.Name + ".png.meta");
+                Assert.True(File.Exists(metaPath),
+                    $"expected {item.Name}.png.meta; folder holds [{string.Join(", ", Directory.GetFiles(unityDir).Select(Path.GetFileName))}]");
+                Assert.True(!File.Exists(Path.Combine(unityDir, item.Name + ".meta")),
+                    "a single-extension .meta would not be picked up by Unity's asset database");
+                Assert.True(File.ReadAllText(metaPath).StartsWith("fileFormatVersion: 2", StringComparison.Ordinal),
+                    "the sidecar content should be the Unity meta, not the JSON default");
             }
         });
 

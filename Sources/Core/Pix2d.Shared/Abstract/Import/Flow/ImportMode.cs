@@ -21,5 +21,12 @@ public enum ImportMode
     OpenAsProject,
 
     /// <summary>Create a new sprite with animation from a GIF.</summary>
-    Gif
+    Gif,
+
+    /// <summary>
+    /// Create one new sprite per layered document (.piskel), taking its layers and frames as decoded.
+    /// Shares its execution with <see cref="Gif"/> — both are "one file decodes to one whole sprite" — and
+    /// exists as its own mode so the decision log and any future per-format options stay distinguishable.
+    /// </summary>
+    LayeredDocument
 }

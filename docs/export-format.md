@@ -107,6 +107,59 @@ form (frames as an array, each with a `filename`) is available for importers tha
 | `meta.slices` | Pivot and 9-slice data, using Aseprite's slice mechanism: a slice key's `pivot` is the anchor; its `center` rect is the 9-slice inner rect. Empty when neither is set. |
 | `animations` | Optional top-level Pixi/Phaser convenience map (`tag name → frame keys`). Emitted only when the sprite has tags. Aseprite-strict importers ignore it. |
 
+## Engine presets
+
+Beyond the Aseprite JSON above, the same `PackedSheet` can be written straight into three engines' own
+formats. They are sibling [`ISheetMetadataEmitter`](../Sources/Core/Pix2d.Shared/Export/Sheet/Metadata/ISheetMetadataEmitter.cs)
+implementations registered in [`SheetMetadataEmitters`](../Sources/Core/Pix2d.Shared/Export/Sheet/Metadata/SheetMetadataEmitters.cs),
+so the Export dialog's **Metadata** dropdown and the CLI's `--format` enumerate exactly the same list —
+adding a preset touches neither the UI nor the CLI.
+
+| `--format` | Sidecar | What it is |
+|---|---|---|
+| `aseprite` *(default)* | `<sheet>.json` | The JSON documented above. The most portable option and the only one carrying everything (durations, pivot, 9-slice, layers). |
+| `godot` | `<sheet>.tres` | A Godot 4 `SpriteFrames` resource, assignable to an `AnimatedSprite2D` with no import step. |
+| `unity` | `<sheet>.png.meta` | Unity's own importer sidecar, with the sheet pre-sliced. |
+| `libgdx` | `<sheet>.atlas` | A libGDX `TextureAtlas` descriptor read by `new TextureAtlas(...)`. |
+
+In every preset each animation **tag** becomes one animation; a sprite with no tags exports as a single
+animation over the whole sheet (`default` in Godot, the sprite name in libGDX and Unity).
+
+**Godot** (`.tres`) declares one `AtlasTexture` sub-resource per referenced frame over one `ext_resource`
+pointing at `res://<sheet>.png` — correct when the pair lands at the project root, and a one-line edit (or
+Godot's *Fix Dependencies* dialog) otherwise, since the exporter cannot know the project tree. Trimmed
+frames keep their original footprint through `AtlasTexture.margin`. Godot stores a frame's `duration` as a
+*multiplier* of the animation `speed`, so a frame running at the sprite's own rate is exactly `1.0` and a
+per-frame override scales from there. `SpriteFrames` has only a `loop` flag, so `reverse`/`pingpong` tags
+export as ordinary looping animations.
+
+**Unity** (`.png.meta`) is not a description of the sheet — it *is* Unity's serialized `TextureImporter`
+state, so dropping the PNG plus this file into `Assets/` yields a texture that is already sliced
+(`spriteMode: Multiple`, one sprite per frame named `<tag>_<index>`), already point-filtered and already
+uncompressed. Sprite rects are written in Unity's **bottom-up** texture space, and 9-slice margins map onto
+`border` as `(left, bottom, right, top)`; on a trimmed frame the border is re-based onto the trimmed rect,
+and dropped altogether when it no longer fits. The `guid`, `spriteID` and `internalID` values are derived
+deterministically from the sprite and frame names, so re-exporting over an existing asset keeps every scene
+and prefab reference intact instead of orphaning them. The flip side of that determinism: the texture `guid`
+is keyed on the **image file name alone**, so two different sheets both exported under the picker's default
+name and imported into one Unity project collide — Unity regenerates one, and the next re-export flips it
+back. Give each sheet a distinct file name. Animation *timing* is not expressible in a `.meta`
+(it describes a texture, not clips) — tags survive as the sprite naming, so pair it with the Aseprite JSON
+if a tool needs durations.
+
+**libGDX** (`.atlas`) leans on the format's name+index convention: each tag becomes a region *name*
+repeated once per frame with `index` counting within that tag, which is exactly what
+`new Animation<>(frameDuration, atlas.findRegions("run"))` consumes. `offset` is measured from the
+**bottom-left** of the original frame, per the format. Per-frame durations and pivot/9-slice have no
+representation in an atlas descriptor and are dropped (pass `1f / fps` in code; libGDX reads nine-patches
+from `.9.png` split pixels, not from the descriptor). Written in the spaced pre-1.9.9 form, which every
+libGDX version's parser accepts.
+
+Where the presets differ on **frames no tag covers**: Unity and libGDX both emit them, grouped under the
+sprite name, because a plain region is exactly what those formats represent and a frame with no entry would
+be permanently unaddressable (unsliceable in Unity, invisible to `findRegion`). Godot deliberately drops
+them — a `SpriteFrames` resource has no concept of a free-standing frame, so an orphan would only be noise.
+
 ## Headless CLI
 
 The same sheet engine is exposed as a command-line tool, [`Sources/Tools/Pix2d.Cli`](../Sources/Tools/Pix2d.Cli)
@@ -128,6 +181,11 @@ pix2d --version | --help
 # grid sheet + Aseprite JSON
 pix2d export hero.pix2d --spritesheet hero.png --data hero.json
 
+# straight into an engine (name --data with the preset's own extension)
+pix2d export hero.pix2d --spritesheet hero.png --data hero.tres      --format godot
+pix2d export hero.pix2d --spritesheet hero.png --data hero.png.meta  --format unity
+pix2d export hero.pix2d --spritesheet hero.png --data hero.atlas     --format libgdx
+
 # tightly-packed, trimmed, power-of-two, 2× scale
 pix2d export hero.pix2d --spritesheet hero.png --sheet-type tight --trim --pot --scale 2
 
@@ -139,9 +197,41 @@ pix2d list hero.pix2d | jq '.artboards'
 diagnostics go to stderr, so the stdout payload stays machine-readable. Exit codes: `0` ok, `1` runtime
 error, `2` bad arguments / file not found.
 
-The tool is currently built on demand (`dotnet run --project Sources/Tools/Pix2d.Cli -- …`) and is not
-yet in `Pix2d.slnx`; publishing it as a release artifact is a later increment (roadmap **H2.2 PR-5**).
-It is also the foundation for the MCP server (roadmap **E.3**).
+### Getting the binary
+
+Every release ships the CLI as a **self-contained** archive per platform, attached to the
+[GitHub release](https://github.com/gritsenko/Pix2d/releases/latest) — no .NET install needed on the target
+machine:
+
+| Asset | Platform |
+|---|---|
+| `pix2d_cli_win-x64-<version>.zip` | Windows x64 |
+| `pix2d_cli_linux-x64-<version>.tar.gz` | Linux x64 |
+| `pix2d_cli_osx-x64-<version>.tar.gz` | macOS Intel |
+| `pix2d_cli_osx-arm64-<version>.tar.gz` | macOS Apple Silicon |
+
+Each archive holds the `pix2d` executable **plus `libSkiaSharp`** next to it — the native library is not
+folded into the single file (that would need self-extraction to a temp directory on every run), so extract
+the whole archive rather than lifting out the executable alone.
+
+```bash
+# Linux/macOS: drop it into a CI job
+curl -sSL -o pix2d.tar.gz \
+  https://github.com/gritsenko/Pix2d/releases/latest/download/pix2d_cli_linux-x64-<version>.tar.gz
+mkdir -p pix2d && tar -xzf pix2d.tar.gz -C pix2d
+./pix2d/pix2d export hero.pix2d --spritesheet hero.png --data hero.json
+```
+
+The publishing job is `build_cli` in [`release-publish.yml`](../.github/workflows/release-publish.yml): one
+Linux runner cross-publishes all four platforms (the tool has no Avalonia or display dependency, so it needs
+no per-OS runner), smoke-tests the Linux build by actually exporting a corpus project, and attaches the
+archives to the release. It is deliberately **not trimmed** — the `.pix2d` loader resolves node types
+reflectively, which a trimmer cannot see.
+
+To run from source instead: `dotnet run --project Sources/Tools/Pix2d.Cli -- …`. The project stays out of
+`Pix2d.slnx` on purpose, so CI targets its csproj directly.
+
+The CLI is also the foundation for the MCP server (roadmap **E.3**).
 
 ## Animation metadata
 

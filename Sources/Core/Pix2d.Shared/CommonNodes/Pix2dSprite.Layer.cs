@@ -19,11 +19,29 @@ public class LayerFrameMeta
 
     [JsonProperty("k")] public bool IsKeyFrame { get; set; }
 
+    /// <summary>
+    /// True when this frame shares its pixels with its siblings <i>on purpose</i> — a linked cel. Several
+    /// frames pointing at one <see cref="NodeId"/> is how sharing has always been represented, but until
+    /// linked cels that sharing was only ever an unobservable memory optimisation: <c>DuplicateFrame</c>
+    /// hands the copy the source's node and the first edit silently splits it off
+    /// (<see cref="Pix2dSprite.Layer.EnsureFrameHasUniqueSprite"/>, copy-on-write).
+    ///
+    /// This flag is what separates the two, and it is the reason the feature needs a flag at all rather than
+    /// simply treating every shared node as linked: an existing project saved after a duplicate-without-edit
+    /// already contains shared nodes, and reinterpreting those as links would make editing one frame of an
+    /// old file silently change another. Absent in older files, so it deserialises to <c>false</c> and those
+    /// keep copy-on-write.
+    ///
+    /// Invariant maintained by <see cref="Pix2dSprite.Layer"/>: the frames sharing one node are either all
+    /// linked or all unlinked — never a mix.
+    /// </summary>
+    [JsonProperty("ln")] public bool IsLinked { get; set; }
+
     [JsonIgnore] public bool IsEmpty => NodeIndex == -1 && NodeId == Guid.Empty;
 
     public override string ToString()
     {
-        return $"{NodeIndex} : {NodeId} : kf";
+        return $"{NodeIndex} : {NodeId} : kf{(IsLinked ? " : linked" : "")}";
     }
 
     public static LayerFrameMeta Copy(LayerFrameMeta other)
@@ -32,7 +50,8 @@ public class LayerFrameMeta
         {
             IsKeyFrame = other.IsKeyFrame,
             NodeIndex = other.NodeIndex,
-            NodeId = other.NodeId
+            NodeId = other.NodeId,
+            IsLinked = other.IsLinked
         };
     }
 }
@@ -205,6 +224,13 @@ public partial class Pix2dSprite
                 if (frame == null || HasFrameUniqueSprite(frame))
                     return;
 
+                // A deliberately linked cel must NOT be split off by an edit — sharing the pixels is the
+                // whole point, so writing through to the shared node is what makes every linked frame update
+                // together. This single early-return is what turns the pre-existing copy-on-write sharing
+                // into the linked-cel feature; unlinking is an explicit action (UnlinkFrame) instead.
+                if (frame.IsLinked)
+                    return;
+
                 var sprite = new SpriteNode(this.Size);
 
                 if (!frame.IsEmpty) //copy data from old sprite if the the frame wasn't empty
@@ -228,6 +254,136 @@ public partial class Pix2dSprite
                     $"Frame with index {frameIndex} doesn't exist. Frames count: {Frames.Count}", e);
                 Logger.LogException(ex);
             }
+        }
+
+        /// <summary>
+        /// True when this frame is a linked cel — its pixels are shared with at least one other frame on
+        /// purpose, so editing it edits them all.
+        /// </summary>
+        public bool IsFrameLinked(int frameIndex) => GetFrameByIndex(frameIndex)?.IsLinked == true;
+
+        /// <summary>
+        /// The indices of every frame that shares this frame's pixels as a link, including the frame itself.
+        /// A frame that is not linked yields just itself, so callers can treat the result uniformly.
+        /// </summary>
+        public IReadOnlyList<int> GetLinkedFrameIndices(int frameIndex)
+        {
+            var frame = GetFrameByIndex(frameIndex);
+            if (frame == null)
+                return [];
+
+            if (!frame.IsLinked || frame.NodeId == Guid.Empty)
+                return [frameIndex];
+
+            var result = new List<int>();
+            for (var i = 0; i < FrameCount; i++)
+            {
+                var other = GetFrameByIndex(i);
+                if (other != null && other.IsLinked && other.NodeId == frame.NodeId)
+                    result.Add(i);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Makes every frame in <paramref name="frameIndices"/> share one set of pixels. The pixels kept are
+        /// the ones of <paramref name="sourceFrameIndex"/> (which must be in the set) — a link has to pick a
+        /// winner, and leaving that to the caller is what lets the command say "link to the current frame".
+        /// The other frames' own sprite nodes are dropped, so this is destructive and belongs behind an
+        /// undoable operation.
+        ///
+        /// If the source frame is already part of a link, the new frames join that existing link rather than
+        /// forming a second one — they are asked to share the source's pixels, and those pixels already have
+        /// other holders.
+        /// </summary>
+        /// <returns>True when at least two frames ended up sharing pixels.</returns>
+        public bool LinkFrames(IReadOnlyList<int> frameIndices, int sourceFrameIndex)
+        {
+            var distinct = frameIndices.Distinct().Where(i => i >= 0 && i < FrameCount).OrderBy(i => i).ToArray();
+            if (distinct.Length < 2 || !distinct.Contains(sourceFrameIndex))
+                return false;
+
+            // The source needs pixels of its own before anything points at them: linking onto an empty frame
+            // would share Guid.Empty, which is "no node" rather than a shared one.
+            EnsureFrameHasOwnSprite(sourceFrameIndex);
+
+            var source = GetFrameByIndex(sourceFrameIndex);
+            var sourceSprite = GetSpriteByFrame(source);
+            if (source == null || sourceSprite == null)
+                return false;
+
+            foreach (var index in distinct)
+            {
+                var frame = GetFrameByIndex(index);
+                if (frame == null || ReferenceEquals(frame, source))
+                    continue;
+
+                // Drop the frame's own pixels only if nothing else still needs them. A frame already part of
+                // another link keeps that link's node alive for its remaining members.
+                if (frame.NodeId != source.NodeId && HasFrameUniqueSprite(frame))
+                    GetSpriteByFrame(frame)?.RemoveFromParent();
+
+                var formerGroup = frame.IsLinked ? frame.NodeId : Guid.Empty;
+
+                frame.NodeId = source.NodeId;
+                frame.NodeIndex = -1;
+                frame.IsLinked = true;
+
+                // Pulling a follower out of a *different* group can leave that group with one member. Only
+                // reachable through the public LinkFrames(subset) API — LinkAllFrames covers every frame —
+                // but SpriteEditor.LinkFrames exposes it for a future range-selection UI.
+                if (formerGroup != source.NodeId)
+                    CollapseLinkGroupIfSingle(formerGroup);
+            }
+
+            source.IsLinked = true;
+            return true;
+        }
+
+        /// <summary>
+        /// Breaks one frame out of its link, giving it a private copy of the shared pixels. The remaining
+        /// members stay linked to each other; when only one is left, it stops being a link at all — a
+        /// "linked" cel with no siblings would keep drawing the marker and block copy-on-write for nothing.
+        /// </summary>
+        public bool UnlinkFrame(int frameIndex)
+        {
+            var frame = GetFrameByIndex(frameIndex);
+            if (frame is not { IsLinked: true })
+                return false;
+
+            var siblings = GetLinkedFrameIndices(frameIndex).Where(i => i != frameIndex).ToArray();
+
+            frame.IsLinked = false;
+            // Clearing the flag first is what lets the shared copy-on-write helper do the copy for us.
+            EnsureFrameHasUniqueSprite(frameIndex);
+
+            if (siblings.Length == 1)
+            {
+                var last = GetFrameByIndex(siblings[0]);
+                if (last != null)
+                    last.IsLinked = false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Guarantees the frame owns a sprite node (allocating an empty one if the frame was empty), without
+        /// the "unshare it" part of <see cref="EnsureFrameHasUniqueSprite"/>.
+        /// </summary>
+        private void EnsureFrameHasOwnSprite(int frameIndex)
+        {
+            var frame = GetFrameByIndex(frameIndex);
+            if (frame == null || frame.NodeId != Guid.Empty)
+                return;
+
+            var sprite = new SpriteNode(Size)
+            {
+                Position = SKPoint.Empty
+            };
+            sprite.DesignerState.IsLocked = true;
+            SetSpriteToFrame(frame, sprite);
         }
 
         public bool HasFrameUniqueSprite(int frameIndex) => HasFrameUniqueSprite(GetFrameByIndex(frameIndex));
@@ -340,7 +496,21 @@ public partial class Pix2dSprite
         public int DuplicateFrame(int index)
         {
             var frame = InsertFrameMetadata(index + 1, GetSpriteByFrame(index));
-            return Frames.IndexOf(frame);
+            var newIndex = Frames.IndexOf(frame);
+
+            // Duplicating means "an independent copy". The insert above hands the new frame the source's
+            // node, which is normally harmless (copy-on-write splits it on the first edit) — but if the
+            // SOURCE is a linked cel, copy-on-write is disabled for that node, so the duplicate would
+            // silently become a third member of the link and every edit would change all three. Give it its
+            // own pixels right away instead, which also keeps the "all frames on a node are linked, or none
+            // are" invariant intact.
+            if (GetFrameByIndex(index)?.IsLinked == true)
+            {
+                frame.IsLinked = false;
+                EnsureFrameHasUniqueSprite(newIndex);
+            }
+
+            return newIndex;
         }
 
         public int InsertFrameFromBitmap(int index, SKBitmap bitmap)
@@ -393,8 +563,60 @@ public partial class Pix2dSprite
             }
         }
 
+        /// <summary>
+        /// Re-inserts a frame from a metadata snapshot taken before it was deleted, restoring everything the
+        /// meta carries — including <see cref="LayerFrameMeta.IsLinked"/>.
+        /// <para>
+        /// Undo cannot go through <see cref="InsertFrameFromNodeId"/>, which rebuilds the meta from a bare
+        /// node id and therefore always produces <c>IsLinked = false</c>. Undoing the delete of a linked
+        /// frame that way brought it back sharing the group's pixels but *not* flagged linked — exactly the
+        /// mixed state the invariant forbids: drawing on a still-linked sibling would silently change this
+        /// frame while its tile showed no link, and drawing on this frame would copy-on-write it out of the
+        /// link the user thought had been restored.
+        /// </para>
+        /// <paramref name="sprite"/> is the node captured at delete time when this frame owned it outright;
+        /// pass null when the frame shared someone else's node, which is expected to still be attached.
+        /// </summary>
+        public void InsertFrameFromMeta(int index, LayerFrameMeta meta, SpriteNode? sprite = null)
+        {
+            if (sprite != null && !Nodes.Contains(sprite))
+                Nodes.Add(sprite);
+
+            var restored = LayerFrameMeta.Copy(meta);
+            restored.NodeIndex = -1;
+
+            if (sprite != null)
+                restored.NodeId = sprite.Id;
+
+            // The node a shared frame pointed at can be gone (its last owner deleted meanwhile); an id no
+            // node answers to would make the frame render nothing and never heal, so degrade to empty.
+            if (restored.NodeId != Guid.Empty && Nodes.OfType<SpriteNode>().All(x => x.Id != restored.NodeId))
+            {
+                restored.NodeId = Guid.Empty;
+                restored.IsLinked = false;
+            }
+
+            if (index < 0 || index >= FrameCount)
+                Frames.Add(restored);
+            else
+                Frames.Insert(index, restored);
+
+            // Restoring a second member revives a group that DeleteFrame collapsed down to one.
+            if (restored.IsLinked && restored.NodeId != Guid.Empty)
+            {
+                foreach (var other in Frames)
+                {
+                    if (!ReferenceEquals(other, restored) && other.NodeId == restored.NodeId)
+                        other.IsLinked = true;
+                }
+            }
+        }
+
         private void SetSpriteToFrame(LayerFrameMeta frame, SpriteNode? sprite)
         {
+            var previousNodeId = frame.NodeId;
+            var wasLinked = frame.IsLinked;
+
             if (frame.NodeId != Guid.Empty && sprite == null)
             {
                 var oldSprite = GetSpriteByFrame(frame);
@@ -410,6 +632,42 @@ public partial class Pix2dSprite
             frame.IsKeyFrame = false;
             frame.NodeIndex = -1;
             frame.NodeId = sprite?.Id ?? default;
+
+            // A frame pointed at a different node (or at none) is no longer a member of its old link group.
+            // Leaving the flag set is what produces the "linked but sharing nothing" state that blocks
+            // copy-on-write forever, so the flag follows the node.
+            if (wasLinked && frame.NodeId != previousNodeId)
+            {
+                frame.IsLinked = false;
+                CollapseLinkGroupIfSingle(previousNodeId);
+            }
+        }
+
+        /// <summary>
+        /// Clears <see cref="LayerFrameMeta.IsLinked"/> when only one frame is left pointing at
+        /// <paramref name="nodeId"/>. A "linked" cel with no siblings shares nothing: it would keep drawing
+        /// the link marker and keep blocking copy-on-write for no reason. Mirrors what
+        /// <see cref="UnlinkFrame"/> already does for the frame it breaks out.
+        /// </summary>
+        private void CollapseLinkGroupIfSingle(Guid nodeId)
+        {
+            if (nodeId == Guid.Empty)
+                return;
+
+            LayerFrameMeta? survivor = null;
+            var count = 0;
+            foreach (var other in Frames)
+            {
+                if (!other.IsLinked || other.NodeId != nodeId)
+                    continue;
+
+                survivor = other;
+                if (++count > 1)
+                    return;
+            }
+
+            if (count == 1 && survivor != null)
+                survivor.IsLinked = false;
         }
 
         public void DeleteFrame(int index, Action<SpriteNode>? onSpriteDeletedAction = default, Action<Guid>? onEmptyFrameDeletedAction = default)
@@ -433,6 +691,11 @@ public partial class Pix2dSprite
             }
 
             Frames.Remove(frame);
+
+            // Deleting one member of a two-frame link leaves a single frame still flagged linked — the marker
+            // would keep claiming a sharing that no longer exists.
+            if (frame.IsLinked)
+                CollapseLinkGroupIfSingle(frame.NodeId);
         }
 
         internal void SetFrame(int value)
@@ -479,6 +742,26 @@ public partial class Pix2dSprite
             var frame = GetFrameByIndex(frameIndex);
             if (frame == null)
                 return;
+
+            // A linked cel shares its pixels on purpose, so clearing writes THROUGH the shared node exactly
+            // as drawing does: every linked frame clears together and the link survives.
+            //
+            // Detaching the node instead (the unlinked path below) used to brick the frame: the meta kept
+            // IsLinked = true while NodeId became Guid.Empty, and EnsureFrameHasUniqueSprite early-returns on
+            // IsLinked, so no sprite was ever rebuilt. Later strokes silently no-opped on a null bitmap, and
+            // undo — which restores pixels through SetData -> GetSpriteByFrame — found no sprite and cleared
+            // again instead of restoring, so the clear could not even be undone. Only Unlink recovered it.
+            if (frame.IsLinked && frame.NodeId != Guid.Empty)
+            {
+                var shared = GetSpriteByFrame(frame);
+                if (shared != null)
+                {
+                    // Empty data means "erase in place" (BitmapNode.SetData), which keeps the node attached
+                    // and invalidates it — the property that makes the clear undoable.
+                    shared.SetData([]);
+                    return;
+                }
+            }
 
             SetSpriteToFrame(frame, null);
         }

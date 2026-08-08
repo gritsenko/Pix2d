@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Linq;
 using Pix2d.CommonNodes;
 using SkiaSharp;
@@ -20,6 +21,11 @@ public static class SpriteImportApplier
 
         var size = data.Size;
 
+        // Formats that record a playback speed must not silently land on the 15 fps default — a .piskel saved
+        // at 8 fps would otherwise play almost twice too fast with nothing in the UI hinting why.
+        if (data.FrameRate is > 0 and { } frameRate)
+            sprite.FrameRate = frameRate;
+
         for (var i = 0; i < data.Layers.Count; i++)
         {
             var layerInfo = data.Layers[i];
@@ -27,8 +33,15 @@ public static class SpriteImportApplier
             // subsequent import layers add new layers.
             var layer = i == 0 ? sprite.Layers.First() : sprite.AddLayer();
 
+            // Layered source formats carry a name and an opacity per layer; flat ones leave the defaults,
+            // so this is a no-op for a PNG/GIF import. Applied before frames so a failure mid-import still
+            // leaves the layer identifiable.
+            if (!string.IsNullOrWhiteSpace(layerInfo.Name))
+                layer.Name = layerInfo.Name;
+            layer.Opacity = Math.Clamp(layerInfo.Opacity, 0f, 1f);
+
             if (data.ReplaceFrames)
-                layer.DeleteFrame(0);
+                ClearFrames(layer);
 
             for (var frameIndex = 0; frameIndex < layerInfo.Frames.Count; frameIndex++)
             {
@@ -39,6 +52,22 @@ public static class SpriteImportApplier
                 layer.InsertFrameFromBitmap(frameIndex, NormalizeBitmap(bitmap, size));
             }
         }
+    }
+
+    /// <summary>
+    /// Drops every existing frame of <paramref name="layer"/>, so the frames that follow are the only ones.
+    /// Deleting just frame 0 is not enough: <see cref="Pix2dSprite.AddLayer"/> seeds a new layer with
+    /// <c>Layers.First().FrameCount</c> empty frames, and by the time the second import layer is added the
+    /// first one already holds all M imported frames. Since <c>InsertFrameFromBitmap</c> *inserts* rather
+    /// than overwrites, leaving the surplus behind pushed it to the tail and left the layer with 2M-1
+    /// frames — layers disagreeing on FrameCount, with the stale empties saved into the .pix2d.
+    /// Only reachable from formats that carry N layers x M frames (.piskel); GIF is 1 layer x M and
+    /// import-as-layers is N layers x 1, which is why one DeleteFrame sufficed until now.
+    /// </summary>
+    public static void ClearFrames(Pix2dSprite.Layer layer)
+    {
+        while (layer.FrameCount > 0)
+            layer.DeleteFrame(layer.FrameCount - 1);
     }
 
     /// <summary>

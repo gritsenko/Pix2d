@@ -147,7 +147,22 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
                                                         .HorizontalAlignment(HorizontalAlignment.Right)
                                                         .VerticalAlignment(VerticalAlignment.Top)
                                                         .IsVisible(itemVm, vm => vm.HasDurationOverride)
-                                                        .Fill(StaticResources.Brushes.ForegroundBrush)))
+                                                        .Fill(StaticResources.Brushes.ForegroundBrush),
+
+                                                    // Link band along the TOP edge: this frame shares its
+                                                    // image with others on the selected layer, so editing it
+                                                    // edits them too. Deliberately a band rather than a chain
+                                                    // glyph — the icon font (pix2d-icons-v3) is a curated set
+                                                    // and has no link glyph, so a borrowed codepoint renders
+                                                    // as nothing at all. It mirrors the tag band on the
+                                                    // opposite edge, which is already the tile's vocabulary
+                                                    // for "this frame belongs to a group".
+                                                    new Rectangle()
+                                                        .Height(3)
+                                                        .VerticalAlignment(VerticalAlignment.Top)
+                                                        .IsVisible(itemVm, vm => vm.IsLinked)
+                                                        .Fill(StaticResources.Brushes.AccentButtonBrush)
+                                                        .ToolTip_Tip(L("Linked frame — edits apply to every frame it is linked with"))))
                                         .AddBehavior(new ItemsListContextDragBehavior() { Orientation = Orientation.Horizontal })))
             ]);
 
@@ -168,6 +183,9 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
 
             _messenger.Register<OperationInvokedMessage>(this, OnOperationInvoked);
             _messenger.Register<SelectedFrameChangedMessage>(this, OnSelectedFrameChanged);
+            // The linked-cel marker reports the SELECTED layer's cel, so switching layers changes which
+            // tiles show it even though no frame changed.
+            _messenger.Register<SelectedLayerChangedMessage>(this, _ => ReloadFrames(_editor));
             _appState.WatchForCurrentProject(x => x.CurrentNodeEditor, () => OnEditorChanged(_appState.CurrentProject.CurrentNodeEditor));
 
             Frames.CollectionChanged += FramesCollectionChanged;
@@ -224,7 +242,10 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
                     {
                         PreviewProvider = PreviewProvider,
                         TagColor = GetTagColor(sprite, i),
-                        HasDurationOverride = sprite?.HasFrameDurationOverride(i) ?? false
+                        HasDurationOverride = sprite?.HasFrameDurationOverride(i) ?? false,
+                        // Linking is per layer, so the marker reports the SELECTED layer's cel — the same
+                        // layer the link/unlink commands act on.
+                        IsLinked = sprite?.SelectedLayer?.IsFrameLinked(i) ?? false
                     })
                     .Append(new AnimationFrameViewModel { IsAddFrame = true });
 
@@ -276,7 +297,11 @@ public partial class TimeLineView : ViewBase<TimeLineView.State>
                 || operation.Operation is ReorderAnimationFramesOperation
                 // Tag ranges and duration markers are rendered per tile, so a metadata edit (or its
                 // undo) has to rebuild them too.
-                || operation.Operation is EditAnimationMetaOperation)
+                || operation.Operation is EditAnimationMetaOperation
+                // Same reason: linking changes the per-tile link marker on several frames at once, and
+                // the fallback branch below only invalidates thumbnails — it never rebuilds the tile
+                // view-models, so the marker would stay stale even though the pixels updated.
+                || operation.Operation is LinkAnimationFramesOperation)
             {
                 ReloadFrames(_editor, operation.Operation is ReorderAnimationFramesOperation);
                 return;
@@ -401,6 +426,16 @@ public class AnimationFrameViewModel : LegacyObservableObject
 
     /// <summary>True when this frame overrides the sprite's frame rate with its own duration.</summary>
     public bool HasDurationOverride
+    {
+        get => Get<bool>();
+        set => Set(value);
+    }
+
+    /// <summary>
+    /// True when this frame is a linked cel on the selected layer — its image is shared with other frames,
+    /// so an edit here changes all of them. Marked with a small chain glyph in the tile's top-left corner.
+    /// </summary>
+    public bool IsLinked
     {
         get => Get<bool>();
         set => Set(value);
