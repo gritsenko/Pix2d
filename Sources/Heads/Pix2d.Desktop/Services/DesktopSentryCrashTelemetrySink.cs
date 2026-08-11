@@ -147,6 +147,82 @@ public sealed class DesktopSentryCrashTelemetrySink : ICrashTelemetrySink
     }
 
     /// <summary>
+    /// Sends a crash reconstructed after the fact. Desktop has no OS exit-reason API, so in practice
+    /// this carries the pre-bootstrap fatals recovered from <c>Fatal.log</c> — crashes that happened
+    /// before the sink existed and therefore had no other way out. Mirrors the Android
+    /// implementation: explicit fingerprint (there is no stack to group on) and the release taken
+    /// from the summary rather than the running process.
+    /// </summary>
+    public void CaptureRecovered(CrashReportSummary summary, string fingerprint)
+    {
+        if (!_initialized) return;
+        try
+        {
+            Logger.Log($"RECOVERED {summary.ExceptionType}: {summary.Message} (id={summary.Id})");
+
+            if (!_sentryActive) return;
+
+            var evt = new SentryEvent
+            {
+                Level = SentryLevel.Fatal,
+                Message = summary.Message,
+                Fingerprint = [fingerprint],
+            };
+
+            if (!string.IsNullOrEmpty(summary.AppVersion))
+                evt.Release = summary.AppVersion;
+
+            evt.SetTag("crash_recovered", "true");
+            evt.SetTag("crash_source", summary.Source);
+            evt.SetTag("crash_report_id", summary.Id);
+            if (!string.IsNullOrEmpty(summary.LastCommandName))
+                evt.SetTag("last_command", summary.LastCommandName);
+
+            evt.SetExtra("crash_detected_utc", summary.Timestamp.ToString("O"));
+            if (!string.IsNullOrEmpty(summary.StackTrace))
+                evt.SetExtra("exit_trace", Tail(summary.StackTrace, 16 * 1024));
+            if (!string.IsNullOrEmpty(summary.SessionOperationLog))
+                evt.SetExtra("session_op_log_tail", Tail(summary.SessionOperationLog, 4 * 1024));
+            if (!string.IsNullOrEmpty(summary.AppContext))
+                evt.SetExtra("app_context", summary.AppContext);
+
+            SentrySdk.CaptureEvent(evt);
+        }
+        catch
+        {
+        }
+    }
+
+    /// <summary>
+    /// Keeps the ambient (global) scope current so an event captured outside the managed handlers
+    /// still says what the user was doing. Desktop has no native crash handler, so this mainly
+    /// decorates events the Sentry SDK raises on its own; the contract is shared with Android, where
+    /// it is what rescues NDK crashes from having no context at all.
+    /// </summary>
+    public void UpdateLiveContext(string? lastCommandName, string? appContext)
+    {
+        if (!_sentryActive) return;
+        try
+        {
+            SentrySdk.ConfigureScope(scope =>
+            {
+                if (!string.IsNullOrEmpty(lastCommandName))
+                    scope.SetTag("last_command", lastCommandName);
+                // Extra, not a tag: app_context is high-cardinality and belongs out of the tag index.
+                if (!string.IsNullOrEmpty(appContext))
+                    scope.SetExtra("app_context", appContext);
+            });
+
+            if (!string.IsNullOrEmpty(lastCommandName))
+                SentrySdk.AddBreadcrumb(lastCommandName, category: "command");
+        }
+        catch
+        {
+            // Live context is best-effort decoration; it must never disturb command execution.
+        }
+    }
+
+    /// <summary>
     /// Rewrites the outgoing event's exception/message text through
     /// <see cref="TelemetryMessageNormalizer"/> so one *kind* of failure maps to one signature instead
     /// of one per byte count / path / GUID (aggregation keys on the message — see the normalizer's

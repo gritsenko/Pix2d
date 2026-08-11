@@ -256,8 +256,13 @@ public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportSh
                     {
                         using var reader = new System.IO.StreamReader(trace);
                         var raw = reader.ReadToEnd();
+                        // Keep the HEAD, not the tail. A tombstone opens with the signal line, the
+                        // abort message and the faulting thread's backtrace — everything needed to
+                        // identify the crash — and is followed by the (much larger) dump of every
+                        // other thread. Trimming from the front, as this used to, threw away the
+                        // only part worth having and left an unidentifiable tail of idle threads.
                         traceText = raw.Length > ExitTraceMaxChars
-                            ? raw.Substring(raw.Length - ExitTraceMaxChars)
+                            ? raw.Substring(0, ExitTraceMaxChars)
                             : raw;
                     }
                 }
@@ -274,6 +279,9 @@ public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportSh
                 Description = info.Description ?? string.Empty,
                 TimestampMs = info.Timestamp,
                 TraceText = traceText,
+                // For a Signaled exit this is the signal number — the stable, OEM-independent way to
+                // tell SIGSEGV/SIGABRT (real crashes) from SIGKILL (low-memory eviction).
+                Status = info.Status,
             };
         }
         catch

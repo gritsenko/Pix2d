@@ -50,6 +50,8 @@ public class AppSettings
     public long LastHandledProcessExitTimestamp { get; set; }
     /// <summary>Set right before a deliberate, user-initiated shutdown (e.g. the Android double-back exit, which self-kills the process). The OS reports that termination as SIGNALED/EXIT_SELF, so the next launch reads this one-shot marker to avoid mistaking the clean exit for a crash.</summary>
     public bool CleanExitRequested { get; set; }
+    /// <summary>Filename (under the crash reports folder) of a recovered crash that still has to be forwarded to telemetry. Persisted rather than held in memory because the crash is discovered at startup, possibly before consent exists — and the OS exit record it came from is consumed on that same launch, so an unsent report held only in RAM would be lost for good if the user grants consent later.</summary>
+    public string? PendingTelemetryForwardId { get; set; }
 
     /// <summary>Auto-open the transform editor after a selection is made (Settings toggle, read into <c>AppState</c> at startup).</summary>
     public bool IsAutoOpenTransformEditorAfterSelectionEnabled { get; set; } = true;

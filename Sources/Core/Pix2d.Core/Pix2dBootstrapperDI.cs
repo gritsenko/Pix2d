@@ -196,6 +196,11 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
                 {
                     EnableAnalytics(serviceProvider);
                     InitOptionalTelemetry(crashReportService);
+                    // A crash recovered from the previous launch may have been detected before consent
+                    // existed; now that the sink is up it can finally be sent. Idempotent, so the
+                    // duplicate call from InitCrashReporting (consent already Allowed at startup) and
+                    // any re-confirmation of Allowed in Settings cost nothing.
+                    crashReportService.FlushPendingTelemetry();
                 }
                 else
                 {
@@ -402,6 +407,11 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
             }
 
             InitOptionalTelemetry(crashService);
+
+            // DetectPendingFromPreviousLaunch ran in the service's constructor, before any sink
+            // existed. If it recovered a native crash / ANR from the OS exit record, this is the first
+            // moment it can actually be sent.
+            crashService.FlushPendingTelemetry();
         }
         catch (Exception ex)
         {

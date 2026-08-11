@@ -27,6 +27,24 @@ public sealed class CrashReportSummary
     public string Source { get; set; } = string.Empty;
     public bool IsImplicit { get; set; }
 
+    /// <summary>
+    /// Explicit telemetry grouping key, set only for crashes reconstructed from an OS exit record
+    /// (see <see cref="NativeCrashSignature"/>). Such an event has no managed stack and no real
+    /// exception, so neither of Sentry's usual grouping strategies can work on it — the key is
+    /// computed here instead. It is persisted with the envelope because the report is written on the
+    /// launch that discovers the crash but may only be *sent* on a later one (after consent), by
+    /// which time the OS exit record it was derived from is gone.
+    /// </summary>
+    public string? TelemetryFingerprint { get; set; }
+
+    /// <summary>
+    /// How stale the recovered context was: milliseconds between the last session-crumb refresh and
+    /// the process death it is attributed to. Near-zero means the op-log/last-command genuinely
+    /// describe the crash; a large value means the app sat idle and the context is only indicative.
+    /// Null when not applicable or unknown.
+    /// </summary>
+    public long? ContextAgeMs { get; set; }
+
     public string FormatForDisplay()
     {
         var sb = new System.Text.StringBuilder();

@@ -43,6 +43,18 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
                 // with duration / error count / exit status. Without this no sessions reach the server.
                 o.AutoSessionTracking = true;
                 o.IsGlobalModeEnabled = true;
+                // Sync the managed scope down to the embedded Android/NDK SDK. Without this the
+                // native crash handler cannot see anything set from C#: the SDK docs are explicit
+                // that "EnableScopeSync must be set true for the scope to be synced". This is what
+                // makes UpdateLiveContext() worth anything for a SIGSEGV in native code (e.g. the
+                // Skia render path), which never reaches a managed handler and therefore carries
+                // only whatever the native layer already had in its own scope.
+                o.EnableScopeSync = true;
+                // Explicit rather than relying on defaults — these two are the entire reason a
+                // native crash / ANR is reported at all, and a silent upstream default flip would
+                // switch the app back to reporting nothing without any visible change here.
+                o.Native.EnableNdk = true;
+                o.Native.AnrEnabled = true;
                 // Offline cache: if the Sentry host is unreachable at crash time, the envelope is
                 // persisted locally and re-sent on the next launch instead of being lost.
                 var cacheDir = Android.App.Application.Context.CacheDir?.AbsolutePath;
@@ -142,6 +154,104 @@ public sealed class AndroidSentryCrashTelemetrySink : ICrashTelemetrySink
         }
         catch
         {
+        }
+    }
+
+    /// <summary>
+    /// Sends a crash that killed a previous process, reconstructed on this launch from the OS exit
+    /// record. Built as a bare <see cref="SentryEvent"/> rather than through
+    /// <c>CaptureException</c> on purpose:
+    /// <list type="bullet">
+    /// <item>there is no exception to capture, and synthesizing one would get it stamped with the
+    /// stack of this method, grouping every recovered crash everywhere into one issue;</item>
+    /// <item><see cref="Fingerprint"/> is set explicitly, so grouping comes from the tombstone
+    /// signature instead of Sentry's stack/message heuristics, which have nothing to work with;</item>
+    /// <item><see cref="SentryEvent.Release"/> is set from the summary, so the crash is attributed to
+    /// the version that <em>crashed</em> and not to whatever is installed now.</item>
+    /// </list>
+    /// The event is not marked as an unhandled crash mechanism, which keeps the current (healthy)
+    /// session out of the crash-free-sessions calculation.
+    /// </summary>
+    public void CaptureRecovered(CrashReportSummary summary, string fingerprint)
+    {
+        if (!_initialized) return;
+        try
+        {
+            Android.Util.Log.Error("Pix2d.Crash",
+                $"RECOVERED {summary.ExceptionType}: {summary.Message} (id={summary.Id})");
+
+            if (!_sentryActive) return;
+
+            var evt = new SentryEvent
+            {
+                Level = SentryLevel.Fatal,
+                Message = summary.Message,
+                Fingerprint = [fingerprint],
+            };
+
+            if (!string.IsNullOrEmpty(summary.AppVersion))
+                evt.Release = summary.AppVersion;
+
+            evt.SetTag("crash_recovered", "true");
+            evt.SetTag("crash_source", summary.Source);
+            evt.SetTag("signal", summary.ExceptionType);
+            evt.SetTag("platform_reported", string.IsNullOrEmpty(summary.Platform) ? "android" : summary.Platform);
+            evt.SetTag("crash_report_id", summary.Id);
+            if (!string.IsNullOrEmpty(summary.LastCommandName))
+                evt.SetTag("last_command", summary.LastCommandName);
+
+            // The SDK cannot backdate an event, so the death time travels as data. Without it the
+            // event looks like it happened at the next launch, which can be days later.
+            evt.SetExtra("crash_detected_utc", summary.Timestamp.ToString("O"));
+            if (summary.ContextAgeMs is { } age)
+                evt.SetExtra("context_age_ms", age);
+
+            // The tombstone itself: unsymbolicated frames are still the only description of the fault.
+            if (!string.IsNullOrEmpty(summary.StackTrace))
+                evt.SetExtra("exit_trace", Tail(summary.StackTrace, 16 * 1024));
+            if (!string.IsNullOrEmpty(summary.SessionOperationLog))
+                evt.SetExtra("session_op_log_tail", Tail(summary.SessionOperationLog, 4 * 1024));
+            if (!string.IsNullOrEmpty(summary.AppContext))
+                evt.SetExtra("app_context", summary.AppContext);
+            if (!string.IsNullOrEmpty(summary.ExceptionChain))
+                evt.SetExtra("os_description", Tail(summary.ExceptionChain, 2 * 1024));
+
+            SentrySdk.CaptureEvent(evt);
+        }
+        catch
+        {
+        }
+    }
+
+    /// <summary>
+    /// Keeps the ambient (global) scope current so a crash captured outside the managed handlers —
+    /// an NDK signal or an ANR — still says what the user was doing. Paired with
+    /// <c>EnableScopeSync</c> in <see cref="Initialize"/>, which is what pushes these values across
+    /// to the native SDK; without that flag they would only decorate managed events.
+    /// </summary>
+    public void UpdateLiveContext(string? lastCommandName, string? appContext)
+    {
+        if (!_sentryActive) return;
+        try
+        {
+            SentrySdk.ConfigureScope(scope =>
+            {
+                if (!string.IsNullOrEmpty(lastCommandName))
+                    scope.SetTag("last_command", lastCommandName);
+                // Extra, not a tag: app_context is high-cardinality (canvas size, frame index, tab
+                // count) and would blow up Sentry's tag index while adding nothing searchable.
+                if (!string.IsNullOrEmpty(appContext))
+                    scope.SetExtra("app_context", appContext);
+            });
+
+            // A trail of commands, not just the last one: for a native crash the preceding few
+            // actions are usually what identifies the path into the faulting code.
+            if (!string.IsNullOrEmpty(lastCommandName))
+                SentrySdk.AddBreadcrumb(lastCommandName, category: "command");
+        }
+        catch
+        {
+            // Live context is best-effort decoration; it must never disturb command execution.
         }
     }
 

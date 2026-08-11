@@ -59,4 +59,13 @@ public interface ICrashReportService
 
     /// <summary>Path to the latest report file as plain text, if available.</summary>
     string? GetLatestReportFilePath();
+
+    /// <summary>
+    /// Sends any recovered crash (a native crash / ANR reconstructed from the OS exit record) that is
+    /// still waiting to be forwarded. Separate from detection because detection happens in this
+    /// service's constructor — long before the telemetry sink is initialized, and possibly before the
+    /// user has answered the consent prompt. The bootstrapper calls this once telemetry is up, and
+    /// again whenever consent turns Allowed; it is idempotent and safe to call at any time.
+    /// </summary>
+    void FlushPendingTelemetry();
 }

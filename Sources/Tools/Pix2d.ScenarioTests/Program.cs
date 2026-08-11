@@ -23,6 +23,7 @@ using Pix2d.Export.Sheet;
 using Pix2d.Plugins.PngFormat.Exporters;
 using Pix2d.Export.Sheet.Metadata;
 using Pix2d.Primitives;
+using Pix2d.Primitives.Crash;
 using Pix2d.Primitives.Drawing;
 using Pix2d.Plugins.Drawing.Brushes;
 using Pix2d.Primitives.ViewPort;
@@ -108,6 +109,7 @@ static class Runner
         SymmetryScenario(harness, t);
         LayerTitleAndPixelMaskScenario(harness, t);
         UpdateReleaseParsingScenario(t);
+        NativeCrashSignatureScenario(t);
         SafeSweep(harness);
 
         return t.Summarize();
@@ -4378,6 +4380,146 @@ static class Runner
         t.Check("a release with no usable tag is ignored", () =>
             Assert.True(UpdateService.ParseRelease(json.Replace("\"v3.11.4\"", "\"nightly\"")) == null,
                 "a non-version tag was accepted"));
+    }
+
+    /// <summary>
+    /// Guards the grouping key derived for crashes the app only learns about on the next launch
+    /// (native crash / ANR, via Android's ApplicationExitInfo). The failure mode this protects
+    /// against is silent and expensive: if anything device-specific leaks into the key — the
+    /// per-install path hash, a program counter, a symbol offset — every phone reports its own
+    /// unique "issue" and a widespread crash looks like a hundred one-off events.
+    /// </summary>
+    static void NativeCrashSignatureScenario(TestReport t)
+    {
+        Console.WriteLine("\n=== Recovered native crash signature scenario ===");
+
+        // A real tombstone from Google Play for com.pix2d.pix2dapp. Note the shape that matters:
+        // frame #00 is inside stripped Skia and resolves to no symbol, #01 lands on the exported
+        // C-API entry point, and #02 has no mapped module at all.
+        const string tombstone = """
+        signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0
+        [split_config.arm64_v8a.apk!libSkiaSharp.so] sk_surface_draw
+        *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+        pid: 0, tid: 30120 >>> com.pix2d.pix2dapp <<<
+
+        backtrace:
+          #00  pc 0000000000322500  /data/app/~~IlliRmL7ISC6U7xZvSurqg==/com.pix2d.pix2dapp-FLHCWNbuXTw0Lky34ZJ4Aw==/split_config.arm64_v8a.apk!libSkiaSharp.so
+          #01  pc 0000000000249eb4  /data/app/~~IlliRmL7ISC6U7xZvSurqg==/com.pix2d.pix2dapp-FLHCWNbuXTw0Lky34ZJ4Aw==/split_config.arm64_v8a.apk!libSkiaSharp.so (sk_surface_draw+28)
+          #02  pc 0000000000009b48
+        """;
+
+        static ProcessExitDetails Exit(string trace, int status = 11, string reason = "CrashNative") =>
+            new()
+            {
+                LikelyCrash = true,
+                Reason = reason,
+                Description = "Native crash",
+                TimestampMs = 1_754_000_000_000,
+                TraceText = trace,
+                Status = status,
+            };
+
+        t.Check("a real tombstone yields a named, actionable signature", () =>
+        {
+            var s = NativeCrashSignature.Derive(Exit(tombstone));
+            Assert.True(s.SignalName == "SIGSEGV", $"signal '{s.SignalName}'");
+            Assert.True(s.Library == "libSkiaSharp.so", $"library '{s.Library}'");
+            Assert.True(s.Symbol == "sk_surface_draw", $"symbol '{s.Symbol}'");
+            Assert.True(s.Title == "Native crash SIGSEGV in libSkiaSharp.so: sk_surface_draw",
+                $"title '{s.Title}'");
+            Assert.True(s.FaultCode == "SEGV_MAPERR", $"fault code '{s.FaultCode}'");
+        });
+
+        t.Check("nothing device-specific reaches the signature", () =>
+        {
+            var s = NativeCrashSignature.Derive(Exit(tombstone));
+            foreach (var leak in new[] { "IlliRmL7ISC6U7xZvSurqg", "FLHCWNbuXTw0Lky34ZJ4Aw", "/data/app", "0x", "+28", "322500" })
+            {
+                Assert.True(!s.Fingerprint.Contains(leak, StringComparison.OrdinalIgnoreCase),
+                    $"fingerprint leaked '{leak}': {s.Fingerprint}");
+                Assert.True(!s.Title.Contains(leak, StringComparison.OrdinalIgnoreCase),
+                    $"title leaked '{leak}': {s.Title}");
+            }
+        });
+
+        t.Check("the same fault on another device/build groups identically", () =>
+        {
+            // Different install hash, different load addresses, different symbol offset — i.e. exactly
+            // what varies between two users hitting one bug.
+            var other = tombstone
+                .Replace("IlliRmL7ISC6U7xZvSurqg==", "ZZZZZZZZZZZZZZZZZZZZZZ==")
+                .Replace("FLHCWNbuXTw0Lky34ZJ4Aw==", "QQQQQQQQQQQQQQQQQQQQQQ==")
+                .Replace("0000000000322500", "00000000004a1c20")
+                .Replace("0000000000249eb4", "00000000003b2118")
+                .Replace("sk_surface_draw+28", "sk_surface_draw+64");
+
+            Assert.True(NativeCrashSignature.Derive(Exit(tombstone)).Fingerprint
+                        == NativeCrashSignature.Derive(Exit(other)).Fingerprint,
+                "two reports of the same fault produced different fingerprints");
+        });
+
+        t.Check("the signal comes from the OS status, not the trace text", () =>
+        {
+            // No signal line at all: Status alone must still identify it.
+            var s = NativeCrashSignature.Derive(Exit("backtrace:\n  #00  pc 001  /x/libSkiaSharp.so (foo+1)", status: 6));
+            Assert.True(s.SignalName == "SIGABRT", $"signal '{s.SignalName}'");
+        });
+
+        t.Check("an abort keys on its abort message", () =>
+        {
+            const string abort = """
+            signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+            Abort message: 'assertion failed at line 1234 of file /tmp/mono/foo.c'
+            backtrace:
+              #00  pc 0000000000089abc  /apex/com.android.runtime/lib64/bionic/libc.so (abort+164)
+            """;
+            var s = NativeCrashSignature.Derive(Exit(abort, status: 6));
+            Assert.True(s.Title.StartsWith("Native abort:", StringComparison.Ordinal), $"title '{s.Title}'");
+            // The line number and path are run-specific and must be collapsed by the normalizer.
+            Assert.True(!s.Fingerprint.Contains("1234"), $"fingerprint kept a line number: {s.Fingerprint}");
+        });
+
+        t.Check("a system-library-only crash still gets a signature", () =>
+        {
+            const string libcOnly = """
+            signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0x10
+            backtrace:
+              #00  pc 0000000000045678  /apex/com.android.runtime/lib64/bionic/libc.so (memcpy+72)
+            """;
+            var s = NativeCrashSignature.Derive(Exit(libcOnly));
+            Assert.True(s.Library == "libc.so" && s.Fingerprint.Length > 0, $"fingerprint '{s.Fingerprint}'");
+        });
+
+        t.Check("an ANR is not run through the native parser", () =>
+        {
+            const string anr = """
+            "main" prio=5 tid=1 Blocked
+              at Pix2d.Services.ProjectService.SaveBlocking(ProjectService.cs:88)
+              at Pix2d.Commands.FileCommands.Save(FileCommands.cs:12)
+            """;
+            var s = NativeCrashSignature.Derive(new ProcessExitDetails
+            {
+                LikelyCrash = true, Reason = "Anr", TimestampMs = 1, TraceText = anr, Status = 0,
+            });
+            Assert.True(s.SignalName == "ANR", $"signal '{s.SignalName}'");
+            Assert.True(s.Fingerprint.StartsWith("anr|", StringComparison.Ordinal), $"fingerprint '{s.Fingerprint}'");
+            Assert.True(s.Title.Contains("ProjectService"), $"title '{s.Title}'");
+        });
+
+        t.Check("a missing or garbage trace degrades instead of throwing", () =>
+        {
+            Assert.True(NativeCrashSignature.Derive(Exit(null!)).Fingerprint.Length > 0, "null trace");
+            Assert.True(NativeCrashSignature.Derive(Exit("")).Fingerprint.Length > 0, "empty trace");
+            Assert.True(NativeCrashSignature.Derive(Exit("  not a tombstone")).Fingerprint.Length > 0,
+                "garbage trace");
+        });
+
+        t.Check("a low-memory SIGKILL is recognised so it is never forwarded as a crash", () =>
+        {
+            Assert.True(Exit(tombstone, status: 9, reason: "Signaled").IsLowMemoryKill,
+                "SIGKILL must be flagged as a low-memory kill");
+            Assert.True(!Exit(tombstone).IsLowMemoryKill, "SIGSEGV must not be flagged as a low-memory kill");
+        });
     }
 
     static void SafeSweep(HeadlessHarness h)

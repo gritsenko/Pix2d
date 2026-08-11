@@ -23,4 +23,21 @@ public sealed class ProcessExitDetails
 
     /// <summary>Tombstone / ANR trace captured by the OS for native crashes and ANRs, if available.</summary>
     public string? TraceText { get; set; }
+
+    /// <summary>
+    /// OS-reported exit status. On Android this is <c>ApplicationExitInfo.Status</c>, which for a
+    /// <c>Signaled</c> exit is the <b>signal number</b> (11 = SIGSEGV, 6 = SIGABRT, 9 = SIGKILL).
+    /// Reading it structurally beats parsing the trace text, whose format drifts across Android
+    /// versions and OEMs — and it is the only way to tell a real native crash from an OEM
+    /// low-memory kill, which is also reported as <c>Signaled</c>.
+    /// </summary>
+    public int Status { get; set; }
+
+    /// <summary>
+    /// True when the exit is a SIGKILL delivered by the OS/OEM low-memory killer rather than a
+    /// genuine crash. Android reports these as <c>Signaled</c>, so they land in
+    /// <see cref="LikelyCrash"/>; they must not be forwarded as crashes or fleet telemetry fills
+    /// with phantom "native crashes" from ordinary background eviction.
+    /// </summary>
+    public bool IsLowMemoryKill => Status == 9;
 }

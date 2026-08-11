@@ -47,6 +47,13 @@ public class CrashReportService : ICrashReportService
         _appState = appState;
         _serviceProvider = serviceProvider;
 
+        // Order matters: read the previous session's crumb *before* this session starts writing its
+        // own, because detection below is what consumes it. Starting our own crumb immediately after
+        // keeps the invariant "the crumb on disk always belongs to the session that wrote it last",
+        // which is what makes attribution on the next launch sound.
+        _previousCrumb = TryReadSessionCrumb();
+        BeginSessionCrumb();
+
         DetectPendingFromPreviousLaunch();
     }
 
@@ -63,10 +70,18 @@ public class CrashReportService : ICrashReportService
     // a user who already answered the old crash dialog isn't prompted again.
     private const string LegacyConsentKey = "CrashTelemetryConsent";
 
+    // ISettingsService.Get resolves the key by reflection on every call, and consent is now read on
+    // hot paths (every executed command, via RecordLastCommand). It only ever changes through
+    // SetTelemetryConsent, so cache it after the first read and refresh it there.
+    private TelemetryConsent? _consentCache;
+
     public TelemetryConsent TelemetryConsent
     {
         get
         {
+            if (_consentCache is { } cached)
+                return cached;
+
             var raw = _settingsService.Get<int>(nameof(AppSettings.TelemetryConsent));
             if (raw == 0)
             {
@@ -78,14 +93,26 @@ public class CrashReportService : ICrashReportService
                 }
             }
 
-            return raw is (int)TelemetryConsent.Allowed or (int)TelemetryConsent.Denied
+            var resolved = raw is (int)TelemetryConsent.Allowed or (int)TelemetryConsent.Denied
                 ? (TelemetryConsent)raw
                 : TelemetryConsent.Unset;
+            _consentCache = resolved;
+            return resolved;
         }
     }
 
     public void SetTelemetryConsent(TelemetryConsent consent)
     {
+        // Update the cache before persisting: the in-memory switch must take effect even if the
+        // settings write below fails (the existing contract — see the catch).
+        _consentCache = consent;
+
+        // Withdrawing consent must *drop* the queued recovered crash, not merely skip it. Otherwise
+        // a later Denied → Allowed toggle would resurrect and upload a report the user had already
+        // declined to send.
+        if (consent != TelemetryConsent.Allowed)
+            ClearPendingTelemetryForward();
+
         try
         {
             _settingsService.Set(nameof(AppSettings.TelemetryConsent), (int)consent);
@@ -124,6 +151,12 @@ public class CrashReportService : ICrashReportService
 
     public void MarkLaunchCompleted()
     {
+        // Called from the Android lifecycle (OnPause) as well as the startup pipeline, so this is
+        // also the app's "about to be backgrounded" signal — the moment the process is most likely
+        // to be killed without warning. Persist the crumb synchronously here even though the
+        // settings write below is skipped on repeat calls.
+        WriteSessionCrumb();
+
         // Idempotent within a run: this is called both from the startup pipeline and from the
         // Android lifecycle (OnPause) as a safety net, and we don't want a settings write each time.
         if (_launchCompletedThisRun)
@@ -153,7 +186,59 @@ public class CrashReportService : ICrashReportService
         }
     }
 
-    public void RecordLastCommand(string commandName) => _lastCommandName = commandName;
+    public void RecordLastCommand(string commandName)
+    {
+        _lastCommandName = commandName;
+        MirrorLiveContextToTelemetry(commandName);
+        ScheduleSessionCrumbWrite();
+    }
+
+    /// <summary>
+    /// Pushes the last command + app-state snapshot into the telemetry sink's ambient scope. This is
+    /// what makes a *native* crash triageable: a SIGSEGV never reaches CaptureFatal, so the only
+    /// context such an event can carry is whatever was already sitting in the sink's scope when the
+    /// process died. Consent-gated and fully guarded — a telemetry failure must never affect command
+    /// execution.
+    /// </summary>
+    private void MirrorLiveContextToTelemetry(string commandName)
+    {
+        try
+        {
+            if (TelemetryConsent != TelemetryConsent.Allowed)
+                return;
+
+            if (ResolveTelemetrySink() is not { IsInitialized: true } sink)
+                return;
+
+            sink.UpdateLiveContext(commandName, SafeAppContext());
+        }
+        catch
+        {
+        }
+    }
+
+    // The sink is a singleton that is always registered but initialized late (after consent), so the
+    // instance is cached once while IsInitialized is re-checked per call.
+    private ICrashTelemetrySink? _telemetrySink;
+    private bool _telemetrySinkResolved;
+
+    private ICrashTelemetrySink? ResolveTelemetrySink()
+    {
+        if (_telemetrySinkResolved)
+            return _telemetrySink;
+
+        _telemetrySinkResolved = true;
+        try
+        {
+            _telemetrySink = _serviceProvider.GetService(typeof(ICrashTelemetrySink)) as ICrashTelemetrySink;
+        }
+        catch
+        {
+            _telemetrySink = null;
+        }
+
+        return _telemetrySink;
+    }
 
     // One event per (exception type + source) per window keeps a repeatedly-failing action (button
     // mashing, a throwing render loop) from flooding telemetry while still recording the first hit;
@@ -168,7 +253,7 @@ public class CrashReportService : ICrashReportService
             if (TelemetryConsent != TelemetryConsent.Allowed)
                 return;
 
-            if (_serviceProvider.GetService(typeof(ICrashTelemetrySink)) is not ICrashTelemetrySink { IsInitialized: true } sink)
+            if (ResolveTelemetrySink() is not { IsInitialized: true } sink)
                 return;
 
             // Unwrap aggregates and stamp a capture-site stack on frame-less exceptions before both the
@@ -307,8 +392,7 @@ public class CrashReportService : ICrashReportService
             if (TelemetryConsent != TelemetryConsent.Allowed)
                 return;
 
-            var sink = _serviceProvider.GetService(typeof(ICrashTelemetrySink)) as ICrashTelemetrySink;
-            if (sink == null || !sink.IsInitialized)
+            if (ResolveTelemetrySink() is not { IsInitialized: true } sink)
                 return;
 
             sink.CaptureFatal(summary, exception);
@@ -377,7 +461,12 @@ public class CrashReportService : ICrashReportService
             //    crashes that slipped past the handlers — both during launch and mid-session.
             if (exitIsNew && exit!.LikelyCrash)
             {
-                PromoteImplicit(BuildImplicitSummary(exit, ReadAndConsumeFatalLog()));
+                // A SIGKILL is the OEM low-memory killer evicting a backgrounded app, which Android
+                // also reports as Signaled. It still surfaces locally (the user did lose work), but
+                // forwarding it would flood telemetry with phantom "native crashes" that no code
+                // change can fix.
+                PromoteImplicit(BuildImplicitSummary(exit, ReadAndConsumeFatalLog()),
+                    forwardToTelemetry: !exit.IsLowMemoryKill);
                 return;
             }
 
@@ -401,7 +490,7 @@ public class CrashReportService : ICrashReportService
                 var fatalLog = ReadAndConsumeFatalLog();
                 if (!string.IsNullOrWhiteSpace(fatalLog))
                 {
-                    PromoteImplicit(BuildImplicitSummary(null, fatalLog));
+                    PromoteImplicit(BuildImplicitSummary(null, fatalLog), forwardToTelemetry: true);
                     return;
                 }
 
@@ -412,7 +501,7 @@ public class CrashReportService : ICrashReportService
             // 4) Nothing flagged, but a stray Fatal.log from a pre-bootstrap crash may still exist.
             var orphanFatal = ReadAndConsumeFatalLog();
             if (!string.IsNullOrWhiteSpace(orphanFatal))
-                PromoteImplicit(BuildImplicitSummary(null, orphanFatal));
+                PromoteImplicit(BuildImplicitSummary(null, orphanFatal), forwardToTelemetry: true);
         }
         catch
         {
@@ -421,7 +510,7 @@ public class CrashReportService : ICrashReportService
         }
     }
 
-    private void PromoteImplicit(CrashReportSummary summary)
+    private void PromoteImplicit(CrashReportSummary summary, bool forwardToTelemetry)
     {
         PendingCrashReport = summary;
         HasPendingCrashReport = true;
@@ -437,6 +526,14 @@ public class CrashReportService : ICrashReportService
             _settingsService.Set(nameof(AppSettings.LastCrashReportId), fileName);
             _settingsService.Set(nameof(AppSettings.HasPendingCrashReport), true);
             _settingsService.Set(nameof(AppSettings.LaunchInProgress), false);
+
+            // Queue it for telemetry by *filename*, persisted. The sink is not up yet at this point
+            // (this runs from the constructor), and the OS exit record that produced this summary has
+            // already been consumed — so an in-memory hand-off would lose the crash for good if
+            // consent only arrives on a later launch.
+            if (forwardToTelemetry)
+                _settingsService.Set(nameof(AppSettings.PendingTelemetryForwardId), fileName);
+
             TrimOldReports(folder);
         }
         catch
@@ -616,15 +713,34 @@ public class CrashReportService : ICrashReportService
         string source;
         string exceptionType;
         string message;
+        string? fingerprint = null;
         var stack = new StringBuilder();
 
         if (hasExitCrash)
         {
             source = $"ProcessExit:{exit!.Reason}";
-            exceptionType = exit.Reason;
-            message = string.IsNullOrWhiteSpace(exit.Description)
-                ? "The previous process terminated abnormally (reported by the OS)."
-                : exit.Description;
+
+            // Derive a real signature from the tombstone instead of reporting the OS's generic
+            // sentence. Without this every native crash — a Skia fault, a mono abort, an ANR —
+            // arrives under one identical title and collapses into a single, unactionable group.
+            var signature = NativeCrashSignature.Derive(exit);
+            exceptionType = signature.SignalName;
+            message = signature.Title;
+            fingerprint = signature.Fingerprint;
+
+            if (!string.IsNullOrWhiteSpace(signature.FaultCode) || !string.IsNullOrWhiteSpace(signature.AbortMessage))
+            {
+                // Kept as detail, deliberately out of the signature: si_code varies between runs of
+                // the same bug (SEGV_MAPERR vs SEGV_ACCERR depending on the stale pointer's value).
+                stack.AppendLine("=== Fault detail ===");
+                if (!string.IsNullOrWhiteSpace(signature.FaultCode))
+                    stack.AppendLine($"code: {signature.FaultCode}");
+                if (!string.IsNullOrWhiteSpace(signature.AbortMessage))
+                    stack.AppendLine($"abort message: {signature.AbortMessage}");
+                if (!string.IsNullOrWhiteSpace(exit.Description))
+                    stack.AppendLine($"os description: {exit.Description}");
+                stack.AppendLine();
+            }
 
             if (!string.IsNullOrWhiteSpace(exit.TraceText))
             {
@@ -636,7 +752,16 @@ public class CrashReportService : ICrashReportService
         {
             source = "PreBootstrapFatalLog";
             exceptionType = "CapturedBeforeServicesReady";
-            message = "A fatal error was captured before the crash services were ready.";
+
+            // Key on the first line of the log (the exception type + message) rather than on a fixed
+            // sentence. These crashes were never forwarded at crash time — the telemetry sink did not
+            // exist yet — so this is their only route out, and a constant title would pile every
+            // unrelated startup failure into one group.
+            var firstLine = FirstMeaningfulLine(fatalLog!);
+            message = firstLine is { Length: > 0 }
+                ? $"Crash before services were ready: {TelemetryMessageNormalizer.Normalize(firstLine)}"
+                : "A fatal error was captured before the crash services were ready.";
+            fingerprint = $"prebootstrap|{TelemetryMessageNormalizer.Normalize(firstLine)}";
         }
         else
         {
@@ -653,25 +778,312 @@ public class CrashReportService : ICrashReportService
             stack.AppendLine(fatalLog);
         }
 
+        // Everything below describes the session that DIED, so it must come from the persisted crumb,
+        // not from this freshly-started process. Reading the live values here is what made recovered
+        // crash reports arrive with an empty op-log, no last command, and — worst of all — the
+        // version currently installed rather than the version that actually crashed.
+        var crumb = ResolveCrumbFor(exit);
+
         return new CrashReportSummary
         {
             Id = Guid.NewGuid().ToString("N"),
             Timestamp = DateTime.UtcNow,
-            AppVersion = SafeAppVersion(),
-            Platform = SafePlatform(),
+            AppVersion = crumb?.AppVersion is { Length: > 0 } crashedVersion ? crashedVersion : SafeAppVersion(),
+            Platform = crumb?.Platform is { Length: > 0 } crashedPlatform ? crashedPlatform : SafePlatform(),
             Source = source,
             IsImplicit = true,
             ExceptionType = exceptionType,
             Message = message,
+            TelemetryFingerprint = fingerprint,
             StackTrace = stack.ToString(),
             ExceptionChain = exit?.Description ?? string.Empty,
-            SessionOperationLog = SafeSessionLog(),
-            LogTail = ReadLogTail(),
+            SessionOperationLog = crumb?.OpLogTail ?? string.Empty,
+            // Not ReadLogTail(): by now the recovering process has already written its own startup
+            // lines into the same file, so the tail is a mix of two sessions.
+            LogTail = string.Empty,
             StartupDocument = SafeStartupDocument(),
-            LastCommandName = _lastCommandName,
-            AppContext = SafeAppContext(),
+            LastCommandName = crumb?.LastCommandName,
+            AppContext = crumb?.AppContext,
+            ContextAgeMs = ComputeContextAge(crumb, exit),
         };
     }
+
+    /// <summary>
+    /// Milliseconds between the crumb's last refresh and the reported death — i.e. how much of the
+    /// crash the recovered context actually describes.
+    /// </summary>
+    private static long? ComputeContextAge(SessionCrumb? crumb, ProcessExitDetails? exit)
+    {
+        if (crumb == null || exit == null || exit.TimestampMs <= 0 || crumb.UpdatedUtcMs <= 0)
+            return null;
+        return exit.TimestampMs - crumb.UpdatedUtcMs;
+    }
+
+    #region Session crumb — the previous session speaking for itself
+
+    private const string CrumbFileName = "session_crumb.json";
+    private const int CrumbOpLogItems = 60;
+
+    /// <summary>
+    /// Debounce interval. Long enough that a burst of commands costs one write, short enough that the
+    /// command immediately before a native crash almost always made it to disk — which is the entire
+    /// point, since that command is the payload.
+    /// </summary>
+    private static readonly TimeSpan CrumbWriteDebounce = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// Beyond this, context is treated as unavailable rather than reported as if it described the
+    /// crash: an app that sat idle for a day before being killed has a crumb whose op-log has nothing
+    /// to do with the death, and a misleading context is worse than none.
+    /// </summary>
+    private static readonly TimeSpan CrumbMaxUsefulAge = TimeSpan.FromHours(24);
+
+    private readonly SessionCrumb? _previousCrumb;
+    private string _sessionId = string.Empty;
+    private long _sessionStartedUtcMs;
+    private bool _crumbEnabled;
+    private Timer? _crumbTimer;
+    private int _crumbWriteScheduled;
+
+    /// <summary>
+    /// Starts this session's crumb. Gated on the platform actually being able to report a previous
+    /// process death: on desktop nothing ever reads the crumb back (there is no
+    /// <see cref="IProcessExitInfoProvider"/>), and a single shared file would anyway be overwritten
+    /// by whichever of several concurrently-running desktop instances wrote last, making attribution
+    /// meaningless. The first write happens right away so that "the crumb on disk belongs to the last
+    /// session that ran" holds even for a crash seconds after launch.
+    /// </summary>
+    private void BeginSessionCrumb()
+    {
+        try
+        {
+            _crumbEnabled = _platformStuffService is IProcessExitInfoProvider;
+            if (!_crumbEnabled)
+                return;
+
+            _sessionId = Guid.NewGuid().ToString("N");
+            _sessionStartedUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            _crumbTimer = new Timer(_ => OnCrumbTimerTick(), null, Timeout.Infinite, Timeout.Infinite);
+
+            ScheduleSessionCrumbWrite();
+        }
+        catch
+        {
+            _crumbEnabled = false;
+        }
+    }
+
+    /// <summary>
+    /// Marks the crumb dirty and arms a single delayed write. Deliberately does <em>not</em> restart
+    /// the timer on each call: continuous activity would then keep pushing the write into the future
+    /// and nothing would ever reach disk.
+    /// </summary>
+    private void ScheduleSessionCrumbWrite()
+    {
+        if (!_crumbEnabled) return;
+
+        try
+        {
+            if (Interlocked.CompareExchange(ref _crumbWriteScheduled, 1, 0) != 0)
+                return;
+
+            _crumbTimer?.Change(CrumbWriteDebounce, Timeout.InfiniteTimeSpan);
+        }
+        catch
+        {
+        }
+    }
+
+    private void OnCrumbTimerTick()
+    {
+        Interlocked.Exchange(ref _crumbWriteScheduled, 0);
+        WriteSessionCrumb();
+    }
+
+    /// <summary>
+    /// Rewrites the crumb atomically: temp file then rename, the same idiom the settings and autosave
+    /// stores use. Without it a SIGKILL mid-write leaves torn JSON on disk at precisely the launch
+    /// that needs to read it.
+    /// </summary>
+    private void WriteSessionCrumb()
+    {
+        if (!_crumbEnabled) return;
+
+        try
+        {
+            var crumb = new SessionCrumb
+            {
+                SessionId = _sessionId,
+                StartedUtcMs = _sessionStartedUtcMs,
+                UpdatedUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                AppVersion = SafeAppVersion(),
+                Platform = SafePlatform(),
+                LastCommandName = _lastCommandName,
+                OpLogTail = SafeSessionLogTail(),
+                AppContext = SafeAppContext(),
+            };
+
+            var folder = GetCrashFolder();
+            EnsureFolder(folder);
+
+            var path = Path.Combine(folder, CrumbFileName);
+            var temp = path + ".tmp";
+            File.WriteAllText(temp, JsonSerializer.Serialize(crumb, _jsonOptions));
+            File.Move(temp, path, overwrite: true);
+        }
+        catch
+        {
+            // Best-effort: losing a crumb costs context on a future crash, nothing more.
+        }
+    }
+
+    private SessionCrumb? TryReadSessionCrumb()
+    {
+        try
+        {
+            var path = Path.Combine(GetCrashFolder(), CrumbFileName);
+            if (!File.Exists(path))
+                return null;
+
+            return JsonSerializer.Deserialize<SessionCrumb>(File.ReadAllText(path), _jsonOptions);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Returns the previous session's crumb only when it can plausibly describe the given death.
+    /// Rejects a crumb refreshed <em>after</em> the reported exit (that is this session's own crumb,
+    /// not the dead one's) and a crumb far older than the exit (stale idle context).
+    /// </summary>
+    private SessionCrumb? ResolveCrumbFor(ProcessExitDetails? exit)
+    {
+        var crumb = _previousCrumb;
+        if (crumb == null)
+            return null;
+
+        // Same session id ⇒ we are looking at our own crumb; it describes nothing about a past death.
+        if (!string.IsNullOrEmpty(_sessionId) && crumb.SessionId == _sessionId)
+            return null;
+
+        if (exit is { TimestampMs: > 0 } && crumb.UpdatedUtcMs > 0)
+        {
+            var age = exit.TimestampMs - crumb.UpdatedUtcMs;
+            if (age < 0 || age > CrumbMaxUsefulAge.TotalMilliseconds)
+                return null;
+        }
+
+        return crumb;
+    }
+
+    private static string SafeSessionLogTail()
+    {
+        try { return SessionLogger.GetSessionOperationLogTail(CrumbOpLogItems); }
+        catch { return string.Empty; }
+    }
+
+    private static string? FirstMeaningfulLine(string text)
+    {
+        try
+        {
+            foreach (var line in text.Split('\n'))
+            {
+                var trimmed = line.Trim();
+                // Skip the report header the plain-text fallback writes before the exception itself.
+                if (trimmed.Length == 0 || trimmed.StartsWith("===", StringComparison.Ordinal))
+                    continue;
+                return trimmed;
+            }
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    #endregion
+
+    #region Deferred forwarding of recovered crashes
+
+    private bool _pendingForwardFlushed;
+
+    public void FlushPendingTelemetry()
+    {
+        try
+        {
+            // Guard against the double-send the bootstrapper's wiring invites: consent that is already
+            // Allowed at launch flushes once from InitOptionalTelemetry, and re-confirming Allowed in
+            // Settings raises TelemetryConsentChanged (which fires unconditionally, without change
+            // detection) and would flush the same crash again.
+            if (_pendingForwardFlushed)
+                return;
+
+            if (TelemetryConsent != TelemetryConsent.Allowed)
+                return;
+
+            var fileName = _settingsService.Get<string>(nameof(AppSettings.PendingTelemetryForwardId));
+            if (string.IsNullOrWhiteSpace(fileName))
+                return;
+
+            if (ResolveTelemetrySink() is not { IsInitialized: true } sink)
+                return;
+
+            var path = Path.Combine(GetCrashFolder(), fileName);
+            if (!File.Exists(path))
+            {
+                ClearPendingTelemetryForward();
+                return;
+            }
+
+            var summary = JsonSerializer.Deserialize<CrashReportSummary>(File.ReadAllText(path), _jsonOptions);
+            if (summary == null)
+            {
+                ClearPendingTelemetryForward();
+                return;
+            }
+
+            _pendingForwardFlushed = true;
+
+            // Clear before sending: the Sentry SDK persists the envelope to its offline cache, so an
+            // enqueue is as good as delivered, whereas clearing afterwards risks re-sending forever if
+            // the send path throws.
+            ClearPendingTelemetryForward();
+
+            // Off the calling thread. The consent path runs synchronously inside the dialog's button
+            // handler, and the send path can block (the fatal path ends with a 2s SentrySdk.Flush) —
+            // doing this inline would freeze the UI on the consent dialog.
+            // Never drop a report for want of a fingerprint: an envelope written by an older build
+            // has none, and coarse grouping by source still beats silence.
+            var fingerprint = string.IsNullOrEmpty(summary.TelemetryFingerprint)
+                ? $"recovered|{summary.Source}"
+                : summary.TelemetryFingerprint;
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    sink.CaptureRecovered(summary, fingerprint);
+                }
+                catch
+                {
+                }
+            });
+        }
+        catch
+        {
+            // Telemetry must never break startup or the consent dialog.
+        }
+    }
+
+    private void ClearPendingTelemetryForward()
+    {
+        TrySet<string?>(nameof(AppSettings.PendingTelemetryForwardId), null);
+    }
+
+    #endregion
 
     private const int FatalLogMaxChars = 16 * 1024;
 
