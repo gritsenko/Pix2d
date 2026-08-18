@@ -391,6 +391,19 @@ jobs:
     - name: Setup Microsoft Store Developer CLI
       if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || github.event.inputs.submit_to_store == 'true' }}
       uses: microsoft/microsoft-store-apppublisher@v1.1
+      with:
+        # PINNED, and it must stay pinned. The action's default is `latest`, which is a
+        # silent moving target: msstore CLI v0.4.0 (2026-08-18, first release since
+        # v0.3.9 in January) rewrote the tool onto .NET 10 with native AOT/single-file
+        # and broke the Azure blob upload. It reaches `Uploading Bundle to Azure blob: 0%`
+        # and dies ~22s later with the retries exhausted ("Unable to write data to the
+        # transport connection") -- three identical failures on the v3.12.0 tag, hours
+        # after v0.4.0 shipped, while the same pipeline submitted v3.11.5 fine on v0.3.9.
+        # Same break, same runner, same universal bundle as microsoft/msstore-cli#154
+        # (which crashes in the upload progress callback instead). Before bumping this,
+        # check that issue is closed -- and expect no signal from CI until then, since
+        # the Store job is the one job outside the create_release gate.
+        version: v0.3.9
 
     - name: Submit to the Microsoft Store
       if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || github.event.inputs.submit_to_store == 'true' }}
