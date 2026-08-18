@@ -13,17 +13,50 @@ namespace Pix2d.Services;
 public class AvaloniaFileService(
     IMessenger messenger,
     IPlatformStuffService platformStuffService,
-    ISettingsService settingsService) : IFileService
+    ISettingsService settingsService,
+    IDialogService dialogService) : IFileService
 {
     private readonly SemaphoreSlim _openDialogSemaphore = new(1, 1);
 
-    public virtual async Task<IEnumerable<IFileContentSource>> OpenFileWithDialogAsync(string[] fileTypeFilter,
-        bool allowMultiplyFiles = false, string? contextKey = null)
+    /// <summary>
+    /// Runs a platform file/folder picker and converts a failure of the dialog *itself* into the caller's
+    /// "no selection" value instead of an exception. The Win32 shell dialog can fail outright — a broken
+    /// shell extension, a denied COM activation or a torn-down parent window all surface as
+    /// <c>Win32Exception: Unspecified error</c> — and that used to travel all the way up to
+    /// <c>ExportService</c>, which has no case for it and told the user "There's nothing to Export!".
+    /// Every picker in this service goes through here so the message is right and stated once, no matter
+    /// which caller (export, palette, save project, localization) opened the dialog.
+    /// </summary>
+    private async Task<T> RunPickerGuardedAsync<T>(Func<Task<T>> showPicker, T onDialogFailure, T onCancelled)
     {
         // prevent from parallel opening several dialogs
         await _openDialogSemaphore.WaitAsync();
-
         try
+        {
+            return await showPicker();
+        }
+        catch (OperationCanceledException)
+        {
+            return onCancelled;
+        }
+        catch (Exception e)
+        {
+            Logger.LogException(e);
+            dialogService.Alert(
+                "Couldn't open the system file dialog. This is usually a temporary Windows shell problem — "
+                + "try again, and restart Pix2d if it keeps happening.",
+                "Files");
+            return onDialogFailure;
+        }
+        finally
+        {
+            _openDialogSemaphore.Release();
+        }
+    }
+
+    public virtual Task<IEnumerable<IFileContentSource>> OpenFileWithDialogAsync(string[] fileTypeFilter,
+        bool allowMultiplyFiles = false, string? contextKey = null)
+        => RunPickerGuardedAsync<IEnumerable<IFileContentSource>>(async () =>
         {
             var sp = GetStorageProvider();
 
@@ -44,12 +77,7 @@ public class AvaloniaFileService(
             RememberFolder(contextKey, result.FirstOrDefault());
 
             return result.Select(GetFileSource);
-        }
-        finally
-        {
-            _openDialogSemaphore.Release();
-        }
-    }
+        }, onDialogFailure: [], onCancelled: []);
 
     private IStorageProvider GetStorageProvider()
     {
@@ -142,22 +170,19 @@ public class AvaloniaFileService(
 
         return await filePickResult.MatchAsync(async f =>
         {
-            await using var fileStream = await f.OpenWriteAsync();
+            // Produce the payload *first*. This used to open the destination before awaiting the provider,
+            // so an exporter that threw while encoding left the file already truncated — the user asked to
+            // overwrite a good PNG/GIF/SVG and ended up with nothing.
             await using var sourceStream = await sourceStreamProvider();
-            await sourceStream.CopyToAsync(fileStream);
-            await fileStream.FlushAsync();
+            await f.SaveAsync(sourceStream);
             return true;
         }, _ => Task.FromResult(false));
     }
 
-    public async Task<Result<IFileContentSource, FileDialogResultError>> GetFileToSaveWithDialogAsync(
+    public Task<Result<IFileContentSource, FileDialogResultError>> GetFileToSaveWithDialogAsync(
         string[] fileTypeFilter, string? contextKey = null, string? defaultFileName = null)
-    {
-        try
+        => RunPickerGuardedAsync<Result<IFileContentSource, FileDialogResultError>>(async () =>
         {
-            await _openDialogSemaphore.WaitAsync();
-
-
             var options = new FilePickerSaveOptions();
             var extension = string.Join(", ", fileTypeFilter);
             options.FileTypeChoices =
@@ -187,24 +212,17 @@ public class AvaloniaFileService(
 
             return Result<IFileContentSource, FileDialogResultError>.FromNullable(GetFileSource(result),
                 FileDialogResultError.FileSourceNotCreated);
-        }
-        finally
-        {
-            _openDialogSemaphore.Release();
-        }
-    }
+        }, onDialogFailure: FileDialogResultError.DialogFailed,
+           onCancelled: FileDialogResultError.NoFileSelected);
 
     protected virtual IFileContentSource GetFileSource(IStorageFile file)
     {
         return new AvaloniaFileSource(file);
     }
 
-    public async Task<IWriteDestinationFolder?> GetFolderToExportWithDialogAsync(string? contextKey = null)
-    {
-        try
+    public Task<IWriteDestinationFolder?> GetFolderToExportWithDialogAsync(string? contextKey = null)
+        => RunPickerGuardedAsync<IWriteDestinationFolder?>(async () =>
         {
-            await _openDialogSemaphore.WaitAsync();
-
             var sp = GetStorageProvider();
 
             var options = new FolderPickerOpenOptions() { Title = "Select folder to export" };
@@ -216,12 +234,7 @@ public class AvaloniaFileService(
             RememberFolder(contextKey, folder);
 
             return folder != null ? new AvaloniaFolder(folder) : null;
-        }
-        finally
-        {
-            _openDialogSemaphore.Release();
-        }
-    }
+        }, onDialogFailure: null, onCancelled: null);
 
     public Task<IWriteDestinationFolder> GetLocalFolderAsync(string name, bool deleteIfExist = false)
     {
@@ -236,18 +249,31 @@ public class AvaloniaFileService(
         return Task.FromResult<IFileContentSource>(new NetFileSource(fileName));
     }
 
+    /// <summary>
+    /// Records a file as most-recently-used. Matching is by <see cref="MruRecord.GetComparisonKey"/>, not by
+    /// raw path: the same file arriving under a different spelling (forward slashes, different case on
+    /// Windows) used to be stored a second time and the recent-projects list then showed one project twice.
+    /// An already-known file is promoted to the front rather than skipped, and a file that is already at the
+    /// front under the same name is left alone — otherwise every Ctrl+S would rewrite the settings and make
+    /// the recents view reload all its thumbnails.
+    /// </summary>
     public void AddToMru(IFileContentSource fileSource)
     {
         try
         {
             var mruList = settingsService.Get<List<MruRecord>>("mru") ?? [];
             var newRecord = new MruRecord(fileSource);
-            if (!mruList.Any(x => x.Path == newRecord.Path))
-            {
-                mruList.Insert(0, newRecord);
-                settingsService.Set("mru", mruList);
-                messenger.Send(new MruChangedMessage());
-            }
+            var key = newRecord.GetComparisonKey();
+
+            if (mruList.Count > 0
+                && MruRecord.NormalizePath(mruList[0].Path) == key
+                && mruList[0].Name == newRecord.Name)
+                return;
+
+            mruList.RemoveAll(x => MruRecord.NormalizePath(x.Path) == key);
+            mruList.Insert(0, newRecord);
+            settingsService.Set("mru", mruList);
+            messenger.Send(new MruChangedMessage());
         }
         catch (Exception ex)
         {
@@ -255,18 +281,58 @@ public class AvaloniaFileService(
         }
     }
 
+    /// <summary>
+    /// Reads the MRU list, dropping unusable and duplicate entries. The de-duplication also repairs lists
+    /// polluted before <see cref="AddToMru"/> compared normalized paths — a list that had to be cleaned is
+    /// written back once, so the junk stops being carried forward. No <see cref="MruChangedMessage"/> is
+    /// sent: this runs *while* the recents view is building itself from the result.
+    /// </summary>
     public Task<List<IFileContentSource>> GetMruFilesAsync()
     {
         try
         {
             var mruList = settingsService.Get<List<MruRecord>>("mru");
+            if (mruList == null)
+                return Task.FromResult(new List<IFileContentSource>());
 
-            return Task.FromResult(mruList?
-                .Where(x => !string.IsNullOrWhiteSpace(x.Path) && !string.IsNullOrWhiteSpace(x.Name))
+            var seen = new HashSet<string>();
+            var records = new List<MruRecord>(mruList.Count);
+            var changed = false;
+            foreach (var record in mruList)
+            {
+                if (string.IsNullOrWhiteSpace(record.Path) || string.IsNullOrWhiteSpace(record.Name))
+                {
+                    changed = true;
+                    continue;
+                }
+
+                if (!seen.Add(record.GetComparisonKey()))
+                {
+                    changed = true;
+                    continue;
+                }
+
+                // Repair the stored spelling too, not just the comparison: a record written before this
+                // (a dropped file, so "C:/Users/…/art.pix2d") would otherwise keep showing its
+                // forward-slash path in the recent-projects tooltip.
+                var canonical = MruRecord.CanonicalizePath(record.Path);
+                if (canonical != record.Path)
+                {
+                    record.Path = canonical;
+                    changed = true;
+                }
+
+                records.Add(record);
+            }
+
+            if (changed)
+                settingsService.Set("mru", records);
+
+            return Task.FromResult(records
                 .Select(IFileContentSource (x) => new NetFileSource(x.Path)
                 {
                     Title = x.Name
-                }).ToList() ?? []);
+                }).ToList());
         }
         catch (Exception ex)
         {
@@ -281,7 +347,8 @@ public class AvaloniaFileService(
         try
         {
             var mruList = settingsService.Get<List<MruRecord>>("mru") ?? [];
-            mruList.RemoveAll(x => x.Path == sourcePath);
+            var key = MruRecord.NormalizePath(sourcePath);
+            mruList.RemoveAll(x => MruRecord.NormalizePath(x.Path) == key);
             settingsService.Set("mru", mruList);
 
             messenger.Send(new MruChangedMessage());

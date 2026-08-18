@@ -1,4 +1,5 @@
-using System.IO;
+﻿using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -21,41 +22,79 @@ public class AvaloniaFileSource : IFileContentSource
 
     public async Task SaveAsync(Stream sourceStream)
     {
-        //if (File.Exists(Path))
-        //    File.Delete(Path);
+        if (HasLocalPath)
+        {
+            await using var staged = StagedWrites.OnDisk(Path);
+            await sourceStream.CopyToAsync(staged.Stream);
+            await staged.CommitAsync();
+        }
+        else
+        {
+            await WriteThroughStorageAsync(sourceStream);
+        }
 
-        await using var fileStream = await _storageFile.OpenWriteAsync();
-        await sourceStream.CopyToAsync(fileStream);
-        await fileStream.FlushAsync();
-        fileStream.Close();
         await sourceStream.DisposeAsync();
     }
 
-    public async Task<Stream> OpenWriteAsync()
+    /// <inheritdoc />
+    public Task<IStagedWrite> OpenStagedWriteAsync()
+        => Task.FromResult(HasLocalPath
+            ? StagedWrites.OnDisk(Path)
+            : StagedWrites.InMemory(WriteThroughStorageAsync));
+
+    /// <summary>
+    /// A file picked through Avalonia's storage provider is an ordinary filesystem path on desktop and has
+    /// none on Android SAF / in the browser. That distinction — not the class — decides which staging
+    /// guarantee is available, so desktop saves (including every "Save as", which is where the project's
+    /// file source comes from) get the atomic-rename path rather than the weaker buffered one.
+    /// </summary>
+    private bool HasLocalPath => !string.IsNullOrEmpty(Path);
+
+    /// <summary>
+    /// Last-resort write for a destination with no path: truncate the storage item and copy. The explicit
+    /// truncation is not redundant — writing a shorter archive over a longer one without it leaves the old
+    /// tail in place, and a zip reader scanning backwards then finds the *previous* end-of-central-directory
+    /// record ("Number of entries expected in End Of Central Directory does not correspond to number of
+    /// entries in Central Directory" — the state <c>TestImages/ptvRightTemplate.pix2d</c> is in).
+    /// </summary>
+    private async Task WriteThroughStorageAsync(Stream sourceStream)
     {
-        return new StreamWrapper(async (ms) =>
+        await using var fileStream = await _storageFile.OpenWriteAsync();
+
+        if (fileStream.CanSeek && fileStream.Length > 0)
         {
-            await using var fs = await _storageFile.OpenWriteAsync();
-            await ms.CopyToAsync(fs);
-            ms.Flush();
-            fs.Close();
-        });
+            fileStream.SetLength(0);
+            fileStream.Position = 0;
+        }
+
+        await sourceStream.CopyToAsync(fileStream);
+        await fileStream.FlushAsync();
+        fileStream.Close();
     }
 
+    /// <summary>
+    /// <see cref="Path"/> is empty whenever the picked file has no filesystem path — an Android SAF
+    /// <c>content://</c> URI, a browser file handle. Everything that touches the file must therefore go
+    /// through <see cref="IStorageFile"/>, never through <see cref="File"/> and a raw path: the text
+    /// overload used to call <c>File.WriteAllText(Path, …)</c>, which is what broke sprite-sheet export on
+    /// Android with <c>ArgumentException: The value cannot be an empty string (Parameter 'path')</c> — the
+    /// sheet PNG (a stream write) landed, then its metadata sidecar threw.
+    /// </summary>
     public void Delete()
     {
-        File.Delete(Path);
-    }
+        if (!string.IsNullOrEmpty(Path))
+        {
+            File.Delete(Path);
+            return;
+        }
 
-    public void Save(string textContent)
-    {
-        File.WriteAllText(Path, textContent);
+        // Task.Run keeps the continuation off the caller's SynchronizationContext — blocking the UI thread
+        // on one posted back to it would deadlock.
+        Task.Run(async () => await _storageFile.DeleteAsync()).GetAwaiter().GetResult();
     }
 
     public Task SaveAsync(string textContent)
-    {
-        return Task.Run(() => { Save(textContent); });
-    }
+        => SaveAsync(new MemoryStream(Encoding.UTF8.GetBytes(textContent)));
 
     public async Task<Stream> OpenRead()
     {
@@ -73,54 +112,5 @@ public class AvaloniaFileSource : IFileContentSource
         Title = storageFile.Name;
         Path = storageFile.TryGetLocalPath() ?? "";
         _storageFile = storageFile;
-    }
-
-
-    /// <summary>
-    /// Buffers the write in memory and flushes it to the picked file when the stream is disposed.
-    ///
-    /// <para>The flush used to run from an <c>async void</c> <see cref="Dispose(bool)"/>, which had two
-    /// consequences: the caller's <c>await using</c> returned before the file had been written, and any
-    /// write failure — a denied path, a full disk — escaped the awaiting caller entirely and arrived as an
-    /// unhandled exception on the dispatcher, i.e. a crash instead of an export error the UI could report
-    /// (appstat: <c>Access to the path 'C:\Windows\System32\untitled.png' is denied</c>). Every call site
-    /// uses <c>await using</c>, so overriding <see cref="DisposeAsync"/> is what actually runs.</para>
-    /// </summary>
-    internal class StreamWrapper : MemoryStream
-    {
-        private readonly Func<MemoryStream, Task> _onDisposing;
-        private bool _flushed;
-
-        public StreamWrapper(Func<MemoryStream, Task> onDisposing)
-        {
-            _onDisposing = onDisposing;
-        }
-
-        public override async ValueTask DisposeAsync()
-        {
-            await FlushToTargetAsync();
-            await base.DisposeAsync();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            // Synchronous fallback for a plain `using`. Task.Run keeps the continuations off the caller's
-            // SynchronizationContext — blocking the UI thread on a continuation posted back to it would
-            // deadlock. base.DisposeAsync() also lands here, hence the _flushed guard.
-            if (disposing && !_flushed)
-                Task.Run(FlushToTargetAsync).GetAwaiter().GetResult();
-
-            base.Dispose(disposing);
-        }
-
-        private async Task FlushToTargetAsync()
-        {
-            if (_flushed)
-                return;
-
-            _flushed = true;
-            Seek(0, SeekOrigin.Begin);
-            await _onDisposing.Invoke(this);
-        }
     }
 }

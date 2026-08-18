@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Themes.Simple;
@@ -2020,14 +2020,118 @@ static class Runner
                 Assert.True(written.Length == 3, $"expected the file to be truncated to 3 bytes, got {written.Length}");
             });
 
-            t.Check("OpenWriteAsync overwrites a read-only file", () =>
+            t.Check("a staged write overwrites a read-only file", () =>
             {
                 File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.ReadOnly);
 
-                using (var stream = file.OpenWriteAsync().GetAwaiter().GetResult())
-                    stream.Write([9, 9]);
+                var staged = file.OpenStagedWriteAsync().GetAwaiter().GetResult();
+                staged.Stream.Write([9, 9]);
+                staged.CommitAsync().GetAwaiter().GetResult();
+                staged.DisposeAsync().GetAwaiter().GetResult();
 
-                Assert.True(File.ReadAllBytes(path).Length == 2, "the stream did not truncate the file");
+                Assert.True(File.ReadAllBytes(path).Length == 2, "the staged write did not replace the file");
+            });
+
+            // A save that dies mid-write used to leave the destination truncated, which for a .pix2d is an
+            // unopenable project where the user's work was (appstat, fatal: "End of Central Directory
+            // record could not be found", alongside disk-full errors from the same window). SaveAsync now
+            // stages through a .tmp sibling and only moves it into place once the bytes are all there.
+            t.Check("a failed SaveAsync leaves the previous file untouched", () =>
+            {
+                File.WriteAllBytes(path, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+                using var source = new ThrowingStream(failAfterBytes: 2);
+                var threw = false;
+                try { file.SaveAsync(source).GetAwaiter().GetResult(); }
+                catch (IOException) { threw = true; }
+
+                Assert.True(threw, "the write failure must still be reported to the caller");
+                Assert.True(File.ReadAllBytes(path).Length == 8,
+                    "the destination was modified by a save that never completed");
+                Assert.True(!File.Exists(path + ".tmp"), "the staging file was left behind");
+            });
+
+            // The staged-write path is what lets a multi-megabyte project stream straight to disk instead of
+            // being assembled in memory first, so it has to give the same guarantee the buffer did: the
+            // destination is untouched until the payload is complete. Commit publishes; abandoning does not.
+            t.Check("a staged write publishes only on commit", () =>
+            {
+                File.WriteAllBytes(path, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+                var staged = file.OpenStagedWriteAsync().GetAwaiter().GetResult();
+                staged.Stream.Write([7, 7, 7]);
+                Assert.True(File.ReadAllBytes(path).Length == 8,
+                    "the destination changed before the commit");
+
+                staged.CommitAsync().GetAwaiter().GetResult();
+                staged.DisposeAsync().GetAwaiter().GetResult();
+
+                Assert.True(File.ReadAllBytes(path).Length == 3, "the commit did not publish the staged bytes");
+                Assert.True(!File.Exists(path + ".tmp"), "the staging file outlived the commit");
+            });
+
+            t.Check("an abandoned staged write leaves the previous file untouched", () =>
+            {
+                File.WriteAllBytes(path, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+                var staged = file.OpenStagedWriteAsync().GetAwaiter().GetResult();
+                staged.Stream.Write([9, 9]);
+                staged.DisposeAsync().GetAwaiter().GetResult();   // no commit — the write failed
+
+                Assert.True(File.ReadAllBytes(path).Length == 8, "an uncommitted write reached the destination");
+                Assert.True(!File.Exists(path + ".tmp"), "the abandoned staging file was left behind");
+            });
+
+            // ProjectPacker now streams the archive into the staging file rather than assembling it in
+            // memory, which puts the zip's central directory at the mercy of commit ordering: commit before
+            // the ZipArchive is disposed and every saved project would be missing it. The format harness
+            // round-trips through the serializer, not through the packer, so this is the check that the
+            // production save path still produces a readable archive.
+            t.Check("a project written through the staged path reloads", () =>
+            {
+                h.NewProject(32);
+                h.ActivateTool<Pix2d.Plugins.Drawing.Tools.BrushTool>();
+                h.DragWorld(4, 4, 20, 20);
+
+                var scene = h.AppState.CurrentProject.SceneNode!;
+                var expected = scene.Nodes.OfType<Pix2dSprite>().Count();
+
+                var projectPath = Path.Combine(dir, "roundtrip.pix2d");
+                var projectFile = new Pix2d.Common.FileSystem.NetFileSource(projectPath);
+
+                // Task.Run: these checks run on the Avalonia dispatcher thread, and the packer's awaits post
+                // their continuations back to it — blocking on them from that same thread would deadlock.
+                // Production always awaits WriteProjectAsync properly (ProjectService.SaveCurrentProjectToFileAsync).
+                Task.Run(() => Pix2d.Project.ProjectPacker.WriteProjectAsync(projectFile, scene))
+                    .GetAwaiter().GetResult();
+
+                Assert.True(!File.Exists(projectPath + ".tmp"), "the staging file outlived the save");
+
+                var reloaded = Task.Run(() => Pix2d.Project.ProjectUnpacker.LoadProjectScene(projectFile))
+                    .GetAwaiter().GetResult();
+
+                Assert.True(reloaded != null, "the saved project did not load back");
+                Assert.True(reloaded!.Nodes.OfType<Pix2dSprite>().Count() == expected,
+                    "the reloaded project lost artboards");
+
+                var preview = Task.Run(() => Pix2d.Project.ProjectUnpacker.LoadPreview(projectFile))
+                    .GetAwaiter().GetResult();
+                Assert.True(preview != null, "the saved project carries no readable thumbnail");
+            });
+
+            // The recent-projects gallery asks every entry for a thumbnail on a fire-and-forget task, so a
+            // corrupt .pix2d among them took the whole app down (appstat, fatal: "End of Central Directory
+            // record could not be found"). A thumbnail that cannot be read is a missing thumbnail.
+            t.Check("a corrupt .pix2d yields no preview instead of throwing", () =>
+            {
+                var corruptPath = Path.Combine(dir, "corrupt.pix2d");
+                File.WriteAllBytes(corruptPath, "PK truncated before the central directory"u8.ToArray());
+
+                var preview = Pix2d.Project.ProjectUnpacker
+                    .LoadPreview(new Pix2d.Common.FileSystem.NetFileSource(corruptPath))
+                    .GetAwaiter().GetResult();
+
+                Assert.True(preview == null, "a corrupt archive must not produce a preview");
             });
         }
         finally
@@ -2040,6 +2144,37 @@ static class Runner
             }
             catch { /* temp cleanup is best effort */ }
         }
+    }
+
+    /// <summary>
+    /// Readable stream that hands over a few bytes and then fails, standing in for a full disk or a drive
+    /// pulled mid-save. Derives from <see cref="Stream"/>, not MemoryStream — the latter's optimized
+    /// CopyToAsync bypasses an overridden Read and never sees the failure.
+    /// </summary>
+    private sealed class ThrowingStream(int failAfterBytes) : Stream
+    {
+        private int _delivered;
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            if (_delivered >= failAfterBytes)
+                throw new IOException("There is not enough space on the disk.");
+
+            var n = Math.Min(count, failAfterBytes - _delivered);
+            for (var i = 0; i < n; i++) buffer[offset + i] = 0xAB;
+            _delivered += n;
+            return n;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => _delivered; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     // --- Scenario 7ag: a logging target that throws ------------------------------------------------

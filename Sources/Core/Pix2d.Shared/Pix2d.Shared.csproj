@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
        <TargetFramework>net10.0</TargetFramework>
 		<RootNamespace>Pix2d</RootNamespace>
@@ -6,11 +6,6 @@
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	</PropertyGroup>
-	<ItemGroup>
-		<Compile Remove="Abstract\Platform\**" />
-		<EmbeddedResource Remove="Abstract\Platform\**" />
-		<None Remove="Abstract\Platform\**" />
-	</ItemGroup>
 	<ItemGroup>
 		<None Remove="AboutAssets.txt" />
 	</ItemGroup>

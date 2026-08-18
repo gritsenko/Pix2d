@@ -1,10 +1,17 @@
-﻿using System;
+using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Pix2d.Abstract.Platform.FileSystem;
 
 namespace Pix2d.Common.FileSystem;
 
+/// <summary>
+/// An <see cref="IFileContentSource"/> over a plain filesystem path, so every write here can take the
+/// strong guarantee: stage beside the destination, publish with an atomic rename. See
+/// <see cref="StagedWrites.OnDisk"/> for why that matters — an in-place write that dies half-way (full
+/// disk, unplugged drive, killed process) leaves an unopenable file where the user's work was.
+/// </summary>
 public class NetFileSource : IFileContentSource
 {
     public string Path { get; }
@@ -20,29 +27,29 @@ public class NetFileSource : IFileContentSource
         return Task.FromResult(File.ReadAllBytes(Path));
     }
 
-    public Task SaveAsync(Stream sourceStream)
+    /// <inheritdoc />
+    public Task<IStagedWrite> OpenStagedWriteAsync()
     {
         PrepareForOverwrite();
-
-        // FileMode.Create truncates in place. The previous delete-then-OpenWrite pair needed no delete to
-        // begin with, and File.Delete is *stricter* than writing: it refuses outright on a read-only file.
-        using var fileStream = new FileStream(Path, FileMode.Create, FileAccess.Write);
-        sourceStream.CopyTo(fileStream);
-        fileStream.Flush();
-        fileStream.Close();
-
-        return Task.CompletedTask;
+        return Task.FromResult(StagedWrites.OnDisk(Path));
     }
 
-    public Task<Stream> OpenWriteAsync()
+    public async Task SaveAsync(Stream sourceStream)
     {
-        PrepareForOverwrite();
-
-        var outputFileStream = File.OpenWrite(Path);
-        outputFileStream.SetLength(0);
-        outputFileStream.Position = 0;
-        return Task.FromResult<Stream>(outputFileStream);
+        // ConfigureAwait(false) throughout: callers reach this from the Avalonia dispatcher and some block
+        // on the result (the scenario harness does), so capturing the UI context would deadlock.
+        await using var staged = await OpenStagedWriteAsync().ConfigureAwait(false);
+        await sourceStream.CopyToAsync(staged.Stream).ConfigureAwait(false);
+        await staged.CommitAsync().ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Text goes through the same staged write as everything else. It used to be a plain
+    /// <c>File.WriteAllText</c>, which quietly made the *text* payloads the only unprotected ones — and
+    /// those are palettes the user authored and sprite-sheet metadata sidecars, not scratch data.
+    /// </summary>
+    public Task SaveAsync(string textContent)
+        => SaveAsync(new MemoryStream(Encoding.UTF8.GetBytes(textContent)));
 
     /// <summary>
     /// Clears the read-only attribute so an overwrite the user has already asked for can proceed.
@@ -72,38 +79,9 @@ public class NetFileSource : IFileContentSource
         }
     }
 
-    public Task SaveCompressedPng(Stream sourcePngStream)
-    {
-        throw new NotImplementedException();
-        //var pc = new PNGCompression.PNGCompressor();
-        //pc.PNGToolPath = System.AppDomain.CurrentDomain.BaseDirectory + @"\Utils";
-        //var rawPath = Path + "_raw";
-
-        //using (var fileStream = File.OpenWrite(rawPath))
-        //{
-        //    sourcePngStream.CopyTo(fileStream);
-        //    fileStream.Flush();
-        //    fileStream.Close();
-        //}
-
-        //pc.CompressImageLossy(rawPath, Path, new PNGCompression.LossyInputSettings("", 50, 80, 1));
-
-        //File.Delete(rawPath);
-    }
-
     public void Delete()
     {
         File.Delete(Path);
-    }
-
-    public void Save(string textContent)
-    {
-        File.WriteAllText(Path, textContent);
-    }
-
-    public Task SaveAsync(string textContent)
-    {
-        return Task.Run(() => { Save(textContent); });
     }
 
     public Task<Stream> OpenRead()

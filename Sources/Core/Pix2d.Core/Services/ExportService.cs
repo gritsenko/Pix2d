@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Immutable;
 using System.IO;
+using System.Runtime.InteropServices;
 using Pix2d.Abstract.Export;
 using Pix2d.Abstract.Platform;
 using Pix2d.Abstract.Platform.FileSystem;
@@ -199,7 +200,17 @@ public class ExportService(
                     "Couldn't export — the image or export scale is too large to fit in memory. Try a smaller size or scale.",
                     "Export");
                 break;
+            // A platform/COM failure (the shell save dialog refusing to open is the one seen in the wild)
+            // is not an empty scene. AvaloniaFileService now swallows picker failures, so this is a
+            // backstop for anything else that reaches us from a platform API.
+            case ExternalException:
+                dialogService.Alert(
+                    "Couldn't export — the system refused the operation. Try again, and restart Pix2d if it keeps happening.",
+                    "Export");
+                break;
             default:
+                // Only reachable for a genuinely empty/degenerate scene; anything else would be misdescribed
+                // by this message, so keep the specific cases above exhaustive.
                 dialogService.Alert("There's nothing to Export!", "Export");
                 break;
         }

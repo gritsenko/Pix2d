@@ -20,9 +20,28 @@ public class AvaloniaFolder(IStorageFolder folder) : IWriteDestinationFolder
         return new NetFileSource(GetFilePath(name, extension.TrimStart('.'), overWrite));
     }
 
+    /// <summary>
+    /// Resolves the destination for one exported item.
+    ///
+    /// <para>Where the picked folder is an ordinary directory this returns a <see cref="NetFileSource"/> for
+    /// the target path and creates nothing: <c>CreateFileAsync</c> truncates an existing file the moment the
+    /// destination is *resolved*, which is before the exporter has produced a single byte — so an export
+    /// that then failed had already destroyed the file it was replacing. The write itself is staged, so the
+    /// old content now survives right up to the atomic rename. Only a folder with no usable filesystem path
+    /// (Android SAF, browser) still goes through the storage provider.</para>
+    /// </summary>
     public async Task<IFileContentSource> GetFileSourceAsync(string name, string extension = "png", bool overwrite = false)
     {
-        var file = await folder.CreateFileAsync(GetUniqueFileName(name, extension.TrimStart('.'), overwrite));
+        var ext = extension.TrimStart('.');
+
+        // Directory.Exists is the only honest test here. A SAF folder's Path falls back to the content:// URI's
+        // LocalPath, which is a non-empty string that is not a filesystem path at all — testing for
+        // "non-empty" would send Android writes to a bogus location.
+        var localPath = folder.TryGetLocalPath();
+        if (!string.IsNullOrEmpty(localPath) && Directory.Exists(localPath))
+            return GetFileSource(name, ext, overwrite);
+
+        var file = await folder.CreateFileAsync(GetUniqueFileName(name, ext, overwrite));
         return new AvaloniaFileSource(file!);
     }
 

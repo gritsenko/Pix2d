@@ -22,13 +22,14 @@ public abstract class BaseAvaloniaClipboardService(
     : InternalClipboardService(drawingService, viewPortService, dialogService, appState)
 {
     private const string Pix2DClipboardMarker = "Pix2D_Internal_Data_Marker";
+    private bool _clipboardWriteFailureNotified;
     protected abstract IClipboard? Clipboard { get; }
 
     public override async Task<bool> TryCopyNodesAsBitmapAsync(IEnumerable<SKNode> nodes, SKColor backgroundColor)
     {
         var result = await base.TryCopyNodesAsBitmapAsync(nodes, backgroundColor);
         if (result)
-            await PutImageIntoClipboard(SavedBitmap);
+            await TryPutImageIntoClipboardAsync(SavedBitmap);
         return result;
     }
 
@@ -36,8 +37,39 @@ public abstract class BaseAvaloniaClipboardService(
     {
         var result = await base.TryCutNodesAsBitmapAsync(nodes, backgroundColor);
         if (result)
-            await PutImageIntoClipboard(SavedBitmap);
+            await TryPutImageIntoClipboardAsync(SavedBitmap);
         return result;
+    }
+
+    /// <summary>
+    /// Hands the copied bitmap to the OS clipboard, tolerating the one failure that is not ours: another
+    /// process owning the clipboard. Windows serialises clipboard access through a single global lock, so a
+    /// clipboard manager / RDP session / Office add-in holding it makes the write fail — Avalonia's Win32
+    /// backend surfaces that as <see cref="System.IO.FileNotFoundException"/> and Clowd.Clipboard as
+    /// ClipboardBusyException. The internal copy has already succeeded by this point, so pasting inside
+    /// Pix2d keeps working and only the handoff to other apps is lost. Notifying once per session keeps a
+    /// user who is copying in a loop from being buried in alerts (one reporter produced 31 of these in
+    /// 90 minutes).
+    /// </summary>
+    private async Task TryPutImageIntoClipboardAsync(SKBitmap? bitmap)
+    {
+        try
+        {
+            await PutImageIntoClipboard(bitmap);
+        }
+        catch (Exception e)
+        {
+            Logger.LogException(e);
+
+            if (_clipboardWriteFailureNotified)
+                return;
+
+            _clipboardWriteFailureNotified = true;
+            DialogService.Alert(
+                "Couldn't copy to the system clipboard — another app is holding it. "
+                + "Pasting inside Pix2d still works; try again in a moment to paste elsewhere.",
+                "Clipboard");
+        }
     }
 
     protected virtual async Task PutImageIntoClipboard(SKBitmap? bitmap)

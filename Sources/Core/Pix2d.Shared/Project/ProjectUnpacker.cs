@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Text;
 using Pix2d.Abstract.Platform.FileSystem;
 using SkiaNodes;
@@ -107,58 +107,6 @@ public class ProjectUnpacker
         }
     }
 
-    /// <summary>Folder-layout counterpart of <see cref="ReadFormatVersionAsync"/>.</summary>
-    private static async Task<int> ReadFolderFormatVersionAsync(IWriteDestinationFolder folder)
-    {
-        try
-        {
-            var manifestFile = await folder.GetFileSourceAsync("manifest", "json", false);
-            if (manifestFile is not { Exists: true })
-                return ProjectFormat.BaselineVersion;
-
-            using var reader = new StreamReader(await manifestFile.OpenRead());
-            var json = await reader.ReadToEndAsync();
-            var manifest = Newtonsoft.Json.JsonConvert.DeserializeObject<ProjectManifest>(json);
-            return manifest?.FormatVersion ?? ProjectFormat.BaselineVersion;
-        }
-        catch
-        {
-            return ProjectFormat.BaselineVersion;
-        }
-    }
-
-    public static async Task<SKNode?> LoadProjectFolderAsync(IWriteDestinationFolder folder)
-    {
-        var files = await folder.GetFilesAsync("Resources");
-        var images = new Dictionary<string, SKBitmap>();
-
-        foreach (var file in files)
-        {
-            await using var data = await file.OpenRead();
-            data.Seek(0, SeekOrigin.Begin);
-            var bm = data.ToSKBitmap();
-            if (bm != null)
-                images.Add(Path.GetFileName(file.Path), bm);
-        }
-
-        var projectFile = await folder.GetFileSourceAsync("project", "pix2d.json", true);
-        using var reader = new StreamReader(await projectFile.OpenRead());
-        var sceneJson = await reader.ReadToEndAsync();
-
-        var formatVersion = await ReadFolderFormatVersionAsync(folder);
-        var scene = ProjectFormat.DeserializeScene(sceneJson, formatVersion, images);
-
-        return scene;
-    }
-
-    public static async Task<IFileContentSource> GetResourceFileAsync(IWriteDestinationFolder projectFolder, string key, string extension)
-    {
-        var resFolder = await projectFolder.GetSubfolderAsync("Resources");
-
-        var entryFile = await resFolder.GetFileSourceAsync(key, extension, false);
-        return entryFile;
-    }
-
     public static async Task<SKBitmap?> LoadPreview(IFileContentSource file)
     {
         if (!file.Exists)
@@ -168,7 +116,22 @@ public class ProjectUnpacker
         if (!fileStream.CanRead || fileStream.Length < 1 || fileStream.Position < 0)
             return null;
 
-        using var zip = new ZipArchive(fileStream, ZipArchiveMode.Read, true, ZipEncoding);
+        ZipArchive zip;
+        try
+        {
+            zip = new ZipArchive(fileStream, ZipArchiveMode.Read, true, ZipEncoding);
+        }
+        catch (InvalidDataException)
+        {
+            // Not a readable archive — a truncated or otherwise corrupt .pix2d. The recent-projects gallery
+            // asks every entry for a thumbnail on a background task, so throwing here took the app down
+            // (appstat, fatal: "End of Central Directory record could not be found"). A missing thumbnail is
+            // the same outcome as every other unreadable case this method already returns null for; opening
+            // the file is where the user is told it is broken.
+            return null;
+        }
+
+        using var _ = zip;
 
         var previewEntry = zip.Entries.FirstOrDefault(x => x.Name == "__project_thumbnail.jpg");
         if (previewEntry == null)

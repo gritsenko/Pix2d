@@ -14,13 +14,39 @@ public class ProjectPacker
 {
     private static readonly Encoding ZipEncoding = Encoding.UTF8;
 
+    /// <summary>
+    /// Writes the project archive to <paramref name="file"/> without ever leaving the destination
+    /// half-written.
+    ///
+    /// <para>The archive used to be streamed straight into the destination, which truncated the user's
+    /// existing <c>.pix2d</c> the moment the save began and left it incomplete for as long as
+    /// serialization and PNG encoding took. A disk-full (appstat: <c>Espace insuffisant sur le disque</c>),
+    /// an unplugged drive or a killed process then left an unopenable file where the project used to be
+    /// (appstat: <c>End of Central Directory record could not be found</c>). The destination must
+    /// therefore not be touched until the whole archive exists somewhere else first.</para>
+    ///
+    /// <para>Which is what <see cref="IFileContentSource.OpenStagedWriteAsync"/> provides, so there is one
+    /// code path here and the platform difference stays inside the file source: a real path stages beside
+    /// the destination and the archive streams to disk entry by entry with nothing buffered, while a SAF /
+    /// browser handle buffers because it has no rename primitive.</para>
+    /// </summary>
     public static async Task WriteProjectAsync(IFileContentSource file, SKNode scene)
     {
         using var serializer = new NodeSerializer();
         var sceneJson = serializer.Serialize(scene);
 
-        await using var outputFileStream = await file.OpenWriteAsync();
-        using var zip = new ZipArchive(outputFileStream, ZipArchiveMode.Create, true, ZipEncoding);
+        await using var staged = await file.OpenStagedWriteAsync();
+
+        // The ZipArchive must be disposed before the commit — that is what writes the central directory,
+        // and an archive without one is precisely the corrupt file this guards against.
+        using (var zip = new ZipArchive(staged.Stream, ZipArchiveMode.Create, true, ZipEncoding))
+            await WriteEntriesAsync(zip, serializer, sceneJson, scene);
+
+        await staged.CommitAsync();
+    }
+
+    private static async Task WriteEntriesAsync(ZipArchive zip, NodeSerializer serializer, string sceneJson, SKNode scene)
+    {
 
         // Format version anchor (H1.2): lets the unpacker migrate older documents on open. Written
         // first so it is cheap to read without inflating the whole archive.
@@ -61,39 +87,5 @@ public class ProjectPacker
         // RenderToBitmap frames the union of all sprite bounds with RenderAdorners off, so the active-artboard
         // highlight border and grid never leak into the saved thumbnail.
         return sprites.RenderToBitmap(SKColor.Empty, scale);
-    }
-
-    public static async Task WriteProjectAsync(IWriteDestinationFolder folder, SKNode scene)
-    {
-        if (folder == null)
-            return;
-
-        await folder.ClearFolderAsync();
-
-        using var serializer = new NodeSerializer();
-        var sceneJson = serializer.Serialize(scene);
-        var projectFile = await folder.GetFileSourceAsync("project", "pix2d.json", true);
-        await projectFile.SaveAsync(sceneJson);
-
-        // Format version anchor (H1.2), mirroring the container layout.
-        var manifestFile = await folder.GetFileSourceAsync("manifest", "json", true);
-        await manifestFile.SaveAsync(Newtonsoft.Json.JsonConvert.SerializeObject(
-            new ProjectManifest { FormatVersion = ProjectFormat.CurrentVersion }));
-
-        //saving images
-        foreach (var entry in serializer.GetDataEntries())
-        {
-            var entryFile = await GetResourceFileAsync(folder, entry.Key, "png");
-            using var dataStream = entry.Value.ToPngStream();
-            await entryFile.SaveAsync(dataStream);
-        }
-    }
-
-    public static async Task<IFileContentSource> GetResourceFileAsync(IWriteDestinationFolder projectFolder, string key, string extension)
-    {
-        var resFolder = await projectFolder.GetSubfolderAsync("Resources");
-
-        var entryFile = await resFolder.GetFileSourceAsync(key.Replace(extension, "").TrimEnd('.'), extension, true);
-        return entryFile;
     }
 }

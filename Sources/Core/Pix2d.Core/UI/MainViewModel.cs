@@ -124,7 +124,12 @@ public sealed partial class MainViewModel : ObservableObject
         // Collect the whole drop into one batch so animation grouping works across multiple files.
         var files = droppedFiles
             .OfType<IStorageFile>()
-            .Select(f => (IFileContentSource)new NetFileSource(System.Net.WebUtility.UrlDecode(f.Path.AbsolutePath)))
+            // TryGetLocalPath first: Uri.AbsolutePath spells a Windows path with forward slashes
+            // ("C:/Users/…/art.pix2d"). File I/O accepts that, but the same file opened through the file
+            // dialog comes back with backslashes, so the two spellings used to land in the recent-projects
+            // list as two entries for one file. Falls back to the URI for a source with no local path.
+            .Select(f => (IFileContentSource)new NetFileSource(
+                f.TryGetLocalPath() ?? System.Net.WebUtility.UrlDecode(f.Path.AbsolutePath)))
             .ToList();
 
         if (files.Count == 0)

@@ -60,12 +60,10 @@ public class SpriteSheetExporter(IFileService fileService, IPlatformStuffService
 
             using var sheet = BuildSheet(nodes, scale, imageName, spriteName);
 
+            // ToPngStream already holds the whole encoded sheet, so hand it over complete rather than
+            // opening the destination and streaming into it — SaveAsync stages the write for us.
             await using (var png = sheet.Image.ToPngStream())
-            await using (var outStream = await pngFile.OpenWriteAsync())
-            {
-                await png.CopyToAsync(outStream);
-                await outStream.FlushAsync();
-            }
+                await pngFile.SaveAsync(png);
 
             var emitter = SheetMetadataEmitters.TryGet(MetadataFormat);
             if (emitter != null)

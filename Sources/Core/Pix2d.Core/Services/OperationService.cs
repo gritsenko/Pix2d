@@ -130,27 +130,48 @@ public class OperationService : IOperationService
 
     private void UpdateCacheStates()
     {
-        // 1. Process Undo stack: first 10 stay hot, rest evict
-        int index = 0;
-        foreach (var op in _undoOperations)
-        {
-            if (op is ICacheableOperation cacheable)
-            {
-                if (index < HotCacheLimit) cacheable.RestoreFromDisk(_diskCache);
-                else cacheable.EvictToDisk(_diskCache);
-            }
-            index++;
-        }
+        RefreshCacheWindow(_undoOperations);
+        RefreshCacheWindow(_redoOperations);
+    }
 
-        // 2. Process Redo stack: similarly, keep first 10 hot
-        index = 0;
-        foreach (var op in _redoOperations)
+    /// <summary>
+    /// Keeps the newest <see cref="HotCacheLimit"/> operations of a stack in memory and evicts the rest to
+    /// disk.
+    ///
+    /// <para>Those evicted payloads live in the OS temp folder, which Storage Sense, cleanmgr, a /tmp reaper
+    /// or antivirus can wipe while Pix2d is running. Writes survive that — <c>OperationDiskCacheService</c>
+    /// recreates its folder — but a read cannot invent the bytes back, and this runs from
+    /// <see cref="PushOperations"/>, i.e. at the end of every stroke: an exception here killed the stroke
+    /// that triggered it, which is the crash shape appstat saw as <c>DirectoryNotFoundException in
+    /// OperationService.UpdateCacheStates</c> before the write side was fixed.</para>
+    ///
+    /// <para>An operation whose payload is gone can never be replayed, and neither can anything below it —
+    /// a stack is applied from the top down — so the history is truncated at that point. The user keeps
+    /// every step that is still intact and loses only the ones the OS deleted, instead of losing the
+    /// drawing session.</para>
+    /// </summary>
+    private void RefreshCacheWindow(LimitedSizeStack<IEditOperation> stack)
+    {
+        var index = 0;
+
+        foreach (var op in stack)
         {
             if (op is ICacheableOperation cacheable)
             {
-                if (index < HotCacheLimit) cacheable.RestoreFromDisk(_diskCache);
-                else cacheable.EvictToDisk(_diskCache);
+                try
+                {
+                    if (index < HotCacheLimit) cacheable.RestoreFromDisk(_diskCache);
+                    else cacheable.EvictToDisk(_diskCache);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogException(e);
+                    foreach (var dropped in stack.TruncateFrom(index))
+                        DiscardOperation(dropped);
+                    return;
+                }
             }
+
             index++;
         }
     }
@@ -405,6 +426,27 @@ public class OperationService : IOperationService
             {
                 lock (_list) return _list.Count;
             }
+        }
+
+        /// <summary>
+        /// Drops every item from <paramref name="index"/> down to the bottom and returns them, so the
+        /// caller can release whatever they own. Unlike overflow eviction this is not a size limit, so it
+        /// deliberately does not fire <see cref="OnRemoveItem"/> — the caller is already holding the items.
+        /// </summary>
+        public IReadOnlyList<T> TruncateFrom(int index)
+        {
+            var removed = new List<T>();
+
+            lock (_list)
+            {
+                while (_list.Count > index && _list.Last != null)
+                {
+                    removed.Add(_list.Last.Value);
+                    _list.RemoveLast();
+                }
+            }
+
+            return removed;
         }
 
         public IEnumerator<T> GetEnumerator()

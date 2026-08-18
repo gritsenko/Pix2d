@@ -27,29 +27,33 @@ public class SpriteEditCommands : CommandsListBase, ISpriteEditCommands
 
     private void ActivateReturnSelectionTool() => ToolService.ActivateReturnSelectionTool(AppState);
 
+    // The clipboard calls below are awaited on purpose. A sync command action returns before the Task it
+    // started completes, so CommandService.ExecuteCommandGuardedAsync has nothing left to catch and a
+    // clipboard failure surfaces as a context-free fatal at GC time instead of a handled
+    // "Command:Sprite.Edit.CopyPixels".
     public Pix2dCommand CopyPixels =>
-        GetCommand(() =>
+        GetCommand(async () =>
         {
             var (nodes, backgroundColor) = ServiceProvider.GetRequiredService<SpritePlugin>().GetDataForCutOrCopy(AppState);
-            ServiceProvider.GetRequiredService<IClipboardService>().TryCopyNodesAsBitmapAsync(nodes, backgroundColor);
+            await ServiceProvider.GetRequiredService<IClipboardService>().TryCopyNodesAsBitmapAsync(nodes, backgroundColor);
         }, "Copy selected pixels", new CommandShortcut(VirtualKeys.C, KeyModifier.Ctrl), EditContextType.Sprite,
             behaviour: ServiceProvider.GetRequiredService<EnableOnClipboardSelectionCommandBehavior>());
 
-    public Pix2dCommand CopyMerged => GetCommand(() =>
+    public Pix2dCommand CopyMerged => GetCommand(async () =>
     {
         ServiceProvider.GetRequiredService<IDrawingService>().CancelCurrentOperation();
         var container = ServiceProvider.GetRequiredService<ISelectionService>().GetActiveContainer();
         if (container == null)
             return;
 
-        ServiceProvider.GetRequiredService<IClipboardService>().TryCopyNodesAsBitmapAsync(container.Yield().OfType<SKNode>(), container.BackgroundColor);
+        await ServiceProvider.GetRequiredService<IClipboardService>().TryCopyNodesAsBitmapAsync(container.Yield().OfType<SKNode>(), container.BackgroundColor);
     }, "Copy multiple layers", new CommandShortcut(VirtualKeys.C, KeyModifier.Ctrl | KeyModifier.Shift), EditContextType.Sprite);
 
     public Pix2dCommand CutPixels =>
-        GetCommand(() =>
+        GetCommand(async () =>
         {
             var (nodes, backgroundColor) = ServiceProvider.GetRequiredService<SpritePlugin>().GetDataForCutOrCopy(AppState);
-            ServiceProvider.GetRequiredService<IClipboardService>().TryCutNodesAsBitmapAsync(nodes, backgroundColor);
+            await ServiceProvider.GetRequiredService<IClipboardService>().TryCutNodesAsBitmapAsync(nodes, backgroundColor);
         }, "Cut selected pixels", new CommandShortcut(VirtualKeys.X, KeyModifier.Ctrl), EditContextType.Sprite,
             behaviour: ServiceProvider.GetRequiredService<EnableOnClipboardSelectionCommandBehavior>());
 

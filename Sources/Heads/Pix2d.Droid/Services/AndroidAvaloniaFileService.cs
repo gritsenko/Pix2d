@@ -12,8 +12,9 @@ namespace Pix2d.Droid.Services;
 public class AndroidAvaloniaFileService(
     IMessenger messenger,
     IPlatformStuffService platformStuffService,
-    ISettingsService settingsService)
-    : AvaloniaFileService(messenger, platformStuffService, settingsService)
+    ISettingsService settingsService,
+    IDialogService dialogService)
+    : AvaloniaFileService(messenger, platformStuffService, settingsService, dialogService)
 {
     protected override IFileContentSource GetFileSource(IStorageFile? file)
     {

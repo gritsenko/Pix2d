@@ -21,6 +21,9 @@ public partial class ProjectItem : ViewBase<ProjectItem.State>
     protected override object Build(State state)
     {
         return new Button()
+            // The card shows only the (elided) file name, and two recents can share it — the same project
+            // saved in Documents and in Downloads look identical. The full path is what tells them apart.
+            .ToolTip_Tip(state.FullPath)
             .BorderThickness(4)
             .Padding(0)
             .Height(128)
@@ -76,10 +79,17 @@ public partial class ProjectItem : ViewBase<ProjectItem.State>
 
             Project = project;
             ProjectName = string.IsNullOrWhiteSpace(project.Name) ? L("Loading...") : project.Name;
+            FullPath = string.IsNullOrWhiteSpace(project.Path) ? ProjectName : project.Path;
             LoadPreview();
         }
 
         public PreloadedProject Project { get; }
+
+        /// <summary>
+        /// Tooltip text: the file's full path, or its name for a source that has none (an Android SAF
+        /// <c>content://</c> item, a browser file handle).
+        /// </summary>
+        public string FullPath { get; }
 
         public SKBitmapObservable Preview { get; } = new()
         {
@@ -121,10 +131,20 @@ public partial class ProjectItem : ViewBase<ProjectItem.State>
         {
             Task.Run(async () =>
             {
-                var preview = await Project.LoadPreviewAsync();
-                if (preview != null)
+                // Fire-and-forget: nothing awaits this task, so an exception escaping it is an unhandled
+                // crash rather than a missing thumbnail. A recent-projects entry can be any file the user
+                // ever opened — since deleted, replaced, or corrupt — so failing to read one is expected.
+                try
                 {
-                    Preview.SetBitmap(preview);
+                    var preview = await Project.LoadPreviewAsync();
+                    if (preview != null)
+                    {
+                        Preview.SetBitmap(preview);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logger.LogException(e);
                 }
             });
         }

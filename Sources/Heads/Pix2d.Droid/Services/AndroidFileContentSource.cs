@@ -1,4 +1,4 @@
-using Android.Content;
+﻿using Android.Content;
 using Android.Database;
 using Android.Net;
 using Android.Provider;
@@ -217,11 +217,13 @@ public class AndroidFileContentSource : IFileContentSource
         try
         {
             // Permission Denial (SecurityException) может произойти здесь, если нет разрешения на запись
-            // OpenOutputStream с "w", "wt", "wa", "rw"
             var resolver = GetContentResolver();
             if (resolver == null)
                 throw new InvalidOperationException("ContentResolver is not available");
-            using var outputStream = resolver.OpenOutputStream(_contentUri, "w"); // "w" - перезаписать
+            // "wt" (write + truncate), НЕ "w": SAF-провайдер не обязан обрезать файл в режиме "w", поэтому
+            // запись более короткого архива поверх более длинного оставляет хвост старого файла. Zip-ридер
+            // сканирует EOCD с конца и находит запись от прежней версии — проект перестаёт открываться.
+            using var outputStream = resolver.OpenOutputStream(_contentUri, "wt");
             if (outputStream == null)
             {
                 System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.SaveAsync: OpenOutputStream returned null for {_contentUri}");
@@ -253,33 +255,14 @@ public class AndroidFileContentSource : IFileContentSource
         }
     }
 
-    // OpenWriteAsync - получение потока для записи в файл по URI
-    public async Task<Stream> OpenWriteAsync()
-    {
-        System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.OpenWriteAsync: Attempting to open stream for writing to {_contentUri}");
-        try
-        {
-            // Permission Denial (SecurityException) может произойти здесь
-            // OpenOutputStream с "w" или "rw"
-            var resolver = GetContentResolver();
-            if (resolver == null)
-                throw new InvalidOperationException("ContentResolver is not available");
-            var outputStream = resolver.OpenOutputStream(_contentUri, "w"); // Открыть для перезаписи
-            if (outputStream == null)
-            {
-                System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.OpenWriteAsync: OpenOutputStream returned null for {_contentUri}");
-                throw new IOException($"Не удалось получить выходной поток для записи по URI: {_contentUri}. Нет доступа или файл не может быть создан/перезаписан.");
-            }
-            System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.OpenWriteAsync: Successfully opened stream for writing to {_contentUri}");
-            return outputStream;
-        }
-        catch (Exception ex) // Ловим возможные ошибки или SecurityException
-        {
-            System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.OpenWriteAsync: Error opening stream for writing to {_contentUri}: {ex.Message}");
-            throw; // Перебрасываем исключение
-        }
-    }
-
+    /// <inheritdoc />
+    /// <remarks>
+    /// SAF has no rename primitive, so the payload is staged in memory and handed to the provider complete.
+    /// Weaker than the desktop path (the handover itself can still fail mid-copy) but it does keep the
+    /// destination intact while the payload is being produced, which is the long, failure-prone part.
+    /// </remarks>
+    public Task<IStagedWrite> OpenStagedWriteAsync()
+        => Task.FromResult(StagedWrites.InMemory(SaveAsync));
 
     // Delete - удаление файла по URI
     public void Delete()
