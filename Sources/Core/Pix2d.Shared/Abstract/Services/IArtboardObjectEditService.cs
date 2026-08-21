@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System.Threading.Tasks;
 using Pix2d.CommonNodes;
 using SkiaSharp;
@@ -22,6 +22,26 @@ public interface IArtboardObjectEditService
     /// <summary>The live working frame in world coordinates — what <see cref="ConfirmMode"/> would apply.
     /// Empty while no session is open.</summary>
     SKRect FrameRect { get; }
+
+    /// <summary>
+    /// The target artboard's size when the session opened — the base the action bar's scale readout is a
+    /// percentage of. <see cref="SKSize.Empty"/> while no session is open.
+    /// </summary>
+    SKSize OriginalSize { get; }
+
+    /// <summary>
+    /// Proportional lock of the working frame's handles. Reset on every <see cref="Begin"/> to the sub-mode's
+    /// default (on for Resize, off for Crop) and toggled from the action bar afterwards; holding <b>Shift</b>
+    /// inverts it for the duration of a drag. Setting it while no session is open only records the value.
+    /// </summary>
+    bool KeepAspect { get; set; }
+
+    /// <summary>
+    /// Sets the working frame's size from the action bar's numeric inputs, keeping its top-left pinned.
+    /// Clamped to the canvas limits and rounded to whole pixels; still preview-only, like a handle drag.
+    /// No-op while no session is open.
+    /// </summary>
+    void SetFrameSize(SKSize size);
 
     /// <summary>
     /// Opens a handle-driven frame over <paramref name="sprite"/> for a single Resize or Crop. The frame

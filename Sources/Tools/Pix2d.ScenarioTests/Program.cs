@@ -3561,6 +3561,131 @@ static class Runner
             h.Operations.Undo();
         });
 
+        // --- Keyboard size / scale + the proportional lock ----------------------------------------
+        // Handles are not a precise instrument, so the action bar also types into the same preview-only
+        // frame (IArtboardObjectEditService.SetFrameSize, driven by its width / height / scale boxes) and
+        // carries the lock the handles obey. The lock defaults per sub-mode and Shift inverts it, so either
+        // gesture stays one modifier away.
+        t.Check("Resize starts with proportions locked, Crop starts unlocked", () =>
+        {
+            var sprite = h.Artboards[0];
+            h.SelectNodes(sprite);
+
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Resize);
+            Assert.True(h.CanvasEdit.KeepAspect, "a Resize session started with the ratio unlocked");
+            h.CanvasEdit.CancelMode();
+
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Crop);
+            Assert.True(!h.CanvasEdit.KeepAspect, "a Crop session started with the ratio locked");
+            h.CanvasEdit.CancelMode();
+        });
+
+        t.Check("a typed size writes the working frame (top-left pinned) and is clamped, not applied", () =>
+        {
+            var sprite = h.Artboards[0];
+            var size = sprite.Size;
+            var origin = sprite.GetBoundingBox().Location;
+            h.SelectNodes(sprite);
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Resize);
+
+            Assert.True(h.CanvasEdit.OriginalSize == size,
+                $"OriginalSize = {h.CanvasEdit.OriginalSize}, expected the artboard size {size}");
+
+            h.CanvasEdit.SetFrameSize(new SKSize(100, 50));
+            Assert.True(h.CanvasEdit.FrameRect.Size == new SKSize(100, 50),
+                $"frame = {h.CanvasEdit.FrameRect.Size}, expected 100x50");
+            Assert.True(h.CanvasEdit.FrameRect.Location == origin,
+                $"frame moved to {h.CanvasEdit.FrameRect.Location}, expected the top-left to stay at {origin}");
+            Assert.True(sprite.Size == size,
+                $"the typed size reached the document ({sprite.Size}) — it must wait for Apply");
+
+            // A text box can hand over anything; a 0-sized canvas is fatal downstream (see CanvasSize).
+            h.CanvasEdit.SetFrameSize(new SKSize(0, -5));
+            Assert.True(h.CanvasEdit.FrameRect.Size == new SKSize(1, 1),
+                $"frame = {h.CanvasEdit.FrameRect.Size}, expected the degenerate size clamped to 1x1");
+
+            h.CanvasEdit.CancelMode();
+        });
+
+        t.Check("a locked corner drag keeps the frame ratio, pinning the opposite corner", () =>
+        {
+            var sprite = h.Artboards[0];
+            h.SelectNodes(sprite);
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Resize); // locked by default
+            h.CanvasEdit.SetFrameSize(new SKSize(80, 40));             // 2:1 to make the ratio visible
+            var f0 = h.CanvasEdit.FrameRect;
+
+            // Pull the bottom-right corner 40px right only — the height must follow the ratio anyway.
+            h.PressWorld(f0.Right, f0.Bottom);
+            h.MoveWorld(f0.Right + 40, f0.Bottom, pressed: true);
+            h.ReleaseWorld(f0.Right + 40, f0.Bottom);
+
+            var f = h.CanvasEdit.FrameRect;
+            Assert.True(f.Size == new SKSize(120, 60), $"frame = {f.Size}, expected 120x60 (2:1 kept)");
+            Assert.True(f.Location == f0.Location,
+                $"frame origin moved to {f.Location}, expected the pinned corner to stay at {f0.Location}");
+        });
+
+        t.Check("Shift inverts the lock for the gesture in flight", () =>
+        {
+            h.CanvasEdit.SetFrameSize(new SKSize(80, 40));
+            var f0 = h.CanvasEdit.FrameRect;
+
+            h.HoldShift();
+            try
+            {
+                h.PressWorld(f0.Right, f0.Bottom, KeyModifier.Shift);
+                h.MoveWorld(f0.Right + 40, f0.Bottom, pressed: true, KeyModifier.Shift);
+                h.ReleaseWorld(f0.Right + 40, f0.Bottom, KeyModifier.Shift);
+            }
+            finally
+            {
+                h.ReleaseShift();
+            }
+
+            var f = h.CanvasEdit.FrameRect;
+            Assert.True(f.Size == new SKSize(120, 40),
+                $"frame = {f.Size}, expected 120x40 — Shift must unlock a locked session");
+        });
+
+        t.Check("a locked edge drag scales the cross axis about the frame centre", () =>
+        {
+            h.CanvasEdit.SetFrameSize(new SKSize(80, 40));
+            var f0 = h.CanvasEdit.FrameRect;
+
+            h.PressWorld(f0.Right, f0.MidY);
+            h.MoveWorld(f0.Right + 40, f0.MidY, pressed: true);
+            h.ReleaseWorld(f0.Right + 40, f0.MidY);
+
+            var f = h.CanvasEdit.FrameRect;
+            Assert.True(f.Size == new SKSize(120, 60), $"frame = {f.Size}, expected 120x60 (2:1 kept)");
+            Assert.True(f.MidY == f0.MidY,
+                $"cross axis centre moved {f0.MidY} -> {f.MidY}; a locked edge drag must scale in place");
+
+            h.CanvasEdit.CancelMode();
+        });
+
+        t.Check("unlocking from the action bar restores single-axis handle drags", () =>
+        {
+            var sprite = h.Artboards[0];
+            h.SelectNodes(sprite);
+            h.CanvasEdit.Begin(sprite, ArtboardObjectEditMode.Resize);
+            h.CanvasEdit.KeepAspect = false;
+            h.CanvasEdit.SetFrameSize(new SKSize(80, 40));
+            var f0 = h.CanvasEdit.FrameRect;
+
+            h.PressWorld(f0.Right, f0.Bottom);
+            h.MoveWorld(f0.Right + 40, f0.Bottom, pressed: true);
+            h.ReleaseWorld(f0.Right + 40, f0.Bottom);
+
+            var f = h.CanvasEdit.FrameRect;
+            Assert.True(f.Size == new SKSize(120, 40), $"frame = {f.Size}, expected 120x40 (lock off)");
+
+            h.CanvasEdit.CancelMode();
+            Assert.True(sprite.Size.Width == 64 && sprite.Size.Height == 64,
+                $"artboard = {sprite.Size}, expected the cancelled session to change nothing");
+        });
+
         // --- Action bar visibility ----------------------------------------------------------------
         // The General action bar is gated on the top bar's Tools toggle, exactly like the Sprite
         // context's ActionsBarView (MainViewModel.ShowSpriteExtraTools). The view-model state is plain

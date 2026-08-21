@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -316,6 +316,17 @@ public sealed class HeadlessHarness
         PressWorld(x, y, modifiers, clickCount);
         ReleaseWorld(x, y, modifiers);
     }
+
+    /// <summary>
+    /// Holds / releases Shift in SKInput's *keyboard* modifier state — the source interactive scene nodes
+    /// read (<c>SKInput.GetModifiers()</c>: the aspect lock of the artboard resize frame, SnappingService,
+    /// ...). The per-pointer <c>modifiers</c> argument of Press/Move/ReleaseWorld does not feed it: pointer
+    /// events pass modifiers along in their event args but never update the keyboard state.
+    /// </summary>
+    public void HoldShift() => _input.SetKeyPressed(VirtualKeys.Shift, KeyModifier.Shift);
+
+    /// <inheritdoc cref="HoldShift"/>
+    public void ReleaseShift() => _input.SetKeyReleased(VirtualKeys.Shift, KeyModifier.None);
 
     /// <summary>The active sprite (the artboard currently being edited).</summary>
     public Pix2dSprite ActiveSprite => (Pix2dSprite)AppState.CurrentProject.CurrentEditedNode!;

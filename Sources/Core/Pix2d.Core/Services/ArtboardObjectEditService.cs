@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using Mvvm.Messaging;
 using Pix2d.Abstract;
 using Pix2d.Abstract.Services;
@@ -48,10 +48,30 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
     private SKPoint _origPos;
     private SKSize _origSize;
     private ArtboardObjectEditMode _mode = ArtboardObjectEditMode.Resize;
+    private bool _keepAspect = true;
 
     public bool IsActive => _editor != null;
     public ArtboardObjectEditMode Mode => _mode;
     public SKRect FrameRect => _editor?.FrameRect ?? SKRect.Empty;
+    public SKSize OriginalSize => _editor != null ? _origSize : SKSize.Empty;
+
+    /// <inheritdoc />
+    public bool KeepAspect
+    {
+        get => _keepAspect;
+        set
+        {
+            if (_keepAspect == value)
+                return;
+
+            _keepAspect = value;
+
+            // The overlay reads this on every move, so an open session picks the change up on the next drag
+            // (and mid-drag, if the user toggles while holding a handle).
+            if (_editor != null)
+                _editor.KeepAspect = value;
+        }
+    }
 
     public ArtboardObjectEditService(AppState appState, IMessenger messenger, IOperationService operationService,
         IViewPortRefreshService viewPortRefreshService, IEditService editService, IDrawingService drawingService,
@@ -117,9 +137,15 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
         _origSize = sprite.Size;
         _mode = mode;
 
+        // Per-mode default rather than a sticky user preference: scaling artwork non-uniformly is the
+        // exception (Resize starts locked), while cropping an arbitrary region is the point (Crop starts
+        // unlocked). Shift inverts whatever is in force, so neither default blocks the other gesture.
+        _keepAspect = mode == ArtboardObjectEditMode.Resize;
+
         var editor = new ArtboardObjectEditorNode
         {
-            OnChanged = () => _viewPortRefreshService.Refresh(),
+            KeepAspect = _keepAspect,
+            OnChanged = OnFrameChanged,
         };
         editor.SetTarget(sprite, mode);
         _editor = editor;
@@ -133,6 +159,19 @@ public class ArtboardObjectEditService : IArtboardObjectEditService
         SkiaNodes.AdornerLayer.GetAdornerLayer(scene).Add(editor);
         _viewPortRefreshService.Refresh();
         RaiseStateChanged();
+    }
+
+    /// <inheritdoc />
+    public void SetFrameSize(SKSize size) => _editor?.SetFrameSize(size);
+
+    /// <summary>
+    /// One live change of the working frame — a handle drag or a value typed into the action bar. Repaints
+    /// the viewport and lets the bar's size / scale boxes follow the frame.
+    /// </summary>
+    private void OnFrameChanged()
+    {
+        _viewPortRefreshService.Refresh();
+        _messenger.Send(new ArtboardObjectEditFrameChangedMessage(FrameRect));
     }
 
     /// <summary>Applies the framed Resize/Crop as a single undoable operation and ends the session.</summary>

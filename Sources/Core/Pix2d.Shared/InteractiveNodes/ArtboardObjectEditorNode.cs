@@ -1,6 +1,7 @@
-#nullable enable
+﻿#nullable enable
 using Pix2d.Abstract;
 using Pix2d.CommonNodes;
+using Pix2d.Primitives;
 using SkiaNodes;
 using SkiaNodes.Extensions;
 using SkiaNodes.Interactive;
@@ -55,6 +56,7 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable, IDisposable
     private Pix2dSprite? _sprite;
     private SKRect _frameRect;
     private SKRect _dragStartFrame;
+    private float _dragStartAspect = 1f;
     private float _handleWorldSize;
     private ViewPort? _vp;
 
@@ -66,6 +68,22 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable, IDisposable
 
     /// <summary>Called on every live change so the host can refresh the viewport.</summary>
     public Action? OnChanged { get; set; }
+
+    /// <summary>
+    /// Proportional lock for the handle drags: while it is on, a corner/edge drag keeps the aspect ratio the
+    /// frame had when the drag started. The service sets the default per sub-mode (on for Resize — scaling
+    /// artwork non-uniformly is the exception, not the rule; off for Crop, where an arbitrary region is the
+    /// point) and the action bar's toggle drives it afterwards.
+    /// </summary>
+    public bool KeepAspect { get; set; }
+
+    /// <summary>
+    /// The lock actually in force for the gesture in flight: <b>Shift inverts</b> <see cref="KeepAspect"/>,
+    /// the same modifier convention as <c>SnappingService.IsAspectLocked</c>. Read live on every move, so the
+    /// modifier can be pressed or released mid-drag.
+    /// </summary>
+    private bool IsAspectLocked =>
+        KeepAspect ^ SKInput.Current.GetModifiers().HasFlag(KeyModifier.Shift);
 
     public ArtboardObjectEditMode Mode { get; private set; } = ArtboardObjectEditMode.Resize;
 
@@ -127,6 +145,24 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable, IDisposable
     }
 
     /// <summary>
+    /// Sets the working frame's size directly — the numeric inputs in the action bar — keeping its top-left
+    /// pinned, so typing a size grows/shrinks the artboard the same way dragging the bottom-right handle
+    /// does. Whole pixels only and clamped to the canvas limits (<see cref="CanvasSize"/>), because these
+    /// values come straight from a text box. Still preview-only: this is the same <see cref="FrameRect"/> the
+    /// service applies on confirm.
+    /// </summary>
+    public void SetFrameSize(SKSize size)
+    {
+        var sanitized = CanvasSize.Sanitize(new SKSize(MathF.Round(size.Width), MathF.Round(size.Height)));
+        if (sanitized == _frameRect.Size)
+            return;
+
+        _frameRect = SKRect.Create(_frameRect.Left, _frameRect.Top, sanitized.Width, sanitized.Height);
+        Layout();
+        OnChanged?.Invoke();
+    }
+
+    /// <summary>
     /// Grabs the artboard's current pixels once, at 1:1, as the source of the stretched Resize preview
     /// (RenderToBitmap runs with RenderAdorners off, so no checkerboard / highlight / onion skin leaks in).
     /// A failure here is not fatal: the session simply keeps the old outline-only behaviour.
@@ -168,7 +204,13 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable, IDisposable
         Layout();
     }
 
-    private void BeginResizeDrag() => _dragStartFrame = _frameRect;
+    private void BeginResizeDrag()
+    {
+        _dragStartFrame = _frameRect;
+        // Lock to the ratio the frame has *now*, not the artboard's original: after an unlocked drag the
+        // user expects a following locked drag to keep what is on screen.
+        _dragStartAspect = _frameRect.Height > 0 ? _frameRect.Width / _frameRect.Height : 1f;
+    }
 
     private void OnCornerDrag(Corner corner, SKPoint delta)
     {
@@ -183,24 +225,27 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable, IDisposable
             case Corner.LeftBottom: left = f.Left + delta.X; bottom = f.Bottom + delta.Y; break;
         }
 
-        left = MathF.Round(left);
-        top = MathF.Round(top);
-        right = MathF.Round(right);
-        bottom = MathF.Round(bottom);
+        var movesLeft = corner is Corner.LeftTop or Corner.LeftBottom;
+        var movesTop = corner is Corner.LeftTop or Corner.RightTop;
 
-        // Keep the un-dragged edge fixed; never let the dragged edge cross it (min 1px canvas).
-        if (right - left < 1)
+        if (IsAspectLocked && _dragStartAspect > 0)
         {
-            if (corner is Corner.LeftTop or Corner.LeftBottom) left = right - 1;
-            else right = left + 1;
-        }
-        if (bottom - top < 1)
-        {
-            if (corner is Corner.LeftTop or Corner.RightTop) top = bottom - 1;
-            else bottom = top + 1;
+            var w = right - left;
+            var h = bottom - top;
+
+            // Follow whichever axis the pointer took further (compared in ratio-normalized terms), so a
+            // diagonal drag tracks the cursor instead of fighting it.
+            if (MathF.Abs(w - f.Width) >= MathF.Abs(h - f.Height) * _dragStartAspect)
+                h = w / _dragStartAspect;
+            else
+                w = h * _dragStartAspect;
+
+            // The corner opposite the dragged one stays pinned, exactly as in the unlocked case.
+            if (movesLeft) left = right - w; else right = left + w;
+            if (movesTop) top = bottom - h; else bottom = top + h;
         }
 
-        _frameRect = new SKRect(left, top, right, bottom);
+        _frameRect = NormalizeFrame(left, top, right, bottom, movesLeft, movesTop);
         Layout();
         OnChanged?.Invoke();
     }
@@ -218,26 +263,55 @@ public class ArtboardObjectEditorNode : SKNode, IViewPortBindable, IDisposable
             case Edge.Bottom: bottom = f.Bottom + delta.Y; break;
         }
 
+        if (IsAspectLocked && _dragStartAspect > 0)
+        {
+            // The dragged edge sets one dimension; the cross axis follows the ratio, grown symmetrically
+            // about the frame's centre line so the frame scales in place instead of drifting to one side.
+            if (edge is Edge.Left or Edge.Right)
+            {
+                var h = (right - left) / _dragStartAspect;
+                top = f.MidY - h / 2f;
+                bottom = f.MidY + h / 2f;
+            }
+            else
+            {
+                var w = (bottom - top) * _dragStartAspect;
+                left = f.MidX - w / 2f;
+                right = f.MidX + w / 2f;
+            }
+        }
+
+        _frameRect = NormalizeFrame(left, top, right, bottom, edge == Edge.Left, edge == Edge.Top);
+        Layout();
+        OnChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Rounds a working rect to whole pixels and guarantees a >= 1px canvas in both axes. The flags name the
+    /// edge that may give way — the un-dragged edge always stays pinned, so a handle dragged past its
+    /// opposite edge stops there instead of inverting the frame. Both axes are checked whatever handle
+    /// started the drag, because an aspect-locked gesture also drives the cross axis.
+    /// </summary>
+    private static SKRect NormalizeFrame(float left, float top, float right, float bottom,
+        bool movesLeft, bool movesTop)
+    {
         left = MathF.Round(left);
         top = MathF.Round(top);
         right = MathF.Round(right);
         bottom = MathF.Round(bottom);
 
-        // Keep the un-dragged edge fixed; never let the dragged edge cross it (min 1px canvas).
         if (right - left < 1)
         {
-            if (edge == Edge.Left) left = right - 1;
-            else if (edge == Edge.Right) right = left + 1;
+            if (movesLeft) left = right - 1;
+            else right = left + 1;
         }
         if (bottom - top < 1)
         {
-            if (edge == Edge.Top) top = bottom - 1;
-            else if (edge == Edge.Bottom) bottom = top + 1;
+            if (movesTop) top = bottom - 1;
+            else bottom = top + 1;
         }
 
-        _frameRect = new SKRect(left, top, right, bottom);
-        Layout();
-        OnChanged?.Invoke();
+        return new SKRect(left, top, right, bottom);
     }
 
     private FrameInfoBadgeNode.FrameInfo? GetFrameInfo()

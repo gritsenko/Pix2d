@@ -272,6 +272,29 @@ its own outcome (both are pure adorner painting — the document is written only
 
 `IArtboardObjectEditService.FrameRect` exposes the live world-space frame (what Apply would commit).
 
+**Keyboard sizing + the proportional lock.** Handles are not a precise instrument, so
+[ArtboardCanvasEditView.cs](../Sources/Core/Pix2d.Core/UI/ArtboardCanvasEditView.cs) also types into the same
+preview-only frame: **Width / Height** boxes, a **lock** toggle, and — for Resize only, where the pixels are
+actually scaled — a **Scale %** box relative to the artboard's size at session start
+(`IArtboardObjectEditService.OriginalSize`). All of them go through `SetFrameSize`, which pins the frame's
+top-left and sanitizes through [`CanvasSize`](../Sources/Core/Pix2d.Shared/Primitives/CanvasSize.cs) (the
+boxes carry `Minimum`/`Maximum` too — a text box is exactly how the *"Unable to allocate pixels"* signature
+was produced once already). The bar follows a handle drag via
+[ArtboardObjectEditFrameChangedMessage.cs](../Sources/Core/Pix2d.Shared/Messages/ArtboardObjectEditFrameChangedMessage.cs),
+and leaves the box being typed into alone while re-syncing the derived ones (`PushFrameSize`) — otherwise a
+multi-digit number cannot be typed.
+
+The lock (`IArtboardObjectEditService.KeepAspect` → `ArtboardObjectEditorNode.KeepAspect`) defaults **per
+sub-mode**, reset by every `Begin`: **on for Resize** (scaling artwork non-uniformly is the exception),
+**off for Crop** (an arbitrary region is the point). **Shift inverts** whatever is in force, read live from
+`SKInput.GetModifiers()` on every move — the same convention as `SnappingService.IsAspectLocked` — so it can
+be pressed or released mid-drag. A locked corner drag follows the axis the pointer took further (compared in
+ratio-normalized terms) and pins the opposite corner; a locked **edge** drag scales the cross axis about the
+frame's centre line, so the frame scales in place instead of drifting to one side. The ratio comes from the
+frame at drag start, not from the artboard, so a locked drag after an unlocked one keeps what is on screen.
+Because a locked gesture drives the *cross* axis too, the min-1px clamp lives in one `NormalizeFrame` helper
+that checks both axes (the old per-handle clamp only guarded the dragged one).
+
 **The object frame after Apply.** Ending a session runs `ResetFrame()` + `Invalidate()` on the selection: the
 visible object frame is `MoveThumbNode`, which sizes itself from `NodesSelection.Frame` — a node kept across
 `Invalidate()` calls because it carries a rotation that recomputed bounds cannot restore — so without the
@@ -314,12 +337,17 @@ UI / wiring:
 4. Arrange → selection repacks into a dense grid with same-prefix artboards ("icon-goal-*") grouped into
    their own row blocks, one undo step. Toggling **Tools** off in the top bar hides the whole action bar.
 5. Resize: drag a corner → the artboard itself stretches/squashes live (nearest-neighbour, on the checkerboard;
-   shrinking vacates scene background, no ghost of the original left behind). Apply → content scales to the
-   framed size, anchored at the opposite corner, and the object frame snaps to the new canvas; Undo reverts in
-   one step and the frame follows back. Cancel/Esc discards, ends the session, and the artboard paints itself
-   again.
+   shrinking vacates scene background, no ghost of the original left behind), keeping its proportions — the bar's
+   lock starts on for Resize; holding **Shift** frees the ratio for that drag (and locks it when the toggle is
+   off). Apply → content scales to the framed size, anchored at the opposite corner, and the object frame snaps
+   to the new canvas; Undo reverts in one step and the frame follows back. Cancel/Esc discards, ends the session,
+   and the artboard paints itself again.
+5a. Resize by keyboard: type into **Width** (locked → Height follows, unlocked → it does not), or into
+   **Scale %** (200 doubles the canvas, 50 halves it — always proportional). The frame's top-left stays put, the
+   badge and the other boxes follow, and nothing reaches the document until Apply. A nonsense value (0, a huge
+   typo) clamps instead of being applied.
 6. Crop: drag handles → everything outside the frame dims (content still visible, so you can see what is being
-   trimmed). Apply → canvas trims/extends with no scaling; kept content stays anchored and the object frame
+   trimmed); proportions start **unlocked** here, and Shift (or the bar's toggle) locks them. Apply → canvas trims/extends with no scaling; kept content stays anchored and the object frame
    matches the new canvas. Undo reverts.
 7. Rename → dialog renames the artboard; the label updates.
 8. Double-click an artboard body → back to Sprite context for it, brush tool active.
