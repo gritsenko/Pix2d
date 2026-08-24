@@ -1,6 +1,7 @@
-#nullable enable
+﻿#nullable enable
 using Microsoft.Extensions.DependencyInjection;
 using Pix2d.Abstract.Platform;
+using Pix2d.Abstract.Platform.FileSystem;
 using Pix2d.Abstract.Tools;
 using Pix2d.Services;
 using Pix2d.CommonNodes;
@@ -311,7 +312,19 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
                 var projectService = sp.GetRequiredService<IProjectService>();
                 try
                 {
-                    await projectService.OpenFilesAsync([new NetFileSource(StartupDocument)]);
+                    // Ask the head to turn the string into a real source, and do it HERE rather than
+                    // reading the snapshot in `settings`: on Android, Avalonia (and therefore
+                    // Initialize → GetPix2dSettings) comes up in Application.OnCreate, which runs
+                    // BEFORE MainActivity.OnCreate assigns StartupDocument — so the settings snapshot
+                    // never sees it. This used to fall through to `new NetFileSource(StartupDocument)`,
+                    // a filesystem source over a `content://` URI, and every cold "open with Pix2d"
+                    // failed: the extension was parsed out of the URI text (usually absent, so no
+                    // importer matched and the scene stayed null → "Scene must not be null").
+                    var startupFile = ResolveStartupDocument(StartupDocument) ?? settings?.StartupDocument;
+                    if (startupFile == null)
+                        throw new NotSupportedException($"Can't open the startup document: {StartupDocument}");
+
+                    await projectService.OpenFilesAsync([startupFile]);
                 }
                 catch (Exception openEx)
                 {
@@ -611,4 +624,14 @@ public abstract class Pix2dBootstrapperDI : IPix2dBootstrapper
 
 
     protected abstract Pix2DAppSettings GetPix2dSettings();
+
+    /// <summary>
+    /// Turns the startup-document string this head was launched with into a readable source.
+    /// Called lazily, when the document is actually loaded — a head whose startup document only
+    /// becomes known after <see cref="Initialize"/> (Android: Avalonia starts in
+    /// <c>Application.OnCreate</c>, the URI arrives in <c>MainActivity.OnCreate</c>) cannot resolve
+    /// it from <see cref="GetPix2dSettings"/>.
+    /// </summary>
+    /// <returns>The source to open, or <c>null</c> if this head cannot make sense of the string.</returns>
+    protected virtual IFileContentSource? ResolveStartupDocument(string document) => new NetFileSource(document);
 }

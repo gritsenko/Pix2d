@@ -308,8 +308,10 @@ public class ProjectService : IProjectService, ISessionProjectLoader
         if (HasUnsavedChanges && !await AskSaveCurrentProject())
             return;
 
-        CloseCurrentProject();
-
+        // Build the new scene BEFORE closing the current project: an open that fails (a file Pix2d
+        // can't decode, a corrupt project) used to leave the editor half-closed — ProjectState.File
+        // cleared and ProjectCloseMessage already sent — so the user lost the link to their own file
+        // and got nothing in return. Now a failed open changes nothing.
         using var uiBlocker = new UiBlocker("Loading project...");
         SKNode scene;
         try
@@ -323,6 +325,8 @@ public class ProjectService : IProjectService, ISessionProjectLoader
             try { DialogService.Alert($"Failed to load project: {ex.Message}", "Load project error"); } catch { }
             return;
         }
+
+        CloseCurrentProject();
 
         var file = fileContentSources.First();
         if (!OperatingSystem.IsBrowser())

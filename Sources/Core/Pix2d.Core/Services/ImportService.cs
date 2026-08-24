@@ -37,7 +37,19 @@ public class ImportService(AppState appState) : IImportService
             if(importTarget == null)
                 throw new ArgumentException("no import target provided");
 
-            var importer = GetImporter(filesToImport.First().Extension);
+            // An unsupported extension is ordinary user input, not a fault: Android in particular lets
+            // the user pick any file (Pix2d has to claim application/octet-stream so its own .pix2d
+            // files open at all). Answer it plainly instead of letting GetImporter's First() throw
+            // "Sequence contains no matching element" into a dialog — and don't log it as an exception.
+            var file = filesToImport.First();
+            if (!CanImport(file.Extension))
+            {
+                var kind = string.IsNullOrWhiteSpace(file.Extension) ? "This file" : $"\"{file.Extension}\" files";
+                return new IImportService.ImportResult(false,
+                    $"{kind} can't be opened. Pix2d opens: {string.Join(", ", SupportedExtensions)}, .pix2d.");
+            }
+
+            var importer = GetImporter(file.Extension);
             await importer.ImportToTargetNode(filesToImport, importTarget);
         }
         catch (Exception ex)

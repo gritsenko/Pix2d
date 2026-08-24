@@ -24,4 +24,14 @@ public interface IProjectActivationService
     /// (sends <c>ProjectLoadedMessage</c> with the new scene).
     /// </summary>
     void BeginNewProjectActivation(ProjectState newProject);
+
+    /// <summary>
+    /// Moves <paramref name="target"/> to the head of <c>AppState.LoadedProjects</c> and activates
+    /// it. This is the narrow-screen (phone) tab story: the strip only renders the tabs that fit,
+    /// so a project picked from the overflow dropdown — or one activated while its tab is off the
+    /// strip — has to be brought to the front to be visible at all. Sends
+    /// <c>ProjectsListChangedMessage</c> for the reorder (which is what re-persists the tab order
+    /// into <c>workspace.json</c>) before activating. No-op for an unknown project.
+    /// </summary>
+    void MoveProjectToFrontAndActivate(ProjectState target);
 }

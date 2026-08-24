@@ -1,4 +1,4 @@
-using Android.App;
+﻿using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
@@ -50,6 +50,8 @@ public partial class MainActivity : AvaloniaMainActivity
     {
         SetTheme(Resource.Style.MyTheme_NoActionBar);
 
+        DroidLog.Info($"MainActivity OnCreate: PendingFileUri={PendingFileUri?.ToString() ?? "<none>"}, intent action={Intent?.Action ?? "<none>"}, data={Intent?.Data?.ToString() ?? "<none>"}");
+
         if (PendingFileUri != null)
             Pix2dApplication.Bootstrapper.StartupDocument = PendingFileUri.ToString();
 
@@ -70,12 +72,12 @@ public partial class MainActivity : AvaloniaMainActivity
         base.OnNewIntent(intent);
         if (intent?.Data != null && (intent.Action == Intent.ActionView || intent.Action == Intent.ActionOpenDocument || intent.Action == Intent.ActionGetContent))
         {
-            System.Diagnostics.Debug.WriteLine($"MainActivity OnNewIntent: Received URI {intent.Data}");
+            DroidLog.Info($"MainActivity OnNewIntent: Received URI {intent.Data}");
             HandleIncomingUri(intent.Data);
         }
         else
         {
-            System.Diagnostics.Debug.WriteLine($"MainActivity OnNewIntent: Received intent with no data or unhandled action.");
+            DroidLog.Info($"MainActivity OnNewIntent: Received intent with no data or unhandled action.");
         }
     }
 
@@ -221,10 +223,20 @@ public partial class MainActivity : AvaloniaMainActivity
         return activity != null;
     }
 
+    // Resolve by the INTERFACE and cast: the service is registered as
+    // `AddSingleton<IPlatformStuffService, AndroidPlatformStuffService>()`, so asking the container for
+    // the concrete type returns null and this method silently did nothing. That was the only thing that
+    // ever subscribed MainActivity.FileOpened (the service constructor's own attempt runs during
+    // Application.OnCreate, before any Activity exists), so opening a file while Pix2d was already
+    // running just brought the app to the front and dropped the file: FileOpened?.Invoke had no
+    // subscriber. Cold start was unaffected because it goes through the startup-document path instead.
     private static void AttachPlatformServices()
     {
-        if (Pix2dApplication.Bootstrapper.GetServiceProvider().GetService(typeof(Pix2d.Droid.Services.AndroidPlatformStuffService)) is Pix2d.Droid.Services.AndroidPlatformStuffService platformStuff)
+        if (Pix2dApplication.Bootstrapper.GetServiceProvider().GetService(typeof(Pix2d.Abstract.Services.IPlatformStuffService))
+            is Pix2d.Droid.Services.AndroidPlatformStuffService platformStuff)
             platformStuff.AttachActivity(Instance!);
+        else
+            DroidLog.Warn("AttachPlatformServices: IPlatformStuffService is not an AndroidPlatformStuffService — incoming files will be dropped.");
     }
 
     // Bounded wait for the lifecycle save. Android gives an app ~5 s after

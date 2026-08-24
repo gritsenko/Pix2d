@@ -19,7 +19,7 @@ public partial class MainActivity
 
         if (uri != null)
         {
-            System.Diagnostics.Debug.WriteLine($"Handling incoming URI: {uri}");
+            DroidLog.Info($"Handling incoming URI: {uri}");
             MainThread.BeginInvokeOnMainThread(async void () =>
             {
                 try
@@ -28,7 +28,7 @@ public partial class MainActivity
                 }
                 catch (Exception e)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error while loading file form url{uri}, {e.Message}");
+                    DroidLog.Info($"Error while loading file form url{uri}, {e.Message}");
                 }
             });
         }
@@ -36,11 +36,11 @@ public partial class MainActivity
 
     private async Task AttemptOpenFile(Android.Net.Uri uri, bool isRetry)
     {
-        System.Diagnostics.Debug.WriteLine($"AttemptOpenFile: URI={uri}, IsRetry={isRetry}");
+        DroidLog.Info($"AttemptOpenFile: URI={uri}, IsRetry={isRetry}");
         try
         {
             var fileSource = new AndroidFileContentSource(uri);
-            System.Diagnostics.Debug.WriteLine($"AttemptOpenFile: Created fileSource for URI {uri}. Not opening stream yet.");
+            DroidLog.Info($"AttemptOpenFile: Created fileSource for URI {uri}. Not opening stream yet.");
             FileOpened?.Invoke(this, fileSource);
 
             if (_uriAwaitingSafPermission != null && _uriAwaitingSafPermission.Equals(uri))
@@ -48,7 +48,7 @@ public partial class MainActivity
         }
         catch (Java.Lang.SecurityException ex)
         {
-            System.Diagnostics.Debug.WriteLine($"AttemptOpenFile: Caught SecurityException for URI {uri}. Message: {ex.Message}");
+            DroidLog.Info($"AttemptOpenFile: Caught SecurityException for URI {uri}. Message: {ex.Message}");
 
             if (isRetry)
             {
@@ -63,7 +63,7 @@ public partial class MainActivity
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"AttemptOpenFile: Caught general Exception for URI {uri}. Message: {ex.Message}");
+            DroidLog.Info($"AttemptOpenFile: Caught general Exception for URI {uri}. Message: {ex.Message}");
             ShowErrorDialog($"Произошла ошибка при подготовке к открытию файла: {ex.Message}", "Ошибка Подготовки Файла");
             _uriAwaitingSafPermission = null;
         }
@@ -82,7 +82,7 @@ public partial class MainActivity
             });
             builder.SetNegativeButton("Cancel", (dialog, which) =>
             {
-                System.Diagnostics.Debug.WriteLine("SAF request cancelled by user.");
+                DroidLog.Info("SAF request cancelled by user.");
                 _uriAwaitingSafPermission = null; 
             });
             builder.Create()?.Show();
@@ -105,7 +105,7 @@ public partial class MainActivity
     // SAF picker (ACTION_OPEN_DOCUMENT)
     private void LaunchSafPicker()
     {
-        System.Diagnostics.Debug.WriteLine("Launching SAF picker...");
+        DroidLog.Info("Launching SAF picker...");
         Intent intent = new Intent(Intent.ActionOpenDocument);
         intent.AddCategory(Intent.CategoryOpenable);
         intent.SetType("*/*"); 
@@ -115,11 +115,11 @@ public partial class MainActivity
             try
             {
                 SetInitialUri(intent, _uriAwaitingSafPermission);
-                System.Diagnostics.Debug.WriteLine($"SAF picker hint: using EXTRA_INITIAL_URI = {_uriAwaitingSafPermission}");
+                DroidLog.Info($"SAF picker hint: using EXTRA_INITIAL_URI = {_uriAwaitingSafPermission}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Could not set EXTRA_INITIAL_URI: {ex.Message}");
+                DroidLog.Info($"Could not set EXTRA_INITIAL_URI: {ex.Message}");
             }
         }
 
@@ -129,7 +129,7 @@ public partial class MainActivity
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to launch SAF picker: {ex.Message}");
+            DroidLog.Info($"Failed to launch SAF picker: {ex.Message}");
             ShowErrorDialog($"Can't run system file manager: {ex.Message}", "Launch Error");
             _uriAwaitingSafPermission = null;
         }
@@ -145,14 +145,14 @@ public partial class MainActivity
     {
         base.OnActivityResult(requestCode, resultCode, data);
 
-        System.Diagnostics.Debug.WriteLine($"OnActivityResult: requestCode={requestCode}, resultCode={resultCode}");
+        DroidLog.Info($"OnActivityResult: requestCode={requestCode}, resultCode={resultCode}");
 
         if (requestCode == ReadRequestCode)
         {
             if (resultCode == Result.Ok && data != null && data.Data != null)
             {
                 Android.Net.Uri safUri = data.Data;
-                System.Diagnostics.Debug.WriteLine($"SAF picker returned URI: {safUri}");
+                DroidLog.Info($"SAF picker returned URI: {safUri}");
 
                 var takeFlags = ActivityFlags.GrantReadUriPermission;
                 takeFlags |= ActivityFlags.GrantWriteUriPermission;
@@ -164,7 +164,7 @@ public partial class MainActivity
                     if (resolver != null)
                     {
                         resolver.TakePersistableUriPermission(safUri, takeFlags);
-                        System.Diagnostics.Debug.WriteLine($"Took persistable URI permission for: {safUri} with flags {takeFlags}");
+                        DroidLog.Info($"Took persistable URI permission for: {safUri} with flags {takeFlags}");
 
                         MainThread.BeginInvokeOnMainThread(async () =>
                         {
@@ -174,14 +174,14 @@ public partial class MainActivity
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("ContentResolver is null in OnActivityResult.");
+                        DroidLog.Info("ContentResolver is null in OnActivityResult.");
                         ShowErrorDialog("Can't get file management service", "System error");
                         _uriAwaitingSafPermission = null;
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error taking persistable URI permission for {safUri}: {ex.Message}");
+                    DroidLog.Info($"Error taking persistable URI permission for {safUri}: {ex.Message}");
                     ShowErrorDialog($"Error taking persistable URI permission for : {ex.Message}", "Permission error");
                     _uriAwaitingSafPermission = null;
                 }
@@ -189,7 +189,7 @@ public partial class MainActivity
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("SAF picker cancelled or returned non-OK result.");
+                DroidLog.Info("SAF picker cancelled or returned non-OK result.");
                 ShowErrorDialog("File selection cancelled.", "File open");
                 _uriAwaitingSafPermission = null;
             }

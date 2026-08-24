@@ -36,21 +36,55 @@ namespace Pix2d.Droid;
     Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
     DataMimeType = "application/x-pix2d")]
 
+// The one broad claim, and it is load-bearing: `.pix2d`/`.piskel` have no registered MIME type, so
+// Android's MimeUtils reports them as application/octet-stream, and many file managers hand out a
+// MediaStore URI (content://media/external/file/2342) whose path contains no file name at all — the
+// path filters below cannot match it, so without this a .pix2d file has no handler and the file
+// manager just says it cannot open the object. Verified on device with
+// `cmd package query-activities`. This claims "unknown binary" broadly, but NOT the file types
+// Android does know: APK (application/vnd.android.package-archive), PDF, zip, audio, video, images.
+// The trade-off is that Pix2d appears for other extension-less/unknown files; opening one now fails
+// with a plain "not supported" message (NewSceneFactory) instead of a crash.
+[IntentFilter([Intent.ActionView],
+    Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
+    DataMimeType = "application/octet-stream")]
+
 // Extension-based association for formats with no registered MIME type. Two filters: providers
 // that send no type at all, and providers that send some generic type. Both are pinned to the
 // path patterns, which is what keeps `*/*` from meaning "everything" this time.
-// Note pathPattern is case-sensitive, hence the upper-case variants.
+// Two traps here, both verified with `cmd package query-activities`:
+// pathPattern is case-SENSITIVE (hence the upper-case spellings), and its SIMPLE_GLOB
+// matcher does NOT backtrack, so a single `.*\.pix2d` matches "sprite.pix2d" but NOT
+// "my.project.pix2d" — one leading `.*` cannot give back the dot it swallowed. Hence one
+// pattern per number of dots in the name (covers up to three; a fourth is not worth the
+// manifest weight). `pathAdvancedPattern`, which does backtrack, is API 26+ while minSdk
+// here is 25 — on older platforms the attribute is ignored, which would strip the path
+// constraint from the `*/*` filter below and turn it back into "claim every file".
 [IntentFilter([Intent.ActionView],
     Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
     DataSchemes = ["content", "file"],
     DataHost = "*",
-    DataPathPatterns = [".*\\.pix2d", ".*\\.PIX2D", ".*\\.pxm", ".*\\.PXM", ".*\\.piskel", ".*\\.PISKEL"])]
+    DataPathPatterns = [
+        ".*\\.pix2d", ".*\\..*\\.pix2d", ".*\\..*\\..*\\.pix2d",
+        ".*\\.PIX2D", ".*\\..*\\.PIX2D", ".*\\..*\\..*\\.PIX2D",
+        ".*\\.pxm", ".*\\..*\\.pxm", ".*\\..*\\..*\\.pxm",
+        ".*\\.PXM", ".*\\..*\\.PXM", ".*\\..*\\..*\\.PXM",
+        ".*\\.piskel", ".*\\..*\\.piskel", ".*\\..*\\..*\\.piskel",
+        ".*\\.PISKEL", ".*\\..*\\.PISKEL", ".*\\..*\\..*\\.PISKEL"
+    ])]
 [IntentFilter([Intent.ActionView],
     Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
     DataSchemes = ["content", "file"],
     DataHost = "*",
     DataMimeType = "*/*",
-    DataPathPatterns = [".*\\.pix2d", ".*\\.PIX2D", ".*\\.pxm", ".*\\.PXM", ".*\\.piskel", ".*\\.PISKEL"])]
+    DataPathPatterns = [
+        ".*\\.pix2d", ".*\\..*\\.pix2d", ".*\\..*\\..*\\.pix2d",
+        ".*\\.PIX2D", ".*\\..*\\.PIX2D", ".*\\..*\\..*\\.PIX2D",
+        ".*\\.pxm", ".*\\..*\\.pxm", ".*\\..*\\..*\\.pxm",
+        ".*\\.PXM", ".*\\..*\\.PXM", ".*\\..*\\..*\\.PXM",
+        ".*\\.piskel", ".*\\..*\\.piskel", ".*\\..*\\..*\\.piskel",
+        ".*\\.PISKEL", ".*\\..*\\.PISKEL", ".*\\..*\\..*\\.PISKEL"
+    ])]
 public class FileHandlerActivity : Activity
 {
     protected override void OnCreate(Bundle? savedInstanceState)
@@ -62,7 +96,7 @@ public class FileHandlerActivity : Activity
             if (Intent is { Action: Intent.ActionView, Data: not null })
             {
                 var uri = Intent.Data;
-                System.Diagnostics.Debug.WriteLine($"FileHandlerActivity received URI: {uri}");
+                DroidLog.Info($"FileHandlerActivity received URI: {uri}");
                 MainActivity.PendingFileUri = uri;
                 var mainIntent = new Intent(this, typeof(MainActivity));
                 mainIntent.SetData(uri);
@@ -77,7 +111,7 @@ public class FileHandlerActivity : Activity
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in FileHandlerActivity: {ex.Message}");
+            DroidLog.Info($"Error in FileHandlerActivity: {ex.Message}");
         }
         Finish();
     }

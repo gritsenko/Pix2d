@@ -54,7 +54,6 @@
         <AndroidResource Include="res/xml/backup_rules.xml" />
 		<AndroidResource Include="res/xml/data_extraction_rules.xml" />
 		<AndroidResource Include="res/xml/file_paths.xml" />
-		<AndroidResource Include="res/xml/file_associations.xml" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Avalonia.Android" Version="12.1.1" />

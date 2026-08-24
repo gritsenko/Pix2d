@@ -100,14 +100,14 @@ public class AndroidFileContentSource : IFileContentSource
                     catch (Exception)
                     {
                         // Пропускаем ошибку, если колонка не найдена или тип данных не соответствует
-                        System.Diagnostics.Debug.WriteLine($"Could not get LastModified for URI: {contentUri}");
+                        DroidLog.Info($"Could not get LastModified for URI: {contentUri}");
                     }
 
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error querying URI metadata {contentUri}: {ex.Message}");
+                DroidLog.Info($"Error querying URI metadata {contentUri}: {ex.Message}");
                 // Оставляем значения по умолчанию
             }
             finally
@@ -135,7 +135,7 @@ public class AndroidFileContentSource : IFileContentSource
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error handling file:// URI {contentUri}: {ex.Message}");
+                DroidLog.Info($"Error handling file:// URI {contentUri}: {ex.Message}");
             }
         }
 
@@ -163,12 +163,12 @@ public class AndroidFileContentSource : IFileContentSource
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting MIME type for URI {contentUri}: {ex.Message}");
+                DroidLog.Info($"Error getting MIME type for URI {contentUri}: {ex.Message}");
             }
         }
         Extension = string.IsNullOrEmpty(determinedExtension) ? (defaultExtension ?? string.Empty) : determinedExtension;
 
-        System.Diagnostics.Debug.WriteLine($"Created AndroidFileContentSource for URI: {_contentUri}, Title: {Title}, Extension: {Extension}, Exists: {Exists}, Size: {Size}");
+        DroidLog.Info($"Created AndroidFileContentSource for URI: {_contentUri}, Title: {Title}, Extension: {Extension}, Exists: {Exists}, Size: {Size}");
 
         // TryGetFileNameFromUri теперь не нужен, так как логика перенесена в конструктор
         // CreateFromContentUri тоже не нужен, так как конструктор справляется
@@ -179,7 +179,7 @@ public class AndroidFileContentSource : IFileContentSource
     // OpenRead теперь просто открывает поток. SecurityException должна обрабатываться вызывающим кодом.
     public async Task<Stream> OpenRead()
     {
-        System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.OpenRead: Attempting to open stream for {_contentUri}");
+        DroidLog.Info($"AndroidFileContentSource.OpenRead: Attempting to open stream for {_contentUri}");
         try
         {
             // Permission Denial (SecurityException) происходит именно здесь
@@ -189,7 +189,7 @@ public class AndroidFileContentSource : IFileContentSource
             var inputStream = resolver.OpenInputStream(_contentUri);
             if (inputStream == null)
             {
-                System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.OpenRead: OpenInputStream returned null for {_contentUri}");
+                DroidLog.Info($"AndroidFileContentSource.OpenRead: OpenInputStream returned null for {_contentUri}");
                 throw new FileNotFoundException($"Не удалось получить входной поток для URI: {_contentUri}. Файл не найден или недоступен.");
             }
             // Если файл небольшой, можно сразу прочитать в MemoryStream.
@@ -199,12 +199,12 @@ public class AndroidFileContentSource : IFileContentSource
             var destStream = new MemoryStream();
             await inputStream.CopyToAsync(destStream);
             destStream.Seek(0, SeekOrigin.Begin);
-            System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.OpenRead: Successfully read stream for {_contentUri}");
+            DroidLog.Info($"AndroidFileContentSource.OpenRead: Successfully read stream for {_contentUri}");
             return destStream;
         }
         catch (Exception ex) // Ловим возможные ошибки при работе с потоком или SecurityException
         {
-            System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.OpenRead: Error opening/reading stream for {_contentUri}: {ex.Message}");
+            DroidLog.Info($"AndroidFileContentSource.OpenRead: Error opening/reading stream for {_contentUri}: {ex.Message}");
             // Перебрасываем исключение, чтобы вызывающий код (MainActivity или сервис) мог его обработать
             throw;
         }
@@ -213,7 +213,7 @@ public class AndroidFileContentSource : IFileContentSource
     // SaveAsync - сохранение данных из потока в файл по URI
     public async Task SaveAsync(Stream sourceStream)
     {
-        System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.SaveAsync: Attempting to save stream to {_contentUri}");
+        DroidLog.Info($"AndroidFileContentSource.SaveAsync: Attempting to save stream to {_contentUri}");
         try
         {
             // Permission Denial (SecurityException) может произойти здесь, если нет разрешения на запись
@@ -226,7 +226,7 @@ public class AndroidFileContentSource : IFileContentSource
             using var outputStream = resolver.OpenOutputStream(_contentUri, "wt");
             if (outputStream == null)
             {
-                System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.SaveAsync: OpenOutputStream returned null for {_contentUri}");
+                DroidLog.Info($"AndroidFileContentSource.SaveAsync: OpenOutputStream returned null for {_contentUri}");
                 throw new IOException($"Не удалось получить выходной поток для URI: {_contentUri}. Нет доступа или файл не может быть записан.");
             }
 
@@ -239,18 +239,18 @@ public class AndroidFileContentSource : IFileContentSource
             {
                 // Если поток не поддерживает Seek, и нужно начать с начала,
                 // возможно, придется прочитать его в буфер или MemoryStream сначала.
-                System.Diagnostics.Debug.WriteLine("Warning: sourceStream does not support seeking.");
+                DroidLog.Info("Warning: sourceStream does not support seeking.");
                 // В этом случае, если sourceStream уже частично прочитан, SaveAsync запишет оставшуюся часть.
             }
 
 
             await sourceStream.CopyToAsync(outputStream); // Эффективное копирование
             // CopyToAsync вызывает Flush в конце. `using` позаботится о Close/Dispose.
-            System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.SaveAsync: Successfully saved stream to {_contentUri}");
+            DroidLog.Info($"AndroidFileContentSource.SaveAsync: Successfully saved stream to {_contentUri}");
         }
         catch (Exception ex) // Ловим возможные ошибки при записи или SecurityException
         {
-            System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.SaveAsync: Error saving stream to {_contentUri}: {ex.Message}");
+            DroidLog.Info($"AndroidFileContentSource.SaveAsync: Error saving stream to {_contentUri}: {ex.Message}");
             throw; // Перебрасываем исключение
         }
     }
@@ -267,11 +267,11 @@ public class AndroidFileContentSource : IFileContentSource
     // Delete - удаление файла по URI
     public void Delete()
     {
-        System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.Delete: Attempting to delete {_contentUri}");
+        DroidLog.Info($"AndroidFileContentSource.Delete: Attempting to delete {_contentUri}");
         var resolver = GetContentResolver();
         if (resolver == null)
         {
-            System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.Delete: ContentResolver is null.");
+            DroidLog.Info($"AndroidFileContentSource.Delete: ContentResolver is null.");
             throw new InvalidOperationException("ContentResolver не доступен для удаления.");
         }
 
@@ -284,14 +284,14 @@ public class AndroidFileContentSource : IFileContentSource
 
             if (deletedRows > 0)
             {
-                System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.Delete: Successfully deleted {_contentUri} ({deletedRows} rows).");
+                DroidLog.Info($"AndroidFileContentSource.Delete: Successfully deleted {_contentUri} ({deletedRows} rows).");
                 // Можно добавить логику для очистки состояния объекта, если он представляет удаленный файл
             }
             else
             {
                 // Удаление могло не произойти, если файл не найден, нет разрешения,
                 // или провайдер не поддерживает удаление через ContentResolver.Delete
-                System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.Delete: Deletion of {_contentUri} failed or file not found (returned {deletedRows} rows deleted).");
+                DroidLog.Info($"AndroidFileContentSource.Delete: Deletion of {_contentUri} failed or file not found (returned {deletedRows} rows deleted).");
                 // Можно выбросить исключение, если удаление обязательно должно было произойти
                 // throw new IOException($"Не удалось удалить файл: {_contentUri}. Возможно, нет разрешения или файл не найден."); // Пример
             }
@@ -299,13 +299,13 @@ public class AndroidFileContentSource : IFileContentSource
         catch (Java.Lang.SecurityException ex)
         {
             // Обработка специфической ошибки отсутствия разрешения на удаление
-            System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.Delete: Security Exception deleting {_contentUri}: {ex.Message}");
+            DroidLog.Info($"AndroidFileContentSource.Delete: Security Exception deleting {_contentUri}: {ex.Message}");
             throw new IOException($"Отказано в разрешении на удаление файла: {_contentUri}", ex); // Оборачиваем и перебрасываем
         }
         catch (Exception ex)
         {
             // Обработка других ошибок при удалении
-            System.Diagnostics.Debug.WriteLine($"AndroidFileContentSource.Delete: Error deleting {_contentUri}: {ex.Message}");
+            DroidLog.Info($"AndroidFileContentSource.Delete: Error deleting {_contentUri}: {ex.Message}");
             throw new IOException($"Произошла ошибка при удалении файла: {_contentUri}", ex); // Оборачиваем и перебрасываем
         }
     }

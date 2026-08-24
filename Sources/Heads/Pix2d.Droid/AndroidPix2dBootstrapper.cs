@@ -16,16 +16,26 @@ namespace Pix2d.Droid;
 
 public class AndroidPix2dBootstrapper : Pix2dBootstrapperDI
 {
+    /// <summary>
+    /// A `content://` URI from a file manager is not a path, so it needs the SAF-backed source.
+    /// This runs when the document is opened rather than at settings time, because Avalonia (and with
+    /// it <c>Initialize</c>) starts in <c>Application.OnCreate</c>, before <c>MainActivity.OnCreate</c>
+    /// knows the URI — resolving it eagerly always produced null here.
+    /// </summary>
+    protected override IFileContentSource? ResolveStartupDocument(string document)
+    {
+        if (document.StartsWith("content:", StringComparison.OrdinalIgnoreCase))
+        {
+            var uri = Android.Net.Uri.Parse(document);
+            return uri == null ? null : new AndroidFileContentSource(uri);
+        }
+
+        return base.ResolveStartupDocument(document); // a plain path inside the app's own folders
+    }
+
     protected override Pix2DAppSettings GetPix2dSettings()
     {
-        IFileContentSource? startupDoc = string.IsNullOrWhiteSpace(StartupDocument) ? null : new NetFileSource(StartupDocument); //for regular file paths (local app path)
-
-        if (StartupDocument?.StartsWith("content:") == true)  // for external files 
-        {
-            var uri = Android.Net.Uri.Parse(StartupDocument);
-            if (uri != null)
-                startupDoc = new AndroidFileContentSource(uri);
-        }
+        var startupDoc = string.IsNullOrWhiteSpace(StartupDocument) ? null : ResolveStartupDocument(StartupDocument);
 
         return new Pix2DAppSettings
         {

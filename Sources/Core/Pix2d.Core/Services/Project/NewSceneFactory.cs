@@ -28,9 +28,22 @@ internal class NewSceneFactory(Action<ImportData> importAction) : IImportTarget
             SpriteImportApplier.Apply(sprite, importData);
         });
 
-        await importService.ImportAsync(files, factory);
+        // The import produced nothing. By far the most common cause is a file Pix2d cannot decode at
+        // all — Android in particular hands us whatever the file manager offered (Pix2d claims
+        // application/octet-stream so its own extensions open at all), so this path is user-facing
+        // and must name the reason instead of the old "Scene must not be null".
+        var result = await importService.ImportAsync(files, factory);
         if (scene == null)
-            throw new ArgumentException("Scene must not be null");
+        {
+            var file = files.First();
+            var ext = file.Extension;
+            var reason = !string.IsNullOrWhiteSpace(result.Message)
+                ? result.Message
+                : string.IsNullOrWhiteSpace(ext)
+                    ? $"Can't tell the file type of \"{file.Title}\"."
+                    : $"\"{ext}\" files are not supported. Pix2d opens: {string.Join(", ", importService.SupportedExtensions)}, .pix2d.";
+            throw new NotSupportedException(reason);
+        }
 
         return scene;
     }

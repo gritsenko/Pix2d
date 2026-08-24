@@ -24,6 +24,13 @@ public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportSh
     private MainActivity? _attachedActivity;
 
     public PlatformType CurrentPlatform => PlatformType.Android;
+
+    /// <summary>
+    /// Android keeps several projects open as tabs, same as desktop. The strip itself copes with the
+    /// narrow screen by moving the tabs that do not fit behind an overflow dropdown
+    /// (<see cref="Pix2d.UI.ProjectTabsView"/>), so nothing here needs to know the window width.
+    /// </summary>
+    public bool SupportsMultipleProjects => true;
     public bool IsTextInputFocused => EditorApp.TopLevel?.FocusManager?.GetFocusedElement() is TextBox;
 
     public AndroidPlatformStuffService(IServiceProvider serviceProvider)
@@ -51,28 +58,28 @@ public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportSh
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"AndroidPlatformStuffService: FileOpened event received for {fileSource?.Title ?? "null"}");
+            DroidLog.Info($"AndroidPlatformStuffService: FileOpened event received for {fileSource?.Title ?? "null"}");
             var projectService = _serviceProvider.GetRequiredService<IProjectService>();
 
             if (projectService == null || fileSource == null)
             {
-                System.Diagnostics.Debug.WriteLine("AndroidPlatformStuffService: projectService is null or fileSource is null.");
+                DroidLog.Info("AndroidPlatformStuffService: projectService is null or fileSource is null.");
                 return;
             }
             await projectService.OpenFilesAsync([fileSource]);
 
-            System.Diagnostics.Debug.WriteLine($"AndroidPlatformStuffService: Successfully called projectService.OpenFilesAsync for {fileSource.Title}");
+            DroidLog.Info($"AndroidPlatformStuffService: Successfully called projectService.OpenFilesAsync for {fileSource.Title}");
         }
         catch (IOException ex)
         {
-            System.Diagnostics.Debug.WriteLine($"AndroidPlatformStuffService: Caught IOException during file processing: {ex.Message}");
+            DroidLog.Info($"AndroidPlatformStuffService: Caught IOException during file processing: {ex.Message}");
             var ds = _serviceProvider.GetRequiredService<IDialogService>();
             ds.Alert($"IO Error while file loading \"{fileSource?.Title ?? "unknown file"}\": {ex.Message}", "File content error");
         }
         catch (Exception ex)
         {
             // Обработка других исключений (например, ошибки парсинга файла в ProjectService)
-            System.Diagnostics.Debug.WriteLine($"AndroidPlatformStuffService: Caught general Exception during file processing: {ex.Message}");
+            DroidLog.Info($"AndroidPlatformStuffService: Caught general Exception during file processing: {ex.Message}");
 
             var ds = _serviceProvider.GetRequiredService<IDialogService>(); // Убедитесь, что DialogService доступен
             ds.Alert($"Error in file opening \"{fileSource?.Title ?? "неизвестный файл"}\": \n{ex.Message}", "Error in file opening");

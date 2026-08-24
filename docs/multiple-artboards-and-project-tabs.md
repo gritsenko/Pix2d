@@ -517,7 +517,7 @@ Add a helper next to `WatchFor` (`StateExtensions`) that, on `AppState.WatchFor(
 - `IProjectService`: add `CloseProjectAsync(ProjectState)` + list/activation access. Fire `UpdateProjectNameInWindowTitle` from a `ProjectActivatedMessage` subscription.
 - [FileCommands.cs](../Sources/Core/Pix2d.Shared/Commands/FileCommands.cs): desktop `NewTab` (Ctrl+T), `CloseTab` (Ctrl+W).
 
-### B7 — tab bar UI (desktop only)
+### B7 — tab bar UI (desktop only; Android added later, see the verification note below)
 - New `UI/ProjectTabsView.cs` using the `ViewBase<State>` + `ObservableObject` + `WatchFor` + `_isSyncing` pattern (model on [AdditionalTopBarView.cs](../Sources/Core/Pix2d.Core/UI/AdditionalTopBarView.cs)); ListBox + `BulkAddObservableCollection` + `ItemTemplate` + `SelectedIndex` TwoWay (model on [TimeLineView.cs](../Sources/Core/Pix2d.Core/UI/Animation/TimeLineView.cs)). Each tab: `Title` + dirty `*` + close button; plus a "+" button. Rebuild on `ProjectsListChangedMessage`, update selection on `ProjectActivatedMessage`, refresh dirty on `ProjectSavedMessage`/`OperationInvokedMessage`. `SelectedIndex` change → `ActivateProject`.
 - [MainView.cs](../Sources/Core/Pix2d.Core/UI/MainView.cs): place `ProjectTabsView` in `UiGrid` **Row 0** (empty today; no row re-indexing — `TopBarView` stays on Row 1; menu/loading overlays already span from Row 0). Gate visibility to desktop.
 
@@ -539,7 +539,8 @@ Add a helper next to `WatchFor` (`StateExtensions`) that, on `AppState.WatchFor(
 1. Open 2–3 projects → tabs on top (desktop only); switching is instant; each keeps its own scene, zoom/pan, selection.
 2. Edit in A, switch to B, **Undo** → rolls back B (not A); switch back to A → its history intact.
 3. Dirty project marked `*`; closing a tab prompts to save; closing the last tab → fresh blank project.
-4. Mobile/WASM head: single-project behavior, no tabs (gated by `SupportsMultipleProjects`).
+4. WASM head: single-project behavior, no tabs (gated by `SupportsMultipleProjects`).
+   **Update (2026-08-25): Android now opts in too** (`AndroidPlatformStuffService.SupportsMultipleProjects => true`). The phone-sized strip drops the tabs that do not fit into a trailing “⌄ N” dropdown ([`OverflowPanel`](../Sources/Core/Pix2d.Core/UI/Shared/OverflowPanel.cs)); picking one — or activating any off-strip project — moves it to the head of `LoadedProjects` via `IProjectActivationService.MoveProjectToFrontAndActivate`. Tabs also carry a right-click / long-press context menu (Rename project / Close tab). The “consider a soft cap” memory risk above is now a live concern on phones and is still unaddressed.
 5. Crash with active tab B → B is recovered (v1 limitation).
 
 ---

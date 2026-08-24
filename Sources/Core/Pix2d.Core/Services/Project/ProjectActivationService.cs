@@ -75,6 +75,35 @@ public class ProjectActivationService : IProjectActivationService
         DeactivateCurrentAndMakeCurrent(newProject);
     }
 
+    public void MoveProjectToFrontAndActivate(ProjectState target)
+    {
+        if (target == null)
+            return;
+
+        var projects = _appState.LoadedProjects;
+        var index = projects.IndexOf(target);
+        if (index < 0)
+            return;
+
+        if (index > 0)
+        {
+            projects.RemoveAt(index);
+            projects.Insert(0, target);
+
+            // ActivateProject re-derives the index, but it returns early when the target is already
+            // current (reorder without a switch), so the invariant is restored here as well.
+            var currentIndex = projects.IndexOf(_appState.CurrentProject);
+            if (currentIndex >= 0)
+                _appState.ActiveProjectIndex = currentIndex;
+
+            // Rebuild the tab strip BEFORE activating, so the selection sync that follows
+            // activation sees the new order.
+            _messenger.Send(ProjectsListChangedMessage.Default);
+        }
+
+        ActivateProject(target);
+    }
+
     private void DeactivateCurrentAndMakeCurrent(ProjectState target)
     {
         SaveCurrentViewPortState();

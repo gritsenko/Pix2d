@@ -409,6 +409,10 @@
   {
     "Strings": {
       "Menu": "Меню",
+      "New tab": "Новая вкладка",
+      "Close tab": "Закрыть вкладку",
+      "More projects": "Ещё проекты",
+      "Rename project": "Переименовать проект",
       "Load palette": "Загрузить палитру",
       "Save current palette…": "Сохранить текущую палитру…",
       "Delete saved palette": "Удалить сохранённую палитру",
