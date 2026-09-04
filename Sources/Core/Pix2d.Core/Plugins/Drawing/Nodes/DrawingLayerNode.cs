@@ -94,6 +94,11 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     private SKSurface? _brushPreviewSurface;
     private readonly Lock _brushPreviewLock = new();
 
+    // Render-thread anchor buffer for the preview's symmetry copies. Kept here, and touched only under
+    // _brushPreviewLock, so the render thread never shares StrokeRenderer's stroke buffer with the UI
+    // thread rasterizing into the same layer — see the note on StrokeRenderer._symmetryImages.
+    private readonly List<SKPointI> _previewSymmetryImages = [];
+
     // Live stylus pressure [0..1] for the current pointer event, captured on press/move and fed to the
     // brush on each freehand stamp. Defaults to 1 (full pressure) for mouse/touch and between strokes.
     private double _currentPressure = 1;
@@ -1091,7 +1096,8 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
             canvas.DrawSurface(_brushPreviewSurface, PreviewPosition.X - Brush.PixelOffset.X, PreviewPosition.Y - Brush.PixelOffset.Y);
 
             // One preview stamp per symmetry image, so what the cursor shows is what a click would commit.
-            foreach (var image in _strokeRenderer.GetSymmetryImages(PreviewPosition, Brush))
+            _strokeRenderer.GetSymmetryImagesInto(PreviewPosition, Brush, _previewSymmetryImages);
+            foreach (var image in _previewSymmetryImages)
                 canvas.DrawSurface(_brushPreviewSurface, image.X - Brush.PixelOffset.X, image.Y - Brush.PixelOffset.Y);
         }
     }

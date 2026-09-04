@@ -23,11 +23,23 @@ internal sealed class StrokeRenderer
 {
     private readonly IStrokeRendererHost _host;
 
-    // Symmetry image cache. GetSymmetryImages runs once per rasterized pixel, so the transform set is
-    // rebuilt only when the settings or the canvas change, and the anchors land in a reused buffer.
+    // Symmetry transform cache. Resolving it runs once per rasterized pixel, so the transform set is
+    // rebuilt only when the settings or the canvas change.
+    //
+    // The lock exists because the cache has two writers: the UI thread rasterizing a stroke, and
+    // Avalonia's render thread drawing the brush-preview overlay (DrawingLayerNode.RenderBrushPreview).
+    // It covers the check + rebuild only — BuildTransforms returns a fresh array that is never mutated
+    // in place, so reading the returned array outside the lock is safe.
+    private readonly Lock _symmetryLock = new();
     private SymmetrySettings _symmetrySettings = SymmetrySettings.Off;
     private SKSize _symmetryCanvas = SKSize.Empty;
     private SKMatrix[] _symmetryTransforms = [];
+
+    // Anchor buffer for the stroke rasterizer, i.e. the UI thread only. The render thread must never
+    // share it: refilling the buffer while DrawPoint / ErasePoint iterate it is what threw
+    // ArgumentOutOfRangeException out of List<SKPointI>.get_Item — the top production error on 3.12.0,
+    // always from a shape tool, because those keep the brush preview visible *while* drawing
+    // (IsShowingBrush() stays true for BrushDrawingMode.ExternalDraw). Preview callers bring their own.
     private readonly List<SKPointI> _symmetryImages = [];
 
     public StrokeRenderer(IStrokeRendererHost host)
@@ -255,24 +267,44 @@ internal sealed class StrokeRenderer
     /// <b>layer-local</b> coordinates. Empty when symmetry is off.
     /// </summary>
     /// <remarks>
-    /// The returned list is a reused buffer owned by this renderer — enumerate it before the next call.
-    /// This runs once per rasterized pixel of a stroke, so neither the buffer nor the transform set is
-    /// rebuilt per dab; the transforms are recomputed only when the settings or the canvas size change.
+    /// <b>UI thread only.</b> The returned list is this renderer's stroke buffer — enumerate it before the
+    /// next call, and never from another thread (see <see cref="GetSymmetryImagesInto"/>, which is what the
+    /// render thread uses). This runs once per rasterized pixel of a stroke, so neither the buffer nor the
+    /// transform set is rebuilt per dab; the transforms are recomputed only when the settings or the canvas
+    /// size change.
     /// </remarks>
     public IReadOnlyList<SKPointI> GetSymmetryImages(SKPointI p, IPixelBrush brush)
+    {
+        SymmetryMath.GetImageAnchors(ResolveTransforms(), p, brush.PixelOffset, brush.Size, _symmetryImages);
+        return _symmetryImages;
+    }
+
+    /// <summary>
+    /// Same anchors as <see cref="GetSymmetryImages"/>, but written into a buffer the caller owns — the
+    /// overload for anyone outside the stroke rasterizer, above all the brush-preview overlay drawn on
+    /// Avalonia's render thread. Sharing the stroke buffer across those two threads is a crash, not a
+    /// slowdown; a preview resolves a handful of anchors once per frame, so a second buffer costs nothing.
+    /// </summary>
+    public void GetSymmetryImagesInto(SKPointI p, IPixelBrush brush, List<SKPointI> result)
+        => SymmetryMath.GetImageAnchors(ResolveTransforms(), p, brush.PixelOffset, brush.Size, result);
+
+    /// <summary>The mirror transforms for the layer's current symmetry, rebuilt only when it changes.</summary>
+    private SKMatrix[] ResolveTransforms()
     {
         var settings = _host.Symmetry;
         var size = _host.Size;
 
-        if (!settings.Equals(_symmetrySettings) || size != _symmetryCanvas)
+        lock (_symmetryLock)
         {
-            _symmetrySettings = settings;
-            _symmetryCanvas = size;
-            _symmetryTransforms = SymmetryMath.BuildTransforms(settings, size);
-        }
+            if (!settings.Equals(_symmetrySettings) || size != _symmetryCanvas)
+            {
+                _symmetrySettings = settings;
+                _symmetryCanvas = size;
+                _symmetryTransforms = SymmetryMath.BuildTransforms(settings, size);
+            }
 
-        SymmetryMath.GetImageAnchors(_symmetryTransforms, p, brush.PixelOffset, brush.Size, _symmetryImages);
-        return _symmetryImages;
+            return _symmetryTransforms;
+        }
     }
 
     /// <summary>
