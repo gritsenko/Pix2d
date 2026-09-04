@@ -96,6 +96,7 @@ static class Runner
         LoggerTargetFailureScenario(harness, t);
         AnimationMetaScenario(harness, t);
         BrushPresetScenario(harness, t);
+        BrushPreviewSurfaceOwnershipScenario(harness, t);
         BatchExportScenario(harness, t);
         PrecisionScrollDetectorScenario(harness, t);
         PixelSelectionScenario(harness, t);
@@ -2441,6 +2442,89 @@ static class Runner
     // undeclared settings key is a dropped write), value-vs-reference identity when deleting (
     // BrushSettings has value equality, so List.Remove would happily take out a built-in twin), and
     // tolerance of a settings file written by another build.
+    // --- Brush preview surface ownership (issue #253) ----------------------------------------------
+    // The stroke-preview surface is produced on the UI thread and drawn on Avalonia's render thread, so
+    // whoever holds it across frames must be the one that frees it. BasePixelBrush used to cache the
+    // surface and dispose it on the next call, which freed a native SkSurface that DrawingLayerNode was
+    // still drawing every frame — a use-after-free that terminated the process with no managed exception
+    // (reported as random crashes while dragging the color slider, which pushes one color change per
+    // pointer-move event). The race itself isn't reproducible headlessly; the ownership contract that
+    // makes it impossible is, and that's what these checks pin down.
+    static void BrushPreviewSurfaceOwnershipScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Brush preview surface ownership scenario ===");
+
+        var drawing = h.Services.GetRequiredService<IDrawingService>();
+        var state = h.AppState.SpriteEditorState;
+
+        // Throwaway copies throughout: the preset brushes are the singletons the canvas draws with, so
+        // re-initializing one here would change the stamp size every later drawing scenario paints with.
+        var scratch = ((BasePixelBrush)state.BrushPresets[0].Brush!).CreatePreviewInstance();
+        scratch.InitBrush(4, 1f, 0.01f).Wait();
+
+        SKSurface? first = null;
+        SKSurface? second = null;
+
+        t.Check("a brush hands out a fresh surface and never frees the previous one", () =>
+        {
+            first = scratch.GetPreviewSurface(SKColors.Red, 4);
+            second = scratch.GetPreviewSurface(SKColors.Blue, 4);
+
+            Assert.True(first != null && second != null, "the brush produced no preview surface");
+            Assert.True(!ReferenceEquals(first, second), "the same surface instance was handed out twice");
+            Assert.True(first!.Handle != IntPtr.Zero,
+                "the brush freed a surface it had already handed out - the render thread may still be drawing it");
+            Assert.True(second!.Handle != IntPtr.Zero, "the surface just returned is already disposed");
+        });
+
+        t.Check("disposing the brush does not free surfaces the caller owns", () =>
+        {
+            var doomed = ((BasePixelBrush)state.BrushPresets[0].Brush!).CreatePreviewInstance();
+            doomed.InitBrush(4, 1f, 0.01f).Wait();
+            var handedOut = doomed.GetPreviewSurface(SKColors.Green, 4);
+            Assert.True(handedOut != null, "the brush produced no preview surface");
+
+            doomed.Dispose();
+
+            Assert.True(handedOut!.Handle != IntPtr.Zero, "Dispose() freed a surface owned by the caller");
+            handedOut.Dispose();
+        });
+
+        first?.Dispose();
+        second?.Dispose();
+        scratch.Dispose();
+
+        t.Check("the drawing layer owns its preview surface and frees the one it replaces", () =>
+        {
+            var layer = drawing.DrawingLayer;
+            var restoreColor = layer.DrawingColor;
+            var field = layer.GetType().GetField("_brushPreviewSurface",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.True(field != null, "DrawingLayerNode._brushPreviewSurface is gone - update this check");
+
+            try
+            {
+                layer.DrawingColor = new SKColor(0x11, 0x22, 0x33);
+                var previous = (SKSurface?)field!.GetValue(layer);
+                Assert.True(previous != null && previous.Handle != IntPtr.Zero,
+                    "no live preview surface after a color change");
+
+                layer.DrawingColor = new SKColor(0x44, 0x55, 0x66);
+                var current = (SKSurface?)field.GetValue(layer);
+
+                Assert.True(current != null && !ReferenceEquals(current, previous),
+                    "the preview surface was not swapped on a color change");
+                Assert.True(previous!.Handle == IntPtr.Zero,
+                    "the replaced preview surface was leaked - the layer must free the one it drops");
+                Assert.True(current!.Handle != IntPtr.Zero, "the new preview surface is already disposed");
+            }
+            finally
+            {
+                layer.DrawingColor = restoreColor;
+            }
+        });
+    }
+
     static void BrushPresetScenario(HeadlessHarness h, TestReport t)
     {
         Console.WriteLine("\n=== Brush preset scenario ===");

@@ -33,7 +33,6 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
     public float AbsoluteSpacing { get; set; } = 1;
 
     protected SKBitmap? _brushBitmap;
-    private SKSurface? _surface;
 
     public int Size => (int) _scale;
     public float Opacity => _opacity;
@@ -123,27 +122,32 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
     /// </summary>
     public virtual BasePixelBrush CreatePreviewInstance() => (BasePixelBrush)Activator.CreateInstance(GetType())!;
 
+    /// <summary>
+    /// Rasterizes the brush stamp into a <b>fresh surface owned by the caller</b>, which must dispose it.
+    ///
+    /// <para>The surface deliberately is <b>not</b> cached on the brush. <c>DrawingLayerNode</c> keeps the
+    /// returned surface across frames and draws it from Avalonia's render thread, while this method runs on
+    /// the UI thread on every color / brush / size change. Disposing a previously handed-out surface here
+    /// therefore freed the native <c>SkSurface</c> that the render thread could be inside
+    /// <c>SKCanvas.DrawSurface</c> on — a use-after-free that terminates the process outright, with no
+    /// managed exception for the crash reporter to catch (issue #253: Pix2d dying "every once in a while"
+    /// while the color slider is dragged, which pushes one color change per pointer-move event).</para>
+    /// </summary>
     public SKSurface? GetPreviewSurface(SKColor color, float scale)
     {
         var bm = GetBrushBitmap(color, scale);
         if (bm == null)
             return null;
 
-        // Dispose the previously cached surface before allocating a new one — this is called on every
-        // color/size change, so overwriting the field leaked a native SKSurface each time.
-        _surface?.Dispose();
-        _surface = null;
-
         // SKSurface.Create returns null (not throws) when it can't allocate — e.g. under memory pressure
         // on mobile, or a zero-sized image info. Guard both so we return null instead of NRE-ing on .Canvas.
         var info = new SKImageInfo(Math.Max(1, bm.Width), Math.Max(1, bm.Height), bm.ColorType);
-        _surface = SKSurface.Create(info);
-        if (_surface == null)
+        var surface = SKSurface.Create(info);
+        if (surface == null)
             return null;
 
-        using var canvas = _surface.Canvas;
-        canvas.DrawBitmap(bm, 0, 0);
-        return _surface;
+        surface.Canvas.DrawBitmap(bm, 0, 0);
+        return surface;
     }
 
     public virtual SKBitmap? GetBrushBitmap(SKColor color, float scale)
@@ -417,7 +421,5 @@ public abstract class BasePixelBrush : IPixelBrush, IDisposable
         _brushBitmap = null;
         Preview?.Dispose();
         Preview = null;
-        _surface?.Dispose();
-        _surface = null;
     }
 }

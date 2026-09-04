@@ -85,7 +85,14 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
     private SKColor _drawingColor;
     private float _fillOpacity = 1f;
     private IPixelBrush? _brush;
+    // Written on the UI thread (UpdateBrushPreview — every color / brush / size change) and read on
+    // Avalonia's render thread (RenderBrushPreview → canvas.DrawSurface). The lock covers the field read
+    // plus the DrawSurface calls, so the UI thread can never dispose the surface the render thread is
+    // drawing: that was a native use-after-free which killed the process with no managed exception
+    // (issue #253 — a crash "every once in a while" while dragging the color slider, which pushes one
+    // color change per pointer-move event). Same shape as _snapshotLock; the two are never nested.
     private SKSurface? _brushPreviewSurface;
+    private readonly Lock _brushPreviewLock = new();
 
     // Live stylus pressure [0..1] for the current pointer event, captured on press/move and fed to the
     // brush on each freehand stamp. Defaults to 1 (full pressure) for mouse/touch and between strokes.
@@ -965,14 +972,22 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
         if (brush == null)
             return;
 
-        if (_drawingMode == BrushDrawingMode.Erase)
+        var previewColor = _drawingMode == BrushDrawingMode.Erase ? SKColors.Gray : DrawingColor;
+
+        // Rasterized outside the lock so the render thread is never blocked on an allocation.
+        var surface = ((BasePixelBrush)brush)
+            .GetPreviewSurface(previewColor.WithAlpha((byte)(brush.Opacity * 255)), brush.Size);
+
+        SKSurface? previous;
+        lock (_brushPreviewLock)
         {
-            _brushPreviewSurface = ((BasePixelBrush)brush).GetPreviewSurface(SKColors.Gray.WithAlpha((byte)(brush.Opacity * 255)), brush.Size);
+            previous = _brushPreviewSurface;
+            _brushPreviewSurface = surface;
         }
-        else
-        {
-            _brushPreviewSurface = ((BasePixelBrush)brush).GetPreviewSurface(DrawingColor.WithAlpha((byte)(brush.Opacity * 255)), brush.Size);
-        }
+
+        // Safe here and only here: the render thread reaches the surface solely through the field, under the
+        // same lock, so once the swap is published nothing can still be drawing the old one.
+        previous?.Dispose();
 
         if (IsShowingBrush())
         {
@@ -1066,16 +1081,19 @@ public class DrawingLayerNode : SKNode, IDrawingLayer, IPixelSelectionEditor, IS
 
     private void RenderBrushPreview(SKCanvas canvas)
     {
-        // The preview surface can be null when the brush couldn't produce a stamp bitmap or a surface
-        // allocation failed (see BasePixelBrush.GetPreviewSurface); skip rather than NRE on DrawSurface.
-        if (_brushPreviewSurface == null)
-            return;
+        lock (_brushPreviewLock)
+        {
+            // The preview surface can be null when the brush couldn't produce a stamp bitmap or a surface
+            // allocation failed (see BasePixelBrush.GetPreviewSurface); skip rather than NRE on DrawSurface.
+            if (_brushPreviewSurface == null)
+                return;
 
-        canvas.DrawSurface(_brushPreviewSurface, PreviewPosition.X - Brush.PixelOffset.X, PreviewPosition.Y - Brush.PixelOffset.Y);
+            canvas.DrawSurface(_brushPreviewSurface, PreviewPosition.X - Brush.PixelOffset.X, PreviewPosition.Y - Brush.PixelOffset.Y);
 
-        // One preview stamp per symmetry image, so what the cursor shows is what a click would commit.
-        foreach (var image in _strokeRenderer.GetSymmetryImages(PreviewPosition, Brush))
-            canvas.DrawSurface(_brushPreviewSurface, image.X - Brush.PixelOffset.X, image.Y - Brush.PixelOffset.Y);
+            // One preview stamp per symmetry image, so what the cursor shows is what a click would commit.
+            foreach (var image in _strokeRenderer.GetSymmetryImages(PreviewPosition, Brush))
+                canvas.DrawSurface(_brushPreviewSurface, image.X - Brush.PixelOffset.X, image.Y - Brush.PixelOffset.Y);
+        }
     }
 
     public void DrawWithBitmap(SKBitmap bitmap, SKRect destRect, SKBlendMode compositionMode, float opacity)
