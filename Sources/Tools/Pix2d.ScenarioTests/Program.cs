@@ -114,6 +114,7 @@ static class Runner
         NativeCrashSignatureScenario(t);
         FloodFillBoundsScenario(t);
         TombstoneProtoScenario(t);
+        AnimationFrameUndoScenario(harness, t);
         SafeSweep(harness);
 
         return t.Summarize();
@@ -4731,6 +4732,42 @@ static class Runner
     // arbitrary bytes as UTF-8, so every invalid sequence became U+FFFD and the payload was destroyed
     // before any parser saw it -- 40 crashes over 20 users arrived as "Native crash SIGSEGV (no
     // resolvable frame)" with nothing to act on.
+    // --- Undoing an added animation frame across a changed layer set -------------------------------
+    // ArgumentOutOfRangeException out of Edit.Undo (appstat 3.13.0, 2 users), from
+    // AddAnimationFrameOperation.OnPerformUndo indexing Frames[_newFrameIndex] on every layer. The layer
+    // set is read live at undo time, not captured when the frame was added, and layers come and go in
+    // between -- importing an image adds one, which is exactly what the op log shows before this threw.
+    static void AnimationFrameUndoScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Animation frame undo scenario ===");
+
+        t.Check("undoing an added frame survives a layer that never had it", () =>
+        {
+            h.NewProject();
+
+            var sprite = h.ActiveSprite;
+
+            h.Exec("Sprite.Edit.AddLayer");
+            h.Exec("Sprite.Animation.AddFrameAtEnd");
+
+            var layers = sprite.Layers.ToArray();
+            Assert.True(layers.Length >= 2, $"expected at least 2 layers, got {layers.Length}");
+            Assert.True(sprite.GetFramesCount() >= 2, $"expected at least 2 frames, got {sprite.GetFramesCount()}");
+
+            // Desync one layer, the way a layer added after the frame was ends up shorter than the rest.
+            var shortened = layers[^1];
+            shortened.DeleteFrame(shortened.Frames.Count - 1);
+
+            var threw = false;
+            try { h.Exec("Edit.Undo"); }
+            catch (ArgumentOutOfRangeException) { threw = true; }
+
+            Assert.True(!threw, "undo threw on a layer that had no frame at the added index");
+
+            h.NewProject();
+        });
+    }
+
     static void TombstoneProtoScenario(TestReport t)
     {
         Console.WriteLine("\n=== Binary tombstone scenario ===");

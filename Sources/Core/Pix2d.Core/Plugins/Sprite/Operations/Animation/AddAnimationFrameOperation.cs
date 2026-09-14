@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using Pix2d.Abstract.Operations;
 using Pix2d.CommonNodes;
 using Pix2d.Operations;
@@ -12,8 +12,8 @@ public class AddAnimationFrameOperation : EditOperationBase, ISpriteEditorOperat
     private readonly Pix2dSprite _sprite;
     private readonly int _restoreFrameIndex;
     private readonly int _newFrameIndex;
-    private LayerFrameMeta[]? _framesToRestore;
-    private BitmapNode[]? _nodesToRestore;
+    private LayerFrameMeta?[]? _framesToRestore;
+    private BitmapNode?[]? _nodesToRestore;
 
     // Animation metadata (tags + per-frame durations) is index-keyed, so inserting a frame re-indexes
     // it. Undo restores the snapshot wholesale rather than inverting the shift — see
@@ -49,14 +49,17 @@ public class AddAnimationFrameOperation : EditOperationBase, ISpriteEditorOperat
 
          for (var i = 0; i < layers.Length; i++)
          {
-             if (_framesToRestore != null && _nodesToRestore != null)
-             {
-                 layers[i].InsertFrameFromBitmapNode(_newFrameIndex, _nodesToRestore[i]!);
-             }
+             // The snapshot is indexed by the layer order as it stood during undo. A layer that has no
+             // entry there — or whose entry is null because it had no frame to give back — gets an empty
+             // frame, exactly as it would on a first Perform. See OnPerformUndo for why that happens.
+             var restored = _nodesToRestore != null && i < _nodesToRestore.Length
+                 ? _nodesToRestore[i]
+                 : null;
+
+             if (restored != null)
+                 layers[i].InsertFrameFromBitmapNode(_newFrameIndex, restored);
              else
-             {
                  layers[i].InsertEmptyFrame(_newFrameIndex);
-             }
          }
 
          // After the frames exist, so the tag clamp sees the new frame count.
@@ -73,6 +76,15 @@ public class AddAnimationFrameOperation : EditOperationBase, ISpriteEditorOperat
          _nodesToRestore = new BitmapNode[layers.Length];
          for (var i = 0; i < layers.Length; i++)
          {
+             // Not every layer necessarily carries this frame. The layer set is read live here rather
+             // than captured at Perform time, and layers come and go between the two — importing an
+             // image adds one (ImportAsync → AddLayerOperation, which is exactly what the op log shows
+             // before this threw) — so the frame counts can differ from the one this operation inserted
+             // into. Indexing Frames blindly turned that into ArgumentOutOfRangeException out of
+             // Edit.Undo; a layer with nothing at this index simply has nothing to remove or restore.
+             if (_newFrameIndex < 0 || _newFrameIndex >= layers[i].Frames.Count)
+                 continue;
+
              _framesToRestore[i] = layers[i].Frames[_newFrameIndex];
              _nodesToRestore[i] = layers[i].GetSpriteByFrame(_newFrameIndex)!;
              layers[i].DeleteFrame(_newFrameIndex);
