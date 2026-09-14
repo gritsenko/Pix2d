@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System.IO;
 using System.Threading.Tasks;
 
@@ -62,6 +62,20 @@ public static class StagedWrites
                 bufferSize: 64 * 1024, useAsync: true);
         }
 
+        /// <summary>
+        /// How many times the rename is attempted, and the base backoff between attempts (it grows
+        /// linearly, so the whole budget is ~360 ms). On Windows the destination of an export is
+        /// routinely opened for a moment by something that is not the user — a virus scanner reading
+        /// what was just written, the search indexer, a OneDrive/Dropbox client picking up the change —
+        /// and the rename then fails with <c>ERROR_ACCESS_DENIED</c>/<c>ERROR_SHARING_VIOLATION</c>
+        /// (<c>UnauthorizedAccessException</c> was the 3rd-largest signature in appstat: 17 events over
+        /// 6 users, all from <c>PngImageExporter</c>). Those handles are held for milliseconds, so one
+        /// retry usually settles it, while a genuine permission problem still surfaces to the caller —
+        /// the budget is deliberately short enough not to stall a user-visible export.
+        /// </summary>
+        private const int PublishAttempts = 4;
+        private const int PublishRetryDelayMs = 60;
+
         public Stream Stream => _stream;
 
         public async Task CommitAsync()
@@ -69,9 +83,25 @@ public static class StagedWrites
             await _stream.FlushAsync().ConfigureAwait(false);
             await _stream.DisposeAsync().ConfigureAwait(false);
 
-            // File.Move with overwrite is atomic on the same volume on NTFS, ext4 and APFS — and on Android
-            // internal storage / iOS sandbox filesystems, which sit on top of those.
-            File.Move(_tempPath, _finalPath, overwrite: true);
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    // File.Move with overwrite is atomic on the same volume on NTFS, ext4 and APFS — and on
+                    // Android internal storage / iOS sandbox filesystems, which sit on top of those. The
+                    // retry keeps that guarantee: a failed attempt publishes nothing, so there is no
+                    // half-written destination to recover from, and no copy-fallback that would quietly
+                    // downgrade the atomicity this class exists to provide.
+                    File.Move(_tempPath, _finalPath, overwrite: true);
+                    break;
+                }
+                catch (Exception e) when (attempt < PublishAttempts
+                                          && e is IOException or UnauthorizedAccessException)
+                {
+                    await Task.Delay(PublishRetryDelayMs * attempt).ConfigureAwait(false);
+                }
+            }
+
             _committed = true;
         }
 

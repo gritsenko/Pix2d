@@ -2035,6 +2035,54 @@ static class Runner
                 Assert.True(File.ReadAllBytes(path).Length == 2, "the staged write did not replace the file");
             });
 
+            // Export failed with UnauthorizedAccessException from the commit's File.Move (appstat 3.13.0,
+            // 17 events / 6 users, all from PngImageExporter). Nothing is wrong with the path: on Windows
+            // the destination is routinely held for a few milliseconds by a virus scanner, the indexer or
+            // a cloud-sync client, and the rename loses the race.
+            t.Check("a destination briefly held by another process is retried, not failed outright", () =>
+            {
+                File.SetAttributes(path, File.GetAttributes(path) & ~FileAttributes.ReadOnly);
+                File.WriteAllBytes(path, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+                var hold = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                var released = Task.Run(async () =>
+                {
+                    await Task.Delay(80);
+                    hold.Dispose();
+                });
+
+                var staged = file.OpenStagedWriteAsync().GetAwaiter().GetResult();
+                staged.Stream.Write([7, 7, 7]);
+                staged.CommitAsync().GetAwaiter().GetResult();
+                staged.DisposeAsync().GetAwaiter().GetResult();
+                released.GetAwaiter().GetResult();
+
+                Assert.True(File.ReadAllBytes(path).Length == 3, "the retried commit did not publish");
+            });
+
+            t.Check("a destination locked for good still fails, leaving the original intact", () =>
+            {
+                // The retry must not turn a real permission problem into a hang or a silent no-op, and a
+                // commit that never happened must publish nothing at all.
+                File.WriteAllBytes(path, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+                var staged = file.OpenStagedWriteAsync().GetAwaiter().GetResult();
+                staged.Stream.Write([7, 7, 7]);
+
+                var threw = false;
+                using (File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                    try { staged.CommitAsync().GetAwaiter().GetResult(); }
+                    catch (Exception e) when (e is IOException or UnauthorizedAccessException) { threw = true; }
+                }
+
+                staged.DisposeAsync().GetAwaiter().GetResult();
+
+                Assert.True(threw, "a permanently locked destination must still report the failure");
+                Assert.True(File.ReadAllBytes(path).Length == 8, "the original file was not left intact");
+                Assert.True(!File.Exists(path + ".tmp"), "the abandoned staging file was left behind");
+            });
+
             // A save that dies mid-write used to leave the destination truncated, which for a .pix2d is an
             // unopenable project where the user's work was (appstat, fatal: "End of Central Directory
             // record could not be found", alongside disk-full errors from the same window). SaveAsync now
