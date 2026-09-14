@@ -57,7 +57,16 @@ public static class StagedWrites
         public DiskStagedWrite(string finalPath)
         {
             _finalPath = finalPath;
-            _tempPath = finalPath + ".tmp";
+
+            // The staging file is named per *write*, not per destination. It used to be a fixed
+            // "<final>.tmp" sibling opened with FileShare.None, so two saves of the same project
+            // overlapping — a close-triggered save landing on top of an autosave, which the op log shows
+            // verbatim — made the second one fail to even open it: IOException "the process cannot
+            // access the file … .pix2d.tmp because it is being used by another process", and because the
+            // save task was never awaited it came back as an unobserved exception from the finalizer,
+            // i.e. fatal. Two concurrent writers now stage independently and the later rename wins,
+            // which is the same outcome the fixed name was trying to produce anyway.
+            _tempPath = $"{finalPath}.{Guid.NewGuid():N}.tmp";
             _stream = new FileStream(_tempPath, FileMode.Create, FileAccess.Write, FileShare.None,
                 bufferSize: 64 * 1024, useAsync: true);
         }

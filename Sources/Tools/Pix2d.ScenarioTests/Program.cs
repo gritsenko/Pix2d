@@ -2061,6 +2061,30 @@ static class Runner
                 Assert.True(File.ReadAllBytes(path).Length == 3, "the retried commit did not publish");
             });
 
+            t.Check("two overlapping saves of one file do not collide on a staging file", () =>
+            {
+                // A close-triggered save landing on top of an autosave: the staging file used to be a
+                // fixed "<final>.tmp" opened with FileShare.None, so the second writer could not open it
+                // at all -- IOException from DiskStagedWrite's constructor which, never being awaited,
+                // came back from the finalizer as a fatal unobserved exception.
+                File.SetAttributes(path, File.GetAttributes(path) & ~FileAttributes.ReadOnly);
+
+                var first = file.OpenStagedWriteAsync().GetAwaiter().GetResult();
+                var second = file.OpenStagedWriteAsync().GetAwaiter().GetResult();
+
+                first.Stream.Write([1]);
+                second.Stream.Write([2, 2]);
+
+                first.CommitAsync().GetAwaiter().GetResult();
+                second.CommitAsync().GetAwaiter().GetResult();
+
+                first.DisposeAsync().GetAwaiter().GetResult();
+                second.DisposeAsync().GetAwaiter().GetResult();
+
+                Assert.True(File.ReadAllBytes(path).Length == 2, "the later save did not win");
+                Assert.True(NoStagingLeftovers(path), "a staging file was left behind");
+            });
+
             t.Check("a destination locked for good still fails, leaving the original intact", () =>
             {
                 // The retry must not turn a real permission problem into a hang or a silent no-op, and a
@@ -2081,7 +2105,7 @@ static class Runner
 
                 Assert.True(threw, "a permanently locked destination must still report the failure");
                 Assert.True(File.ReadAllBytes(path).Length == 8, "the original file was not left intact");
-                Assert.True(!File.Exists(path + ".tmp"), "the abandoned staging file was left behind");
+                Assert.True(NoStagingLeftovers(path), "the abandoned staging file was left behind");
             });
 
             // A save that dies mid-write used to leave the destination truncated, which for a .pix2d is an
@@ -2100,7 +2124,7 @@ static class Runner
                 Assert.True(threw, "the write failure must still be reported to the caller");
                 Assert.True(File.ReadAllBytes(path).Length == 8,
                     "the destination was modified by a save that never completed");
-                Assert.True(!File.Exists(path + ".tmp"), "the staging file was left behind");
+                Assert.True(NoStagingLeftovers(path), "the staging file was left behind");
             });
 
             // The staged-write path is what lets a multi-megabyte project stream straight to disk instead of
@@ -2119,7 +2143,7 @@ static class Runner
                 staged.DisposeAsync().GetAwaiter().GetResult();
 
                 Assert.True(File.ReadAllBytes(path).Length == 3, "the commit did not publish the staged bytes");
-                Assert.True(!File.Exists(path + ".tmp"), "the staging file outlived the commit");
+                Assert.True(NoStagingLeftovers(path), "the staging file outlived the commit");
             });
 
             t.Check("an abandoned staged write leaves the previous file untouched", () =>
@@ -2131,7 +2155,7 @@ static class Runner
                 staged.DisposeAsync().GetAwaiter().GetResult();   // no commit — the write failed
 
                 Assert.True(File.ReadAllBytes(path).Length == 8, "an uncommitted write reached the destination");
-                Assert.True(!File.Exists(path + ".tmp"), "the abandoned staging file was left behind");
+                Assert.True(NoStagingLeftovers(path), "the abandoned staging file was left behind");
             });
 
             // ProjectPacker now streams the archive into the staging file rather than assembling it in
@@ -2157,7 +2181,7 @@ static class Runner
                 Task.Run(() => Pix2d.Project.ProjectPacker.WriteProjectAsync(projectFile, scene))
                     .GetAwaiter().GetResult();
 
-                Assert.True(!File.Exists(projectPath + ".tmp"), "the staging file outlived the save");
+                Assert.True(NoStagingLeftovers(projectPath), "the staging file outlived the save");
 
                 var reloaded = Task.Run(() => Pix2d.Project.ProjectUnpacker.LoadProjectScene(projectFile))
                     .GetAwaiter().GetResult();
@@ -4872,6 +4896,18 @@ static class Runner
                 corrupted[i] ^= 0x5A;
             NativeCrashSignature.Derive(Exit(TombstoneProtoReader.TryRenderAsText(corrupted)));
         });
+    }
+
+    /// <summary>
+    /// No staging file is left beside <paramref name="path"/>. Staging files are named per write
+    /// (<c>&lt;final&gt;.&lt;guid&gt;.tmp</c>) so concurrent saves of one project cannot collide on them,
+    /// so "is it cleaned up" is a question about the directory, not about one predictable name.
+    /// </summary>
+    static bool NoStagingLeftovers(string path)
+    {
+        var dir = Path.GetDirectoryName(path);
+        return dir == null
+               || !Directory.EnumerateFiles(dir, Path.GetFileName(path) + ".*.tmp").Any();
     }
 
     static void FloodFillBoundsScenario(TestReport t)
