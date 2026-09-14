@@ -4718,6 +4718,20 @@ static class Runner
                 "two reports of the same fault produced different fingerprints");
         });
 
+        t.Check("a library mapped out of an APK keys on its symbol, not its map offset", () =>
+        {
+            const string apkMapped = """
+            signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0
+            backtrace:
+              #00  pc 0000000000322500  /data/app/~~Illi==/com.pix2d.pix2dapp-FLHC==/split_config.arm64_v8a.apk!libSkiaSharp.so (offset 0x3198000) (sk_surface_draw+28) (BuildId: 4efb7638)
+            """;
+            var s = NativeCrashSignature.Derive(Exit(apkMapped));
+            Assert.True(s.Symbol == "sk_surface_draw", $"symbol '{s.Symbol}'");
+            // A map offset is per-process: keying on it gives every single report its own issue.
+            Assert.True(!s.Fingerprint.Contains("0x3198000", StringComparison.Ordinal),
+                $"fingerprint leaked a load offset: {s.Fingerprint}");
+        });
+
         t.Check("the signal comes from the OS status, not the trace text", () =>
         {
             // No signal line at all: Status alone must still identify it.
@@ -4764,6 +4778,82 @@ static class Runner
             Assert.True(s.SignalName == "ANR", $"signal '{s.SignalName}'");
             Assert.True(s.Fingerprint.StartsWith("anr|", StringComparison.Ordinal), $"fingerprint '{s.Fingerprint}'");
             Assert.True(s.Title.Contains("ProjectService"), $"title '{s.Title}'");
+        });
+
+        // The shape that actually arrives in production. When tombstoned is busy, ApplicationExitInfo
+        // hands back a debuggerd dump instead of an ART thread dump: no "main" header (the main thread
+        // is named after the truncated process name), no `at com.foo.Bar` frames, native frames only.
+        const string debuggerdAnr = """
+        Subject: Input dispatching timed out (com.pix2d.pix2dapp/MainActivity is not responding.)
+
+        ----- dumping pid: 22998 at 4577244592
+        libdebuggerd_client: failed to read status response from tombstoned: Try again
+
+        ----- Waiting Channels: pid 22998 at 2026-09-15 07:23:54 -----
+        Cmd line: com.pix2d.pix2dapp
+
+        sysTid=22998     futex_wait_queue
+        sysTid=23000     do_sigtimedwait
+
+        ----- end 22998 -----
+
+        ----- pid 22998 at 2026-09-15 07:24:05 -----
+        Cmd line: com.pix2d.pix2dapp
+        ABI: 'arm64'
+
+        ".pix2d.pix2dapp" sysTid=22998
+            #00 pc 0000000000065868  /apex/com.android.runtime/lib64/bionic/libc.so (scudo::Allocator::quarantineOrDeallocateChunk(void*)+136) (BuildId: 8d3e912b5df82ae01bb1e4fd3a02b3c1)
+            #01 pc 000000000005f940  /apex/com.android.runtime/lib64/bionic/libc.so (scudo::Allocator::deallocate(void*)+192) (BuildId: 8d3e912b5df82ae01bb1e4fd3a02b3c1)
+            #02 pc 00000000001fd208  /data/app/~~M6q93rsGBsdbi9yaoZwV8g==/com.pix2d.pix2dapp-lxcU8RsJgil2GUWJDU_0Fw==/split_config.arm64_v8a.apk!libmonosgen-2.0.so (offset 0x3198000) (mono_class_inflate_generic_method_full_checked+1208) (BuildId: 4efb763813573a1140dcdc5ea251cacf33529cbc)
+
+        "Signal Catcher" sysTid=23000
+            #00 pc 00000000000df048  /apex/com.android.runtime/lib64/bionic/libc.so (__rt_sigtimedwait+8) (BuildId: 8d3e912b5df82ae01bb1e4fd3a02b3c1)
+        """;
+
+        static ProcessExitDetails AnrExit(string trace) => new()
+        {
+            LikelyCrash = true, Reason = "Anr", TimestampMs = 1, TraceText = trace, Status = 0,
+        };
+
+        t.Check("a debuggerd ANR dump keys on the main thread, not on 'unknown'", () =>
+        {
+            var s = NativeCrashSignature.Derive(AnrExit(debuggerdAnr));
+            Assert.True(s.SignalName == "ANR", $"signal '{s.SignalName}'");
+            // libc frames are where the block surfaces; the app-owned frame below them is the signature.
+            Assert.True(s.Library == "libmonosgen-2.0.so", $"library '{s.Library}'");
+            Assert.True(s.Symbol == "mono_class_inflate_generic_method_full_checked", $"symbol '{s.Symbol}'");
+            Assert.True(!s.Fingerprint.Contains("unknown", StringComparison.Ordinal),
+                $"collapsed into the unactionable bucket: {s.Fingerprint}");
+        });
+
+        t.Check("two ANRs blocked in different places do not share a signature", () =>
+        {
+            var other = debuggerdAnr.Replace("mono_class_inflate_generic_method_full_checked+1208",
+                "mono_gc_pthread_join+40");
+            Assert.True(NativeCrashSignature.Derive(AnrExit(debuggerdAnr)).Fingerprint
+                        != NativeCrashSignature.Derive(AnrExit(other)).Fingerprint,
+                "distinct blocks collapsed into one bucket");
+        });
+
+        t.Check("an ANR signature never borrows a frame from another thread", () =>
+        {
+            // Main resolves to nothing at all; the Signal Catcher below it must not supply the key.
+            var mainless = debuggerdAnr
+                .Replace("#00 pc 0000000000065868", "#00 pc")
+                .Replace("#01 pc 000000000005f940", "#01 pc")
+                .Replace("#02 pc 00000000001fd208", "#02 pc");
+            var s = NativeCrashSignature.Derive(AnrExit(mainless));
+            Assert.True(s.Symbol != "__rt_sigtimedwait", $"took the Signal Catcher's frame: {s.Fingerprint}");
+            // Nothing to unwind, but the wait channel still separates a lock from IPC or an idle looper.
+            Assert.True(s.Fingerprint == "anr|main thread in futex_wait_queue", $"fingerprint '{s.Fingerprint}'");
+        });
+
+        t.Check("nothing device-specific reaches an ANR signature", () =>
+        {
+            var s = NativeCrashSignature.Derive(AnrExit(debuggerdAnr));
+            foreach (var leak in new[] { "M6q93rsGBsdbi9yaoZwV8g", "lxcU8RsJgil2GUWJDU_0Fw", "22998", "+1208", "/data/app", "offset", "0x3198000" })
+                Assert.True(!s.Fingerprint.Contains(leak, StringComparison.OrdinalIgnoreCase),
+                    $"fingerprint leaked '{leak}': {s.Fingerprint}");
         });
 
         t.Check("a missing or garbage trace degrades instead of throwing", () =>

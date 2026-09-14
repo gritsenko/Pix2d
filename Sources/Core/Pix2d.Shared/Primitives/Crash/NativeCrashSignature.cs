@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System.Text.RegularExpressions;
 
 namespace Pix2d.Primitives.Crash;
@@ -124,23 +124,63 @@ public static partial class NativeCrashSignature
             AbortMessage: abortMessage);
     }
 
+    /// <summary>
+    /// Keys an ANR on what the <b>main thread</b> was stuck in. The dump reaching us is not always the
+    /// ART thread dump this used to assume: when <c>tombstoned</c> is busy, <c>ApplicationExitInfo</c>
+    /// hands back a debuggerd-style dump instead (<c>libdebuggerd_client: failed to read status
+    /// response from tombstoned: Try again</c>), which has <em>no</em> <c>"main"</c> header and
+    /// <em>no</em> <c>at com.foo.Bar</c> frames — the main thread is named after the truncated process
+    /// name (<c>".pix2d.pix2dapp"</c>) and carries native <c>#00 pc ...</c> frames. Assuming the ART
+    /// shape made every such report fall into one unactionable "no main-thread frame" bucket, which is
+    /// where nearly every ANR landed in production.
+    /// <para>So the main thread is located structurally (by <c>sysTid</c> == the dumped pid, else the
+    /// first thread in the dump — Android always dumps main first), and the signature is taken from
+    /// whichever frame shape that section actually has, falling back to the kernel wait channel for a
+    /// dump that is only a "Waiting Channels" listing.</para>
+    /// </summary>
     private static RecoveredCrashSignature DeriveAnr(string trace)
     {
-        // The main thread's topmost frame is what the app was blocked in, and it is the only part of
-        // an ANR dump stable enough to key on.
-        var top = ExtractMainThreadTopFrame(trace);
-        return top is { Length: > 0 }
-            ? new RecoveredCrashSignature(
-                Title: $"ANR in {top}",
-                Fingerprint: $"anr|{top}",
-                SignalName: "ANR",
-                Library: null, Symbol: top, FaultCode: null, AbortMessage: null)
-            : new RecoveredCrashSignature(
-                Title: "ANR (no main-thread frame)",
-                Fingerprint: "anr|unknown",
-                SignalName: "ANR",
-                Library: null, Symbol: null, FaultCode: null, AbortMessage: null);
+        var main = ExtractMainThreadSection(trace);
+
+        if (main != null)
+        {
+            // An ART dump: the managed/Java frame is the most specific thing available.
+            var javaTop = JavaFrameRegex().Match(main);
+            if (javaTop.Success && javaTop.Groups[1].Value.Length > 0)
+                return Anr(javaTop.Groups[1].Value, library: null, symbol: javaTop.Groups[1].Value);
+
+            // A debuggerd dump: same frame-picking rules as a tombstone — the topmost app-owned frame
+            // that resolved to a symbol, so the allocator and the libc entry points sitting on top of a
+            // blocked main thread don't become the signature.
+            var frame = FindRepresentativeFrame(main);
+            if (frame != null)
+            {
+                var where = frame.Symbol is { Length: > 0 }
+                    ? $"{frame.Library}: {frame.Symbol}"
+                    : frame.Library;
+                return Anr(where, frame.Library, frame.Symbol);
+            }
+        }
+
+        // Last resort: a dump with no backtrace at all still names the kernel wait channel the main
+        // thread sat in, which at least separates a lock (futex_wait_queue) from IPC
+        // (binder_thread_read) and from an idle looper (do_epoll_wait).
+        var channel = ExtractMainThreadWaitChannel(trace);
+        if (channel is { Length: > 0 })
+            return Anr($"main thread in {channel}", library: null, symbol: channel);
+
+        return new RecoveredCrashSignature(
+            Title: "ANR (no main-thread frame)",
+            Fingerprint: "anr|unknown",
+            SignalName: "ANR",
+            Library: null, Symbol: null, FaultCode: null, AbortMessage: null);
     }
+
+    private static RecoveredCrashSignature Anr(string where, string? library, string? symbol) =>
+        new(Title: $"ANR in {where}",
+            Fingerprint: $"anr|{where}",
+            SignalName: "ANR",
+            Library: library, Symbol: symbol, FaultCode: null, AbortMessage: null);
 
     private static RecoveredCrashSignature Fallback(ProcessExitDetails exit) =>
         new(Title: $"Recovered crash ({exit.Reason})",
@@ -245,16 +285,23 @@ public static partial class NativeCrashSignature
     }
 
     /// <summary>
-    /// Picks the symbol out of a frame's trailing parenthesised groups, skipping the
-    /// <c>(BuildId: …)</c> group that follows it, and drops the <c>+offset</c> suffix — the offset
-    /// shifts with every build and would make the signature per-release.
+    /// Picks the symbol out of a frame's trailing parenthesised groups, and drops the <c>+offset</c>
+    /// suffix — the offset shifts with every build and would make the signature per-release.
+    /// <para>Two groups around it are never the symbol. <c>(BuildId: …)</c> follows it, and a library
+    /// mapped straight out of an APK — which is every native library Pix2d ships on Android — is
+    /// printed with its map offset <em>before</em> it:
+    /// <c>…apk!libmonosgen-2.0.so (offset 0x3198000) (mono_class_inflate_generic_method_full_checked+1208)</c>.
+    /// Taking that first group put a per-process load address in the fingerprint, which splits one bug
+    /// into a new issue per report — the mirror image of the collapse it is meant to prevent.</para>
     /// </summary>
     private static string? ExtractSymbol(string rest)
     {
         foreach (Match match in ParenGroupRegex().Matches(rest))
         {
             var value = match.Groups[1].Value.Trim();
-            if (value.Length == 0 || value.StartsWith("BuildId", StringComparison.OrdinalIgnoreCase))
+            if (value.Length == 0
+                || value.StartsWith("BuildId", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("offset", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             var plus = value.LastIndexOf('+');
@@ -281,14 +328,72 @@ public static partial class NativeCrashSignature
         return match.Success ? match.Groups[1].Value.Trim() : null;
     }
 
-    private static string? ExtractMainThreadTopFrame(string trace)
+    /// <summary>
+    /// The slice of an ANR dump belonging to the main thread — from its header up to the next thread
+    /// header, so a frame is never borrowed from a neighbouring thread (which would make the signature
+    /// depend on whatever else happened to be running).
+    /// <para>The main thread is identified, in order: the ART <c>"main"</c> header; the thread whose
+    /// <c>sysTid</c> equals the dumped pid (in a debuggerd dump the main thread is named after the
+    /// truncated process name, not "main"); the first thread in the dump, which is the one Android
+    /// dumps first. Returns null when the trace has no thread headers at all.</para>
+    /// </summary>
+    private static string? ExtractMainThreadSection(string trace)
     {
-        var mainIndex = trace.IndexOf("\"main\"", StringComparison.Ordinal);
-        if (mainIndex < 0)
+        var headers = ThreadHeaderRegex().Matches(trace);
+        if (headers.Count == 0)
             return null;
 
-        var match = JavaFrameRegex().Match(trace, mainIndex);
+        var pid = ExtractDumpedPid(trace);
+        var chosen = -1;
+
+        for (var i = 0; i < headers.Count; i++)
+        {
+            if (headers[i].Groups["name"].Value == "main")
+            {
+                chosen = i;
+                break;
+            }
+
+            if (pid == null || chosen >= 0)
+                continue;
+
+            var sysTid = SysTidRegex().Match(headers[i].Groups["rest"].Value);
+            if (sysTid.Success && sysTid.Groups[1].Value == pid)
+                chosen = i;
+        }
+
+        if (chosen < 0)
+            chosen = 0;
+
+        var start = headers[chosen].Index;
+        var end = chosen + 1 < headers.Count ? headers[chosen + 1].Index : trace.Length;
+        return trace[start..end];
+    }
+
+    private static string? ExtractDumpedPid(string trace)
+    {
+        var match = DumpedPidRegex().Match(trace);
         return match.Success ? match.Groups[1].Value : null;
+    }
+
+    /// <summary>
+    /// The kernel wait channel of the main thread from a "Waiting Channels" listing
+    /// (<c>sysTid=22998     futex_wait_queue</c>). The main thread is the one whose sysTid is the pid;
+    /// with no pid to match on, the first listed — the listing is ordered the same way the dump is.
+    /// </summary>
+    private static string? ExtractMainThreadWaitChannel(string trace)
+    {
+        var pid = ExtractDumpedPid(trace);
+        string? first = null;
+
+        foreach (Match match in WaitChannelRegex().Matches(trace))
+        {
+            first ??= match.Groups[2].Value;
+            if (pid != null && match.Groups[1].Value == pid)
+                return match.Groups[2].Value;
+        }
+
+        return pid == null ? first : null;
     }
 
     /// <summary>
@@ -313,6 +418,23 @@ public static partial class NativeCrashSignature
 
     [GeneratedRegex(@"^\s*at\s+(\S+)", RegexOptions.Multiline)]
     private static partial Regex JavaFrameRegex();
+
+    /// <summary>
+    /// A thread header in either dump shape: <c>"main" prio=5 tid=1 Blocked</c> (ART) or
+    /// <c>".pix2d.pix2dapp" sysTid=22998</c> (debuggerd).
+    /// </summary>
+    [GeneratedRegex("""^[ \t]*"(?<name>[^"\r\n]*)"(?<rest>[^\r\n]*)$""", RegexOptions.Multiline)]
+    private static partial Regex ThreadHeaderRegex();
+
+    [GeneratedRegex(@"sysTid=(\d+)")]
+    private static partial Regex SysTidRegex();
+
+    /// <summary>The pid the dump belongs to: <c>----- pid 22998 at ...</c> or <c>dumping pid: 22998</c>.</summary>
+    [GeneratedRegex(@"(?:dumping\s+pid:\s*|-{2,}\s*pid\s+)(\d+)")]
+    private static partial Regex DumpedPidRegex();
+
+    [GeneratedRegex(@"^[ \t]*sysTid=(\d+)[ \t]+(\S+)[ \t]*$", RegexOptions.Multiline)]
+    private static partial Regex WaitChannelRegex();
 }
 
 /// <summary>
