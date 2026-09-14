@@ -1,4 +1,4 @@
-using Pix2d.Abstract.Drawing;
+﻿using Pix2d.Abstract.Drawing;
 using Pix2d.Plugins.Drawing.Common;
 using Pix2d.Plugins.Drawing.Common.Drawing;
 using Pix2d.Primitives.Drawing;
@@ -301,16 +301,34 @@ internal sealed class StrokeRenderer
             brush.Draw(_host, images[i], color, pressure, true);
     }
 
+    /// <remarks>
+    /// <paramref name="origin"/> was bounds-checked in <see cref="FillRegion"/> against the host's
+    /// <c>Size</c> — the <b>node's</b> size, which is not always the size of the bitmap that
+    /// <c>ModifyBitmap</c> hands back here. A canvas resize/crop (and its undo) moves the two out of
+    /// step, and the fill then indexes the smaller buffer with a coordinate the larger one allowed:
+    /// <c>IndexOutOfRangeException</c> in <c>FloodFiller.FloodFill</c>, straight off a pointer-up.
+    /// <c>SetPixel</c> on the same host already guards this exact desync; the fill never did.
+    /// <para>The working bitmap is checked too, because it receives the filled pixels as a flat byte
+    /// copy sized by the <em>source</em>: a working bitmap smaller than the filled one is a heap
+    /// overwrite, not an exception.</para>
+    /// </remarks>
     private void FloodFillBitmap(SKPointI origin, SKColor fillColor, SKBitmap bitmap, float tolerance, SKBlendMode blendMode)
     {
+        var working = _host.WorkingBitmap;
+        if (working.Width != bitmap.Width || working.Height != bitmap.Height)
+            return;
+
         var floodFiller = new FloodFiller(bitmap.Pixels, new SKSizeI(bitmap.Width, bitmap.Height));
+        if (!floodFiller.CanFillFrom(origin))
+            return;
+
         floodFiller.FloodFill(origin, fillColor);
 
         var data = floodFiller.GetPixelBytes();
-        _host.WorkingBitmap.CopyPixelsToBitmap(data);
+        working.CopyPixelsToBitmap(data);
 
         using var canvas = new SKCanvas(bitmap);
         using var paint = new SKPaint { BlendMode = blendMode };
-        canvas.DrawBitmap(_host.WorkingBitmap, 0, 0, paint);
+        canvas.DrawBitmap(working, 0, 0, paint);
     }
 }

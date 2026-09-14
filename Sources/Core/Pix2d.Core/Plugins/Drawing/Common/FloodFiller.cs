@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace Pix2d.Plugins.Drawing.Common;
 
@@ -30,8 +30,29 @@ public class FloodFiller
         return _pixels[index] == _startColor;
     } 
 
+    /// <summary>
+    /// True when <paramref name="pt"/> is a pixel of the buffer this filler was built over. The
+    /// recursive fill guards every edge it walks to, so the start point is the one index that can
+    /// leave the array — and it comes from a pointer position, mapped through the layer transform by
+    /// the caller. <see cref="FloodFill"/> returns without touching anything when it is outside.
+    /// </summary>
+    public bool CanFillFrom(SKPointI pt)
+    {
+        if (pt.X < 0 || pt.Y < 0 || pt.X >= _size.Width || pt.Y >= _size.Height)
+            return false;
+
+        int x = pt.X, y = pt.Y;
+        return GetIndex(ref x, ref y) < _pixels.Length;
+    }
+
     public void FloodFill(SKPointI pt, SKColor targetColor)
     {
+        // A tap whose mapped pixel falls outside the bitmap fills nothing; it must never be a crash.
+        // This used to be the caller's business alone, and the caller's bounds check is against the
+        // *node's* size, which can disagree with the bitmap handed to the fill (see StrokeRenderer).
+        if (!CanFillFrom(pt))
+            return;
+
         _targetColor = targetColor;
         //***Get starting color.
         int x = pt.X;

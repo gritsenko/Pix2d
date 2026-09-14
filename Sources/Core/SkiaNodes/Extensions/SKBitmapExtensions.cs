@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace SkiaNodes.Extensions;
 
@@ -182,11 +182,31 @@ public static class SKBitmapExtensions
         }
     }
 
+    /// <summary>
+    /// Copies a raw pixel buffer over a bitmap's own.
+    /// </summary>
+    /// <remarks>
+    /// The destination size passed to <see cref="Buffer.MemoryCopy(void*,void*,long,long)"/> used to be
+    /// the <em>source</em> length, which is the one value that can never fail the check — so a buffer
+    /// larger than the target silently wrote past the end of its pixels instead of throwing. That is a
+    /// heap corruption whose crash surfaces somewhere else entirely, so the real capacity is passed and
+    /// a mismatch is rejected by name.
+    /// </remarks>
     public unsafe static void CopyPixelsToBitmap(this SKBitmap targetBitmap, byte[] pixels)
     {
+        var destination = targetBitmap.GetPixels();
+        if (destination == IntPtr.Zero)
+            throw new InvalidOperationException("Target bitmap has no pixel buffer.");
+
+        var capacity = targetBitmap.ByteCount;
+        if (pixels.Length > capacity)
+            throw new ArgumentException(
+                $"Source buffer is {pixels.Length} bytes but the target {targetBitmap.Width}x{targetBitmap.Height} " +
+                $"bitmap holds {capacity}.", nameof(pixels));
+
         fixed (byte* pSource = pixels)
         {
-            Buffer.MemoryCopy(pSource, targetBitmap.GetPixels().ToPointer(), pixels.Length, pixels.Length);
+            Buffer.MemoryCopy(pSource, destination.ToPointer(), capacity, pixels.Length);
         }
     }
     public unsafe static void CopyFrom(this SKBitmap targetBitmap, SKBitmap sourceBitmap)

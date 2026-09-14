@@ -26,12 +26,14 @@ using Pix2d.Primitives;
 using Pix2d.Primitives.Crash;
 using Pix2d.Primitives.Drawing;
 using Pix2d.Plugins.Drawing.Brushes;
+using Pix2d.Plugins.Drawing.Common;
 using Pix2d.Primitives.ViewPort;
 using Pix2d.Services;
 using Pix2d.ScenarioTests;
 using Pix2d.State;
 using Pix2d;
 using SkiaNodes;
+using SkiaNodes.Extensions;
 using SkiaNodes.Interactive;
 using SkiaNodes.Render;
 using SkiaNodes.Serialization;
@@ -110,6 +112,7 @@ static class Runner
         LayerTitleAndPixelMaskScenario(harness, t);
         UpdateReleaseParsingScenario(t);
         NativeCrashSignatureScenario(t);
+        FloodFillBoundsScenario(t);
         SafeSweep(harness);
 
         return t.Summarize();
@@ -4649,6 +4652,64 @@ static class Runner
     /// per-install path hash, a program counter, a symbol offset — every phone reports its own
     /// unique "issue" and a widespread crash looks like a hundred one-off events.
     /// </summary>
+    static void FloodFillBoundsScenario(TestReport t)
+    {
+        Console.WriteLine("\n=== Flood fill bounds scenario ===");
+
+        static SKColor[] Buffer(int w, int h)
+        {
+            var pixels = new SKColor[w * h];
+            for (var i = 0; i < pixels.Length; i++)
+                pixels[i] = SKColors.White;
+            return pixels;
+        }
+
+        t.Check("a fill started outside the bitmap is a no-op, not a crash", () =>
+        {
+            // The crash signature from production: IndexOutOfRangeException in FloodFiller.FloodFill,
+            // straight off a pointer-up on the fill tool. The start point is the one index the fill
+            // does not derive from an edge it already checked.
+            foreach (var pt in new[]
+                     {
+                         new SKPointI(82, 10),   // one past the right edge
+                         new SKPointI(10, 64),   // one past the bottom edge — index == length
+                         new SKPointI(-1, 10),
+                         new SKPointI(10, -1),
+                         new SKPointI(9999, 9999),
+                     })
+            {
+                var pixels = Buffer(82, 64);
+                var filler = new FloodFiller(pixels, new SKSizeI(82, 64));
+                Assert.True(!filler.CanFillFrom(pt), $"{pt} reported as fillable");
+                filler.FloodFill(pt, SKColors.Red);
+                Assert.True(pixels.All(c => c == SKColors.White), $"{pt} modified the bitmap");
+            }
+        });
+
+        t.Check("a fill inside the bitmap still fills it", () =>
+        {
+            var pixels = Buffer(8, 4);
+            var filler = new FloodFiller(pixels, new SKSizeI(8, 4));
+            Assert.True(filler.CanFillFrom(new SKPointI(7, 3)), "the last pixel must be fillable");
+            filler.FloodFill(new SKPointI(0, 0), SKColors.Red);
+            Assert.True(pixels.All(c => c == SKColors.Red), "a uniform bitmap was not filled through");
+        });
+
+        t.Check("a pixel buffer larger than its target is rejected instead of overwriting past it", () =>
+        {
+            // CopyPixelsToBitmap passed the SOURCE length as the destination capacity, i.e. the one
+            // value that can never fail the check, so this wrote past the end of the target's pixels.
+            using var target = new SKBitmap(4, 4, Pix2DAppSettings.ColorType, SKAlphaType.Premul);
+            var oversized = new byte[8 * 8 * 4];
+
+            var rejected = false;
+            try { target.CopyPixelsToBitmap(oversized); }
+            catch (ArgumentException) { rejected = true; }
+
+            Assert.True(rejected, "an oversized buffer was copied into a smaller bitmap");
+        });
+    }
+
     static void NativeCrashSignatureScenario(TestReport t)
     {
         Console.WriteLine("\n=== Recovered native crash signature scenario ===");
