@@ -2062,6 +2062,23 @@ static class Runner
                 Assert.True(File.ReadAllBytes(path).Length == 3, "the retried commit did not publish");
             });
 
+            t.Check("saving into a folder that disappeared mid-session recreates it", () =>
+            {
+                // A project is opened once and saved for hours; the user reorganises the folder it came
+                // from in between. Ctrl+S then died with DirectoryNotFoundException from the staging
+                // file, losing the work the save existed to preserve (appstat 3.13.0, 2 users).
+                var vanishing = Path.Combine(dir, "gone", "project.pix2d");
+                Directory.CreateDirectory(Path.GetDirectoryName(vanishing)!);
+                var movedFile = new Pix2d.Common.FileSystem.NetFileSource(vanishing);
+                Directory.Delete(Path.GetDirectoryName(vanishing)!, recursive: true);
+
+                using var source = new MemoryStream([4, 5, 6]);
+                movedFile.SaveAsync(source).GetAwaiter().GetResult();
+
+                Assert.True(File.ReadAllBytes(vanishing).Length == 3, "the save did not land");
+                Assert.True(NoStagingLeftovers(vanishing), "a staging file was left behind");
+            });
+
             t.Check("two overlapping saves of one file do not collide on a staging file", () =>
             {
                 // A close-triggered save landing on top of an autosave: the staging file used to be a

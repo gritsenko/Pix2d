@@ -67,6 +67,18 @@ public static class StagedWrites
             // i.e. fatal. Two concurrent writers now stage independently and the later rename wins,
             // which is the same outcome the fixed name was trying to produce anyway.
             _tempPath = $"{finalPath}.{Guid.NewGuid():N}.tmp";
+
+            // The destination folder can be gone by the time a save runs: a project is opened once and
+            // saved for hours, and the user reorganises the folder it came from in the meantime
+            // (DirectoryNotFoundException on "…\\Downloads\\movin\\characters\\…\\onekin sprites.pix2d.tmp",
+            // 3.13.0, after earlier saves in the same session had succeeded). Asking to save to a path
+            // is asking for the path to exist, and refusing here loses the work the save was meant to
+            // preserve. A destination that genuinely cannot be created — an unplugged drive, a denied
+            // parent — still fails exactly as before, one line later.
+            var directory = Path.GetDirectoryName(_tempPath);
+            if (!string.IsNullOrEmpty(directory))
+                Directory.CreateDirectory(directory);
+
             _stream = new FileStream(_tempPath, FileMode.Create, FileAccess.Write, FileShare.None,
                 bufferSize: 64 * 1024, useAsync: true);
         }
