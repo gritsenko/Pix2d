@@ -218,6 +218,13 @@ public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportSh
     private const int ExitTraceMaxChars = 16 * 1024;
 
     /// <summary>
+    /// Copy granularity for the exit trace. The whole payload has to be read before it can be classified
+    /// — a protobuf tombstone cannot be parsed from a prefix, and the text one was already being read in
+    /// full before being trimmed — so this bounds the copy, not the payload.
+    /// </summary>
+    private const int ExitTraceCopyBufferBytes = 64 * 1024;
+
+    /// <summary>
     /// Reads the most recent historical process-exit record from the OS. This is the only reliable
     /// way on Android to learn that the previous process died from a native crash, an ANR or an OS
     /// kill — none of which surface through the managed exception handlers. API 30+ only.
@@ -261,16 +268,30 @@ public class AndroidPlatformStuffService : IPlatformStuffService, ICrashReportSh
                     using var trace = info.TraceInputStream;
                     if (trace != null)
                     {
-                        using var reader = new System.IO.StreamReader(trace);
-                        var raw = reader.ReadToEnd();
+                        // Read BYTES, not text. This stream is not always the text tombstone: on recent
+                        // Android it is frequently the protobuf-encoded Tombstone message, and pulling
+                        // that through a StreamReader decodes arbitrary bytes as UTF-8 — every invalid
+                        // sequence becomes U+FFFD, so the payload is destroyed before any parser sees
+                        // it. That is why 40 crashes over 20 users arrived as "Native crash SIGSEGV (no
+                        // resolvable frame)" with nothing to act on.
+                        using var buffer = new System.IO.MemoryStream();
+                        trace.CopyTo(buffer, ExitTraceCopyBufferBytes);
+                        var raw = buffer.ToArray();
+
+                        // A binary tombstone is re-rendered into the text shape the signature parser
+                        // already understands; anything else (a text tombstone, an ANR thread dump) is
+                        // decoded as before. TryRenderAsText returns null for both, so an unrecognised
+                        // payload degrades to exactly the previous behaviour.
+                        traceText = TombstoneProtoReader.TryRenderAsText(raw)
+                                    ?? System.Text.Encoding.UTF8.GetString(raw);
+
                         // Keep the HEAD, not the tail. A tombstone opens with the signal line, the
                         // abort message and the faulting thread's backtrace — everything needed to
                         // identify the crash — and is followed by the (much larger) dump of every
                         // other thread. Trimming from the front, as this used to, threw away the
                         // only part worth having and left an unidentifiable tail of idle threads.
-                        traceText = raw.Length > ExitTraceMaxChars
-                            ? raw.Substring(0, ExitTraceMaxChars)
-                            : raw;
+                        if (traceText.Length > ExitTraceMaxChars)
+                            traceText = traceText.Substring(0, ExitTraceMaxChars);
                     }
                 }
                 catch

@@ -113,6 +113,7 @@ static class Runner
         UpdateReleaseParsingScenario(t);
         NativeCrashSignatureScenario(t);
         FloodFillBoundsScenario(t);
+        TombstoneProtoScenario(t);
         SafeSweep(harness);
 
         return t.Summarize();
@@ -4700,6 +4701,179 @@ static class Runner
     /// per-install path hash, a program counter, a symbol offset — every phone reports its own
     /// unique "issue" and a widespread crash looks like a hundred one-off events.
     /// </summary>
+    // --- Binary (protobuf) tombstones -------------------------------------------------------------
+    // ApplicationExitInfo does not always hand back the TEXT tombstone: on recent Android it is often the
+    // protobuf Tombstone message. The head used to pull that through a StreamReader, i.e. decode
+    // arbitrary bytes as UTF-8, so every invalid sequence became U+FFFD and the payload was destroyed
+    // before any parser saw it -- 40 crashes over 20 users arrived as "Native crash SIGSEGV (no
+    // resolvable frame)" with nothing to act on.
+    static void TombstoneProtoScenario(TestReport t)
+    {
+        Console.WriteLine("\n=== Binary tombstone scenario ===");
+
+        // A minimal protobuf writer, so the fixture is a real wire-format payload rather than a
+        // hand-copied blob. Field numbers are the ones read off the production payload.
+        static void Varint(List<byte> to, ulong value)
+        {
+            while (value >= 0x80)
+            {
+                to.Add((byte)(value | 0x80));
+                value >>= 7;
+            }
+            to.Add((byte)value);
+        }
+
+        static void Tag(List<byte> to, int field, int wire) => Varint(to, (ulong)((field << 3) | wire));
+
+        static void Str(List<byte> to, int field, string value)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(value);
+            Tag(to, field, 2);
+            Varint(to, (ulong)bytes.Length);
+            to.AddRange(bytes);
+        }
+
+        static void Msg(List<byte> to, int field, List<byte> value)
+        {
+            Tag(to, field, 2);
+            Varint(to, (ulong)value.Count);
+            to.AddRange(value);
+        }
+
+        static void Int(List<byte> to, int field, ulong value)
+        {
+            Tag(to, field, 0);
+            Varint(to, value);
+        }
+
+        // BacktraceFrame { 4 = function_name, 5 = function_offset, 6 = file_name, 8 = build_id }
+        static List<byte> Frame(string file, string function)
+        {
+            var f = new List<byte>();
+            Int(f, 1, 0x1234);                       // rel_pc — must be skipped, not misread
+            Str(f, 4, function);
+            Int(f, 5, 28);                           // function_offset — per-build, must never be keyed on
+            Str(f, 6, file);
+            Str(f, 8, "4efb763813573a1140dcdc5ea251cacf33529cbc");
+            return f;
+        }
+
+        // map<int32, Thread> entry { 1 = key, 2 = Thread }, Thread { 1 = id, 2 = name, 4 = backtrace }
+        static List<byte> Thread(int id, string name, params List<byte>[] frames)
+        {
+            var thread = new List<byte>();
+            Int(thread, 1, (ulong)id);
+            Str(thread, 2, name);
+            foreach (var frame in frames)
+                Msg(thread, 4, frame);
+
+            var entry = new List<byte>();
+            Int(entry, 1, (ulong)id);
+            Msg(entry, 2, thread);
+            return entry;
+        }
+
+        static byte[] Tombstone(params List<byte>[] threads)
+        {
+            var payload = new List<byte>();
+            Str(payload, 1, "arm64");                // an unrelated leading field, to be skipped
+
+            var signal = new List<byte>();
+            Int(signal, 1, 11);
+            Str(signal, 2, "SIGSEGV");
+            Int(signal, 3, 1);
+            Str(signal, 4, "SEGV_MAPERR");
+            Msg(payload, 10, signal);
+
+            foreach (var thread in threads)
+                Msg(payload, 17, thread);
+
+            return payload.ToArray();
+        }
+
+        const string apk = "/data/app/~~IlliRmL7ISC6U7xZvSurqg==/com.pix2d.pix2dapp-FLHCWNbuXTw0Lky34ZJ4Aw==/split_config.arm64_v8a.apk!libSkiaSharp.so";
+
+        var binary = Tombstone(
+            // The faulting thread is NOT first in the map -- that was true of the production payload too.
+            Thread(23000, "android.bg", Frame("/apex/com.android.runtime/lib64/bionic/libc.so", "__epoll_pwait")),
+            Thread(22998, ".pix2d.pix2dapp",
+                Frame("/apex/com.android.runtime/lib64/bionic/libc.so", "memcpy"),
+                Frame(apk, "sk_surface_draw")));
+
+        static ProcessExitDetails Exit(string? trace) => new()
+        {
+            LikelyCrash = true,
+            Reason = "CrashNative",
+            Description = "Native crash",
+            TimestampMs = 1_754_000_000_000,
+            TraceText = trace,
+            Status = 11,
+        };
+
+        t.Check("a binary tombstone yields the same signature as the text one", () =>
+        {
+            var rendered = TombstoneProtoReader.TryRenderAsText(binary);
+            Assert.True(rendered != null, "a protobuf tombstone was not recognised");
+
+            var s = NativeCrashSignature.Derive(Exit(rendered));
+            Assert.True(s.SignalName == "SIGSEGV", $"signal '{s.SignalName}'");
+            Assert.True(s.Library == "libSkiaSharp.so", $"library '{s.Library}'");
+            Assert.True(s.Symbol == "sk_surface_draw", $"symbol '{s.Symbol}'");
+            Assert.True(s.FaultCode == "SEGV_MAPERR", $"fault code '{s.FaultCode}'");
+            Assert.True(!s.Title.Contains("no resolvable frame", StringComparison.Ordinal),
+                $"collapsed into the unactionable bucket: {s.Title}");
+        });
+
+        t.Check("the same fault reported as protobuf and as text groups identically", () =>
+        {
+            const string asText = """
+            signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0
+            backtrace:
+              #00  pc 0000000000322500  /apex/com.android.runtime/lib64/bionic/libc.so (memcpy+72)
+              #01  pc 0000000000249eb4  /data/app/~~IlliRmL7ISC6U7xZvSurqg==/com.pix2d.pix2dapp-FLHCWNbuXTw0Lky34ZJ4Aw==/split_config.arm64_v8a.apk!libSkiaSharp.so (sk_surface_draw+28)
+            """;
+
+            Assert.True(NativeCrashSignature.Derive(Exit(TombstoneProtoReader.TryRenderAsText(binary))).Fingerprint
+                        == NativeCrashSignature.Derive(Exit(asText)).Fingerprint,
+                "one fault split into two issues depending on which format the OS happened to hand back");
+        });
+
+        t.Check("nothing per-process reaches a signature derived from protobuf", () =>
+        {
+            var s = NativeCrashSignature.Derive(Exit(TombstoneProtoReader.TryRenderAsText(binary)));
+            foreach (var leak in new[] { "IlliRmL7ISC6U7xZvSurqg", "FLHCWNbuXTw0Lky34ZJ4Aw", "/data/app", "+28", "1234" })
+                Assert.True(!s.Fingerprint.Contains(leak, StringComparison.OrdinalIgnoreCase),
+                    $"fingerprint leaked '{leak}': {s.Fingerprint}");
+        });
+
+        t.Check("a text tombstone is left to the existing path", () =>
+        {
+            const string text = """
+            signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0
+            backtrace:
+              #00  pc 0000000000249eb4  /x/libSkiaSharp.so (sk_surface_draw+28)
+            """;
+            Assert.True(TombstoneProtoReader.TryRenderAsText(System.Text.Encoding.UTF8.GetBytes(text)) == null,
+                "a text tombstone must not be re-rendered");
+        });
+
+        t.Check("a malformed payload degrades instead of throwing", () =>
+        {
+            Assert.True(TombstoneProtoReader.TryRenderAsText([]) == null, "empty");
+            Assert.True(TombstoneProtoReader.TryRenderAsText([0xFF, 0xFF, 0xFF, 0xFF]) == null, "garbage");
+
+            // Truncated mid-message (a length prefix now runs past the end of its parent) and bit-rotted
+            // payloads must both come back as null or a usable render — never as an exception, because
+            // this runs while the app is recovering from a crash.
+            TombstoneProtoReader.TryRenderAsText(binary.Take(binary.Length / 2).ToArray());
+
+            var corrupted = (byte[])binary.Clone();
+            for (var i = 0; i < corrupted.Length; i += 7)
+                corrupted[i] ^= 0x5A;
+            NativeCrashSignature.Derive(Exit(TombstoneProtoReader.TryRenderAsText(corrupted)));
+        });
+    }
+
     static void FloodFillBoundsScenario(TestReport t)
     {
         Console.WriteLine("\n=== Flood fill bounds scenario ===");

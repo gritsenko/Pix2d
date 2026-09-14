@@ -261,6 +261,20 @@ public static partial class NativeCrashSignature
         SystemLibraries.Contains(library, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Whether a mapped path belongs to a library that is ours rather than the platform&apos;s. Exposed so
+    /// <see cref="TombstoneProtoReader"/> can pick the faulting thread out of a binary tombstone by the
+    /// same rule this class picks a frame, instead of keeping a second copy of the system-library list.
+    /// </summary>
+    public static bool IsAppOwnedLibraryPath(string? mapPath)
+    {
+        if (string.IsNullOrEmpty(mapPath))
+            return false;
+
+        var library = ExtractLibraryName(mapPath);
+        return library.Length > 0 && !IsSystemLibrary(library);
+    }
+
+    /// <summary>
     /// Reduces a mapped path to the library basename. Two Android specifics matter: a library loaded
     /// straight out of a split APK appears as <c>…/split_config.arm64_v8a.apk!libSkiaSharp.so</c>
     /// (the part after <c>!</c> is the library), and the directory prefix contains a per-install
@@ -401,7 +415,7 @@ public static partial class NativeCrashSignature
     /// Frames with no mapped module (a bare <c>pc</c>, which happens when the unwinder loses the map)
     /// deliberately do not match — there is nothing stable to key on in them.
     /// </summary>
-    [GeneratedRegex(@"^\s*#\d+\s+pc\s+[0-9a-fA-F]+\s+(?<map>\S+)(?<rest>[^\r\n]*)$", RegexOptions.Multiline)]
+    [GeneratedRegex(@"^\s*#\d+\s+pc\s+[0-9a-fA-F]+\s+(?<map>\S+)(?<rest>[^\r\n]*)\r?$", RegexOptions.Multiline)]
     private static partial Regex BacktraceFrameRegex();
 
     [GeneratedRegex(@"\(([^)]*)\)")]
@@ -423,7 +437,7 @@ public static partial class NativeCrashSignature
     /// A thread header in either dump shape: <c>"main" prio=5 tid=1 Blocked</c> (ART) or
     /// <c>".pix2d.pix2dapp" sysTid=22998</c> (debuggerd).
     /// </summary>
-    [GeneratedRegex("""^[ \t]*"(?<name>[^"\r\n]*)"(?<rest>[^\r\n]*)$""", RegexOptions.Multiline)]
+    [GeneratedRegex("""^[ \t]*"(?<name>[^"\r\n]*)"(?<rest>[^\r\n]*)\r?$""", RegexOptions.Multiline)]
     private static partial Regex ThreadHeaderRegex();
 
     [GeneratedRegex(@"sysTid=(\d+)")]
@@ -433,7 +447,7 @@ public static partial class NativeCrashSignature
     [GeneratedRegex(@"(?:dumping\s+pid:\s*|-{2,}\s*pid\s+)(\d+)")]
     private static partial Regex DumpedPidRegex();
 
-    [GeneratedRegex(@"^[ \t]*sysTid=(\d+)[ \t]+(\S+)[ \t]*$", RegexOptions.Multiline)]
+    [GeneratedRegex(@"^[ \t]*sysTid=(\d+)[ \t]+(\S+)[ \t]*\r?$", RegexOptions.Multiline)]
     private static partial Regex WaitChannelRegex();
 }
 
