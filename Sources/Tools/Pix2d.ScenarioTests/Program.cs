@@ -98,6 +98,7 @@ static class Runner
         LoggerTargetFailureScenario(harness, t);
         AnimationMetaScenario(harness, t);
         BrushPresetScenario(harness, t);
+        BrushPreviewSurfaceOwnershipScenario(harness, t);
         BatchExportScenario(harness, t);
         PrecisionScrollDetectorScenario(harness, t);
         PixelSelectionScenario(harness, t);
@@ -109,6 +110,7 @@ static class Runner
         FillOpacityScenario(harness, t);
         ShapeBrushScenario(harness, t);
         SymmetryScenario(harness, t);
+        SymmetryBufferAliasingScenario(harness, t);
         LayerTitleAndPixelMaskScenario(harness, t);
         UpdateReleaseParsingScenario(t);
         NativeCrashSignatureScenario(t);
@@ -2535,6 +2537,89 @@ static class Runner
     // undeclared settings key is a dropped write), value-vs-reference identity when deleting (
     // BrushSettings has value equality, so List.Remove would happily take out a built-in twin), and
     // tolerance of a settings file written by another build.
+    // --- Brush preview surface ownership (issue #253) ----------------------------------------------
+    // The stroke-preview surface is produced on the UI thread and drawn on Avalonia's render thread, so
+    // whoever holds it across frames must be the one that frees it. BasePixelBrush used to cache the
+    // surface and dispose it on the next call, which freed a native SkSurface that DrawingLayerNode was
+    // still drawing every frame — a use-after-free that terminated the process with no managed exception
+    // (reported as random crashes while dragging the color slider, which pushes one color change per
+    // pointer-move event). The race itself isn't reproducible headlessly; the ownership contract that
+    // makes it impossible is, and that's what these checks pin down.
+    static void BrushPreviewSurfaceOwnershipScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Brush preview surface ownership scenario ===");
+
+        var drawing = h.Services.GetRequiredService<IDrawingService>();
+        var state = h.AppState.SpriteEditorState;
+
+        // Throwaway copies throughout: the preset brushes are the singletons the canvas draws with, so
+        // re-initializing one here would change the stamp size every later drawing scenario paints with.
+        var scratch = ((BasePixelBrush)state.BrushPresets[0].Brush!).CreatePreviewInstance();
+        scratch.InitBrush(4, 1f, 0.01f).Wait();
+
+        SKSurface? first = null;
+        SKSurface? second = null;
+
+        t.Check("a brush hands out a fresh surface and never frees the previous one", () =>
+        {
+            first = scratch.GetPreviewSurface(SKColors.Red, 4);
+            second = scratch.GetPreviewSurface(SKColors.Blue, 4);
+
+            Assert.True(first != null && second != null, "the brush produced no preview surface");
+            Assert.True(!ReferenceEquals(first, second), "the same surface instance was handed out twice");
+            Assert.True(first!.Handle != IntPtr.Zero,
+                "the brush freed a surface it had already handed out - the render thread may still be drawing it");
+            Assert.True(second!.Handle != IntPtr.Zero, "the surface just returned is already disposed");
+        });
+
+        t.Check("disposing the brush does not free surfaces the caller owns", () =>
+        {
+            var doomed = ((BasePixelBrush)state.BrushPresets[0].Brush!).CreatePreviewInstance();
+            doomed.InitBrush(4, 1f, 0.01f).Wait();
+            var handedOut = doomed.GetPreviewSurface(SKColors.Green, 4);
+            Assert.True(handedOut != null, "the brush produced no preview surface");
+
+            doomed.Dispose();
+
+            Assert.True(handedOut!.Handle != IntPtr.Zero, "Dispose() freed a surface owned by the caller");
+            handedOut.Dispose();
+        });
+
+        first?.Dispose();
+        second?.Dispose();
+        scratch.Dispose();
+
+        t.Check("the drawing layer owns its preview surface and frees the one it replaces", () =>
+        {
+            var layer = drawing.DrawingLayer;
+            var restoreColor = layer.DrawingColor;
+            var field = layer.GetType().GetField("_brushPreviewSurface",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.True(field != null, "DrawingLayerNode._brushPreviewSurface is gone - update this check");
+
+            try
+            {
+                layer.DrawingColor = new SKColor(0x11, 0x22, 0x33);
+                var previous = (SKSurface?)field!.GetValue(layer);
+                Assert.True(previous != null && previous.Handle != IntPtr.Zero,
+                    "no live preview surface after a color change");
+
+                layer.DrawingColor = new SKColor(0x44, 0x55, 0x66);
+                var current = (SKSurface?)field.GetValue(layer);
+
+                Assert.True(current != null && !ReferenceEquals(current, previous),
+                    "the preview surface was not swapped on a color change");
+                Assert.True(previous!.Handle == IntPtr.Zero,
+                    "the replaced preview surface was leaked - the layer must free the one it drops");
+                Assert.True(current!.Handle != IntPtr.Zero, "the new preview surface is already disposed");
+            }
+            finally
+            {
+                layer.DrawingColor = restoreColor;
+            }
+        });
+    }
+
     static void BrushPresetScenario(HeadlessHarness h, TestReport t)
     {
         Console.WriteLine("\n=== Brush preset scenario ===");
@@ -4354,6 +4439,89 @@ static class Runner
     // The second half draws through the real pipeline so the state -> IDrawingService -> drawing-layer
     // wiring is covered as well, and asserts the *count* of painted pixels — which is what separates the
     // new "X+Y = four images" from the old behaviour (a 180 degree rotation, i.e. two).
+    // --- Symmetry anchor buffer is not shared with the brush preview ------------------------------
+    // StrokeRenderer keeps one reused anchor buffer, and DrawPoint / ErasePoint iterate it while stamping
+    // the mirrored dabs. The brush-preview overlay used to ask for that same buffer -- from Avalonia's
+    // render thread, i.e. concurrently -- so a preview frame landing mid-stroke cleared and refilled the
+    // list the rasterizer was indexing: ArgumentOutOfRangeException out of List<SKPointI>.get_Item, the
+    // top open error on 3.12.0 (42 occurrences / 18 users) and always from a shape tool, because those
+    // keep the preview visible *while* drawing (IsShowingBrush() is true for ExternalDraw).
+    //
+    // The interleaving is a data race, but the aliasing it needs is deterministic: hold the rasterizer's
+    // buffer, run the preview's render path, and see whether the buffer survived.
+    static void SymmetryBufferAliasingScenario(HeadlessHarness h, TestReport t)
+    {
+        Console.WriteLine("\n=== Symmetry buffer aliasing scenario ===");
+
+        h.NewProject(64);
+
+        var drawing = h.Services.GetRequiredService<IDrawingService>();
+        var layer = drawing.DrawingLayer;
+        var node = (SKNode)layer;
+
+        var restoreSymmetry = layer.Symmetry;
+        var restorePreview = layer.ShowBrushPreview;
+        var restoreColor = layer.DrawingColor;
+
+        const System.Reflection.BindingFlags Inst =
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+
+        try
+        {
+            // MirrorBoth gives three images per dab, so a clobbered buffer is visible in the values.
+            layer.Symmetry = SymmetrySettings.MirrorBoth();
+            layer.ShowBrushPreview = true;
+            layer.DrawingColor = SKColors.Red; // also what builds the preview surface
+
+            var nodeType = node.GetType();
+            var rendererField = nodeType.GetField("_strokeRenderer", Inst);
+            var previewPosProp = nodeType.GetProperty("PreviewPosition", Inst);
+            var renderMethod = nodeType.GetMethod("RenderBrushPreview", Inst);
+            var surfaceField = nodeType.GetField("_brushPreviewSurface", Inst);
+
+            t.Check("the preview render path is reachable and armed", () =>
+            {
+                Assert.True(rendererField != null, "DrawingLayerNode._strokeRenderer is gone - update this check");
+                Assert.True(previewPosProp != null, "DrawingLayerNode.PreviewPosition is gone - update this check");
+                Assert.True(renderMethod != null, "DrawingLayerNode.RenderBrushPreview is gone - update this check");
+                Assert.True(layer.Brush != null, "no live brush, the preview would draw nothing");
+                // Without a surface RenderBrushPreview returns early and this scenario proves nothing.
+                Assert.True(surfaceField?.GetValue(node) != null,
+                    "no brush preview surface after a color change - the check below would be vacuous");
+            });
+
+            t.Check("the brush preview does not refill the stroke rasterizer's anchor buffer", () =>
+            {
+                var renderer = rendererField!.GetValue(node)!;
+                var getImages = renderer.GetType().GetMethod("GetSymmetryImages");
+                Assert.True(getImages != null, "StrokeRenderer.GetSymmetryImages is gone - update this check");
+
+                // The rasterizer's live buffer, exactly as DrawPoint holds it while stamping the images.
+                var strokeBuffer = (IReadOnlyList<SKPointI>)getImages!
+                    .Invoke(renderer, new object[] { new SKPointI(10, 20), layer.Brush })!;
+                var before = strokeBuffer.ToArray();
+                Assert.True(before.Length == 3, $"expected 3 mirrored anchors, got {before.Length}");
+
+                // Now the render thread's frame, at a different spot so its anchors differ from ours.
+                previewPosProp!.SetValue(node, new SKPointI(25, 40));
+                using var scratch = new SKBitmap(64, 64);
+                using var scratchCanvas = new SKCanvas(scratch);
+                renderMethod!.Invoke(node, new object[] { scratchCanvas });
+
+                var after = strokeBuffer.ToArray();
+                Assert.True(after.SequenceEqual(before),
+                    "the preview overwrote the buffer the stroke rasterizer was iterating: "
+                    + $"[{string.Join(", ", before)}] -> [{string.Join(", ", after)}]");
+            });
+        }
+        finally
+        {
+            layer.Symmetry = restoreSymmetry;
+            layer.ShowBrushPreview = restorePreview;
+            layer.DrawingColor = restoreColor;
+        }
+    }
+
     static void SymmetryScenario(HeadlessHarness h, TestReport t)
     {
         Console.WriteLine("\n=== Symmetry scenario ===");
