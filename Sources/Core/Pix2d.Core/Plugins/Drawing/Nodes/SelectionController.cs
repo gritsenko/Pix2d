@@ -209,7 +209,21 @@ internal sealed class SelectionController
 
     private void SelectionEditor_SelectionEdited(object? sender, EventArgs e)
     {
-        _currentSelectionOperation!.SetFinalState(_host.ActiveToolKeyProvider?.Invoke());
+        // A drag can outlive the selection it started on. The thumb holds the pointer capture, so the
+        // release still arrives here even after something tore the selection down mid-gesture — and
+        // DeactivateSelectionEditor nulls the operation that SelectionEditStarted opened. The crash report
+        // shows exactly that: Edit.Selection.InvertSelection fired repeatedly during the drag, then the
+        // release dereferenced the operation that was no longer there (appstat 3.13.0, fatal
+        // NullReferenceException out of FrameEditorNode.ThumbOnDragComplete). There is nothing left to
+        // commit, and opening a fresh operation here would push an undo step for a selection that no
+        // longer exists, so drop the edit and repaint.
+        if (_currentSelectionOperation == null)
+        {
+            _host.RequestRefresh();
+            return;
+        }
+
+        _currentSelectionOperation.SetFinalState(_host.ActiveToolKeyProvider?.Invoke());
         if (_pixelsLifted)
             UpdateWorkingBitmapFromSelection();
         else

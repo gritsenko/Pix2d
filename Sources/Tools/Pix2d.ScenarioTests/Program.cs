@@ -3166,6 +3166,34 @@ static class Runner
                 "still on PixelTransformTool after Deselect");
         });
 
+        // The move thumb owns the pointer capture for the whole gesture, so the release still reaches the
+        // selection controller after the selection it started on has been torn down. InvertSelection
+        // rebuilds the marquee from scratch — DeactivateSelectionEditor nulls the transform operation the
+        // drag opened — and the release then dereferenced that operation: appstat 3.13.0, fatal
+        // NullReferenceException in SelectionController <- FrameEditorNode.ThumbOnDragComplete, with the op
+        // log showing Edit.Selection.InvertSelection fired over and over during the gesture.
+        t.Check("a selection rebuilt mid-drag does not crash on release", () =>
+        {
+            h.SetView(1);   // 1:1, so the screen-pixel-sized thumb hit zones land where the maths says
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelSelectRectTool>();
+            h.DragWorld(box.Left + 4, box.Top + 4, box.Left + 24, box.Top + 24);
+            Assert.True(h.PixelSelectionPhase == Pix2d.Primitives.Drawing.SelectionPhase.Transforming,
+                $"precondition: expected lifted pixels, phase = {h.PixelSelectionPhase}");
+
+            var sel = h.PixelSelectionBounds;
+            h.PressWorld(sel.MidX, sel.MidY);
+            h.MoveWorld(sel.MidX + 6, sel.MidY + 6, pressed: true);
+            h.Exec("Edit.Selection.InvertSelection");
+            h.ReleaseWorld(sel.MidX + 6, sel.MidY + 6);
+
+            // Surviving the release is the point; the editor must also still take the next gesture.
+            h.Exec("Edit.Selection.Deselect");
+            h.ActivateTool<Pix2d.Plugins.Drawing.Tools.PixelSelect.PixelSelectRectTool>();
+            h.DragWorld(box.Left + 4, box.Top + 4, box.Left + 16, box.Top + 16);
+            Assert.True(h.HasPixelSelection, "the editor stopped accepting selections after the torn-down drag");
+            h.Exec("Edit.Selection.Deselect");
+        });
+
         h.AppState.IsAutoOpenTransformEditorAfterSelectionEnabled = autoTransform;
     }
 

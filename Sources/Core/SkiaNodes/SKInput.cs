@@ -140,6 +140,15 @@ public class SKInput
         {
             interactive?.OnPointerReleasedCore(args);
         }, args);
+
+        // A capture must not outlive the gesture that created it. Normally the capturing node drops it
+        // itself in OnPointerReleased, but it only receives that event while it is still a visible part of
+        // the scene (GetInteractives walks *visible* descendants), so anything that hides or detaches it
+        // mid-gesture strands the capture: every later pointer event is then routed to a node that is no
+        // longer on screen and the canvas stops responding altogether. Seen with the selection editor's
+        // thumbs — Edit.Selection.InvertSelection during a drag tears the editor down, and the release that
+        // ends the drag never reaches the thumb holding the capture.
+        CapturedPointerBy = null;
     }
 
     public void SetPointerMoved(SKPoint pos, bool isPointerPressed, KeyModifier modifiers, bool isTouch)
