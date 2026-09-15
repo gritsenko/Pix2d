@@ -257,9 +257,29 @@ public class ProjectService : IProjectService, ISessionProjectLoader
 
     private async Task SaveCurrentProjectToFileAsync(IFileContentSource targetFile)
     {
-        using var uiBlocker = new UiBlocker("Saving project...");
-        if (AppState.CurrentProject.SceneNode != null)
-            await ProjectPacker.WriteProjectAsync(targetFile, AppState.CurrentProject.SceneNode);
+        try
+        {
+            // Scoped so the blocker is already gone by the time the alert below is shown.
+            using var uiBlocker = new UiBlocker("Saving project...");
+            if (AppState.CurrentProject.SceneNode != null)
+                await ProjectPacker.WriteProjectAsync(targetFile, AppState.CurrentProject.SceneNode);
+        }
+        catch (Exception e)
+        {
+            // A save that fails must say so. Nothing here used to catch anything: the exception travelled
+            // up to CommandService, which logs it and reports it to telemetry but shows no UI — so the
+            // progress blocker vanished, the project was NOT written, and the only hint the user got was
+            // the unsaved-changes marker still being there (appstat 3.13.0: FileNotFoundException out of
+            // the staged write, from File.SaveAs). Rethrow after telling them: the caller must not treat
+            // this as a completed save — AskSaveCurrentProject would otherwise close an unsaved project —
+            // and CommandService still owns the single telemetry report.
+            DialogService.Alert(
+                FileFailures.IsDestinationFailure(e)
+                    ? "Couldn't save the project — the location isn't writable, is in use, or is no longer available. Try saving to a different folder."
+                    : "Couldn't save the project. Try saving to a different folder or under a different name.",
+                "Save");
+            throw;
+        }
 
         ProjectState.File = targetFile;
         HasUnsavedChanges = false;

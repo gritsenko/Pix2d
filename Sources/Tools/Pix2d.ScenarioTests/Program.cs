@@ -2083,6 +2083,26 @@ static class Runner
                 Assert.True(NoStagingLeftovers(vanishing), "a staging file was left behind");
             });
 
+            t.Check("a destination whose staging sibling cannot exist still saves", () =>
+            {
+                // The staging file is "<final>.<32 hex>.tmp" -- 37 characters longer than the destination's
+                // own name -- so a legal 250-character name has no legal staging name (255 bytes per path
+                // component on NTFS, ext4 and APFS alike). Same shape as a security filter or a sync client
+                // refusing an unknown .tmp in a watched folder while allowing the real file, which is what
+                // appstat reported as FileNotFoundException on "...\Documents\....pix2d.tmp" (3.13.0, from
+                // File.SaveAs): the save threw out of the staged write's constructor and the user's work was
+                // silently dropped. It must fall back to a buffered write instead of failing.
+                var longName = new string('n', 250 - ".pix2d".Length) + ".pix2d";
+                var longPath = Path.Combine(dir, longName);
+                var longFile = new Pix2d.Common.FileSystem.NetFileSource(longPath);
+
+                using var source = new MemoryStream([1, 2, 3, 4]);
+                longFile.SaveAsync(source).GetAwaiter().GetResult();
+
+                Assert.True(File.ReadAllBytes(longPath).Length == 4, "the save did not land");
+                Assert.True(NoStagingLeftovers(longPath), "a staging file was left behind");
+            });
+
             t.Check("two overlapping saves of one file do not collide on a staging file", () =>
             {
                 // A close-triggered save landing on top of an autosave: the staging file used to be a

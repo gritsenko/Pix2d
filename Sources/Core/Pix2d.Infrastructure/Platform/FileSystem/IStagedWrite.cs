@@ -36,8 +36,49 @@ public static class StagedWrites
     /// Stages into a <c>.tmp</c> sibling and publishes with an atomic rename. The destination is either the
     /// old file or the new one, never a mixture, and nothing is buffered in memory — the payload streams
     /// straight to disk however large it is.
+    ///
+    /// <para>Falls back to <see cref="InMemory"/> when the staging sibling cannot be created at all. The
+    /// sibling's name is always <i>longer</i> than the destination's (<c>&lt;final&gt;.&lt;guid&gt;.tmp</c>),
+    /// so a destination whose own name sits near the filesystem's 255-character component limit has no
+    /// legal staging name — and a security filter or a sync client can refuse an unknown <c>.tmp</c> in a
+    /// watched folder while allowing the real file (<c>FileNotFoundException</c> on
+    /// <c>…\Documents\….pix2d.tmp</c>, 3.13.0, from <c>File.SaveAs</c>). Refusing here loses the save
+    /// outright; the fallback keeps the weaker "destination untouched until the payload is complete"
+    /// guarantee instead, which is the one every path-less destination already lives with.</para>
     /// </summary>
-    public static IStagedWrite OnDisk(string path) => new DiskStagedWrite(path);
+    public static IStagedWrite OnDisk(string path)
+    {
+        try
+        {
+            return new DiskStagedWrite(path);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // A destination that is itself unwritable still fails — one step later, when the buffered
+            // payload is handed over, and by then the caller has produced it exactly once either way.
+            Logger.Log($"Staged write fell back to a buffered write for '{path}': {e.Message}");
+            return InMemory(payload => WriteDirectlyAsync(path, payload));
+        }
+    }
+
+    /// <summary>
+    /// The fallback's commit: truncate the destination and copy the finished payload into it.
+    /// <see cref="FileMode.Create"/> rather than an append-capable mode — writing a shorter archive over a
+    /// longer one without truncating leaves the old tail in place, which is one of the two ways a
+    /// <c>.pix2d</c> used to become unopenable.
+    /// </summary>
+    private static async Task WriteDirectlyAsync(string path, Stream payload)
+    {
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+
+        await using var destination = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None,
+            bufferSize: 64 * 1024, useAsync: true);
+
+        await payload.CopyToAsync(destination).ConfigureAwait(false);
+        await destination.FlushAsync().ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Buffers the payload in memory and hands it over complete on commit, for destinations with no rename
