@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using FileFailures = Pix2d.Abstract.Platform.FileSystem.FileFailures;
 using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Themes.Simple;
@@ -117,6 +118,7 @@ static class Runner
         FloodFillBoundsScenario(t);
         TombstoneProtoScenario(t);
         AnimationFrameUndoScenario(harness, t);
+        WriteFailureClassificationScenario(t);
         SafeSweep(harness);
 
         return t.Summarize();
@@ -5132,6 +5134,40 @@ static class Runner
                || !Directory.EnumerateFiles(dir, Path.GetFileName(path) + ".*.tmp").Any();
     }
 
+    // --- Scenario: which exceptions count as "the destination is the problem" ----------------------
+    // Export and Save both pick their user-facing message from this one classifier. It used to be a bare
+    // `is IOException`, which on Android matches nothing: a SAF destination fails with Java.IO.IOException
+    // (a Java.Lang.Throwable, not a System.IO one), so an export to an SD card unmounted since the folder
+    // was picked -- "No content provider: content://..." on 3.12.0 -- was reported to the user as
+    // "There's nothing to Export!", a message about a completely different problem.
+    static void WriteFailureClassificationScenario(TestReport t)
+    {
+        Console.WriteLine("\n=== Write-failure classification scenario ===");
+
+        t.Check("a plain filesystem failure is a destination failure", () =>
+        {
+            Assert.True(FileFailures.IsDestinationFailure(new IOException("in use")), "IOException not classified");
+            Assert.True(FileFailures.IsDestinationFailure(new UnauthorizedAccessException()),
+                "UnauthorizedAccessException not classified");
+            Assert.True(FileFailures.IsDestinationFailure(new FileNotFoundException()),
+                "FileNotFoundException not classified");
+        });
+
+        t.Check("an Android SAF failure is a destination failure too", () =>
+        {
+            Assert.True(FileFailures.IsDestinationFailure(new Java.IO.IOException("No content provider: content://x")),
+                "a Java.IO exception was not recognised as a destination failure");
+        });
+
+        t.Check("an unrelated failure is not mistaken for one", () =>
+        {
+            Assert.True(!FileFailures.IsDestinationFailure(new InvalidOperationException("empty scene")),
+                "an unrelated exception was classified as a destination failure");
+            Assert.True(!FileFailures.IsDestinationFailure(new OutOfMemoryException()),
+                "an out-of-memory render was classified as a destination failure");
+        });
+    }
+
     static void FloodFillBoundsScenario(TestReport t)
     {
         Console.WriteLine("\n=== Flood fill bounds scenario ===");
@@ -5507,4 +5543,14 @@ sealed class TestReport
         Console.WriteLine($"\n=== {_passed} passed, {_failed} failed ===");
         return _failed == 0 ? 0 : 1;
     }
+}
+
+namespace Java.IO
+{
+    /// <summary>
+    /// Stand-in for Mono.Android's <c>Java.IO.IOException</c>, which the harness cannot reference. What
+    /// matters to <see cref="Pix2d.Abstract.Platform.FileSystem.FileFailures"/> is exactly what is
+    /// reproduced here: the namespace, and *not* deriving from <see cref="System.IO.IOException"/>.
+    /// </summary>
+    internal class IOException(string message) : System.Exception(message);
 }

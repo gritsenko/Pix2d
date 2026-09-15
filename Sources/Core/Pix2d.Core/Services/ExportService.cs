@@ -185,10 +185,12 @@ public class ExportService(
     {
         switch (e)
         {
-            case UnauthorizedAccessException:
-            case IOException:
+            // FileFailures rather than a plain `is IOException`: an Android SAF destination reports itself
+            // through Java.IO.IOException, which is not a System.IO exception at all and used to land in
+            // the "nothing to Export!" default below.
+            case { } when FileFailures.IsDestinationFailure(e):
                 dialogService.Alert(
-                    "Couldn't save the file — the location isn't writable or the file is in use. Try exporting to a different folder.",
+                    "Couldn't save the file — the location isn't writable, is in use, or is no longer available. Try exporting to a different folder.",
                     "Export");
                 break;
             case OutOfMemoryException:
